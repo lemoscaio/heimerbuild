@@ -1,0 +1,46 @@
+@import "reset";
+@import "mixins";
+
+// Champions Page
+
+.champions-list {
+  @include flex(row, center, flex-start, wrap);
+  gap: 30px;
+
+  margin: 10px 20px;
+
+  .champion-card {
+    width: 60px;
+
+    .champion-card__image {
+      width: 100%;
+    }
+
+    .champion-card__name {
+      width: 100%;
+
+      text-align: center;
+      font-size: 12px;
+    }
+  }
+}
+
+// Champion Page
+
+.champion-info {
+  &__header {
+    @include flex(row, flex-start, center);
+    gap: 20px;
+    padding: 15px;
+  }
+
+  &__header-image {
+    height: 70px;
+    object-fit: "cover";
+  }
+
+  &__name-title {
+    @include flex(column);
+    gap: 5px;
+  }
+}

@@ -1,55 +1,163 @@
-import { useState, useEffect, useCallback } from "preact/hooks"
-import { useParams } from "react-router-dom"
 import axios from "axios"
+import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
+import { useParams } from "react-router-dom"
 
 import { ChampionSkills } from "../components/ChampionSkills"
 
 export default function ChampionPage() {
-  const { championKey } = useParams()
-
-  const MAX_LEVEL = 18
+  console.log("Rendered")
 
   const { VITE_APP_API_URL } = import.meta.env
+  const MAX_LEVEL = 18
+
+  const { championKey } = useParams()
+
+  const statsOrder = [
+    "attackDamage",
+    "abilityPower",
+    "armor",
+    "magicResistance",
+    "attackSpeed",
+    "abilityHaste",
+    "criticalStrike",
+    "moveSpeed",
+    "health",
+    "healthRegen",
+    "mana",
+    "manaRegen",
+    "lethality",
+    "armorPenetration",
+    "flatMagicPenetration",
+    "percentageMagicPenetration",
+    "lifeSteal",
+    "physicalVamp",
+    "omniVamp",
+    "attackRange",
+    "tenacity",
+  ]
+  const statsLabels = {
+    attackDamage: {
+      label: "Attack Damage",
+      short_label: "AD",
+    },
+    abilityPower: {
+      label: "Ability Power",
+      short_label: "AP",
+    },
+    armor: {
+      label: "Armor",
+      short_label: "Armor",
+    },
+    magicResistance: { label: "Magic Resistance", short_label: "MR" },
+    attackSpeed: {
+      label: "Attack Speed",
+      short_label: "Atk Speed",
+    },
+    abilityHaste: {
+      label: "Ability Haste",
+      short_label: "AH",
+    },
+    criticalStrike: {
+      label: "Critical Strike",
+      short_label: "Crit",
+    },
+    moveSpeed: {
+      label: "Movement Speed",
+      short_label: "Move Speed",
+    },
+    health: {
+      label: "Health",
+      short_label: "HP",
+    },
+    healthRegen: {
+      label: "Health Regen",
+      short_label: "HP Regen",
+    },
+    mana: {
+      label: "Mana",
+      short_label: "MP",
+    },
+    manaRegen: {
+      label: "Mana Regen",
+      short_label: "MP Regen",
+    },
+    lethality: {
+      label: "Lethality",
+      short_label: "Lethality",
+    },
+    armorPenetration: {
+      label: "Armor Penetration",
+      short_label: "Armor Pen",
+    },
+    flatMagicPenetration: {
+      label: "Flat Magic Penetration",
+      short_label: "Flat Magic Pen",
+    },
+    percentageMagicPenetration: {
+      label: "Percentage Magic Penetration",
+      short_label: "Percentage Magic Pen",
+    },
+    lifeSteal: {
+      label: "Life Steal",
+      short_label: "Life Steal",
+    },
+    physicalVamp: {
+      label: "Physical Vamp",
+      short_label: "Physical Vamp",
+    },
+    omniVamp: {
+      label: "Omnivamp",
+      short_label: "Omnivamp",
+    },
+    attackRange: {
+      label: "Attack Range",
+      short_label: "Atk Range",
+    },
+    tenacity: {
+      label: "Tenacity",
+      short_label: "Tenacity",
+    },
+  }
 
   const [championInfo, setChampionInfo] = useState(() => {
     axios
       .get(`${VITE_APP_API_URL}/champions/${championKey}`)
       .then((response) => {
         const championData = response.data
-
+        championData.stats.moveSpeed = championData.stats.movespeed
+        delete championData.stats.movespeed
         setChampionInfo(championData)
       })
-      .catch((error) => console.log(error))
+      .catch((error) => {
+        console.log(error)
+      })
   })
-
-  // const [championDisplayInfo, setChampionDisplayInfo] = useState({})
-
   const [championLevel, setChampionLevel] = useState(0)
 
-  const [championStats, setChampionStats] = useState({})
-
-  console.log({ championInfo })
-  console.log({ championLevel: championLevel })
-  console.log({ championStats })
+  // const [championDisplayInfo, setChampionDisplayInfo] = useState({})
 
   const updateEachStat = useCallback(
     (stats) => {
       const newStats = {}
 
       for (let stat in stats) {
-        newStats[stat] = stats[stat].flat + championLevel * stats[stat].perLevel
+        newStats[stat] = Number(
+          (stats[stat].flat + championLevel * stats[stat].perLevel).toFixed(2),
+        )
       }
+
+      statsOrder.forEach((stat) => {
+        if (newStats[stat] === undefined) {
+          newStats[stat] = 0
+        }
+      })
 
       return newStats
     },
     [championLevel],
   )
 
-  useEffect(() => {
-    if (championInfo) {
-      setChampionStats(updateEachStat(championInfo.stats))
-    }
-  }, [championInfo, championLevel, updateEachStat])
+  const championStats = championInfo ? updateEachStat(championInfo.stats) : {}
 
   function handleLevelChange(e) {
     setChampionLevel(Number(e.target.value))
@@ -114,21 +222,19 @@ export default function ChampionPage() {
   }
 
   function createChampionStatsElement() {
-    const statsElements = []
+    // const statsElements = []
 
-    for (let stat in championStats) {
-      statsElements.push(
+    const statsElements = statsOrder.map((stat) => {
+      return (
         <li>
           {" "}
-          {stat}: {championStats[stat]}{" "}
-        </li>,
+          {statsLabels[stat].label}: {championStats[stat]}{" "}
+        </li>
       )
-    }
+    })
 
     return (
       <div>
-        {createLevelSelectElement()}
-        Current Level: {championLevel + 1}
         <ul>{statsElements.map((statElement) => statElement)}</ul>
       </div>
     )
@@ -140,27 +246,32 @@ export default function ChampionPage() {
         {championInfo ? (
           <div>
             <div className="champion-info">
-              <img
-                style={{ objectFit: "cover" }}
-                src={championInfo.icon}
-                alt=""
-                className="champion-info__image"
-              />
-              <div className="champion-info__info-container info-container">
-                <h3 className="info-container__name">{championInfo.name}</h3>
-                <h4 className="info-container__title">{championInfo.title}</h4>
-                {createChampionLoreElement()}
+              <div className="champion-info__header">
+                <img
+                  src={championInfo.icon}
+                  alt=""
+                  className="champion-info__header-image"
+                />
+                <div className="champion-info__name-title">
+                  <h3 className="info-container__name">{championInfo.name}</h3>
+                  <h4 className="info-container__title">
+                    {championInfo.title}
+                  </h4>
+                </div>
               </div>
+              {/* {createChampionLoreElement()} */}
+              {createLevelSelectElement()}
+              Current Level: {championLevel + 1}
             </div>
             <div>
-              {createChampionTypesElement()}
-              {createAttackTypeElement()}
+              {/* {createChampionTypesElement()} */}
+              {/* {createAttackTypeElement()} */}
               {createChampionStatsElement()}
             </div>
             <div>
-              <ChampionSkills
+              {/* <ChampionSkills
                 abilities={championInfo.abilities}
-              ></ChampionSkills>
+              ></ChampionSkills> */}
             </div>
           </div>
         ) : (
