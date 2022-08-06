@@ -1,0 +1,31 @@
+//Media Queries
+
+@mixin phone-only {
+  @media screen and (max-width: 700px) {
+    @content;
+  }
+}
+
+@mixin tablet-only() {
+  @media screen and (min-width: 620px) {
+    @content;
+  }
+}
+
+@mixin desktop-only {
+  @media screen and (max-width: 1000px) {
+    @content;
+  }
+}
+
+@mixin hide-on-mobile() {
+  @media screen and (max-width: 620px) {
+    display: none;
+  }
+}
+
+@mixin hide-on-desktop() {
+  @media screen and (min-width: 620px) {
+    display: none;
+  }
+}

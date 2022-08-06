@@ -8,7 +8,7 @@ export default function ChampionCard(props) {
   }
 
   return (
-    <div
+    <article
       className="champion-card"
       onClick={(e) => handleClick(e, props.champion.key)}
     >
@@ -18,6 +18,6 @@ export default function ChampionCard(props) {
         className="champion-card__image"
       />
       <h3 className="champion-card__name">{props.champion.name}</h3>
-    </div>
+    </article>
   )
 }

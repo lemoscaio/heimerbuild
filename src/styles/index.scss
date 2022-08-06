@@ -1,7 +1,12 @@
 @import "reset";
+@import "media-queries";
 @import "mixins";
+@import "variables";
+@import "functions";
 
-// Champions Page
+* {
+  font-family: $main-font;
+} // Champions Page
 
 .champions-list {
   @include flex(row, center, flex-start, wrap);
@@ -20,27 +25,83 @@
       width: 100%;
 
       text-align: center;
-      font-size: 12px;
+      font-size: em(12);
     }
   }
 }
 
 // Champion Page
 
-.champion-info {
-  &__header {
-    @include flex(row, flex-start, center);
-    gap: 20px;
-    padding: 15px;
+.champion-page {
+  font-size: 14px;
+
+  .champion-info {
+    &__header {
+      @include flex(row, flex-start, center);
+      gap: 20px;
+      padding: 15px;
+    }
+
+    &__header-image {
+      height: 70px;
+      object-fit: "cover";
+    }
+
+    &__name-title {
+      @include flex(column);
+      gap: 5px;
+    }
+
+    &__name {
+      font-size: em(20);
+    }
+
+    &__title {
+      font-size: em(12);
+    }
+
+    .level-container {
+      @include flex(row, flex-start, center, nowrap);
+      padding: 15px;
+      gap: 20px;
+
+      &__label {
+        flex-wrap: nowrap;
+        flex-shrink: 0;
+      }
+
+      &__level-select {
+        margin-left: 5px;
+      }
+
+      &__level-slider {
+        width: max(100px, 50%);
+      }
+    }
   }
 
-  &__header-image {
-    height: 70px;
-    object-fit: "cover";
-  }
-
-  &__name-title {
-    @include flex(column);
+  .chosen-items {
+    @include flex(row, center, center, nowrap);
     gap: 5px;
+    margin: 10px 0;
+
+    &__item {
+      background-color: red;
+      width: 50px;
+      height: 50px;
+    }
+  }
+
+  .items {
+    @include flex(row, center, flex-start, wrap);
+    gap: 5px;
+
+    &__item-card {
+      cursor: pointer;
+    }
+
+    &__item-image {
+      width: 50px;
+    }
   }
 }
