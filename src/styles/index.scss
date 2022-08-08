@@ -2,11 +2,15 @@
 @import "media-queries";
 @import "mixins";
 @import "variables";
+@import "theme";
 @import "functions";
+@import "level-slider";
 
 * {
   font-family: $main-font;
-} // Champions Page
+}
+
+// Champions Page
 
 .champions-list {
   @include flex(row, center, flex-start, wrap);
@@ -32,76 +36,196 @@
 
 // Champion Page
 
+.header {
+  position: fixed;
+  width: 100%;
+  height: $header-height;
+  @include flex(row, space-between, center);
+  padding: 0 15px;
+
+  background-color: $color-primary-4;
+
+  color: white;
+  font-family: $main-font;
+
+  box-shadow: 0px 2px 10px 0px rgba(30, 30, 60, 0.5);
+}
+
 .champion-page {
   font-size: 14px;
+
+  padding-top: $header-height;
 
   .champion-info {
     &__header {
       @include flex(row, flex-start, center);
       gap: 20px;
-      padding: 15px;
+      padding: 15px 15px 0;
+
+      background-color: $color-primary-3;
+      color: white;
     }
 
     &__header-image {
       height: 70px;
       object-fit: "cover";
+
+      border: solid 1px $color-primary-1;
+      border-radius: 5px;
     }
 
     &__name-title {
       @include flex(column);
-      gap: 5px;
+      gap: 6 px;
+
+      font-family: $display-font;
     }
 
     &__name {
-      font-size: em(20);
+      font-size: em(30);
+      font-weight: 800;
     }
 
     &__title {
-      font-size: em(12);
+      font-size: em(16);
     }
 
     .level-container {
       @include flex(row, flex-start, center, nowrap);
-      padding: 15px;
+      padding: 12px 15px;
       gap: 20px;
+
+      background: rgb(27, 23, 50);
+      background: linear-gradient(180deg, rgba(27, 23, 50, 1) 0%, rgba(65, 61, 86, 1) 100%);
+      color: white;
 
       &__label {
         flex-wrap: nowrap;
         flex-shrink: 0;
+        font-weight: 700;
       }
 
       &__level-select {
         margin-left: 5px;
+        padding: 5px;
+
+        background-color: $color-primary-1;
+        border: none;
+        border-radius: 5px;
+
+        color: white;
+        font-weight: 700;
       }
 
       &__level-slider {
-        width: max(100px, 50%);
+        width: min(300px, 100%);
       }
     }
-  }
 
-  .chosen-items {
-    @include flex(row, center, center, nowrap);
-    gap: 5px;
-    margin: 10px 0;
+    .chosen-items {
+      @include flex(row, center, center, nowrap);
+      gap: 5px;
+      padding: 12px 0 12px;
 
-    &__item {
-      background-color: red;
-      width: 50px;
-      height: 50px;
+      background-color: $color-primary-3;
+
+      box-shadow: inset 0px 0px 8px rgba(0, 0, 0, 0.7);
+
+      &__item {
+        background-color: $color-primary-1;
+        width: 40px;
+        height: 40px;
+
+        border-radius: 3px;
+      }
+
+      &__item-image {
+        border-radius: 3px;
+        width: 100%;
+      }
     }
-  }
 
-  .items {
-    @include flex(row, center, flex-start, wrap);
-    gap: 5px;
+    .items {
+      background-color: $color-primary-4;
 
-    &__item-card {
-      cursor: pointer;
+      &__filter-row {
+        @include flex(row, center, center, nowrap);
+        gap: 5px;
+        padding: 5px 0;
+      }
+
+      &__second-row {
+        @include flex;
+        gap: 5px;
+        margin: 0 5px;
+      }
+
+      &__list {
+        @include flex(row, center, flex-start, wrap);
+        gap: 5px;
+
+        height: 40vh;
+        overflow: scroll;
+
+        padding-bottom: 10px;
+      }
+
+      &__filter-roles {
+        width: 30px;
+        height: 30px;
+
+        cursor: pointer;
+      }
+
+      &__role-icon {
+        height: 100%;
+        width: 100%;
+      }
+
+      &__item-filter-stats {
+        background-color: blue;
+        width: 35px;
+        height: 35px;
+        margin: 5px 0;
+      }
+
+      &__item-card {
+        cursor: pointer;
+      }
+
+      &__item-image {
+        width: 40px;
+      }
     }
 
-    &__item-image {
-      width: 50px;
+    .stats {
+      height: 100%;
+      width: 100%;
+
+      background-color: $color-primary-3;
+
+      padding: 15px;
+
+      @include flex(row, space-between, flex-start, nowrap);
+      gap: 20px;
+      color: white;
+
+      &__row-wrapper {
+        width: 50%;
+        // margin: 20px 0;
+        @include flex(column, space-between, flex-start, nowrap);
+        gap: 10px;
+      }
+
+      &__stat {
+        margin: 4px 0;
+        font-size: em(14);
+        @include flex(row, flex-start, center, nowrap);
+      }
+
+      &__stat-icon {
+        margin-right: 5px;
+      }
     }
   }
 }

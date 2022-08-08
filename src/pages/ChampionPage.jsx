@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
 import { useParams } from "react-router-dom"
 
 import { ChampionSkills } from "../components/ChampionSkills"
+import rolesIcons from "./../assets/roles-icons"
+import itemStatsIcons from "./../assets/stats-icons"
 
 export default function ChampionPage() {
   console.log("Rendered")
@@ -35,6 +37,7 @@ export default function ChampionPage() {
     "attackRange",
     "tenacity",
   ]
+
   const statsLabels = {
     attackDamage: {
       label: "Attack Damage",
@@ -129,6 +132,7 @@ export default function ChampionPage() {
       suffix: "%",
     },
   }
+
   const alternativeLabels = {
     attack_damage: {
       label: "attackDamage",
@@ -136,7 +140,6 @@ export default function ChampionPage() {
     ability_power: {
       label: "abilityPower",
     },
-
     attack_speed: {
       label: "attackSpeed",
     },
@@ -149,7 +152,6 @@ export default function ChampionPage() {
     criticalStrikeChance: {
       label: "criticalStrike",
     },
-
     health_regen: {
       label: "healthRegen",
     },
@@ -167,19 +169,49 @@ export default function ChampionPage() {
     armor_penetration: {
       label: "armorPenetration",
     },
-    magic_penetration: {
-      label: "flatMagicPenetration",
-    },
-    magic_penetration: {
-      label: "percentageMagicPenetration",
-    },
     lifesteal: {
       label: "lifeSteal",
     },
-
     omnivamp: {
       label: "omniVamp",
     },
+  }
+
+  const roles = {
+    ALL: { icon: rolesIcons.ALL, label: "All Items" },
+    FIGHTER: { icon: rolesIcons.FIGHTER, label: "Fighter" },
+    MARKSMAN: { icon: rolesIcons.MARKSMAN, label: "Marksman" },
+    ASSASSIN: { icon: rolesIcons.ASSASSIN, label: "Assassin" },
+    MAGE: { icon: rolesIcons.MAGE, label: "Mage" },
+    TANK: { icon: rolesIcons.TANK, label: "Tank" },
+    SUPPORT: { icon: rolesIcons.SUPPORT, label: "Support" },
+  }
+
+  const itemStats = {
+    attackDamage: { label: "Attack Damage", icon: itemStatsIcons.attackDamage },
+    criticalStrike: {
+      label: "Crit Chance",
+      icon: itemStatsIcons.criticalStrike,
+    },
+    attackSpeed: { label: "Attack Speed", icon: itemStatsIcons.attackSpeed },
+    armorPenetration: {
+      label: "Armor Penetration",
+      icon: itemStatsIcons.armorPenetration,
+    },
+    onHit: { label: "On-Hit", icon: itemStatsIcons.onHit },
+    lifeSteal: { label: "Life Steal", icon: itemStatsIcons.lifeSteal },
+    abilityPower: { label: "Ability Power", icon: itemStatsIcons.abilityPower },
+    mana: { label: "Mana", icon: itemStatsIcons.mana },
+    magicPenetration: {
+      label: "Magic Penetration",
+      icon: itemStatsIcons.magicPenetration,
+    },
+    health: { label: "Health", icon: itemStatsIcons.health },
+    armor: { label: "Armor", icon: itemStatsIcons.armor },
+    magicResist: { label: "Magic Resist", icon: itemStatsIcons.magicResist },
+    abilityHaste: { label: "Ability Haste", icon: itemStatsIcons.abilityHaste },
+    moveSpeed: { label: "Movement Speed", icon: itemStatsIcons.moveSpeed },
+    omniVamp: { label: "Omni-Vamp", icon: itemStatsIcons.omniVamp },
   }
 
   const [championInfo, setChampionInfo] = useState(() => {
@@ -187,6 +219,10 @@ export default function ChampionPage() {
       .get(`${VITE_APP_API_URL}/champions/${championKey}`)
       .then((response) => {
         const championData = response.data
+        console.log(
+          `🚀 -> file: ChampionPage.jsx -> line 222 -> .then -> championData`,
+          championData,
+        )
 
         setChampionInfo(championData)
       })
@@ -194,8 +230,6 @@ export default function ChampionPage() {
         console.log(error)
       })
   })
-
-  const [chosenItems, setChosenItems] = useState([])
 
   const [items, setItems] = useState(() => {
     axios
@@ -210,14 +244,53 @@ export default function ChampionPage() {
       })
   })
 
+  const [itemRoleFilter, setItemRoleFilter] = useState("ALL")
+
+  const [itemStatFilter, setItemStatFilter] = useState(() => {
+    const setOfItemStatFilter = {}
+    for (let key in itemStats) {
+      setOfItemStatFilter[key] = false
+    }
+    return { ...setOfItemStatFilter }
+  })
+
+  const filteredItems = items ? setFilteredItems() : []
+
+  function setFilteredItems() {
+    const filteredItems = Object.keys(items).filter(filterItemsByRole)
+
+    return filteredItems
+  }
+
+  // function filterItemsByStat(itemId) {
+  //   const item = items[itemId]
+  //   const itemTags = item.shop.tags
+  //   const matchedFilterStat = Object.keys(item.stats).filter((stat) => {
+  //     if (
+  //       itemStatFilter[stat] === true &&
+  //       (item.stats[stat].flat > 0 || item.stats[stat].percent > 0)
+  //     ) {
+  //       return true
+  //     }
+  //   })
+
+  //   if (matchedFilterStat.length > 0) return true
+  // }
+
+  function filterItemsByRole(itemId) {
+    const item = items[itemId]
+    const itemTags = item.shop.tags
+    if (itemTags.includes(itemRoleFilter)) {
+      return true
+    }
+  }
+
+  const [chosenItems, setChosenItems] = useState([])
+
   const [championLevel, setChampionLevel] = useState(0)
 
   const updateEachStatOnLeveLChange = useCallback(
     (stats, championStats) => {
-      console.log(
-        `🚀 -> file: ChampionPage.jsx -> line 217 -> ChampionPage -> stats`,
-        stats,
-      )
       for (let stat in stats) {
         if (stat === "attackSpeed") {
           const newSpeedvalue =
@@ -247,7 +320,7 @@ export default function ChampionPage() {
       if (items && chosenItems.length > 0) {
         chosenItems.forEach((itemId) => {
           const item = items[itemId]
-          console.log("All stats ", item.stats)
+
           Object.keys(item.stats).map((statName) => {
             const stat = item.stats[statName]
 
@@ -258,12 +331,19 @@ export default function ChampionPage() {
               championStats[alternativeLabels[statName]?.label] !== undefined
             ) {
               correctLabel = alternativeLabels[statName].label
+            } else if (statName === "magicPenetration") {
+              const oldFlatMagicPenValue = championStats["flatMagicPenetration"]
+              const oldPercentMagicPenValue =
+                championStats["percentageMagicPenetration"]
+
+              championStats["flatMagicPenetration"] =
+                oldFlatMagicPenValue + stat.flat
+              championStats["percentageMagicPenetration"] =
+                oldPercentMagicPenValue + 1 * stat.percent
             }
 
             if (correctLabel !== undefined) {
               const oldStatValue = championStats[correctLabel]
-              console.log("Old ", statName, championStats[correctLabel])
-              console.log("New ", statName, stat.flat)
 
               if (correctLabel === "attackSpeed") {
                 const newSpeedvalue = oldStatValue * (1 + stat.flat / 100)
@@ -293,33 +373,6 @@ export default function ChampionPage() {
 
   const championStats = setChampionStats()
 
-  function handleLevelChange(e) {
-    setChampionLevel(Number(e.target.value))
-  }
-
-  function createChampionTypesElement() {
-    return (
-      <div>
-        Type:{" "}
-        {championInfo.roles.map((role, index) => {
-          if (index === championInfo.roles.length - 1) {
-            return <span>{role}</span>
-          } else {
-            return <span>{role},</span>
-          }
-        })}
-      </div>
-    )
-  }
-
-  function createChampionLoreElement() {
-    return <div>{championInfo.lore}</div>
-  }
-
-  function createAttackTypeElement() {
-    return <div>Attack type: {championInfo.attackType}</div>
-  }
-
   function handleItemClick(e, key) {
     const indexOfItem = chosenItems.indexOf(key)
 
@@ -333,34 +386,18 @@ export default function ChampionPage() {
     }
   }
 
-  function createChosenItemsElement() {
-    const ITEM_AMOUNT = 6
+  function handleRoleFilterClick(e, role) {
+    setItemRoleFilter(role)
+  }
 
-    const itemElements = []
+  function handleItemStatFilterClick(e, stat) {
+    const statCurrentFilterValue = itemStatFilter[stat]
 
-    for (let i = 0; i < ITEM_AMOUNT; i++) {
-      const itemId = chosenItems[i]
+    setItemStatFilter({ ...itemStatFilter, [stat]: !statCurrentFilterValue })
+  }
 
-      if (items && items[itemId] !== undefined) {
-        itemElements.push(
-          <article
-            className="items__item-card chosen-items__item"
-            onClick={(e) => handleItemClick(e, itemId)}
-          >
-            <img src={items[itemId].icon} className="items__item-image" />
-          </article>,
-        )
-      } else {
-        itemElements.push(
-          <article
-            className="items__item-card chosen-items__item"
-            onClick={(e) => handleItemClick(e, itemId)}
-          ></article>,
-        )
-      }
-    }
-
-    return itemElements
+  function handleLevelChange(e) {
+    setChampionLevel(Number(e.target.value))
   }
 
   function createLevelSelectElement() {
@@ -368,7 +405,7 @@ export default function ChampionPage() {
 
     for (let i = 0; i < MAX_LEVEL; i++) {
       levelOptions.push(
-        <option value={i} key={i}>
+        <option value={i} key={i} className="level-container__level-option">
           {i + 1}
         </option>,
       )
@@ -388,7 +425,7 @@ export default function ChampionPage() {
           </select>
         </label>
         <input
-          className="level-container__level-slider"
+          className="level-container__level-slider level-slider"
           type="range"
           min="0"
           max="17"
@@ -401,22 +438,165 @@ export default function ChampionPage() {
     )
   }
 
+  // function createChampionTypesElement() {
+  //   return (
+  //     <div>
+  //       Type:{" "}
+  //       {championInfo.roles.map((role, index) => {
+  //         if (index === championInfo.roles.length - 1) {
+  //           return <span>{role}</span>
+  //         } else {
+  //           return <span>{role},</span>
+  //         }
+  //       })}
+  //     </div>
+  //   )
+  // }
+
+  // function createChampionLoreElement() {
+  //   return <div>{championInfo.lore}</div>
+  // }
+
+  // function createAttackTypeElement() {
+  //   return <div>Attack type: {championInfo.attackType}</div>
+  // }
+
+  function createChosenItemsElement() {
+    const ITEM_AMOUNT = 6
+
+    const itemElements = []
+
+    for (let i = 0; i < ITEM_AMOUNT; i++) {
+      const itemId = chosenItems[i]
+
+      if (items && items[itemId] !== undefined) {
+        itemElements.push(
+          <article
+            className="items__item-card chosen-items__item"
+            onClick={(e) => handleItemClick(e, itemId)}
+          >
+            <img
+              src={items[itemId].icon}
+              className="chosen-items__item-image"
+            />
+          </article>,
+        )
+      } else {
+        itemElements.push(
+          <article
+            className="items__item-card chosen-items__item"
+            onClick={(e) => handleItemClick(e, itemId)}
+          ></article>,
+        )
+      }
+    }
+
+    return (
+      <div className="champion-info__chosen-items chosen-items">
+        {itemElements}
+      </div>
+    )
+  }
+
+  function createItemsElement() {
+    return (
+      <div className="champion-info__items items">
+        <div className="items__filter-row">
+          {Object.keys(roles).map((role) => {
+            return (
+              <div
+                className="items__filter-roles"
+                onClick={(e) => handleRoleFilterClick(e, role)}
+              >
+                <img src={roles[role].icon} className="items__role-icon" />
+              </div>
+            )
+          })}
+        </div>
+        <div className="items__second-row">
+          {/* <div className="items__item-filter-stats">
+            {Object.keys(itemStats).map((stat) => {
+              return (
+                <div
+                  className="items__item-filter-stats"
+                  onClick={(e) => handleItemStatFilterClick(e, stat)}
+                >
+                  <img
+                    src={itemStats[stat].icon}
+                    className="items__item-role-icon"
+                  />
+                </div>
+              )
+            })}
+          </div> */}
+          <div className="items__list">
+            {items && filteredItems.length === 0
+              ? Object.keys(items).map((itemId) => {
+                  const item = items[itemId]
+
+                  return (
+                    <article
+                      className="items__item-card"
+                      onClick={(e) => handleItemClick(e, itemId)}
+                    >
+                      <img src={item.icon} className="items__item-image" />
+                    </article>
+                  )
+                })
+              : filteredItems.map((itemId) => {
+                  const item = items[itemId]
+
+                  return (
+                    <article
+                      className="items__item-card"
+                      onClick={(e) => handleItemClick(e, itemId)}
+                    >
+                      <img src={item.icon} className="items__item-image" />
+                    </article>
+                  )
+                })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   function createChampionStatsElement() {
     // const statsElements = []
 
     const statsElements = statsOrder.map((stat) => {
       return (
-        <li>
-          {" "}
-          {statsLabels[stat].label}: {championStats[stat]}
-          {statsLabels[stat].suffix && statsLabels[stat].suffix}
-        </li>
+        <>
+          <li className="stats__stat">
+            {itemStats[stat]?.icon && (
+              <img
+                src={itemStats[stat].icon}
+                className="stats__stat-icon"
+              ></img>
+            )}
+            {statsLabels[stat].label}: {championStats[stat]}
+            {statsLabels[stat].suffix && statsLabels[stat].suffix}
+          </li>
+        </>
       )
     })
 
+    const statsElementsRow1Col1 = statsElements.slice(0, 8)
+    const statsElementsRow2Col1 = statsElements.slice(8, 12)
+    const statsElementsRow1Col2 = statsElements.slice(12, 19)
+    const statsElementsRow2Col2 = statsElements.slice(19, 25)
+
     return (
-      <div>
-        <ul>{statsElements.map((statElement) => statElement)}</ul>
+      <div className="champion-info__stats stats">
+        {/* <ul>{statsElements}</ul> */}
+        <div className="stats__row-wrapper first-column">
+          <ul className="stats__row-element">{statsElementsRow1Col1}</ul>
+          <ul className="stats__row-element">{statsElementsRow2Col1}</ul>
+        </div>
+        <div className="stats__row-wrapper second-column">
+          <ul className="stats__row-element">{statsElementsRow1Col2}</ul>
+          <ul className="stats__row-element">{statsElementsRow2Col2}</ul>
+        </div>
       </div>
     )
   }
@@ -431,10 +611,7 @@ export default function ChampionPage() {
   //         const stat = item.stats[statKey]
   //         if (statKey === "attackSpeed" || statKey === "attack_speed") {
   //           console.log("Flat: ", stat.flat, " Percent: ", stat.percent)
-
-  //           // console.log(item)
   //         } else {
-  //           // console.log("não tem")
   //         }
   //       })
   //     })
@@ -442,58 +619,47 @@ export default function ChampionPage() {
   // console.log(quickConsoleLogSpecificItems())
 
   return (
-    <main className="container">
-      <div className="widthWrapper">
-        {championInfo ? (
-          <main className="champion-page">
-            <div className="champion-page__champion-info champion-info">
-              <div className="champion-info__header">
-                <img
-                  src={championInfo.icon}
-                  alt=""
-                  className="champion-info__header-image"
-                />
-                <div className="champion-info__name-title">
-                  <h3 className="champion-info__name">{championInfo.name}</h3>
-                  <h4 className="champion-info__title">{championInfo.title}</h4>
+    <>
+      <header className="header">
+        <div>Back</div>
+        <div>Logo</div>
+        <div>User</div>
+      </header>
+      <main className="container">
+        <div className="widthWrapper">
+          {championInfo ? (
+            <main className="champion-page">
+              <div className="champion-page__champion-info champion-info">
+                <div className="champion-info__header">
+                  <img
+                    src={championInfo.icon}
+                    alt=""
+                    className="champion-info__header-image"
+                  />
+                  <div className="champion-info__name-title">
+                    <h3 className="champion-info__name">{championInfo.name}</h3>
+                    <h4 className="champion-info__title">
+                      {championInfo.title}
+                    </h4>
+                  </div>
                 </div>
-              </div>
-              {/* {createChampionLoreElement()} */}
-              {createLevelSelectElement()}
-            </div>
-            <div>
-              {/* {createChampionTypesElement()} */}
-              {/* {createAttackTypeElement()} */}
-              {createChampionStatsElement()}
-            </div>
-            <div>
-              {/* <ChampionSkills
+                {/* {createChampionLoreElement()} */}
+                {createLevelSelectElement()}
+                {/* {createChampionTypesElement()} */}
+                {/* {createAttackTypeElement()} */}
+                {/* <ChampionSkills
                 abilities={championInfo.abilities}
               ></ChampionSkills> */}
-            </div>
-            <div className="champion-page__chosen-items chosen-items">
-              {createChosenItemsElement()}
-            </div>
-            <div className="champion-page__items items">
-              {items &&
-                Object.keys(items).map((itemId) => {
-                  const item = items[itemId]
-
-                  return (
-                    <article
-                      className="items__item-card"
-                      onClick={(e) => handleItemClick(e, itemId)}
-                    >
-                      <img src={item.icon} className="items__item-image" />
-                    </article>
-                  )
-                })}
-            </div>
-          </main>
-        ) : (
-          <></>
-        )}
-      </div>
-    </main>
+                {createChosenItemsElement()}
+                {createItemsElement()}
+                {createChampionStatsElement()}
+              </div>
+            </main>
+          ) : (
+            <></>
+          )}
+        </div>
+      </main>
+    </>
   )
 }
