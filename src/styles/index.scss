@@ -5,6 +5,7 @@
 @import "theme";
 @import "functions";
 @import "level-slider";
+@import "scrollbar";
 
 * {
   font-family: $main-font;
@@ -36,6 +37,12 @@ a {
   &__logo {
     width: 100%;
     height: 100%;
+
+    transition: transform 100ms;
+
+    &:hover {
+      transform: rotate(-5deg);
+    }
   }
 }
 
@@ -133,6 +140,8 @@ a {
 // Champion Page
 
 .champion-page {
+  min-height: 100vh;
+
   font-size: 14px;
 
   padding-top: $header-height;
@@ -246,7 +255,7 @@ a {
         gap: 5px;
 
         height: 40vh;
-        overflow: scroll;
+        overflow: auto;
 
         padding-bottom: 10px;
       }
@@ -288,6 +297,7 @@ a {
       padding: 15px;
 
       display: grid;
+      grid-template-columns: 1fr 1fr;
       row-gap: 5px;
       column-gap: 10px;
 
