@@ -2,7 +2,7 @@ import axios from "axios"
 import { useCallback, useState } from "preact/hooks"
 import { useParams } from "react-router-dom"
 
-import { Header } from "./Header"
+import { Header } from "../components/Header"
 
 import rolesIcons from "./../assets/roles-icons"
 import itemStatsIcons from "./../assets/stats-icons"
@@ -618,7 +618,7 @@ export default function ChampionPage() {
   return (
     <>
       <Header></Header>
-      <main className="container">
+      <div className="container">
         <div className="widthWrapper">
           {championInfo ? (
             <main className="champion-page">
@@ -652,7 +652,7 @@ export default function ChampionPage() {
             <></>
           )}
         </div>
-      </main>
+      </div>
     </>
   )
 }
