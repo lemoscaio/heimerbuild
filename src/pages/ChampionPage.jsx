@@ -1,8 +1,9 @@
 import axios from "axios"
-import { useCallback, useEffect, useMemo, useState } from "preact/hooks"
+import { useCallback, useState } from "preact/hooks"
 import { useParams } from "react-router-dom"
 
-import { ChampionSkills } from "../components/ChampionSkills"
+import { Header } from "./Header"
+
 import rolesIcons from "./../assets/roles-icons"
 import itemStatsIcons from "./../assets/stats-icons"
 
@@ -589,14 +590,10 @@ export default function ChampionPage() {
     return (
       <div className="champion-info__stats stats">
         {/* <ul>{statsElements}</ul> */}
-        <div className="stats__row-wrapper first-column">
-          <ul className="stats__row-element">{statsElementsRow1Col1}</ul>
-          <ul className="stats__row-element">{statsElementsRow2Col1}</ul>
-        </div>
-        <div className="stats__row-wrapper second-column">
-          <ul className="stats__row-element">{statsElementsRow1Col2}</ul>
-          <ul className="stats__row-element">{statsElementsRow2Col2}</ul>
-        </div>
+        <ul className="stats__group stats__group-1">{statsElementsRow1Col1}</ul>
+        <ul className="stats__group stats__group-2">{statsElementsRow1Col2}</ul>
+        <ul className="stats__group stats__group-3">{statsElementsRow2Col1}</ul>
+        <ul className="stats__group stats__group-4">{statsElementsRow2Col2}</ul>
       </div>
     )
   }
@@ -620,11 +617,7 @@ export default function ChampionPage() {
 
   return (
     <>
-      <header className="header">
-        <div>Back</div>
-        <div>Logo</div>
-        <div>User</div>
-      </header>
+      <Header></Header>
       <main className="container">
         <div className="widthWrapper">
           {championInfo ? (
