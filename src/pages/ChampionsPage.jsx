@@ -5,6 +5,7 @@ import AppName from "../components/AppName.jsx"
 import ChampionList from "../components/ChampionList.jsx"
 import MainPageLogo from "../components/MainPageLogo.jsx"
 import SearchContainer from "../components/SearchContainer.jsx"
+import HeaderAlternative from "./HeaderAlternative"
 
 export default function ChampionsPage() {
   const [search, setSearch] = useState("")
@@ -39,16 +40,23 @@ export default function ChampionsPage() {
     `🚀 -> file: ChampionsPage.jsx -> line 30 -> ChampionsPage -> filteredChampions`,
     filteredChampions,
   )
+
   return (
-    <main className="champions-page">
-      <AppName></AppName>
-      <MainPageLogo></MainPageLogo>
-      <SearchContainer search={search} setSearch={setSearch}></SearchContainer>
-      <ChampionList
-        search={search}
-        champions={champions}
-        filteredChampions={filteredChampions}
-      ></ChampionList>
-    </main>
+    <div className="page-container page-container--champions-page">
+      <HeaderAlternative></HeaderAlternative>
+      <main className="champions-page">
+        <AppName></AppName>
+        <MainPageLogo></MainPageLogo>
+        <SearchContainer
+          search={search}
+          setSearch={setSearch}
+        ></SearchContainer>
+        <ChampionList
+          search={search}
+          champions={champions}
+          filteredChampions={filteredChampions}
+        ></ChampionList>
+      </main>
+    </div>
   )
 }

@@ -1,15 +1,14 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { BrowserRouter } from "react-router-dom"
 
-import ChampionsPage from "../pages/ChampionsPage.jsx"
-import ChampionPage from "../pages/ChampionPage.jsx"
+import { AuthProvider } from "../hooks/useAuth"
+import Router from "../routes/routes.jsx"
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<ChampionsPage />} />
-        <Route path="/champions/:championKey" element={<ChampionPage />} />
-      </Routes>
+      <AuthProvider>
+        <Router />
+      </AuthProvider>
     </BrowserRouter>
   )
 }
