@@ -1,31 +1,16 @@
-import axios from "axios"
-import { useState } from "preact/hooks"
+import { useContext, useState } from "react"
 
 import AppName from "../components/AppName.jsx"
 import ChampionList from "../components/ChampionList.jsx"
 import MainPageLogo from "../components/MainPageLogo.jsx"
 import SearchContainer from "../components/SearchContainer.jsx"
+import { championsContext } from "../contexts/championsContext.jsx"
 import HeaderAlternative from "./HeaderAlternative"
 
 export default function ChampionsPage() {
   const [search, setSearch] = useState("")
 
-  const { VITE_APP_API_URL } = import.meta.env
-
-  const [champions, setChampions] = useState(() => {
-    try {
-      axios
-        .get(`${VITE_APP_API_URL}/champions`)
-        .then((response) => {
-          const responseObject = response.data
-
-          setChampions(responseObject)
-        })
-        .catch((error) => console.log(error))
-    } catch (error) {
-      console.log(error)
-    }
-  })
+  const { champions } = useContext(championsContext)
 
   const filteredChampions =
     search.length > 0
