@@ -276,6 +276,11 @@ a {
       margin-bottom: 12px;
     }
 
+    &__chosen-item-image {
+      width: 100%;
+      object-fit: cover;
+    }
+
     &__stats-container {
       @include flex();
       gap: 20px;

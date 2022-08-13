@@ -1,5 +1,8 @@
+import { useContext } from "react"
+
 import exameImage from "../assets/images/heimerdinger.png"
-import itemStatsIcons from "./../assets/stats-icons"
+import itemStatsIcons from "../assets/stats-icons"
+import { itemsContext } from "../contexts/itemsContext"
 import goldIcon from "./../assets/stats-icons/Gold_icon.png"
 
 export default function UserPage() {
@@ -8,7 +11,7 @@ export default function UserPage() {
     key: "Quinn",
     level: 18,
     cost: 14500,
-    items: ["3014", "3014", "3014", "3014", "3014"],
+    items: ["1001", "1004", "1006", "3001", "3004"],
     stats: {
       attackDamage: 350,
       abilityPower: 350,
@@ -36,6 +39,8 @@ export default function UserPage() {
 
   const builds = [example, example, example, example, example]
 
+  const { items } = useContext(itemsContext)
+
   function createChosenItemsElement(build) {
     const ITEM_AMOUNT = 6
 
@@ -44,10 +49,13 @@ export default function UserPage() {
     for (let i = 0; i < ITEM_AMOUNT; i++) {
       const itemId = build.items[i]
 
-      if (itemId) {
+      if (items && itemId) {
         itemElements.push(
           <div className="build-card__chosen-item">
-            <img src="" className="build-card__chosen-item-image" />s
+            <img
+              src={items[itemId].icon}
+              className="build-card__chosen-item-image"
+            />
           </div>,
         )
       } else {

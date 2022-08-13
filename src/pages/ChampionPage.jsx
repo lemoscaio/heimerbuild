@@ -1,9 +1,10 @@
 import axios from "axios"
-import { useCallback, useState } from "preact/hooks"
+import { useCallback, useState, useContext } from "preact/hooks"
 import { useParams } from "react-router-dom"
+import { itemsContext } from "../contexts/itemsContext"
 
-import rolesIcons from "./../assets/roles-icons"
-import itemStatsIcons from "./../assets/stats-icons"
+import rolesIcons from "../assets/roles-icons"
+import itemStatsIcons from "../assets/stats-icons"
 
 export default function ChampionPage() {
   console.log("Rendered")
@@ -247,18 +248,28 @@ export default function ChampionPage() {
       })
   })
 
-  const [items, setItems] = useState(() => {
-    axios
-      .get(`${VITE_APP_API_URL}/items`)
-      .then((response) => {
-        const items = response.data
-        setItems(items)
-        console.log(items)
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  })
+  console.log(useContext(itemsContext))
+
+  const contexto = useContext(itemsContext)
+  console.log(
+    `🚀 -> file: ChampionPage.jsx -> line 254 -> ChampionPage -> contexto`,
+    contexto,
+  )
+
+  const { items } = useContext(itemsContext)
+
+  // const [items, setItems] = useState(() => {
+  //   axios
+  //     .get(`${VITE_APP_API_URL}/items`)
+  //     .then((response) => {
+  //       const items = response.data
+  //       setItems(items)
+  //       console.log(items)
+  //     })
+  //     .catch((error) => {
+  //       console.log(error)
+  //     })
+  // })
 
   const [itemRoleFilter, setItemRoleFilter] = useState("ALL")
 
