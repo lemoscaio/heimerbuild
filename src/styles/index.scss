@@ -17,8 +17,24 @@ a {
   text-decoration: none;
 }
 
+.page-container {
+  width: 100%;
+  height: fit-content;
+  background: $color-primary-3;
+
+  &--auth-page {
+    @include flex(column, center);
+  }
+
+  &--user-page {
+    @include flex(column, flex-start, center);
+    padding: 60px;
+  }
+}
+
 .header {
   position: fixed;
+  z-index: 10;
   width: 100%;
   height: $header-height;
   @include flex(row, space-between, center);
@@ -56,16 +72,6 @@ a {
 }
 
 // Auth Page
-
-.page-container {
-  width: 100%;
-  height: 100vh;
-  background: $color-primary-3;
-
-  &--auth-page {
-    @include flex(column, center);
-  }
-}
 
 .auth-page {
   @include flex(column, center);
@@ -179,6 +185,122 @@ a {
       &[disabled] {
         background-color: $color-disabled-button;
       }
+    }
+  }
+}
+
+// User Page
+
+.user-page {
+  width: 100%;
+
+  @include flex(column, flex-start, center);
+
+  &__page-label {
+    color: white;
+    font-size: em(28);
+
+    padding: 30px;
+  }
+
+  &__builds {
+    @include flex(column);
+    gap: 24px;
+  }
+
+  .build-card {
+    background-color: $color-primary-1;
+    color: white;
+
+    border-radius: 5px;
+
+    padding: 10px 0;
+
+    @include flex(row, center, center, nowrap);
+
+    &__left-column {
+      @include flex(column, space-between, center);
+
+      width: 120px;
+
+      border-right: 1px solid $color-primary-3;
+    }
+
+    &__champion {
+      @include flex(column, center, center);
+    }
+
+    &__champion-image {
+      width: 100%;
+      padding: 10px;
+    }
+
+    &__champion-name {
+      font-size: em(16);
+    }
+
+    &__champion-level {
+      font-size: em(12);
+      margin-top: 6px;
+    }
+
+    &__build-cost {
+      width: 100%;
+      padding: 10px 0 0;
+
+      font-size: em(12);
+      text-align: center;
+    }
+
+    &__right-column {
+      @include flex(column, space-between, center);
+      gap: 12px;
+      height: 100%;
+      padding: 0 10px;
+    }
+
+    &__chosen-items {
+      @include flex();
+      gap: 5px;
+
+      padding: 5px;
+    }
+
+    &__chosen-item {
+      background-color: $color-primary-2;
+      width: 40px;
+      height: 40px;
+
+      border-radius: 3px;
+
+      margin-bottom: 12px;
+    }
+
+    &__stats-container {
+      @include flex();
+      gap: 20px;
+    }
+
+    &__stats-group {
+      @include flex();
+      gap: 10px;
+    }
+
+    &__stats-column {
+      @include flex(column);
+      gap: 8px;
+    }
+
+    &__stat-icon {
+      scale: 0.8;
+      user-select: none;
+    }
+
+    &__stat {
+      @include flex(row, flex-start, center);
+      gap: 2px;
+
+      font-size: em(12);
     }
   }
 }

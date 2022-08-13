@@ -201,16 +201,33 @@ export default function ChampionPage() {
     lifeSteal: { label: "Life Steal", icon: itemStatsIcons.lifeSteal },
     abilityPower: { label: "Ability Power", icon: itemStatsIcons.abilityPower },
     mana: { label: "Mana", icon: itemStatsIcons.mana },
+    lethality: { label: "Lethality", icon: itemStatsIcons.lethality },
+    manaRegen: { label: "Mana Regen", icon: itemStatsIcons.mana },
     magicPenetration: {
       label: "Magic Penetration",
       icon: itemStatsIcons.magicPenetration,
     },
+    flatMagicPenetration: {
+      label: "Flat Magic Penetration",
+      icon: itemStatsIcons.flatMagicPenetration,
+    },
+    percentageMagicPenetration: {
+      label: "Percentage Magic Penetration",
+      icon: itemStatsIcons.percentageMagicPenetration,
+    },
     health: { label: "Health", icon: itemStatsIcons.health },
+    healthRegen: { label: "Health Regen", icon: itemStatsIcons.health },
     armor: { label: "Armor", icon: itemStatsIcons.armor },
-    magicResist: { label: "Magic Resist", icon: itemStatsIcons.magicResist },
+    magicResistance: {
+      label: "Magic Resist",
+      icon: itemStatsIcons.magicResist,
+    },
     abilityHaste: { label: "Ability Haste", icon: itemStatsIcons.abilityHaste },
-    moveSpeed: { label: "Movement Speed", icon: itemStatsIcons.moveSpeed },
+    movespeed: { label: "Movement Speed", icon: itemStatsIcons.moveSpeed },
+    physicalVamp: { label: "Physical-Vamp", icon: itemStatsIcons.physicalVamp },
     omniVamp: { label: "Omni-Vamp", icon: itemStatsIcons.omniVamp },
+    attackRange: { label: "Attack Range", icon: itemStatsIcons.attackRange },
+    tenacity: { label: "Tenacity", icon: itemStatsIcons.tenacity },
   }
 
   const [championInfo, setChampionInfo] = useState(() => {
@@ -564,6 +581,10 @@ export default function ChampionPage() {
     // const statsElements = []
 
     const statsElements = statsOrder.map((stat) => {
+      console.log(
+        `🚀 -> file: ChampionPage.jsx -> line 582 -> statsElements -> stat`,
+        stat,
+      )
       return (
         <>
           <li className="stats__stat">

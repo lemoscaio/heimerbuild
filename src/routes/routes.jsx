@@ -19,7 +19,9 @@ export default function Router() {
         <Route path="/sign-in" element={<SignInPage />} />
       </Route>
       <Route element={<ProtectedPages />}>
-        <Route path="/user" element={<UserPage />}></Route>
+        <Route element={<PageWithHeader />}>
+          <Route path="/user" element={<UserPage />} />
+        </Route>
       </Route>
       <Route path="/champions" element={<ChampionsPage />} />
       <Route element={<PageWithHeader />}>
