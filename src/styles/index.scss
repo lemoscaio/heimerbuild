@@ -208,13 +208,57 @@ a {
     gap: 24px;
   }
 
+  .card-container {
+    &:hover {
+      .card-container {
+        &__additional-commands {
+          height: 50px;
+        }
+
+        &__delete-icon {
+          margin: 9px 15px;
+          font-size: em(24);
+        }
+      }
+    }
+    &__additional-commands {
+      position: relative;
+      top: 10px;
+      z-index: 1;
+
+      height: 20px;
+
+      @include flex(row, flex-end);
+
+      background-color: $color-primary-2;
+
+      border-radius: $card-border-radius;
+
+      transition: all 100ms ease-in-out;
+    }
+
+    &__delete-icon {
+      color: white;
+
+      transition: all 100ms;
+
+      font-size: em(0);
+
+      margin: 2px 15px;
+    }
+  }
+
   .build-card {
+    position: relative;
+
     background-color: $color-primary-1;
     color: white;
 
     height: 180px;
 
-    border-radius: 5px;
+    z-index: 2;
+
+    border-radius: $card-border-radius;
 
     padding: 10px 10px 10px 0;
 

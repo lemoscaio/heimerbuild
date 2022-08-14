@@ -1,12 +1,13 @@
-import { useContext, useState } from "react"
 import axios from "axios"
+import { useContext, useState } from "react"
 
-import exameImage from "../assets/images/heimerdinger.png"
 import itemStatsIcons from "../assets/stats-icons"
 import { championsContext } from "../contexts/championsContext"
 import { itemsContext } from "../contexts/itemsContext"
 import { useAuth } from "../hooks/useAuth"
 import goldIcon from "./../assets/stats-icons/Gold_icon.png"
+
+import { MdDeleteForever } from "react-icons/md"
 
 export default function UserPage() {
   // const example = {
@@ -60,6 +61,24 @@ export default function UserPage() {
 
   const { items } = useContext(itemsContext)
   const { champions } = useContext(championsContext)
+
+  function handleDeleteBuildClick(buildId) {
+    console.log("Cliquei")
+    console.log(buildId)
+
+    axios
+      .delete(`${VITE_APP_API_URL}/builds/delete/${buildId}`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      })
+      .then((response) => {
+        const updatedBuilds = builds.filter((build) => build.id !== buildId)
+
+        setBuilds([...updatedBuilds])
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+  }
 
   function createChosenItemsElement(build) {
     const ITEM_AMOUNT = 6
@@ -246,44 +265,52 @@ export default function UserPage() {
                 build,
               )
               return (
-                <article className="user-page__build-card build-card">
-                  <div className="build-card__left-column">
-                    <div className="build-card__champion">
-                      {champions && (
-                        <img
-                          src={champions[build.championKey].icon}
-                          alt={champions[build.championKey].name}
-                          className="build-card__champion-image"
-                        />
-                      )}
-                      <h2 className="build-card__champion-name">
-                        {build.name}
-                      </h2>
-                      <h3 className="build-card__champion-level">
-                        Level: {build.level}
-                      </h3>
-                    </div>
-                    <div className="build-card__build-cost">
-                      <p>
-                        {" "}
-                        Cost: {build.cost}{" "}
-                        <img
-                          src={goldIcon}
-                          alt="Gold"
-                          className="build-card__build-cost--icon"
-                        />
-                      </p>
-                    </div>
+                <div className="user-page__card-container card-container">
+                  <div className="card-container__additional-commands">
+                    <MdDeleteForever
+                      className="card-container__delete-icon"
+                      onClick={() => handleDeleteBuildClick(build.id)}
+                    />
                   </div>
-                  <div className="build-card__right-column">
-                    <div className="build-card__chosen-items">
-                      {createChosenItemsElement(build)}
+                  <article className="user-page__build-card build-card">
+                    <div className="build-card__left-column">
+                      <div className="build-card__champion">
+                        {champions && (
+                          <img
+                            src={champions[build.championKey].icon}
+                            alt={champions[build.championKey].name}
+                            className="build-card__champion-image"
+                          />
+                        )}
+                        <h2 className="build-card__champion-name">
+                          {build.name}
+                        </h2>
+                        <h3 className="build-card__champion-level">
+                          Level: {build.level}
+                        </h3>
+                      </div>
+                      <div className="build-card__build-cost">
+                        <p>
+                          {" "}
+                          Cost: {build.cost}{" "}
+                          <img
+                            src={goldIcon}
+                            alt="Gold"
+                            className="build-card__build-cost--icon"
+                          />
+                        </p>
+                      </div>
                     </div>
-                    <div className="build-card__stats-container">
-                      {createStatsElement(build)}
+                    <div className="build-card__right-column">
+                      <div className="build-card__chosen-items">
+                        {createChosenItemsElement(build)}
+                      </div>
+                      <div className="build-card__stats-container">
+                        {createStatsElement(build)}
+                      </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
+                </div>
               )
             })}
         </section>
