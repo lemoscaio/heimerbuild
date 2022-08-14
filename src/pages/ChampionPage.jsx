@@ -1,6 +1,7 @@
 import axios from "axios"
-import { useCallback, useState, useContext } from "preact/hooks"
+import { useCallback, useState, useContext, useEffect } from "preact/hooks"
 import { useParams } from "react-router-dom"
+import { useAuth } from "./../hooks/useAuth"
 import { itemsContext } from "../contexts/itemsContext"
 
 import rolesIcons from "../assets/roles-icons"
@@ -12,6 +13,7 @@ export default function ChampionPage() {
   const { VITE_APP_API_URL } = import.meta.env
   const MAX_LEVEL = 18
 
+  const { user } = useAuth()
   const { championKey } = useParams()
 
   const statsOrder = [
@@ -236,10 +238,6 @@ export default function ChampionPage() {
       .get(`${VITE_APP_API_URL}/champions/${championKey}`)
       .then((response) => {
         const championData = response.data
-        console.log(
-          `🚀 -> file: ChampionPage.jsx -> line 222 -> .then -> championData`,
-          championData,
-        )
 
         setChampionInfo(championData)
       })
@@ -248,28 +246,10 @@ export default function ChampionPage() {
       })
   })
 
-  console.log(useContext(itemsContext))
-
-  const contexto = useContext(itemsContext)
-  console.log(
-    `🚀 -> file: ChampionPage.jsx -> line 254 -> ChampionPage -> contexto`,
-    contexto,
-  )
+  const [saveBuildButtonContent, setSaveBuildButtonContent] =
+    useState("Save Build")
 
   const { items } = useContext(itemsContext)
-
-  // const [items, setItems] = useState(() => {
-  //   axios
-  //     .get(`${VITE_APP_API_URL}/items`)
-  //     .then((response) => {
-  //       const items = response.data
-  //       setItems(items)
-  //       console.log(items)
-  //     })
-  //     .catch((error) => {
-  //       console.log(error)
-  //     })
-  // })
 
   const [itemRoleFilter, setItemRoleFilter] = useState("ALL")
 
@@ -411,6 +391,8 @@ export default function ChampionPage() {
       chosenItems.splice(indexOfItem, 1)
       setChosenItems([...chosenItems])
     }
+
+    setSaveBuildButtonContent("Save Build")
   }
 
   function handleRoleFilterClick(e, role) {
@@ -423,8 +405,62 @@ export default function ChampionPage() {
     setItemStatFilter({ ...itemStatFilter, [stat]: !statCurrentFilterValue })
   }
 
+  function handleSaveBuildClick() {
+    const statsData = {}
+
+    statsOrder.forEach((stat) => {
+      statsData[stat] = championStats[stat]
+    })
+
+    const buildData = {
+      championName: championInfo.name,
+      championKey: championInfo.key,
+      level: championLevel,
+      items: chosenItems,
+      stats: statsData,
+    }
+
+    setSaveBuildButtonContent("Saving...")
+
+    axios
+      .post(`${VITE_APP_API_URL}/builds/create`, buildData, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      })
+      .then((response) => {
+        console.log(response)
+
+        setTimeout(() => {
+          setSaveBuildButtonContent("Saved!")
+        }, 1000)
+      })
+      .catch((error) => {
+        console.log(error)
+        setSaveBuildButtonContent("Error")
+        setTimeout(() => {
+          setSaveBuildButtonContent("Save build")
+        }, 1500)
+      })
+  }
+
   function handleLevelChange(e) {
     setChampionLevel(Number(e.target.value))
+    setSaveBuildButtonContent("Save Build")
+  }
+
+  function createSaveBuildButtonElement() {
+    const disabled =
+      saveBuildButtonContent === "Saving..." ||
+      saveBuildButtonContent === "Error"
+
+    return (
+      <button
+        className="champion-info__save-build"
+        onClick={handleSaveBuildClick}
+        disabled={disabled}
+      >
+        {saveBuildButtonContent}
+      </button>
+    )
   }
 
   function createLevelSelectElement() {
@@ -592,10 +628,6 @@ export default function ChampionPage() {
     // const statsElements = []
 
     const statsElements = statsOrder.map((stat) => {
-      console.log(
-        `🚀 -> file: ChampionPage.jsx -> line 582 -> statsElements -> stat`,
-        stat,
-      )
       return (
         <>
           <li className="stats__stat">
@@ -664,6 +696,7 @@ export default function ChampionPage() {
                       {championInfo.title}
                     </h4>
                   </div>
+                  {createSaveBuildButtonElement()}
                 </div>
                 {/* {createChampionLoreElement()} */}
                 {createLevelSelectElement()}

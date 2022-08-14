@@ -245,6 +245,8 @@ a {
       font-size: em(0);
 
       margin: 2px 15px;
+
+      cursor: pointer;
     }
   }
 
@@ -285,6 +287,7 @@ a {
 
     &__champion-name {
       font-size: em(16);
+      margin-top: 5px;
     }
 
     &__champion-level {
@@ -466,6 +469,8 @@ a {
 
   .champion-info {
     &__header {
+      position: relative;
+
       @include flex(row, flex-start, center);
       gap: 20px;
       padding: 15px 15px 0;
@@ -496,6 +501,30 @@ a {
 
     &__title {
       font-size: em(16);
+    }
+
+    &__save-build {
+      position: absolute;
+      right: 25px;
+      background-color: $color-primary-1;
+
+      color: white;
+
+      width: 90px;
+
+      padding: 6px 10px;
+
+      border: none;
+      border-radius: $card-border-radius;
+
+      cursor: pointer;
+
+      transition: background 300ms;
+
+      &[disabled] {
+        background-color: $color-disabled-button;
+        user-select: none;
+      }
     }
 
     .level-container {

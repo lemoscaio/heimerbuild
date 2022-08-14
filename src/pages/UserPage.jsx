@@ -63,9 +63,6 @@ export default function UserPage() {
   const { champions } = useContext(championsContext)
 
   function handleDeleteBuildClick(buildId) {
-    console.log("Cliquei")
-    console.log(buildId)
-
     axios
       .delete(`${VITE_APP_API_URL}/builds/delete/${buildId}`, {
         headers: { Authorization: `Bearer ${user.token}` },
@@ -283,23 +280,25 @@ export default function UserPage() {
                           />
                         )}
                         <h2 className="build-card__champion-name">
-                          {build.name}
+                          {build.championName}
                         </h2>
                         <h3 className="build-card__champion-level">
                           Level: {build.level}
                         </h3>
                       </div>
-                      <div className="build-card__build-cost">
-                        <p>
-                          {" "}
-                          Cost: {build.cost}{" "}
-                          <img
-                            src={goldIcon}
-                            alt="Gold"
-                            className="build-card__build-cost--icon"
-                          />
-                        </p>
-                      </div>
+                      {build.cost !== -1 && (
+                        <div className="build-card__build-cost">
+                          <p>
+                            {" "}
+                            Cost: {build.cost}{" "}
+                            <img
+                              src={goldIcon}
+                              alt="Gold"
+                              className="build-card__build-cost--icon"
+                            />
+                          </p>
+                        </div>
+                      )}
                     </div>
                     <div className="build-card__right-column">
                       <div className="build-card__chosen-items">
