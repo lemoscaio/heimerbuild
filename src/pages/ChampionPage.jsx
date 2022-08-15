@@ -5,11 +5,12 @@ import { itemsContext } from "../contexts/itemsContext"
 import { useAuth } from "../hooks/useAuth"
 
 import { DotLoader } from "react-spinners"
-import rolesIcons from "../assets/roles-icons"
-import itemStatsIcons from "../assets/stats-icons"
+
+import { statsInfo } from "../utils/statsInfo"
+import { rolesInfo } from "../utils/rolesInfo"
 
 export default function ChampionPage() {
-  console.log(`🚀 -> file: ChampionPage.jsx -> ChampionPage -> Rendered`)
+  // console.log(`🚀 -> file: ChampionPage.jsx -> ChampionPage -> Rendered`)
 
   const { VITE_APP_API_URL } = import.meta.env
   const MAX_LEVEL = 18
@@ -17,224 +18,11 @@ export default function ChampionPage() {
   const { user } = useAuth()
   const { championKey } = useParams()
 
-  const statsInfo = {
-    order: [
-      "attackDamage",
-      "abilityPower",
-      "armor",
-      "magicResistance",
-      "attackSpeed",
-      "abilityHaste",
-      "criticalStrike",
-      "movespeed",
-      "health",
-      "healthRegen",
-      "mana",
-      "manaRegen",
-      "lethality",
-      "armorPenetration",
-      "flatMagicPenetration",
-      "percentageMagicPenetration",
-      "lifeSteal",
-      "physicalVamp",
-      "omniVamp",
-      "attackRange",
-      "tenacity",
-    ],
-
-    labels: {
-      attackDamage: {
-        label: "Attack Damage",
-        short_label: "AD",
-        icon: itemStatsIcons.attackDamage,
-      },
-      abilityPower: {
-        label: "Ability Power",
-        short_label: "AP",
-        icon: itemStatsIcons.abilityPower,
-      },
-      armor: {
-        label: "Armor",
-        short_label: "Armor",
-        icon: itemStatsIcons.armor,
-      },
-      magicResistance: {
-        label: "Magic Resistance",
-        short_label: "MR",
-        icon: itemStatsIcons.magicResist,
-      },
-      attackSpeed: {
-        label: "Attack Speed",
-        short_label: "Atk Speed",
-        suffix: "%",
-        icon: itemStatsIcons.attackSpeed,
-      },
-      abilityHaste: {
-        label: "Ability Haste",
-        short_label: "AH",
-        icon: itemStatsIcons.abilityHaste,
-      },
-      criticalStrike: {
-        label: "Critical Strike",
-        short_label: "Crit",
-        anotherAlternativeLabel: "criticalStrikeChance",
-        suffix: "%",
-        icon: itemStatsIcons.criticalStrike,
-      },
-      movespeed: {
-        label: "Movement Speed",
-        short_label: "Move Speed",
-        icon: itemStatsIcons.moveSpeed,
-      },
-      health: {
-        label: "Health",
-        short_label: "HP",
-        icon: itemStatsIcons.health,
-      },
-      healthRegen: {
-        label: "Health Regen",
-        short_label: "HP Regen",
-        suffix: "%",
-        icon: itemStatsIcons.health,
-      },
-      mana: {
-        label: "Mana",
-        short_label: "MP",
-        icon: itemStatsIcons.mana,
-      },
-      manaRegen: {
-        label: "Mana Regen",
-        short_label: "MP Regen",
-        suffix: "%",
-        icon: itemStatsIcons.mana,
-      },
-      lethality: {
-        label: "Lethality",
-        short_label: "Lethality",
-        icon: itemStatsIcons.lethality,
-      },
-      armorPenetration: {
-        label: "Armor Penetration",
-        short_label: "Armor Pen",
-        suffix: "%",
-        icon: itemStatsIcons.armorPenetration,
-      },
-      magicPenetration: {
-        label: "Magic Penetration",
-        icon: itemStatsIcons.magicPenetration,
-      },
-      flatMagicPenetration: {
-        label: "Flat Magic Penetration",
-        short_label: "Flat Magic Pen",
-        icon: itemStatsIcons.magicPenetration,
-      },
-      percentageMagicPenetration: {
-        label: "Percentage Magic Penetration",
-        short_label: "Percentage Magic Pen",
-        suffix: "%",
-        icon: itemStatsIcons.percentageMagicPenetration,
-      },
-      lifeSteal: {
-        label: "Life Steal",
-        short_label: "Life Steal",
-        suffix: "%",
-        icon: itemStatsIcons.lifeSteal,
-      },
-      physicalVamp: {
-        label: "Physical Vamp",
-        short_label: "Physical Vamp",
-        suffix: "%",
-        icon: itemStatsIcons.physicalVamp,
-      },
-      onHit: {
-        label: "On-Hit",
-        short_label: "On-Hit",
-        icon: itemStatsIcons.onHit,
-      },
-      omniVamp: {
-        label: "Omnivamp",
-        short_label: "Omnivamp",
-        suffix: "%",
-        icon: itemStatsIcons.omniVamp,
-      },
-      attackRange: {
-        label: "Attack Range",
-        short_label: "Atk Range",
-        icon: itemStatsIcons.attackRange,
-      },
-      tenacity: {
-        label: "Tenacity",
-        short_label: "Tenacity",
-        suffix: "%",
-        icon: itemStatsIcons.tenacity,
-      },
-    },
-
-    alternativeLabels: {
-      attack_damage: {
-        label: "attackDamage",
-      },
-      ability_power: {
-        label: "abilityPower",
-      },
-      attack_speed: {
-        label: "attackSpeed",
-      },
-      ability_haste: {
-        label: "abilityHaste",
-      },
-      critical_strike_chance: {
-        label: "criticalStrike",
-      },
-      criticalStrikeChance: {
-        label: "criticalStrike",
-      },
-      health_regen: {
-        label: "healthRegen",
-      },
-      mana: {
-        label: "Mana",
-        short_label: "MP",
-      },
-      maga_regen: {
-        label: "manaRegen",
-      },
-      lethality: {
-        label: "Lethality",
-        short_label: "Lethality",
-      },
-      armor_penetration: {
-        label: "armorPenetration",
-      },
-      lifesteal: {
-        label: "lifeSteal",
-      },
-      omnivamp: {
-        label: "omniVamp",
-      },
-    },
-  }
-
-  const roles = {
-    ALL: { label: "All Items", icon: rolesIcons.ALL },
-    FIGHTER: { label: "Fighter", icon: rolesIcons.FIGHTER },
-    MARKSMAN: { label: "Marksman", icon: rolesIcons.MARKSMAN },
-    ASSASSIN: { label: "Assassin", icon: rolesIcons.ASSASSIN },
-    MAGE: { label: "Mage", icon: rolesIcons.MAGE },
-    TANK: { label: "Tank", icon: rolesIcons.TANK },
-    SUPPORT: { label: "Support", icon: rolesIcons.SUPPORT },
-  }
-
   const [championInfo, setChampionInfo] = useState(() => {
     axios
       .get(`${VITE_APP_API_URL}/champions/${championKey}`)
       .then((response) => {
         const championData = response.data
-        console.log(
-          `🚀 -> file: ChampionPage.jsx -> line 242 -> .then -> championData`,
-          championData,
-        )
-
         setChampionInfo(championData)
       })
       .catch((error) => {
@@ -249,8 +37,6 @@ export default function ChampionPage() {
 
   const { items, isLoadingItems, failedItemsLoad, loadItems } =
     useContext(itemsContext)
-
-  console.log(items)
 
   const [itemRoleFilter, setItemRoleFilter] = useState()
 
@@ -376,6 +162,15 @@ export default function ChampionPage() {
     [chosenItems],
   )
 
+  function setBaseChampionStats() {
+    const championStats = {}
+
+    championInfo &&
+      updateEachStatOnLeveLChange(championInfo.stats, championStats)
+
+    return championStats
+  }
+
   function setChampionStats() {
     const championStats = {}
 
@@ -387,6 +182,7 @@ export default function ChampionPage() {
     return championStats
   }
 
+  const baseChampionstats = setBaseChampionStats()
   const championStats = setChampionStats()
 
   function handleItemClick(e, key) {
@@ -489,7 +285,7 @@ export default function ChampionPage() {
     return (
       <div className="champion-info__level-container level-container">
         <label htmlFor="championLevel" className="level-container__label">
-          Current Level:{" "}
+          Current Level:
           <select
             className="level-container__level-select"
             name="championLevel"
@@ -518,8 +314,8 @@ export default function ChampionPage() {
   //   return (
   //     <div>
   //       Type:{" "}
-  //       {championInfo.roles.map((role, index) => {
-  //         if (index === championInfo.roles.length - 1) {
+  //       {championInfo.rolesInfo.map((role, index) => {
+  //         if (index === championInfo.rolesInfo.length - 1) {
   //           return <span>{role}</span>
   //         } else {
   //           return <span>{role},</span>
@@ -578,13 +374,13 @@ export default function ChampionPage() {
     return (
       <div className="champion-info__items items">
         <div className="items__filter-row">
-          {Object.keys(roles).map((role) => {
+          {Object.keys(rolesInfo).map((role) => {
             return (
               <div
                 className="items__filter-roles"
                 onClick={(e) => handleRoleFilterClick(e, role)}
               >
-                <img src={roles[role].icon} className="items__role-icon" />
+                <img src={rolesInfo[role].icon} className="items__role-icon" />
               </div>
             )
           })}
@@ -643,19 +439,37 @@ export default function ChampionPage() {
     // const statsElements = []
 
     const statsElements = statsInfo.order.map((stat) => {
+      const totalStat = championStats[stat]
+      const baseStat = baseChampionstats[stat]
+      const additionalStat = Number((totalStat - baseStat).toFixed(2))
+
+      const statIcon =
+        statsInfo.labels[stat]?.icon && statsInfo.labels[stat]?.icon
+      const statLabel = statsInfo.labels[stat].label
+      const statSufix =
+        statsInfo.labels[stat].suffix && statsInfo.labels[stat].suffix
+
       return (
-        <>
-          <li className="stats__stat">
-            {statsInfo.labels[stat]?.icon && (
-              <img
-                src={statsInfo.labels[stat].icon}
-                className="stats__stat-icon"
-              ></img>
+        <li className="stats__stat">
+          <img src={statIcon} className="stats__stat-icon"></img>
+          <div className="stats__stat-numbers">
+            {additionalStat ? (
+              <>
+                {statLabel}: {totalStat}
+                {statSufix} ({baseStat} +{" "}
+                <span className="stats__stat--additional">
+                  {additionalStat}
+                </span>
+                )
+              </>
+            ) : (
+              <>
+                {statLabel}: {totalStat}
+                {statSufix}
+              </>
             )}
-            {statsInfo.labels[stat].label}: {championStats[stat]}
-            {statsInfo.labels[stat].suffix && statsInfo.labels[stat].suffix}
-          </li>
-        </>
+          </div>
+        </li>
       )
     })
 
@@ -666,7 +480,6 @@ export default function ChampionPage() {
 
     return (
       <div className="champion-info__stats stats">
-        {/* <ul>{statsElements}</ul> */}
         <ul className="stats__group stats__group-1">{statsElementsRow1Col1}</ul>
         <ul className="stats__group stats__group-2">{statsElementsRow1Col2}</ul>
         <ul className="stats__group stats__group-3">{statsElementsRow2Col1}</ul>
@@ -677,40 +490,44 @@ export default function ChampionPage() {
 
   return (
     <>
-      <div className="page-container page-container--champion-page">
-        <div className="widthWrapper">
-          {championInfo ? (
-            <main className="champion-page">
-              <div className="champion-page__champion-info champion-info">
-                <div className="champion-info__header">
-                  <img
-                    src={championInfo.icon}
-                    alt=""
-                    className="champion-info__header-image"
-                  />
-                  <div className="champion-info__name-title">
-                    <h3 className="champion-info__name">{championInfo.name}</h3>
-                    <h4 className="champion-info__title">
-                      {championInfo.title}
-                    </h4>
+      <div className="width-container">
+        <div className="page-container page-container--champion-page">
+          <div className="widthWrapper">
+            {championInfo ? (
+              <main className="champion-page">
+                <div className="champion-page__champion-info champion-info">
+                  <div className="champion-info__header">
+                    <img
+                      src={championInfo.icon}
+                      alt=""
+                      className="champion-info__header-image"
+                    />
+                    <div className="champion-info__name-title">
+                      <h3 className="champion-info__name">
+                        {championInfo.name}
+                      </h3>
+                      <h4 className="champion-info__title">
+                        {championInfo.title}
+                      </h4>
+                    </div>
+                    {createSaveBuildButtonElement()}
                   </div>
-                  {createSaveBuildButtonElement()}
-                </div>
-                {/* {createChampionLoreElement()} */}
-                {createLevelSelectElement()}
-                {/* {createChampionTypesElement()} */}
-                {/* {createAttackTypeElement()} */}
-                {/* <ChampionSkills
+                  {/* {createChampionLoreElement()} */}
+                  {createLevelSelectElement()}
+                  {/* {createChampionTypesElement()} */}
+                  {/* {createAttackTypeElement()} */}
+                  {/* <ChampionSkills
                 abilities={championInfo.abilities}
               ></ChampionSkills> */}
-                {createChosenItemsElement()}
-                {createItemsElement()}
-                {createChampionStatsElement()}
-              </div>
-            </main>
-          ) : (
-            <></>
-          )}
+                  {createChosenItemsElement()}
+                  {createItemsElement()}
+                  {createChampionStatsElement()}
+                </div>
+              </main>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
       </div>
     </>

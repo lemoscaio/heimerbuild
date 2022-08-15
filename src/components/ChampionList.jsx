@@ -6,6 +6,7 @@ export default function ChampionList(props) {
   const {
     search,
     champions,
+    filteredChampions,
     isLoadingChampions,
     failedChampionsLoad,
     loadChampions,

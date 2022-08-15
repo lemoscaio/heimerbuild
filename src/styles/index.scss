@@ -17,10 +17,29 @@ a {
   text-decoration: none;
 }
 
+body {
+  background: $color-primary-3;
+}
+
 .height-container {
-  position: fixed;
+  position: relative;
   width: 100%;
   height: 100vh;
+
+  background-color: darken($color-primary-2, 10%);
+
+  @include desktop-only() {
+    height: max-content;
+  }
+}
+
+.width-container {
+  @include desktop-only() {
+    margin: 0 auto;
+    max-width: 800px;
+
+    padding: 80px 0 20px;
+  }
 }
 
 .page-container {
@@ -28,13 +47,21 @@ a {
   height: 100%;
   background: $color-primary-3;
 
+  &--champion-page {
+    @include desktop-only() {
+      border-radius: 10px;
+
+      box-shadow: 6px 6px 15px -4px rgba(0, 0, 0, 0.25);
+    }
+  }
+
   &--auth-page {
     @include flex(column, center);
   }
 
   &--user-page {
     @include flex(column, flex-start, center);
-    padding: 60px;
+    padding: 60px 0 0 0;
   }
 }
 
@@ -212,9 +239,17 @@ a {
   &__builds {
     @include flex(column);
     gap: 24px;
+
+    width: 100%;
+
+    @include tablet-only() {
+      width: fit-content;
+    }
   }
 
   .card-container {
+    width: 100%;
+
     &:hover {
       .card-container {
         &__additional-commands {
@@ -232,15 +267,16 @@ a {
       top: 10px;
       z-index: 1;
 
+      width: 100%;
       height: 20px;
 
       @include flex(row, flex-end);
 
       background-color: $color-primary-2;
 
-      border-radius: $card-border-radius;
-
-      transition: all 100ms ease-in-out;
+      @include tablet-only() {
+        border-radius: $card-border-radius;
+      }
     }
 
     &__delete-icon {
@@ -258,37 +294,45 @@ a {
 
   .build-card {
     position: relative;
+    z-index: 2;
+
+    @include flex(row, center, center, nowrap);
 
     background-color: $color-primary-1;
     color: white;
 
     height: 180px;
 
-    z-index: 2;
+    padding: 10px;
 
-    border-radius: $card-border-radius;
-
-    padding: 10px 10px 10px 0;
-
-    @include flex(row, center, center, nowrap);
+    @include tablet-only() {
+      width: 100%;
+      border-radius: $card-border-radius;
+    }
 
     &__left-column {
       @include flex(column, space-between, center);
+      flex-grow: 1;
 
       height: 100%;
 
-      padding: 10px 20px;
+      padding: 10px 10px 10px 0;
 
       border-right: 1px solid $color-primary-3;
     }
 
     &__champion {
       @include flex(column, center, center);
+
+      width: 100%;
     }
 
     &__champion-image {
-      width: 60px;
-      // padding: 10px;
+      max-width: 60px;
+
+      @include tablet-only() {
+        width: 60px;
+      }
     }
 
     &__champion-name {
@@ -299,6 +343,8 @@ a {
     &__champion-level {
       font-size: em(12);
       margin-top: 8px;
+
+      text-align: center;
     }
 
     &__build-cost {
@@ -310,8 +356,10 @@ a {
     }
 
     &__right-column {
-      @include flex(column, space-between, center);
+      @include flex(column, center, center);
       gap: 12px;
+      flex-grow: 1;
+
       height: 100%;
       padding: 0 10px;
     }
@@ -325,12 +373,15 @@ a {
 
     &__chosen-item {
       background-color: $color-primary-2;
-      width: 40px;
-      height: 40px;
+      width: 35px;
+      height: 35px;
+
+      @include tablet-only() {
+        width: 40px;
+        height: 40px;
+      }
 
       border-radius: 3px;
-
-      margin-bottom: 12px;
     }
 
     &__chosen-item-image {
@@ -339,13 +390,8 @@ a {
     }
 
     &__stats-container {
-      @include flex();
+      @include flex(row, space-evenly);
       gap: 20px;
-    }
-
-    &__stats-group {
-      @include flex();
-      gap: 10px;
     }
 
     &__stats-column {
@@ -477,6 +523,10 @@ a {
 
   padding-top: $header-height;
 
+  @include desktop-only() {
+    padding-top: 0;
+  }
+
   .champion-info {
     &__header {
       position: relative;
@@ -487,6 +537,10 @@ a {
 
       background-color: $color-primary-3;
       color: white;
+
+      @include desktop-only() {
+        border-radius: 10px 10px 0 0;
+      }
     }
 
     &__header-image {
@@ -540,7 +594,7 @@ a {
     .level-container {
       @include flex(row, flex-start, center, nowrap);
       padding: 12px 15px;
-      gap: 20px;
+      gap: 25px;
 
       background: rgb(27, 23, 50);
       background: linear-gradient(180deg, rgba(27, 23, 50, 1) 0%, rgba(65, 61, 86, 1) 100%);
@@ -548,11 +602,10 @@ a {
 
       &__label {
         flex-wrap: nowrap;
-        flex-shrink: 0;
-        font-weight: 700;
       }
 
       &__level-select {
+        margin-top: 5px;
         margin-left: 10px;
         padding: 5px;
 
@@ -675,14 +728,24 @@ a {
 
       background-color: $color-primary-3;
 
-      padding: 15px 30px;
+      padding: 15px 10px;
 
       display: grid;
       grid-template-columns: 1fr 1fr;
-      row-gap: 5px;
+      row-gap: 15px;
       column-gap: 10px;
 
       color: white;
+
+      @include desktop-only() {
+        border-radius: 0 0 20px 20px;
+
+        grid-template-columns: 1fr;
+
+        width: 500px;
+
+        margin: 0 auto;
+      }
 
       &__group-1 {
         grid-row-start: 1;
@@ -713,6 +776,12 @@ a {
         margin: 4px 0;
         font-size: em(14);
         @include flex(row, flex-start, center, nowrap);
+
+        line-height: 16px;
+
+        &--additional {
+          color: $color-success-message;
+        }
       }
 
       &__stat-icon {

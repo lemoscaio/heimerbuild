@@ -9,6 +9,8 @@ import HeaderAlternative from "../components/HeaderAlternative"
 import { loadingContext } from "../contexts/loadingContext.jsx"
 
 export default function ChampionsPage() {
+  // console.log(`🚀 -> file: ChampionsPage.jsx -> ChampionsPage -> Rendered`)
+
   const [search, setSearch] = useState("")
 
   const { champions, isLoadingChampions, failedChampionsLoad, loadChampions } =
