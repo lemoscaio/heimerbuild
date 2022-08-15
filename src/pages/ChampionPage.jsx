@@ -1,9 +1,10 @@
 import axios from "axios"
-import { useCallback, useState, useContext, useEffect } from "preact/hooks"
+import { useCallback, useContext, useState } from "preact/hooks"
 import { useParams } from "react-router-dom"
-import { useAuth } from "./../hooks/useAuth"
 import { itemsContext } from "../contexts/itemsContext"
+import { useAuth } from "../hooks/useAuth"
 
+import { DotLoader } from "react-spinners"
 import rolesIcons from "../assets/roles-icons"
 import itemStatsIcons from "../assets/stats-icons"
 
@@ -249,7 +250,8 @@ export default function ChampionPage() {
   const [saveBuildButtonContent, setSaveBuildButtonContent] =
     useState("Save Build")
 
-  const { items } = useContext(itemsContext)
+  const { items, isLoadingItems, failedItemsLoad, loadItems } =
+    useContext(itemsContext)
 
   const [itemRoleFilter, setItemRoleFilter] = useState("ALL")
 
@@ -427,8 +429,6 @@ export default function ChampionPage() {
         headers: { Authorization: `Bearer ${user.token}` },
       })
       .then((response) => {
-        console.log(response)
-
         setTimeout(() => {
           setSaveBuildButtonContent("Saved!")
         }, 1000)
@@ -442,6 +442,10 @@ export default function ChampionPage() {
       })
   }
 
+  function handleLoadItemsClick() {
+    loadItems()
+  }
+
   function handleLevelChange(e) {
     setChampionLevel(Number(e.target.value))
     setSaveBuildButtonContent("Save Build")
@@ -453,13 +457,15 @@ export default function ChampionPage() {
       saveBuildButtonContent === "Error"
 
     return (
-      <button
-        className="champion-info__save-build"
-        onClick={handleSaveBuildClick}
-        disabled={disabled}
-      >
-        {saveBuildButtonContent}
-      </button>
+      user && (
+        <button
+          className="champion-info__save-build"
+          onClick={handleSaveBuildClick}
+          disabled={disabled}
+        >
+          {saveBuildButtonContent}
+        </button>
+      )
     )
   }
 
@@ -618,6 +624,20 @@ export default function ChampionPage() {
                     </article>
                   )
                 })}
+            {isLoadingItems && (
+              <DotLoader color={"white"} className="items__loader" />
+            )}
+            {failedItemsLoad && (
+              <div className="items__load-error-container load-error-container">
+                <p>Something went wrong!</p>
+                <button
+                  className="items__load-button load-button"
+                  onClick={handleLoadItemsClick}
+                >
+                  Click here to try again
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

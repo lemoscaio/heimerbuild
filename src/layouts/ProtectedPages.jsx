@@ -9,8 +9,8 @@ export default function ProtectedPages() {
   }
 
   return (
-    <>
+    <div className="height-container">
       <Outlet />
-    </>
+    </div>
   )
 }

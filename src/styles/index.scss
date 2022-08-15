@@ -17,9 +17,15 @@ a {
   text-decoration: none;
 }
 
+.height-container {
+  position: fixed;
+  width: 100%;
+  height: 100vh;
+}
+
 .page-container {
   width: 100%;
-  height: fit-content;
+  height: 100%;
   background: $color-primary-3;
 
   &--auth-page {
@@ -430,6 +436,10 @@ a {
 
     color: white;
 
+    &__loader {
+      margin-top: 20px;
+    }
+
     .champion-card {
       width: 60px;
 
@@ -610,9 +620,25 @@ a {
         gap: 5px;
 
         height: 40vh;
+        width: 100%;
         overflow: auto;
 
         padding-bottom: 10px;
+      }
+
+      &__loader {
+        align-self: center;
+        margin-bottom: 30px;
+      }
+
+      &__load-error-container {
+        padding-bottom: 30px;
+      }
+
+      &__load-button {
+        &:active {
+          background-color: $color-primary-2;
+        }
       }
 
       &__filter-roles {
@@ -714,5 +740,32 @@ a {
     color: $adobe-4-hex;
     font-size: em(20);
     font-family: $display-font;
+  }
+}
+
+.load-error-container {
+  height: 100%;
+
+  @include flex(column, center, center);
+  gap: 20px;
+
+  color: white;
+}
+
+.load-button {
+  background-color: $color-primary-1;
+  color: white;
+
+  padding: 10px;
+
+  border-radius: $card-border-radius;
+  border: none;
+
+  cursor: pointer;
+
+  transition: background 100ms;
+
+  &:active {
+    background-color: $color-primary-4;
   }
 }

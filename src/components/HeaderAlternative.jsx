@@ -6,11 +6,7 @@ export default function HeaderAlternative() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { user, logout } = useAuth()
-  console.log(
-    `🚀 -> file: HeaderAlternative.jsx -> line 10 -> HeaderAlternative -> user`,
-    user,
-  )
+  const { user } = useAuth()
 
   function handleGoToLoginClick() {
     navigate("/sign-in", { state: { previousPath: location.pathname } })

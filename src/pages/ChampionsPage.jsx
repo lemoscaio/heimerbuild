@@ -5,12 +5,14 @@ import ChampionList from "../components/ChampionList.jsx"
 import MainPageLogo from "../components/MainPageLogo.jsx"
 import SearchContainer from "../components/SearchContainer.jsx"
 import { championsContext } from "../contexts/championsContext.jsx"
-import HeaderAlternative from "./HeaderAlternative"
+import HeaderAlternative from "../components/HeaderAlternative"
+import { loadingContext } from "../contexts/loadingContext.jsx"
 
 export default function ChampionsPage() {
   const [search, setSearch] = useState("")
 
-  const { champions } = useContext(championsContext)
+  const { champions, isLoadingChampions, failedChampionsLoad, loadChampions } =
+    useContext(championsContext)
 
   const filteredChampions =
     search.length > 0
@@ -20,11 +22,6 @@ export default function ChampionsPage() {
           if (lowerCaseChampionName.includes(lowerCaseSearch)) return true
         })
       : []
-
-  console.log(
-    `🚀 -> file: ChampionsPage.jsx -> line 30 -> ChampionsPage -> filteredChampions`,
-    filteredChampions,
-  )
 
   return (
     <div className="page-container page-container--champions-page">
@@ -40,6 +37,9 @@ export default function ChampionsPage() {
           search={search}
           champions={champions}
           filteredChampions={filteredChampions}
+          isLoadingChampions={isLoadingChampions}
+          failedChampionsLoad={failedChampionsLoad}
+          loadChampions={loadChampions}
         ></ChampionList>
       </main>
     </div>
