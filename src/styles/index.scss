@@ -270,6 +270,8 @@ body {
       width: 100%;
       height: 20px;
 
+      transition: all 100ms;
+
       @include flex(row, flex-end);
 
       background-color: $color-primary-2;
