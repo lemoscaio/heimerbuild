@@ -1,5 +1,5 @@
 import axios from "axios"
-import { useCallback, useContext, useState } from "preact/hooks"
+import { useCallback, useContext, useState, useEffect } from "preact/hooks"
 import { useParams } from "react-router-dom"
 import { itemsContext } from "../contexts/itemsContext"
 import { useAuth } from "../hooks/useAuth"
@@ -9,7 +9,7 @@ import rolesIcons from "../assets/roles-icons"
 import itemStatsIcons from "../assets/stats-icons"
 
 export default function ChampionPage() {
-  console.log("Rendered")
+  console.log(`🚀 -> file: ChampionPage.jsx -> ChampionPage -> Rendered`)
 
   const { VITE_APP_API_URL } = import.meta.env
   const MAX_LEVEL = 18
@@ -17,221 +17,212 @@ export default function ChampionPage() {
   const { user } = useAuth()
   const { championKey } = useParams()
 
-  const statsOrder = [
-    "attackDamage",
-    "abilityPower",
-    "armor",
-    "magicResistance",
-    "attackSpeed",
-    "abilityHaste",
-    "criticalStrike",
-    "movespeed",
-    "health",
-    "healthRegen",
-    "mana",
-    "manaRegen",
-    "lethality",
-    "armorPenetration",
-    "flatMagicPenetration",
-    "percentageMagicPenetration",
-    "lifeSteal",
-    "physicalVamp",
-    "omniVamp",
-    "attackRange",
-    "tenacity",
-  ]
+  const statsInfo = {
+    order: [
+      "attackDamage",
+      "abilityPower",
+      "armor",
+      "magicResistance",
+      "attackSpeed",
+      "abilityHaste",
+      "criticalStrike",
+      "movespeed",
+      "health",
+      "healthRegen",
+      "mana",
+      "manaRegen",
+      "lethality",
+      "armorPenetration",
+      "flatMagicPenetration",
+      "percentageMagicPenetration",
+      "lifeSteal",
+      "physicalVamp",
+      "omniVamp",
+      "attackRange",
+      "tenacity",
+    ],
 
-  const statsLabels = {
-    attackDamage: {
-      label: "Attack Damage",
-      short_label: "AD",
+    labels: {
+      attackDamage: {
+        label: "Attack Damage",
+        short_label: "AD",
+        icon: itemStatsIcons.attackDamage,
+      },
+      abilityPower: {
+        label: "Ability Power",
+        short_label: "AP",
+        icon: itemStatsIcons.abilityPower,
+      },
+      armor: {
+        label: "Armor",
+        short_label: "Armor",
+        icon: itemStatsIcons.armor,
+      },
+      magicResistance: {
+        label: "Magic Resistance",
+        short_label: "MR",
+        icon: itemStatsIcons.magicResist,
+      },
+      attackSpeed: {
+        label: "Attack Speed",
+        short_label: "Atk Speed",
+        suffix: "%",
+        icon: itemStatsIcons.attackSpeed,
+      },
+      abilityHaste: {
+        label: "Ability Haste",
+        short_label: "AH",
+        icon: itemStatsIcons.abilityHaste,
+      },
+      criticalStrike: {
+        label: "Critical Strike",
+        short_label: "Crit",
+        anotherAlternativeLabel: "criticalStrikeChance",
+        suffix: "%",
+        icon: itemStatsIcons.criticalStrike,
+      },
+      movespeed: {
+        label: "Movement Speed",
+        short_label: "Move Speed",
+        icon: itemStatsIcons.moveSpeed,
+      },
+      health: {
+        label: "Health",
+        short_label: "HP",
+        icon: itemStatsIcons.health,
+      },
+      healthRegen: {
+        label: "Health Regen",
+        short_label: "HP Regen",
+        suffix: "%",
+        icon: itemStatsIcons.health,
+      },
+      mana: {
+        label: "Mana",
+        short_label: "MP",
+        icon: itemStatsIcons.mana,
+      },
+      manaRegen: {
+        label: "Mana Regen",
+        short_label: "MP Regen",
+        suffix: "%",
+        icon: itemStatsIcons.mana,
+      },
+      lethality: {
+        label: "Lethality",
+        short_label: "Lethality",
+        icon: itemStatsIcons.lethality,
+      },
+      armorPenetration: {
+        label: "Armor Penetration",
+        short_label: "Armor Pen",
+        suffix: "%",
+        icon: itemStatsIcons.armorPenetration,
+      },
+      magicPenetration: {
+        label: "Magic Penetration",
+        icon: itemStatsIcons.magicPenetration,
+      },
+      flatMagicPenetration: {
+        label: "Flat Magic Penetration",
+        short_label: "Flat Magic Pen",
+        icon: itemStatsIcons.magicPenetration,
+      },
+      percentageMagicPenetration: {
+        label: "Percentage Magic Penetration",
+        short_label: "Percentage Magic Pen",
+        suffix: "%",
+        icon: itemStatsIcons.percentageMagicPenetration,
+      },
+      lifeSteal: {
+        label: "Life Steal",
+        short_label: "Life Steal",
+        suffix: "%",
+        icon: itemStatsIcons.lifeSteal,
+      },
+      physicalVamp: {
+        label: "Physical Vamp",
+        short_label: "Physical Vamp",
+        suffix: "%",
+        icon: itemStatsIcons.physicalVamp,
+      },
+      onHit: {
+        label: "On-Hit",
+        short_label: "On-Hit",
+        icon: itemStatsIcons.onHit,
+      },
+      omniVamp: {
+        label: "Omnivamp",
+        short_label: "Omnivamp",
+        suffix: "%",
+        icon: itemStatsIcons.omniVamp,
+      },
+      attackRange: {
+        label: "Attack Range",
+        short_label: "Atk Range",
+        icon: itemStatsIcons.attackRange,
+      },
+      tenacity: {
+        label: "Tenacity",
+        short_label: "Tenacity",
+        suffix: "%",
+        icon: itemStatsIcons.tenacity,
+      },
     },
-    abilityPower: {
-      label: "Ability Power",
-      short_label: "AP",
-    },
-    armor: {
-      label: "Armor",
-      short_label: "Armor",
-    },
-    magicResistance: { label: "Magic Resistance", short_label: "MR" },
-    attackSpeed: {
-      label: "Attack Speed",
-      short_label: "Atk Speed",
-      suffix: "%",
-    },
-    abilityHaste: {
-      label: "Ability Haste",
-      short_label: "AH",
-    },
-    criticalStrike: {
-      label: "Critical Strike",
-      short_label: "Crit",
-      anotherAlternativeLabel: "criticalStrikeChance",
-      suffix: "%",
-    },
-    movespeed: {
-      label: "Movement Speed",
-      short_label: "Move Speed",
-    },
-    health: {
-      label: "Health",
-      short_label: "HP",
-    },
-    healthRegen: {
-      label: "Health Regen",
-      short_label: "HP Regen",
-      suffix: "%",
-    },
-    mana: {
-      label: "Mana",
-      short_label: "MP",
-    },
-    manaRegen: {
-      label: "Mana Regen",
-      short_label: "MP Regen",
-      suffix: "%",
-    },
-    lethality: {
-      label: "Lethality",
-      short_label: "Lethality",
-    },
-    armorPenetration: {
-      label: "Armor Penetration",
-      short_label: "Armor Pen",
-      suffix: "%",
-    },
-    flatMagicPenetration: {
-      label: "Flat Magic Penetration",
-      short_label: "Flat Magic Pen",
-    },
-    percentageMagicPenetration: {
-      label: "Percentage Magic Penetration",
-      short_label: "Percentage Magic Pen",
-      suffix: "%",
-    },
-    lifeSteal: {
-      label: "Life Steal",
-      short_label: "Life Steal",
-      suffix: "%",
-    },
-    physicalVamp: {
-      label: "Physical Vamp",
-      short_label: "Physical Vamp",
-      suffix: "%",
-    },
-    omniVamp: {
-      label: "Omnivamp",
-      short_label: "Omnivamp",
-      suffix: "%",
-    },
-    attackRange: {
-      label: "Attack Range",
-      short_label: "Atk Range",
-    },
-    tenacity: {
-      label: "Tenacity",
-      short_label: "Tenacity",
-      suffix: "%",
-    },
-  }
 
-  const alternativeLabels = {
-    attack_damage: {
-      label: "attackDamage",
-    },
-    ability_power: {
-      label: "abilityPower",
-    },
-    attack_speed: {
-      label: "attackSpeed",
-    },
-    ability_haste: {
-      label: "abilityHaste",
-    },
-    critical_strike_chance: {
-      label: "criticalStrike",
-    },
-    criticalStrikeChance: {
-      label: "criticalStrike",
-    },
-    health_regen: {
-      label: "healthRegen",
-    },
-    mana: {
-      label: "Mana",
-      short_label: "MP",
-    },
-    maga_regen: {
-      label: "manaRegen",
-    },
-    lethality: {
-      label: "Lethality",
-      short_label: "Lethality",
-    },
-    armor_penetration: {
-      label: "armorPenetration",
-    },
-    lifesteal: {
-      label: "lifeSteal",
-    },
-    omnivamp: {
-      label: "omniVamp",
+    alternativeLabels: {
+      attack_damage: {
+        label: "attackDamage",
+      },
+      ability_power: {
+        label: "abilityPower",
+      },
+      attack_speed: {
+        label: "attackSpeed",
+      },
+      ability_haste: {
+        label: "abilityHaste",
+      },
+      critical_strike_chance: {
+        label: "criticalStrike",
+      },
+      criticalStrikeChance: {
+        label: "criticalStrike",
+      },
+      health_regen: {
+        label: "healthRegen",
+      },
+      mana: {
+        label: "Mana",
+        short_label: "MP",
+      },
+      maga_regen: {
+        label: "manaRegen",
+      },
+      lethality: {
+        label: "Lethality",
+        short_label: "Lethality",
+      },
+      armor_penetration: {
+        label: "armorPenetration",
+      },
+      lifesteal: {
+        label: "lifeSteal",
+      },
+      omnivamp: {
+        label: "omniVamp",
+      },
     },
   }
 
   const roles = {
-    ALL: { icon: rolesIcons.ALL, label: "All Items" },
-    FIGHTER: { icon: rolesIcons.FIGHTER, label: "Fighter" },
-    MARKSMAN: { icon: rolesIcons.MARKSMAN, label: "Marksman" },
-    ASSASSIN: { icon: rolesIcons.ASSASSIN, label: "Assassin" },
-    MAGE: { icon: rolesIcons.MAGE, label: "Mage" },
-    TANK: { icon: rolesIcons.TANK, label: "Tank" },
-    SUPPORT: { icon: rolesIcons.SUPPORT, label: "Support" },
-  }
-
-  const itemStats = {
-    attackDamage: { label: "Attack Damage", icon: itemStatsIcons.attackDamage },
-    criticalStrike: {
-      label: "Crit Chance",
-      icon: itemStatsIcons.criticalStrike,
-    },
-    attackSpeed: { label: "Attack Speed", icon: itemStatsIcons.attackSpeed },
-    armorPenetration: {
-      label: "Armor Penetration",
-      icon: itemStatsIcons.armorPenetration,
-    },
-    onHit: { label: "On-Hit", icon: itemStatsIcons.onHit },
-    lifeSteal: { label: "Life Steal", icon: itemStatsIcons.lifeSteal },
-    abilityPower: { label: "Ability Power", icon: itemStatsIcons.abilityPower },
-    mana: { label: "Mana", icon: itemStatsIcons.mana },
-    lethality: { label: "Lethality", icon: itemStatsIcons.lethality },
-    manaRegen: { label: "Mana Regen", icon: itemStatsIcons.mana },
-    magicPenetration: {
-      label: "Magic Penetration",
-      icon: itemStatsIcons.magicPenetration,
-    },
-    flatMagicPenetration: {
-      label: "Flat Magic Penetration",
-      icon: itemStatsIcons.flatMagicPenetration,
-    },
-    percentageMagicPenetration: {
-      label: "Percentage Magic Penetration",
-      icon: itemStatsIcons.percentageMagicPenetration,
-    },
-    health: { label: "Health", icon: itemStatsIcons.health },
-    healthRegen: { label: "Health Regen", icon: itemStatsIcons.health },
-    armor: { label: "Armor", icon: itemStatsIcons.armor },
-    magicResistance: {
-      label: "Magic Resist",
-      icon: itemStatsIcons.magicResist,
-    },
-    abilityHaste: { label: "Ability Haste", icon: itemStatsIcons.abilityHaste },
-    movespeed: { label: "Movement Speed", icon: itemStatsIcons.moveSpeed },
-    physicalVamp: { label: "Physical-Vamp", icon: itemStatsIcons.physicalVamp },
-    omniVamp: { label: "Omni-Vamp", icon: itemStatsIcons.omniVamp },
-    attackRange: { label: "Attack Range", icon: itemStatsIcons.attackRange },
-    tenacity: { label: "Tenacity", icon: itemStatsIcons.tenacity },
+    ALL: { label: "All Items", icon: rolesIcons.ALL },
+    FIGHTER: { label: "Fighter", icon: rolesIcons.FIGHTER },
+    MARKSMAN: { label: "Marksman", icon: rolesIcons.MARKSMAN },
+    ASSASSIN: { label: "Assassin", icon: rolesIcons.ASSASSIN },
+    MAGE: { label: "Mage", icon: rolesIcons.MAGE },
+    TANK: { label: "Tank", icon: rolesIcons.TANK },
+    SUPPORT: { label: "Support", icon: rolesIcons.SUPPORT },
   }
 
   const [championInfo, setChampionInfo] = useState(() => {
@@ -239,6 +230,10 @@ export default function ChampionPage() {
       .get(`${VITE_APP_API_URL}/champions/${championKey}`)
       .then((response) => {
         const championData = response.data
+        console.log(
+          `🚀 -> file: ChampionPage.jsx -> line 242 -> .then -> championData`,
+          championData,
+        )
 
         setChampionInfo(championData)
       })
@@ -247,29 +242,42 @@ export default function ChampionPage() {
       })
   })
 
+  const [championLevel, setChampionLevel] = useState(0)
+
   const [saveBuildButtonContent, setSaveBuildButtonContent] =
     useState("Save Build")
 
   const { items, isLoadingItems, failedItemsLoad, loadItems } =
     useContext(itemsContext)
 
-  const [itemRoleFilter, setItemRoleFilter] = useState("ALL")
+  console.log(items)
 
-  const [itemStatFilter, setItemStatFilter] = useState(() => {
-    const setOfItemStatFilter = {}
-    for (let key in itemStats) {
-      setOfItemStatFilter[key] = false
+  const [itemRoleFilter, setItemRoleFilter] = useState()
+
+  const displayedItems = setDisplayedItems()
+
+  function setDisplayedItems() {
+    if (items) {
+      const allItems = Object.keys(items).filter((itemId) => {
+        const item = items[itemId]
+        return item.shop.purchasable
+      })
+
+      const roleFilteredItems = itemRoleFilter
+        ? allItems.filter(filterItemsByRole)
+        : allItems
+
+      return roleFilteredItems
     }
-    return { ...setOfItemStatFilter }
-  })
-
-  const filteredItems = items ? setFilteredItems() : []
-
-  function setFilteredItems() {
-    const filteredItems = Object.keys(items).filter(filterItemsByRole)
-
-    return filteredItems
   }
+
+  // const [itemStatFilter, setItemStatFilter] = useState(() => {
+  //   const setOfItemStatFilter = {}
+  //   for (let key in statsInfo) {
+  //     setOfItemStatFilter[key] = false
+  //   }
+  //   return { ...setOfItemStatFilter }
+  // })
 
   // function filterItemsByStat(itemId) {
   //   const item = items[itemId]
@@ -296,8 +304,6 @@ export default function ChampionPage() {
 
   const [chosenItems, setChosenItems] = useState([])
 
-  const [championLevel, setChampionLevel] = useState(0)
-
   const updateEachStatOnLeveLChange = useCallback(
     (stats, championStats) => {
       for (let stat in stats) {
@@ -315,7 +321,7 @@ export default function ChampionPage() {
         }
       }
 
-      statsOrder.forEach((stat) => {
+      statsInfo.order.forEach((stat) => {
         if (championStats[stat] === undefined) {
           championStats[stat] = 0
         }
@@ -337,9 +343,10 @@ export default function ChampionPage() {
             if (championStats[statName] !== undefined) {
               correctLabel = statName
             } else if (
-              championStats[alternativeLabels[statName]?.label] !== undefined
+              championStats[statsInfo.alternativeLabels[statName]?.label] !==
+              undefined
             ) {
-              correctLabel = alternativeLabels[statName].label
+              correctLabel = statsInfo.alternativeLabels[statName].label
             } else if (statName === "magicPenetration") {
               const oldFlatMagicPenValue = championStats["flatMagicPenetration"]
               const oldPercentMagicPenValue =
@@ -398,7 +405,7 @@ export default function ChampionPage() {
   }
 
   function handleRoleFilterClick(e, role) {
-    setItemRoleFilter(role)
+    return role === "ALL" ? setItemRoleFilter() : setItemRoleFilter(role)
   }
 
   function handleItemStatFilterClick(e, stat) {
@@ -410,7 +417,7 @@ export default function ChampionPage() {
   function handleSaveBuildClick() {
     const statsData = {}
 
-    statsOrder.forEach((stat) => {
+    statsInfo.order.forEach((stat) => {
       statsData[stat] = championStats[stat]
     })
 
@@ -584,14 +591,14 @@ export default function ChampionPage() {
         </div>
         <div className="items__second-row">
           {/* <div className="items__item-filter-stats">
-            {Object.keys(itemStats).map((stat) => {
+            {Object.keys(statsInfo.labels).map((stat) => {
               return (
                 <div
                   className="items__item-filter-stats"
                   onClick={(e) => handleItemStatFilterClick(e, stat)}
                 >
                   <img
-                    src={itemStats[stat].icon}
+                    src={statsInfo.labels[stat].icon}
                     className="items__item-role-icon"
                   />
                 </div>
@@ -599,31 +606,19 @@ export default function ChampionPage() {
             })}
           </div> */}
           <div className="items__list">
-            {items && filteredItems.length === 0
-              ? Object.keys(items).map((itemId) => {
-                  const item = items[itemId]
+            {displayedItems &&
+              displayedItems.map((itemId) => {
+                const item = items[itemId]
 
-                  return (
-                    <article
-                      className="items__item-card"
-                      onClick={(e) => handleItemClick(e, itemId)}
-                    >
-                      <img src={item.icon} className="items__item-image" />
-                    </article>
-                  )
-                })
-              : filteredItems.map((itemId) => {
-                  const item = items[itemId]
-
-                  return (
-                    <article
-                      className="items__item-card"
-                      onClick={(e) => handleItemClick(e, itemId)}
-                    >
-                      <img src={item.icon} className="items__item-image" />
-                    </article>
-                  )
-                })}
+                return (
+                  <article
+                    className="items__item-card"
+                    onClick={(e) => handleItemClick(e, itemId)}
+                  >
+                    <img src={item.icon} className="items__item-image" />
+                  </article>
+                )
+              })}
             {isLoadingItems && (
               <DotLoader color={"white"} className="items__loader" />
             )}
@@ -647,18 +642,18 @@ export default function ChampionPage() {
   function createChampionStatsElement() {
     // const statsElements = []
 
-    const statsElements = statsOrder.map((stat) => {
+    const statsElements = statsInfo.order.map((stat) => {
       return (
         <>
           <li className="stats__stat">
-            {itemStats[stat]?.icon && (
+            {statsInfo.labels[stat]?.icon && (
               <img
-                src={itemStats[stat].icon}
+                src={statsInfo.labels[stat].icon}
                 className="stats__stat-icon"
               ></img>
             )}
-            {statsLabels[stat].label}: {championStats[stat]}
-            {statsLabels[stat].suffix && statsLabels[stat].suffix}
+            {statsInfo.labels[stat].label}: {championStats[stat]}
+            {statsInfo.labels[stat].suffix && statsInfo.labels[stat].suffix}
           </li>
         </>
       )
@@ -679,23 +674,6 @@ export default function ChampionPage() {
       </div>
     )
   }
-
-  // TODO remove when no longer necessary
-
-  // function quickConsoleLogSpecificItems() {
-  //   items &&
-  //     Object.keys(items).forEach((itemKey) => {
-  //       const item = items[itemKey]
-  //       Object.keys(item.stats).map((statKey) => {
-  //         const stat = item.stats[statKey]
-  //         if (statKey === "attackSpeed" || statKey === "attack_speed") {
-  //           console.log("Flat: ", stat.flat, " Percent: ", stat.percent)
-  //         } else {
-  //         }
-  //       })
-  //     })
-  // }
-  // console.log(quickConsoleLogSpecificItems())
 
   return (
     <>

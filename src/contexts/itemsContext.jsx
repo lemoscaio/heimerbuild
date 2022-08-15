@@ -4,6 +4,8 @@ import axios from "axios"
 export const itemsContext = createContext()
 
 export function ItemsProvider({ children }) {
+  console.log(`🚀 -> file: itemsContext.jsx -> ItemsProvider -> Rendered`)
+
   const { VITE_APP_API_URL } = import.meta.env
 
   const [isLoadingItems, setIsLoadingItems] = useState(false)
@@ -36,7 +38,7 @@ export function ItemsProvider({ children }) {
 
   const value = useMemo(() => {
     return { items, isLoadingItems, failedItemsLoad, loadItems }
-  }, [items, isLoadingItems, failedItemsLoad])
+  }, [items, isLoadingItems, failedItemsLoad, loadItems])
 
   return <itemsContext.Provider value={value}>{children}</itemsContext.Provider>
 }

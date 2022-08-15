@@ -4,6 +4,10 @@ import axios from "axios"
 export const championsContext = createContext()
 
 export function ChampionsProvider({ children }) {
+  console.log(
+    `🚀 -> file: championsContext.jsx -> ChampionsProvider -> Rendered`,
+  )
+
   const { VITE_APP_API_URL } = import.meta.env
   const [isLoadingChampions, setIsLoadingChampions] = useState(false)
   const [failedChampionsLoad, setFailedChampionsLoad] = useState(false)
