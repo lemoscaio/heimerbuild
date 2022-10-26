@@ -1,0 +1,842 @@
+@import "reset";
+@import "media-queries";
+@import "mixins";
+@import "variables";
+@import "theme";
+@import "functions";
+@import "level-slider";
+@import "scrollbar";
+
+* {
+  font-family: $main-font;
+}
+
+a {
+  font-family: $main-font;
+  color: inherit;
+  text-decoration: none;
+}
+
+body {
+  background: $color-primary-3;
+}
+
+.height-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+
+  background-color: darken($color-primary-2, 10%);
+
+  @include desktop-only() {
+    height: max-content;
+  }
+}
+
+.width-container {
+  @include desktop-only() {
+    margin: 0 auto;
+    max-width: 800px;
+
+    padding: 80px 0 20px;
+  }
+}
+
+.page-container {
+  width: 100%;
+  height: 100%;
+  background: $color-primary-3;
+
+  &--champion-page {
+    @include desktop-only() {
+      border-radius: 10px;
+
+      box-shadow: 6px 6px 15px -4px rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  &--auth-page {
+    @include flex(column, center);
+  }
+
+  &--user-page {
+    @include flex(column, flex-start, center);
+    padding: 60px 0 0 0;
+  }
+}
+
+.header {
+  position: fixed;
+  z-index: 10;
+  width: 100%;
+  height: $header-height;
+  @include flex(row, space-between, center);
+  padding: 0 30px;
+
+  background-color: $color-primary-4;
+
+  color: white;
+  font-family: $main-font;
+
+  box-shadow: 0px 2px 10px 0px rgba(30, 30, 60, 0.5);
+
+  &__link {
+    transition: transform 100ms;
+
+    &:hover {
+      transform: rotate(-2deg);
+    }
+  }
+
+  &__logo-container {
+    height: 100%;
+    padding: em(10);
+  }
+  &__logo {
+    width: 100%;
+    height: 100%;
+
+    transition: transform 100ms;
+
+    &:hover {
+      transform: rotate(-3deg);
+    }
+  }
+}
+
+// Auth Page
+
+.auth-page {
+  @include flex(column, center);
+
+  &__back-button {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    margin: 10px;
+    padding: 10px;
+
+    background: $color-primary-1;
+
+    border: none;
+    border-radius: 5px;
+  }
+
+  &__link {
+    text-decoration: none;
+    color: white;
+    font-size: 14px;
+  }
+
+  &__header {
+    width: 100%;
+    @include flex(column, center, center);
+    gap: 10px;
+    margin: 0 0 20px 0;
+
+    .app-name-container {
+      padding: 0;
+    }
+  }
+
+  &__header-image {
+    width: 230px;
+    cursor: pointer;
+  }
+
+  .form {
+    width: 80%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    transition: all 1s;
+
+    &__input {
+      width: 100%;
+      height: 45px;
+      margin-top: 10px;
+      padding: 8px;
+      outline: none;
+      border: 1px solid #d5d5d5;
+      border-radius: 5px;
+      background: #d4d4d4;
+
+      &:last-of-type {
+        margin-bottom: 10px;
+      }
+    }
+
+    &__feedback-message {
+      width: 98%;
+      text-align: center;
+      border-radius: 10px;
+      font-weight: 500;
+      padding: 4px 5px;
+      margin-bottom: 10px;
+      box-shadow: 0px 3px 2px rgba(0, 0, 0, 0.2);
+
+      &--error {
+        color: $color-error-message;
+        background-color: $errorMessageBackgroundColor;
+      }
+
+      &--success {
+        color: $color-success-message;
+        background-color: $succesMessageBackgroundColor;
+        box-shadow: none;
+      }
+
+      &--password-match {
+        color: $color-password-match-message;
+        background-color: $succesMessageBackgroundColor;
+        box-shadow: none;
+      }
+    }
+
+    &__submit-button {
+      width: 100%;
+
+      border: none;
+      border-radius: 5px;
+
+      background: $color-primary-1;
+
+      color: #ffffff;
+      font-weight: 300;
+      font-size: 20px;
+
+      margin-top: 5px;
+      padding: 10px;
+      margin-bottom: 35px;
+
+      cursor: pointer;
+
+      &[disabled] {
+        background-color: $color-disabled-button;
+      }
+    }
+  }
+}
+
+// User Page
+
+.user-page {
+  width: 100%;
+
+  @include flex(column, flex-start, center);
+
+  &__page-label {
+    color: white;
+    font-size: em(28);
+
+    padding: 30px;
+  }
+
+  &__builds {
+    @include flex(column);
+    gap: 24px;
+
+    width: 100%;
+
+    @include tablet-only() {
+      width: fit-content;
+    }
+  }
+
+  .card-container {
+    width: 100%;
+
+    &:hover {
+      .card-container {
+        &__additional-commands {
+          height: 50px;
+        }
+
+        &__delete-icon {
+          margin: 9px 15px;
+          font-size: em(24);
+        }
+      }
+    }
+    &__additional-commands {
+      position: relative;
+      top: 10px;
+      z-index: 1;
+
+      width: 100%;
+      height: 20px;
+
+      transition: all 100ms;
+
+      @include flex(row, flex-end);
+
+      background-color: $color-primary-2;
+
+      @include tablet-only() {
+        border-radius: $card-border-radius;
+      }
+    }
+
+    &__delete-icon {
+      color: white;
+
+      transition: all 100ms;
+
+      font-size: em(0);
+
+      margin: 2px 15px;
+
+      cursor: pointer;
+    }
+  }
+
+  .build-card {
+    position: relative;
+    z-index: 2;
+
+    @include flex(row, center, center, nowrap);
+
+    background-color: $color-primary-1;
+    color: white;
+
+    height: 180px;
+
+    padding: 10px;
+
+    @include tablet-only() {
+      width: 100%;
+      border-radius: $card-border-radius;
+    }
+
+    &__left-column {
+      @include flex(column, space-between, center);
+      flex-grow: 1;
+
+      height: 100%;
+
+      padding: 10px 10px 10px 0;
+
+      border-right: 1px solid $color-primary-3;
+    }
+
+    &__champion {
+      @include flex(column, center, center);
+
+      width: 100%;
+    }
+
+    &__champion-image {
+      max-width: 60px;
+
+      @include tablet-only() {
+        width: 60px;
+      }
+    }
+
+    &__champion-name {
+      font-size: em(16);
+      margin-top: 5px;
+    }
+
+    &__champion-level {
+      font-size: em(12);
+      margin-top: 8px;
+
+      text-align: center;
+    }
+
+    &__build-cost {
+      width: 100%;
+      padding: 10px 0 0;
+
+      font-size: em(12);
+      text-align: center;
+    }
+
+    &__right-column {
+      @include flex(column, center, center);
+      gap: 12px;
+      flex-grow: 1;
+
+      height: 100%;
+      padding: 0 10px;
+    }
+
+    &__chosen-items {
+      @include flex();
+      gap: 5px;
+
+      padding: 5px;
+    }
+
+    &__chosen-item {
+      background-color: $color-primary-2;
+      width: 35px;
+      height: 35px;
+
+      @include tablet-only() {
+        width: 40px;
+        height: 40px;
+      }
+
+      border-radius: 3px;
+    }
+
+    &__chosen-item-image {
+      width: 100%;
+      object-fit: cover;
+    }
+
+    &__stats-container {
+      @include flex(row, space-evenly);
+      gap: 20px;
+    }
+
+    &__stats-column {
+      @include flex(column);
+      gap: 8px;
+    }
+
+    &__stat-icon {
+      scale: 0.8;
+      user-select: none;
+    }
+
+    &__stat {
+      @include flex(row, flex-start, center);
+      gap: 2px;
+
+      font-size: em(12);
+    }
+  }
+}
+
+// Champions Page
+
+.champions-page {
+  background-color: $color-primary-3;
+
+  min-height: 100vh;
+
+  &__header {
+    width: 100%;
+    height: 60px;
+    @include flex(row, flex-end, center);
+    padding-right: 20px;
+
+    color: $color-primary-1;
+    font-family: $main-font;
+  }
+
+  &__header-link {
+    cursor: pointer;
+  }
+
+  &__header-user-icon {
+    font-size: em(18);
+    margin-right: 10px;
+  }
+
+  .logo-container {
+    @include flex(row, center, center, nowrap);
+
+    &__logo {
+      width: min(250px, 50%);
+
+      transition: scale 300ms;
+
+      &:hover {
+        scale: 1.01;
+      }
+    }
+  }
+
+  .search-container {
+    @include flex(row, center, center, nowrap);
+    padding: 30px 0;
+
+    &__input {
+      width: min(600px, 70%);
+      height: em(50);
+
+      background-color: $color-primary-2;
+      border: none;
+      border-radius: 15px;
+
+      outline: none;
+
+      padding: 20px;
+
+      color: white;
+      font-size: em(16);
+    }
+  }
+
+  .champions-list {
+    @include flex(row, center, flex-start, wrap);
+    gap: 30px;
+
+    padding: 10px 20px;
+
+    color: white;
+
+    &__loader {
+      margin-top: 20px;
+    }
+
+    .champion-card {
+      width: 60px;
+
+      @include flex(column, center, center, nowrap);
+      gap: 5px;
+
+      cursor: pointer;
+
+      transition: scale 100ms;
+
+      &:hover {
+        scale: 1.1;
+      }
+
+      .champion-card__image {
+        width: 100%;
+      }
+
+      .champion-card__name {
+        width: 100%;
+
+        text-align: center;
+        font-size: em(12);
+      }
+    }
+  }
+}
+
+// Champion Page
+
+.champion-page {
+  min-height: 100vh;
+
+  font-size: 14px;
+
+  padding-top: $header-height;
+
+  @include desktop-only() {
+    padding-top: 0;
+  }
+
+  .champion-info {
+    &__header {
+      position: relative;
+
+      @include flex(row, flex-start, center);
+      gap: 20px;
+      padding: 15px 15px 0;
+
+      background-color: $color-primary-3;
+      color: white;
+
+      @include desktop-only() {
+        border-radius: 10px 10px 0 0;
+      }
+    }
+
+    &__header-image {
+      height: 70px;
+      object-fit: "cover";
+
+      border: solid 1px $color-primary-1;
+      border-radius: 5px;
+    }
+
+    &__name-title {
+      @include flex(column);
+      gap: 6 px;
+
+      font-family: $display-font;
+    }
+
+    &__name {
+      font-size: em(30);
+      font-weight: 800;
+    }
+
+    &__title {
+      font-size: em(16);
+    }
+
+    &__save-build {
+      position: absolute;
+      right: 25px;
+      background-color: $color-primary-1;
+
+      color: white;
+
+      width: 90px;
+
+      padding: 6px 10px;
+
+      border: none;
+      border-radius: $card-border-radius;
+
+      cursor: pointer;
+
+      transition: background 300ms;
+
+      &[disabled] {
+        background-color: $color-disabled-button;
+        user-select: none;
+      }
+    }
+
+    .level-container {
+      @include flex(row, flex-start, center, nowrap);
+      padding: 12px 15px;
+      gap: 25px;
+
+      background: rgb(27, 23, 50);
+      background: linear-gradient(180deg, rgba(27, 23, 50, 1) 0%, rgba(65, 61, 86, 1) 100%);
+      color: white;
+
+      &__label {
+        flex-wrap: nowrap;
+      }
+
+      &__level-select {
+        margin-top: 5px;
+        margin-left: 10px;
+        padding: 5px;
+
+        background-color: $color-primary-1;
+        border: none;
+        border-radius: 5px;
+
+        color: white;
+        font-weight: 700;
+
+        transition: background-color 100ms;
+
+        outline: none;
+
+        &:hover {
+          background-color: darken($color-primary-1, 5%);
+        }
+      }
+
+      &__level-slider {
+        width: min(300px, 100%);
+      }
+    }
+
+    .chosen-items {
+      @include flex(row, center, center, nowrap);
+      gap: 5px;
+      padding: 12px 0 12px;
+
+      background-color: $color-primary-3;
+
+      box-shadow: inset 0px 0px 8px rgba(0, 0, 0, 0.7);
+
+      &__item {
+        background-color: $color-primary-1;
+        width: 40px;
+        height: 40px;
+
+        border-radius: 3px;
+      }
+
+      &__item-image {
+        border-radius: 3px;
+        width: 100%;
+      }
+    }
+
+    .items {
+      background-color: $color-primary-4;
+
+      &__filter-row {
+        @include flex(row, center, center, nowrap);
+        gap: 5px;
+        padding: 5px 0;
+      }
+
+      &__second-row {
+        @include flex;
+        gap: 5px;
+        margin: 0 5px;
+      }
+
+      &__list {
+        @include flex(row, center, flex-start, wrap);
+        gap: 5px;
+
+        height: 40vh;
+        width: 100%;
+        overflow: auto;
+
+        padding-bottom: 10px;
+      }
+
+      &__loader {
+        align-self: center;
+        margin-bottom: 30px;
+      }
+
+      &__load-error-container {
+        padding-bottom: 30px;
+      }
+
+      &__load-button {
+        &:active {
+          background-color: $color-primary-2;
+        }
+      }
+
+      &__filter-roles {
+        width: 30px;
+        height: 30px;
+
+        cursor: pointer;
+      }
+
+      &__role-icon {
+        height: 100%;
+        width: 100%;
+      }
+
+      &__item-filter-stats {
+        background-color: blue;
+        width: 35px;
+        height: 35px;
+        margin: 5px 0;
+      }
+
+      &__item-card {
+        cursor: pointer;
+      }
+
+      &__item-image {
+        width: 40px;
+      }
+    }
+
+    .stats {
+      height: 100%;
+      width: 100%;
+
+      background-color: $color-primary-3;
+
+      padding: 15px 10px;
+
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      row-gap: 15px;
+      column-gap: 10px;
+
+      color: white;
+
+      @include desktop-only() {
+        border-radius: 0 0 20px 20px;
+
+        grid-template-columns: 1fr;
+
+        width: 500px;
+
+        margin: 0 auto;
+      }
+
+      &__group-1 {
+        grid-row-start: 1;
+        grid-row-end: 1;
+        grid-column-start: 1;
+        grid-column-end: 1;
+      }
+      &__group-2 {
+        grid-row-start: 1;
+        grid-row-end: 1;
+        grid-column-start: 2;
+        grid-column-end: 2;
+      }
+      &__group-3 {
+        grid-row-start: 2;
+        grid-row-end: 2;
+        grid-column-start: 1;
+        grid-column-end: 1;
+      }
+      &__group-4 {
+        grid-row-start: 2;
+        grid-row-end: 2;
+        grid-column-start: 2;
+        grid-column-end: 2;
+      }
+
+      &__stat {
+        margin: 4px 0;
+        font-size: em(14);
+        @include flex(row, flex-start, center, nowrap);
+
+        line-height: 16px;
+
+        &--additional {
+          color: $color-success-message;
+        }
+      }
+
+      &__stat-icon {
+        margin-right: 5px;
+      }
+    }
+  }
+}
+
+// Components
+
+.app-name-container {
+  padding-bottom: 20px;
+
+  color: white;
+  text-align: center;
+
+  user-select: none;
+  &__title {
+    font-size: em(100);
+    font-family: $logo-font;
+  }
+
+  &__subtitle {
+    color: $adobe-4-hex;
+    font-size: em(20);
+    font-family: $display-font;
+  }
+}
+
+.load-error-container {
+  height: 100%;
+
+  @include flex(column, center, center);
+  gap: 20px;
+
+  color: white;
+}
+
+.load-button {
+  background-color: $color-primary-1;
+  color: white;
+
+  padding: 10px;
+
+  border-radius: $card-border-radius;
+  border: none;
+
+  cursor: pointer;
+
+  transition: background 100ms;
+
+  &:active {
+    background-color: $color-primary-4;
+  }
+}
