@@ -1,5 +1,7 @@
 import { useState, createContext, useMemo } from "react"
 
+// TODO implement generic loadingState
+
 export const loadingContext = createContext()
 
 export function LoadingProvider({ children }) {

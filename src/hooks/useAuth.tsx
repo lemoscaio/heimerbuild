@@ -10,16 +10,16 @@ type LoginData = {
 type User = { token: string }
 
 type AuthContextInterface = {
-  user: User
-  login: ({ path, data }: LoginData) => Promise<void>
-  logout: () => Promise<void>
+  user: User | null
+  login?: ({ path, data }: LoginData) => Promise<void>
+  logout?: () => Promise<void>
 }
 
 type AuthProviderProps = {
   children?: React.ReactNode
 }
 
-const AuthContext = createContext<AuthContextInterface | null>(null)
+const AuthContext = createContext<AuthContextInterface>({ user: null })
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useLocalStorage<User>("user", null)
