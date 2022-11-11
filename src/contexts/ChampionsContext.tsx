@@ -1,4 +1,5 @@
 import axios from "axios"
+import { useContext } from "react"
 import { createContext, useEffect, useMemo, useState } from "react"
 import { Champions } from "../types/champions"
 
@@ -6,16 +7,21 @@ type ChampionsContextInterface = {
   champions: Champions
   isLoadingChampions: boolean
   failedChampionsLoad: boolean
-  loadChampions: () => void
+  loadChampions?: () => void
 }
 
 type ChampionsProviderProps = {
   children?: React.ReactNode
 }
 
-export const ChampionsContext = createContext<ChampionsContextInterface | null>(
-  null,
-)
+const initialValues: ChampionsContextInterface = {
+  champions: {},
+  isLoadingChampions: false,
+  failedChampionsLoad: false,
+  loadChampions: () => {},
+}
+
+const ChampionsContext = createContext<ChampionsContextInterface>(initialValues)
 
 export function ChampionsProvider({
   children,
@@ -57,4 +63,8 @@ export function ChampionsProvider({
       {children}
     </ChampionsContext.Provider>
   )
+}
+
+export function useChampions() {
+  return useContext(ChampionsContext)
 }

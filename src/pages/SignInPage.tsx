@@ -9,6 +9,12 @@ import {
 import Logo from "../assets/images/heimerdinger.png"
 import AppName from "../components/AppName"
 import { useAuth } from "../hooks/useAuth"
+import { FormEvent } from "react"
+
+type FeedbackMessageType = {
+  status?: number
+  message?: string
+}
 
 export default function SignUpPage() {
   const navigate = useNavigate()
@@ -24,9 +30,11 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
-  const [requestMessage, setRequestMessage] = useState({})
+  const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessageType>(
+    {},
+  )
 
-  function handleSubmit(e) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     const promise = axios.post(`${VITE_APP_API_URL}/sign-in`, {
@@ -35,7 +43,7 @@ export default function SignUpPage() {
     })
 
     promise.then((response) => {
-      setRequestMessage(response)
+      setFeedbackMessage(response)
 
       const redirectPath = location.state?.previousPath || "/"
 
@@ -46,14 +54,14 @@ export default function SignUpPage() {
     })
 
     promise.catch((error) => {
-      setRequestMessage(error)
+      setFeedbackMessage({ status: error.status, message: error.message })
     })
   }
 
   function setErrorContainerContent() {
     let errorMessage = ""
 
-    switch (requestMessage.response?.status) {
+    switch (feedbackMessage.status) {
       case 0:
         errorMessage = "Connection error. Please, try again later."
         break
@@ -81,7 +89,7 @@ export default function SignUpPage() {
   function setSuccessContainerContent() {
     let successMessage = ""
 
-    switch (requestMessage?.status) {
+    switch (feedbackMessage?.status) {
       case 200:
       case 201:
         successMessage = "Success! You'll be redirected back to the store now."
@@ -130,7 +138,7 @@ export default function SignUpPage() {
             type="password"
             name="password"
             placeholder="Password"
-            autoComplete
+            autoComplete="current-password"
             pattern="^\S{6,20}$"
             title="Your password must be at least 6 characters long and it may contain especial characters"
             onChange={(e) => setPassword(e.target.value)}

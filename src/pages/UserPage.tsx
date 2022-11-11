@@ -1,39 +1,48 @@
 import axios from "axios"
-import { useContext, useState } from "react"
+import { useEffect, useState } from "react"
 
 import itemStatsIcons from "../assets/stats-icons"
-import { ChampionsContext } from "../contexts/ChampionsContext"
-import { ItemsContext } from "../contexts/ItemsContext"
+import { useChampions } from "../contexts/ChampionsContext"
+import { useItems } from "../contexts/ItemsContext"
 import { useAuth } from "../hooks/useAuth"
 import goldIcon from "./../assets/stats-icons/Gold_icon.png"
 
 import { MdDeleteForever } from "react-icons/md"
+import { Build } from "../types/builds"
 
 export default function UserPage() {
   const { VITE_APP_API_URL } = import.meta.env
   const { user } = useAuth()
-  const [builds, setBuilds] = useState(() => {
-    axios
-      .get(`${VITE_APP_API_URL}/builds`, {
-        headers: { Authorization: `Bearer ${user.token}` },
-      })
-      .then((response) => {
-        const builds = response.data
-        setBuilds(builds)
-        console.log(builds)
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  })
+  const [builds, setBuilds] = useState<Build[]>([])
 
-  const { items } = useContext(ItemsContext)
-  const { champions } = useContext(ChampionsContext)
+  useEffect(() => {
+    function loadBuilds() {
+      axios
+        .get<Build[]>(`${VITE_APP_API_URL}/builds`, {
+          headers: { Authorization: `Bearer ${user?.token}` },
+        })
+        .then((response) => {
+          console.log("response", response)
 
-  function handleDeleteBuildClick(buildId) {
+          const builds = response.data
+          setBuilds(builds)
+          console.log(builds)
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    }
+
+    loadBuilds()
+  }, [])
+
+  const { items } = useItems()
+  const { champions } = useChampions()
+
+  function handleDeleteBuildClick(buildId: number) {
     axios
       .delete(`${VITE_APP_API_URL}/builds/delete/${buildId}`, {
-        headers: { Authorization: `Bearer ${user.token}` },
+        headers: { Authorization: `Bearer ${user?.token}` },
       })
       .then((response) => {
         const updatedBuilds = builds.filter((build) => build.id !== buildId)
@@ -45,7 +54,7 @@ export default function UserPage() {
       })
   }
 
-  function createChosenItemsElement(build) {
+  function createChosenItemsElement(build: Build) {
     const ITEM_AMOUNT = 6
 
     const itemElements = []
@@ -70,7 +79,7 @@ export default function UserPage() {
     return itemElements
   }
 
-  function createStatsElement(build) {
+  function createStatsElement(build: Build) {
     return (
       <>
         <div className="build-card__stats-column">

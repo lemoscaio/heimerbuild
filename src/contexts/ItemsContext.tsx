@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect, useMemo } from "react"
 import axios from "axios"
 import { Items } from "../types/items"
+import { useContext } from "react"
 
 type ItemsContextInterface = {
   items: Items
@@ -13,7 +14,14 @@ type ItemsProviderProps = {
   children?: React.ReactNode
 }
 
-export const ItemsContext = createContext<ItemsContextInterface | null>(null)
+const initialValues: ItemsContextInterface = {
+  items: {},
+  isLoadingItems: false,
+  failedItemsLoad: false,
+  loadItems: () => {},
+}
+
+const ItemsContext = createContext<ItemsContextInterface>(initialValues)
 
 export function ItemsProvider({ children }: ItemsProviderProps): JSX.Element {
   const { VITE_APP_API_URL } = import.meta.env
@@ -51,4 +59,8 @@ export function ItemsProvider({ children }: ItemsProviderProps): JSX.Element {
   }, [items, isLoadingItems, failedItemsLoad, loadItems])
 
   return <ItemsContext.Provider value={value}>{children}</ItemsContext.Provider>
+}
+
+export function useItems() {
+  return useContext(ItemsContext)
 }

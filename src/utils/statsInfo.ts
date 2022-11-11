@@ -1,6 +1,6 @@
 import itemStatsIcons from "../assets/stats-icons"
 
-export const statsInfo = {
+export const statsInfo: StatsInfoType = {
   order: [
     "attackDamage",
     "abilityPower",
@@ -177,14 +177,12 @@ export const statsInfo = {
     },
     mana: {
       label: "Mana",
-      short_label: "MP",
     },
     maga_regen: {
       label: "manaRegen",
     },
     lethality: {
       label: "Lethality",
-      short_label: "Lethality",
     },
     armor_penetration: {
       label: "armorPenetration",
@@ -196,4 +194,60 @@ export const statsInfo = {
       label: "omniVamp",
     },
   },
+}
+
+type StatsType = string
+
+// type StatsType =
+//   | "attackDamage"
+//   | "abilityPower"
+//   | "armor"
+//   | "magicResistance"
+//   | "attackSpeed"
+//   | "abilityHaste"
+//   | "criticalStrike"
+//   | "movespeed"
+//   | "health"
+//   | "healthRegen"
+//   | "mana"
+//   | "manaRegen"
+//   | "lethality"
+//   | "armorPenetration"
+//   | "flatMagicPenetration"
+//   | "percentageMagicPenetration"
+//   | "lifeSteal"
+//   | "physicalVamp"
+//   | "omniVamp"
+//   | "attackRange"
+//   | "tenacity"
+
+type AlternativeStats = string
+
+// type AlternativeStats =
+//   | "attack_damage"
+//   | "ability_power"
+//   | "attack_speed"
+//   | "ability_haste"
+//   | "critical_strike_chance"
+//   | "criticalStrikeChance"
+//   | "health_regen"
+//   | "mana"
+//   | "maga_regen"
+//   | "lethality"
+//   | "armor_penetration"
+//   | "lifestea"
+//   | "omnivam"
+
+type StatsLabelType = {
+  label: string
+  short_label?: string
+  suffix?: string
+  anotherAlternativeLabel?: string
+  icon: string
+}
+
+export type StatsInfoType = {
+  order: StatsType[]
+  labels: Record<StatsType, StatsLabelType>
+  alternativeLabels: Record<AlternativeStats, { label: string }>
 }

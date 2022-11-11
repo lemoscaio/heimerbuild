@@ -1,20 +1,17 @@
-import { useContext, useState } from "react"
+import { useState } from "react"
 
 import AppName from "../components/AppName.jsx"
 import ChampionList from "../components/ChampionList.jsx"
+import HeaderAlternative from "../components/HeaderAlternative"
 import MainPageLogo from "../components/MainPageLogo.jsx"
 import SearchContainer from "../components/SearchContainer.jsx"
-import { ChampionsContext } from "../contexts/ChampionsContext.js"
-import HeaderAlternative from "../components/HeaderAlternative"
-import { loadingContext } from "../contexts/loadingContext.jsx"
+import { useChampions } from "../contexts/ChampionsContext.js"
 
 export default function ChampionsPage() {
-  // console.log(`🚀 -> file: ChampionsPage.jsx -> ChampionsPage -> Rendered`)
-
   const [search, setSearch] = useState("")
 
   const { champions, isLoadingChampions, failedChampionsLoad, loadChampions } =
-    useContext(ChampionsContext)
+    useChampions()
 
   const filteredChampions =
     search.length > 0

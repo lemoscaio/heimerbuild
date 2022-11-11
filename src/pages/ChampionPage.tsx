@@ -1,44 +1,51 @@
 import axios from "axios"
-import { useCallback, useContext, useState } from "react"
+import { ChangeEvent, useCallback, useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import { ItemsContext } from "../contexts/ItemsContext"
+import { useItems } from "../contexts/ItemsContext"
 import { useAuth } from "../hooks/useAuth"
 
 import { DotLoader } from "react-spinners"
 
+import { ChampionRoles } from "../assets/roles-icons/index"
+import { Champion } from "../types/champion"
+import { Stat } from "../types/item"
 import { rolesInfo } from "../utils/rolesInfo"
 import { statsInfo } from "../utils/statsInfo"
 
 export default function ChampionPage() {
-  // console.log(`🚀 -> file: ChampionPage.jsx -> ChampionPage -> Rendered`)
-
   const { VITE_APP_API_URL } = import.meta.env
   const MAX_LEVEL = 18
 
   const { user } = useAuth()
   const { championKey } = useParams()
 
-  const [championInfo, setChampionInfo] = useState(() => {
-    axios
-      .get(`${VITE_APP_API_URL}/champions/${championKey}`)
-      .then((response) => {
-        const championData = response.data
-        setChampionInfo(championData)
-      })
-      .catch((error) => {
-        console.log(error)
-      })
-  })
+  const [championInfo, setChampionInfo] = useState<Champion | null>(null)
+
+  useEffect(() => {
+    function loadChampionInfo() {
+      axios
+        .get<Champion>(`${VITE_APP_API_URL}/champions/${championKey}`)
+        .then((response) => {
+          const championData = response.data
+          setChampionInfo(championData)
+        })
+        .catch((error) => {
+          console.log(error)
+        })
+    }
+
+    loadChampionInfo()
+  }, [])
 
   const [championLevel, setChampionLevel] = useState(0)
 
   const [saveBuildButtonContent, setSaveBuildButtonContent] =
     useState("Save Build")
 
-  const { items, isLoadingItems, failedItemsLoad, loadItems } =
-    useContext(ItemsContext)
+  const { items, isLoadingItems, failedItemsLoad, loadItems } = useItems()
+  console.log("items", items)
 
-  const [itemRoleFilter, setItemRoleFilter] = useState()
+  const [itemRoleFilter, setItemRoleFilter] = useState("All")
 
   const displayedItems = setDisplayedItems()
 
@@ -49,9 +56,10 @@ export default function ChampionPage() {
         return item.shop.purchasable
       })
 
-      const roleFilteredItems = itemRoleFilter
-        ? allItems.filter(filterItemsByRole)
-        : allItems
+      const roleFilteredItems =
+        itemRoleFilter !== "All"
+          ? allItems.filter((item) => filterItemsByRole(Number(item)))
+          : allItems
 
       return roleFilteredItems
     }
@@ -80,7 +88,7 @@ export default function ChampionPage() {
   //   if (matchedFilterStat.length > 0) return true
   // }
 
-  function filterItemsByRole(itemId) {
+  function filterItemsByRole(itemId: number) {
     const item = items[itemId]
     const itemTags = item.shop.tags
     if (itemTags.includes(itemRoleFilter)) {
@@ -88,10 +96,16 @@ export default function ChampionPage() {
     }
   }
 
-  const [chosenItems, setChosenItems] = useState([])
+  const [chosenItems, setChosenItems] = useState<number[]>([])
+
+  type ChampionStatsType = {
+    [key: string]: number
+  }
+
+  // TODO IMPROVE STATS TYPE
 
   const updateEachStatOnLeveLChange = useCallback(
-    (stats, championStats) => {
+    (stats: Champion["stats"], championStats: ChampionStatsType) => {
       for (let stat in stats) {
         if (stat === "attackSpeed") {
           const newSpeedvalue =
@@ -117,7 +131,7 @@ export default function ChampionPage() {
   )
 
   const updateEachStatOnItemChange = useCallback(
-    (stats, championStats) => {
+    (stats: Champion["stats"], championStats: ChampionStatsType) => {
       if (items && chosenItems.length > 0) {
         chosenItems.forEach((itemId) => {
           const item = items[itemId]
@@ -163,7 +177,7 @@ export default function ChampionPage() {
   )
 
   function setBaseChampionStats() {
-    const championStats = {}
+    const championStats: ChampionStatsType = {}
 
     championInfo &&
       updateEachStatOnLeveLChange(championInfo.stats, championStats)
@@ -172,7 +186,7 @@ export default function ChampionPage() {
   }
 
   function setChampionStats() {
-    const championStats = {}
+    const championStats: ChampionStatsType = {}
 
     championInfo &&
       updateEachStatOnLeveLChange(championInfo.stats, championStats)
@@ -185,7 +199,10 @@ export default function ChampionPage() {
   const baseChampionstats = setBaseChampionStats()
   const championStats = setChampionStats()
 
-  function handleItemClick(e, key) {
+  function handleItemClick(
+    e: React.MouseEvent<HTMLElement, MouseEvent>,
+    key: number,
+  ) {
     const indexOfItem = chosenItems.indexOf(key)
 
     if (indexOfItem === -1 && chosenItems.length < 6) {
@@ -200,26 +217,29 @@ export default function ChampionPage() {
     setSaveBuildButtonContent("Save Build")
   }
 
-  function handleRoleFilterClick(e, role) {
-    return role === "ALL" ? setItemRoleFilter() : setItemRoleFilter(role)
+  function handleRoleFilterClick(
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>,
+    role: string,
+  ) {
+    return role === "ALL" ? setItemRoleFilter("All") : setItemRoleFilter(role)
   }
 
-  function handleItemStatFilterClick(e, stat) {
-    const statCurrentFilterValue = itemStatFilter[stat]
+  // function handleItemStatFilterClick(e: MouseEventHandler, stat) {
+  //   const statCurrentFilterValue = itemStatFilter[stat]
 
-    setItemStatFilter({ ...itemStatFilter, [stat]: !statCurrentFilterValue })
-  }
+  //   setItemStatFilter({ ...itemStatFilter, [stat]: !statCurrentFilterValue })
+  // }
 
   function handleSaveBuildClick() {
-    const statsData = {}
+    const statsData: ChampionStatsType = {}
 
     statsInfo.order.forEach((stat) => {
       statsData[stat] = championStats[stat]
     })
 
     const buildData = {
-      championName: championInfo.name,
-      championKey: championInfo.key,
+      championName: championInfo?.name,
+      championKey: championInfo?.key,
       level: championLevel,
       items: chosenItems,
       stats: statsData,
@@ -229,7 +249,7 @@ export default function ChampionPage() {
 
     axios
       .post(`${VITE_APP_API_URL}/builds/create`, buildData, {
-        headers: { Authorization: `Bearer ${user.token}` },
+        headers: { Authorization: `Bearer ${user?.token}` },
       })
       .then((response) => {
         setTimeout(() => {
@@ -249,7 +269,9 @@ export default function ChampionPage() {
     loadItems()
   }
 
-  function handleLevelChange(e) {
+  function handleLevelChange(
+    e: ChangeEvent<HTMLSelectElement | HTMLInputElement>,
+  ) {
     setChampionLevel(Number(e.target.value))
     setSaveBuildButtonContent("Save Build")
   }
@@ -380,7 +402,10 @@ export default function ChampionPage() {
                 className="items__filter-roles"
                 onClick={(e) => handleRoleFilterClick(e, role)}
               >
-                <img src={rolesInfo[role].icon} className="items__role-icon" />
+                <img
+                  src={rolesInfo[role as ChampionRoles].icon}
+                  className="items__role-icon"
+                />
               </div>
             )
           })}
@@ -409,7 +434,7 @@ export default function ChampionPage() {
                 return (
                   <article
                     className="items__item-card"
-                    onClick={(e) => handleItemClick(e, itemId)}
+                    onClick={(e) => handleItemClick(e, Number(itemId))}
                   >
                     <img src={item.icon} className="items__item-image" />
                   </article>

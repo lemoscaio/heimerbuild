@@ -15,3 +15,13 @@ export default {
   TANK: tankIcon,
   SUPPORT: supportIcon,
 }
+
+// IMPROVE LOGIC => 1 SOURCE OF TRUTH
+export type ChampionRoles =
+  | "ALL"
+  | "FIGHTER"
+  | "MARKSMAN"
+  | "ASSASSIN"
+  | "MAGE"
+  | "TANK"
+  | "SUPPORT"

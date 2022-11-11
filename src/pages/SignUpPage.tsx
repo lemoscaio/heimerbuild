@@ -1,13 +1,18 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
+import { ChangeEvent, FormEvent, useState } from "react"
 import {
   BsCheckCircleFill,
   BsFillExclamationTriangleFill,
 } from "react-icons/bs"
+import { Link, useNavigate } from "react-router-dom"
 
 import Logo from "../assets/images/heimerdinger.png"
 import AppName from "../components/AppName"
+
+type FeedbackMessageType = {
+  status?: number
+  message?: string
+}
 
 export default function SignUpPage() {
   const navigate = useNavigate()
@@ -15,21 +20,25 @@ export default function SignUpPage() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [passwordConfirmation, setPasswordConfirmation] = useState()
+  const [passwordConfirmation, setPasswordConfirmation] = useState("")
 
   const [trackingPassword, setTrackingPassword] = useState(false)
   const [matchingPassword, setMatchingPassword] = useState(false)
 
-  const [requestMessage, setRequestMessage] = useState({})
+  const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessageType>(
+    {},
+  )
 
-  function handleSubmit(event: FormDataEvent) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const promise = axios.post(`${VITE_APP_API_URL}/sign-up`, {
       email,
       password,
     })
     promise.then((response) => {
-      setRequestMessage(response)
+      console.log(response)
+
+      setFeedbackMessage({ status: response.status })
       setTimeout(() => {
         navigate("/sign-in")
       }, 1000)
@@ -37,11 +46,11 @@ export default function SignUpPage() {
     promise.catch((error) => {
       console.log(error)
 
-      setRequestMessage(error)
+      setFeedbackMessage({ status: error.status, message: error.message })
     })
   }
 
-  function startTrackingPassword(event) {
+  function startTrackingPassword(event: ChangeEvent<HTMLInputElement>) {
     if (event.target.name === "password") {
       setPassword(event.target.value)
       if (event.target.value === passwordConfirmation) setMatchingPassword(true)
@@ -82,7 +91,7 @@ export default function SignUpPage() {
   function setErrorContainerContent() {
     let errorMessage = ""
 
-    switch (requestMessage.response?.status) {
+    switch (feedbackMessage.status) {
       case 0:
         errorMessage = "Connection error. Please, try again later."
         break
@@ -114,7 +123,7 @@ export default function SignUpPage() {
   function setSuccessContainerContent() {
     let successMessage = ""
 
-    switch (requestMessage?.status) {
+    switch (feedbackMessage) {
       case 200:
       case 201:
         successMessage = "Success! You'll be redirected to login page now."
@@ -162,7 +171,7 @@ export default function SignUpPage() {
             type="password"
             name="password"
             placeholder="Password"
-            autoComplete
+            autoComplete="off"
             pattern="^\S{6,20}$"
             title="Your password must be at least 6 characters long and it may contain especial characters"
             onChange={(e) => startTrackingPassword(e)}
@@ -173,7 +182,7 @@ export default function SignUpPage() {
             type="password"
             name="password-confirmation"
             placeholder="Confirm password"
-            autoComplete
+            autoComplete="off"
             onChange={(e) => startTrackingPassword(e)}
           ></input>
           {isPasswordMatching()}
