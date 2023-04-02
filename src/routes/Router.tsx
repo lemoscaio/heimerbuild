@@ -1,38 +1,38 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 
-import PageWithHeader from "../layouts/PageWithHeader"
-import AuthPages from "../layouts/AuthPages"
-import ProtectedPages from "../layouts/ProtectedPages"
+import { PageWithHeader } from "../layouts/PageWithHeader"
+import { AuthPages } from "../layouts/AuthPages"
+import { ProtectedPages } from "../layouts/ProtectedPages"
 
-import ChampionPage from "../pages/ChampionPage"
-import ChampionsPage from "../pages/ChampionsPage"
-import SignUpPage from "../pages/SignUpPage"
-import SignInPage from "../pages/SignInPage"
-import UserPage from "../pages/UserPage"
-import { ItemsProvider } from "../contexts/ItemsContext"
-import { ChampionsProvider } from "../contexts/ChampionsContext"
-import { LoadingProvider } from "../contexts/loadingContext"
+import { ChampionDetails } from "../pages/ChampionDetails"
+import { ChampionChoose } from "../pages/ChampionChoose/"
+import { SignUp } from "../pages/SignUp/"
+import { SavedBuilds } from "../pages/SavedBuilds"
+import { ItemsProvider } from "../contexts/Items"
+import { ChampionsProvider } from "../contexts/Champions"
+import { LoadingProvider } from "../contexts/Loading"
+import { SignIn } from "../pages/SignIn"
 
-export default function Router() {
+export function Router() {
   return (
     <LoadingProvider>
       <ChampionsProvider>
         <ItemsProvider>
           <Routes>
             <Route element={<AuthPages />}>
-              <Route path="/sign-up" element={<SignUpPage />} />
-              <Route path="/sign-in" element={<SignInPage />} />
+              <Route path="/sign-in" element={<SignIn />} />
+              <Route path="/sign-up" element={<SignUp />} />
             </Route>
             <Route element={<ProtectedPages />}>
               <Route element={<PageWithHeader />}>
-                <Route path="/user" element={<UserPage />} />
+                <Route path="/user" element={<SavedBuilds />} />
               </Route>
             </Route>
-            <Route path="/champions" element={<ChampionsPage />} />
+            <Route path="/champions" element={<ChampionChoose />} />
             <Route element={<PageWithHeader />}>
               <Route
                 path="/champions/:championKey"
-                element={<ChampionPage />}
+                element={<ChampionDetails />}
               />
             </Route>
             <Route path="*" element={<Navigate to="/champions" replace />} />
