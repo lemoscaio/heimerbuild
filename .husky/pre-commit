@@ -1,5 +1,0 @@
-#!/usr/bin/sh
-. "$(dirname -- "$0")/_/husky.sh"
-npm run lint-staged
-# ./node_modules/.bin/tsc --noemit
-# npm test
