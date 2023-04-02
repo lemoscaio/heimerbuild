@@ -1,14 +1,20 @@
-export function SearchContainer(props) {
-  const { search, setSearch } = props
+type SearchContainerProps = {
+	search: string
+	setSearch: (search: string) => void
+}
 
-  return (
-    <div className="champions-page__search-container search-container">
-      <input
-        className="search-container__input"
-        placeholder="Search a champion"
-        onChange={(e) => setSearch(e.target.value)}
-        autoFocus
-      ></input>
-    </div>
-  )
+export function SearchContainer(props: SearchContainerProps) {
+	const { search, setSearch } = props
+
+	return (
+		<div className="champions-page__search-container search-container">
+			<input
+				className="search-container__input"
+				placeholder="Search a champion"
+				value={search}
+				onChange={(e) => setSearch(e.target.value)}
+				autoFocus
+			></input>
+		</div>
+	)
 }

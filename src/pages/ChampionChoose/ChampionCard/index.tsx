@@ -1,23 +1,31 @@
 import { useNavigate } from "react-router-dom"
 
-export function ChampionCard(props) {
-  const navigate = useNavigate()
+type ChampionCardProps = {
+	champion: {
+		key: string
+		name: string
+		icon: string
+	}
+}
 
-  function handleClick(e, championName) {
-    navigate(`/champions/${championName}`)
-  }
+export function ChampionCard(props: ChampionCardProps) {
+	const navigate = useNavigate()
 
-  return (
-    <article
-      className="champion-card"
-      onClick={(e) => handleClick(e, props.champion.key)}
-    >
-      <img
-        src={`${props.champion.icon}`}
-        alt=""
-        className="champion-card__image"
-      />
-      <h3 className="champion-card__name">{props.champion.name}</h3>
-    </article>
-  )
+	function handleClick(championName: string) {
+		navigate(`/champions/${championName}`)
+	}
+
+	return (
+		<article
+			className="champion-card"
+			onClick={() => handleClick(props.champion.key)}
+		>
+			<img
+				src={`${props.champion.icon}`}
+				alt=""
+				className="champion-card__image"
+			/>
+			<h3 className="champion-card__name">{props.champion.name}</h3>
+		</article>
+	)
 }
