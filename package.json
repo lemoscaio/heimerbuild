@@ -9,6 +9,8 @@
 		"commit": "git-cz"
 	},
 	"dependencies": {
+		"@tanstack/react-query": "^4.28.0",
+    "@tanstack/react-query-devtools": "^4.28.0",
 		"axios": "^0.27.2",
 		"dotenv": "^16.0.1",
 		"react": "^18.2.0",
