@@ -1,8 +1,8 @@
 import DotLoader from "react-spinners/DotLoader"
 
+import { Champion } from "../../../../types/champion"
 import { ChampionCard } from "../ChampionCard"
-import { type } from "os"
-import { Champion } from "../../../types/champion"
+import { usePost } from "../../../../lib/reactQuery/useFetch"
 
 type ChampionListProps = {
 	search: string
