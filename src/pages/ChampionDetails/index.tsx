@@ -1,47 +1,35 @@
-import axios from "axios"
-import { ChangeEvent, useCallback, useEffect, useState } from "react"
+import { ChangeEvent, useCallback, useState } from "react"
 import { useParams } from "react-router-dom"
-import { useItems } from "../../contexts/Items"
 
 import { useAuth } from "../../hooks/useAuth"
 
 import { DotLoader } from "react-spinners"
+import { usePostSaveBuild } from "../../hooks/api/usePostSaveBuild"
+import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
+import { useGetItems } from "../../hooks/api/useGetItems"
 import { Champion } from "../../types/champion"
-import { statsInfo } from "../../utils/statsInfo"
 import { ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
+import { statsInfo } from "../../utils/statsInfo"
 
 export function ChampionDetails() {
-	const { VITE_APP_API_URL } = import.meta.env
 	const MAX_LEVEL = 18
 
 	const { user } = useAuth()
 	const { championKey } = useParams()
 
-	const [championInfo, setChampionInfo] = useState<Champion | null>(null)
-
-	useEffect(() => {
-		function loadChampionInfo() {
-			axios
-				.get<Champion>(`${VITE_APP_API_URL}/champions/${championKey}`)
-				.then((response) => {
-					const championData = response.data
-					setChampionInfo(championData)
-				})
-				.catch((error) => {
-					console.log(error)
-				})
-		}
-
-		loadChampionInfo()
-	}, [])
+	const { data: championInfo } = useGetChampionDetails(championKey)
 
 	const [championLevel, setChampionLevel] = useState(0)
 
 	const [saveBuildButtonContent, setSaveBuildButtonContent] =
 		useState("Save Build")
 
-	const { items, isLoadingItems, failedItemsLoad, loadItems } = useItems()
-	console.log("items", items)
+	const {
+		data: items,
+		isLoading: isLoadingItems,
+		isError: failedItemsLoad,
+		refetch: loadItems,
+	} = useGetItems()
 
 	const [itemRoleFilter, setItemRoleFilter] = useState("All")
 
@@ -51,7 +39,7 @@ export function ChampionDetails() {
 		if (items) {
 			const allItems = Object.keys(items).filter((itemId) => {
 				const item = items[itemId]
-				return item.shop.purchasable
+				return item?.shop?.purchasable
 			})
 
 			const roleFilteredItems =
@@ -87,9 +75,9 @@ export function ChampionDetails() {
 	// }
 
 	function filterItemsByRole(itemId: number) {
-		const item = items[itemId]
-		const itemTags = item.shop.tags
-		if (itemTags.includes(itemRoleFilter)) {
+		const item = items && items[itemId]
+		const itemTags = item?.shop.tags
+		if (itemTags?.includes(itemRoleFilter)) {
 			return true
 		}
 	}
@@ -226,6 +214,8 @@ export function ChampionDetails() {
 	//   setItemStatFilter({ ...itemStatFilter, [stat]: !statCurrentFilterValue })
 	// }
 
+	const saveBuildMutation = usePostSaveBuild()
+
 	function handleSaveBuildClick() {
 		const statsData: ChampionStatsType = {}
 
@@ -243,22 +233,18 @@ export function ChampionDetails() {
 
 		setSaveBuildButtonContent("Saving...")
 
-		axios
-			.post(`${VITE_APP_API_URL}/builds/create`, buildData, {
-				headers: { Authorization: `Bearer ${user?.token}` },
-			})
-			.then((response) => {
-				setTimeout(() => {
-					setSaveBuildButtonContent("Saved!")
-				}, 1000)
-			})
-			.catch((error) => {
-				console.log(error)
-				setSaveBuildButtonContent("Error")
-				setTimeout(() => {
-					setSaveBuildButtonContent("Save build")
-				}, 1500)
-			})
+		try {
+			saveBuildMutation.mutateAsync(buildData)
+			setTimeout(() => {
+				setSaveBuildButtonContent("Saved!")
+			}, 1000)
+		} catch (error) {
+			console.log(error)
+			setSaveBuildButtonContent("Error")
+			setTimeout(() => {
+				setSaveBuildButtonContent("Save build")
+			}, 1500)
+		}
 	}
 
 	function handleLoadItemsClick() {
@@ -425,14 +411,14 @@ export function ChampionDetails() {
 					<div className="items__list">
 						{displayedItems &&
 							displayedItems.map((itemId) => {
-								const item = items[itemId]
+								const item = items && items[itemId]
 
 								return (
 									<article
 										className="items__item-card"
 										onClick={(e) => handleItemClick(e, Number(itemId))}
 									>
-										<img src={item.icon} className="items__item-image" />
+										<img src={item?.icon} className="items__item-image" />
 									</article>
 								)
 							})}

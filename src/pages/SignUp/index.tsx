@@ -36,8 +36,6 @@ export function SignUp() {
 			password,
 		})
 		promise.then((response) => {
-			console.log(response)
-
 			setFeedbackMessage({ status: response.status })
 			setTimeout(() => {
 				navigate("/sign-in")

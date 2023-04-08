@@ -1,6 +1,4 @@
 export function ChampionSkills(props: any) {
-	console.log("🚀 ~ props", props)
-
 	const displayedSkillInfo = [
 		"targeting",
 		"affects",
