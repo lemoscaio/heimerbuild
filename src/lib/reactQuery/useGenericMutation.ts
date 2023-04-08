@@ -10,6 +10,7 @@ export interface UseGenericMutationParams<
 > {
 	url: string
 	mutationFn: (data: NewDataT) => Promise<AxiosResponse<ApiResultT>>
+	relatedQueryKey?: QueryKeyT
 	mutationParams?: object
 	mutationConfig?: Omit<
 		UseMutationOptions<
@@ -29,7 +30,13 @@ export function useGenericMutation<NewDataT, OldDataT, ApiResultT = NewDataT>({
 	mutationParams,
 	mutationConfig,
 	updater,
+	relatedQueryKey = ["", {}],
 }: UseGenericMutationParams<NewDataT, OldDataT, ApiResultT>) {
+	if (relatedQueryKey[0] === "" && updater) {
+		throw new Error(
+			"An updater function was provided without a relaterQueryKey. If you are using an updater, you must provide a relatedQueryKey"
+		)
+	}
 	const mutationKey = [url, mutationParams] satisfies QueryKeyT
 
 	return useMutation<AxiosResponse<ApiResultT>, AxiosError, NewDataT, OldDataT>(
@@ -38,22 +45,22 @@ export function useGenericMutation<NewDataT, OldDataT, ApiResultT = NewDataT>({
 			mutationFn,
 			onMutate(newData: NewDataT) {
 				queryClient.cancelQueries(mutationKey)
+				queryClient.cancelQueries(relatedQueryKey)
 
-				/* Investigar: não acho que isso vai funcionar, porque a mutationKey não necessariamente é a mesma que a queryKey, 
-				então não vai ter data para uma key que ainda não existe. Para funcionar corretamente, talvez teria que saber a queryKey correspondente */
-				const previousData = queryClient.getQueryData<OldDataT>(mutationKey)
+				const previousData = queryClient.getQueryData<OldDataT>(relatedQueryKey)
 
-				queryClient.setQueryData<OldDataT>(mutationKey, (oldData) => {
-					return updater ? updater(oldData!, newData) : oldData
+				queryClient.setQueryData<OldDataT>(relatedQueryKey, (oldData) => {
+					return updater && oldData ? updater(oldData, newData) : oldData
 				})
 
 				return previousData
 			},
 			onError(_err, _, context) {
-				queryClient.setQueryData(mutationKey, context)
+				queryClient.setQueryData(relatedQueryKey, context)
 			},
 			onSettled() {
 				queryClient.invalidateQueries(mutationKey)
+				queryClient.invalidateQueries(relatedQueryKey)
 			},
 
 			...mutationConfig,

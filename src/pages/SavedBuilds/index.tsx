@@ -1,57 +1,28 @@
-import axios from "axios"
-import { useEffect, useState } from "react"
-
 import itemStatsIcons from "../../assets/stats-icons"
 import goldIcon from "../../assets/stats-icons/Gold_icon.png"
-import { useAuth } from "../../hooks/useAuth"
 
 import { MdDeleteForever } from "react-icons/md"
-import { useGetChampions } from "../../hooks/useGetChampions"
-import { useGetItems } from "../../hooks/useGetItems"
+import { useDeleteBuild } from "../../hooks/api/useDeleteBuild"
+import { useGetSavedBuilds } from "../../hooks/api/useGetSavedBuilds"
+import { useGetChampions } from "../../hooks/api/useGetChampions"
+import { useGetItems } from "../../hooks/api/useGetItems"
 import { Build } from "../../types/builds"
 
 export function SavedBuilds() {
-	const { VITE_APP_API_URL } = import.meta.env
-	const { user } = useAuth()
-	const [builds, setBuilds] = useState<Build[]>([])
-
-	useEffect(() => {
-		function loadBuilds() {
-			axios
-				.get<Build[]>(`${VITE_APP_API_URL}/builds`, {
-					headers: { Authorization: `Bearer ${user?.token}` },
-				})
-				.then((response) => {
-					console.log("response", response)
-
-					const builds = response.data
-					setBuilds(builds)
-					console.log(builds)
-				})
-				.catch((error) => {
-					console.log(error)
-				})
-		}
-
-		loadBuilds()
-	}, [])
+	const { data: builds } = useGetSavedBuilds()
+	const deleteBuildMutation = useDeleteBuild({
+		updater: (oldData, id) => oldData.filter((build) => build.id !== id),
+	})
 
 	const { data: items } = useGetItems()
 	const { data: champions } = useGetChampions()
 
-	function handleDeleteBuildClick(buildId: number) {
-		axios
-			.delete(`${VITE_APP_API_URL}/builds/delete/${buildId}`, {
-				headers: { Authorization: `Bearer ${user?.token}` },
-			})
-			.then((response) => {
-				const updatedBuilds = builds.filter((build) => build.id !== buildId)
-
-				setBuilds([...updatedBuilds])
-			})
-			.catch((error) => {
-				console.log(error)
-			})
+	async function handleDeleteBuildClick(buildId: number) {
+		try {
+			await deleteBuildMutation.mutateAsync(buildId)
+		} catch (error) {
+			console.log(error)
+		}
 	}
 
 	function createChosenItemsElement(build: Build) {
@@ -230,10 +201,6 @@ export function SavedBuilds() {
 				<section className="user-page__builds">
 					{builds &&
 						builds.map((build) => {
-							console.log(
-								`🚀 -> file: UserPage.jsx -> line 286 -> builds.map -> build`,
-								build
-							)
 							return (
 								<div className="user-page__card-container card-container">
 									<div className="card-container__additional-commands">
@@ -244,21 +211,21 @@ export function SavedBuilds() {
 									</div>
 									<article className="user-page__build-card build-card">
 										<div className="build-card__left-column">
-											<div className="build-card__champion">
-												{champions && (
-													<img
-														src={champions[build.championKey].icon}
-														alt={champions[build.championKey].name}
-														className="build-card__champion-image"
-													/>
-												)}
-												<h2 className="build-card__champion-name">
-													{build.championName}
-												</h2>
-												<h3 className="build-card__champion-level">
-													Level: {build.level}
-												</h3>
-											</div>
+											{/* <div className="build-card__champion">
+													{champions && (
+														<img
+															src={champions[build.championKey].icon}
+															alt={champions[build.championKey].name}
+															className="build-card__champion-image"
+														/>
+													)}
+													<h2 className="build-card__champion-name">
+														{build.championName}
+													</h2>
+													<h3 className="build-card__champion-level">
+														Level: {build.level}
+													</h3>
+												</div> */}
 											{build.cost !== -1 && (
 												<div className="build-card__build-cost">
 													<p>

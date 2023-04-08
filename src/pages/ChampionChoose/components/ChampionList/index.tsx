@@ -2,11 +2,11 @@ import DotLoader from "react-spinners/DotLoader"
 
 import { Champion } from "../../../../types/champion"
 import { ChampionCard } from "../ChampionCard"
-import { usePost } from "../../../../lib/reactQuery/useFetch"
+import { Champions } from "../../../../types/champions"
 
 type ChampionListProps = {
 	search: string
-	champions: Record<string, Champion>
+	champions: Champions | undefined
 	filteredChampions: string[]
 	isLoadingChampions: boolean
 	failedChampionsLoad: boolean
@@ -14,14 +14,8 @@ type ChampionListProps = {
 }
 
 export function ChampionList(props: ChampionListProps) {
-	const {
-		search,
-		champions,
-		filteredChampions,
-		isLoadingChampions,
-		failedChampionsLoad,
-		loadChampions,
-	} = props
+	const { champions, isLoadingChampions, failedChampionsLoad, loadChampions } =
+		props
 
 	function handleLoadChampionsClick() {
 		loadChampions()
@@ -31,25 +25,15 @@ export function ChampionList(props: ChampionListProps) {
 		<>
 			{champions && (
 				<div className="champions-list">
-					{search.length === 0
-						? Object.keys(champions).map((championName) => {
-								const champion = champions[championName]
-								return (
-									<ChampionCard
-										key={champion.id}
-										champion={champion}
-									></ChampionCard>
-								)
-						  })
-						: filteredChampions.map((championName) => {
-								const champion = champions[championName]
-								return (
-									<ChampionCard
-										key={champion.id}
-										champion={champion}
-									></ChampionCard>
-								)
-						  })}
+					{Object.keys(champions).map((championName) => {
+						const champion = champions[championName]
+						return (
+							<ChampionCard
+								key={champion.id}
+								champion={champion}
+							></ChampionCard>
+						)
+					})}
 				</div>
 			)}
 			{isLoadingChampions && (

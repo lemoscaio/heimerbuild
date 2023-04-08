@@ -5,25 +5,15 @@ import {
 	useGenericMutation,
 } from "./useGenericMutation"
 
-interface UseDeleteParams<OldDataT>
+export interface UseDeleteParams<OldDataT>
 	extends Pick<
 		UseGenericMutationParams<ResourceIdT, OldDataT>,
-		"url" | "mutationParams" | "mutationConfig"
-	> {
-	updater?: (oldData: OldDataT, id: ResourceIdT) => OldDataT
-}
+		"url" | "mutationParams" | "mutationConfig" | "relatedQueryKey" | "updater"
+	> {}
 
-export function useDelete<OldDataT>({
-	url,
-	mutationParams,
-	mutationConfig,
-	updater,
-}: UseDeleteParams<OldDataT>) {
+export function useDelete<OldDataT>(params: UseDeleteParams<OldDataT>) {
 	return useGenericMutation<ResourceIdT, OldDataT>({
-		mutationFn: (id) => api.delete(`${url}/${id}`),
-		url,
-		mutationParams,
-		mutationConfig,
-		updater,
+		mutationFn: (id) => api.delete(`${params.url}/${id}`),
+		...params,
 	})
 }

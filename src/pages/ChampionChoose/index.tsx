@@ -4,8 +4,8 @@ import { AppName } from "../../components/AppName/"
 import { HeaderAlternative } from "../../components/HeaderAlternative/"
 import { MainPageLogo } from "../../components/MainPageLogo"
 import { SearchContainer } from "../../components/SearchContainer"
+import { useGetChampions } from "../../hooks/api/useGetChampions"
 import { ChampionList } from "./components/ChampionList"
-import { useGetChampions } from "../../hooks/useGetChampions"
 
 export function ChampionChoose() {
 	const [search, setSearch] = useState("")
@@ -24,7 +24,7 @@ export function ChampionChoose() {
 					const lowerCaseSearch = search.toLowerCase()
 					if (lowerCaseChampionName.includes(lowerCaseSearch)) return true
 			  })
-			: []
+			: Object.keys(champions || {})
 
 	return (
 		<div className="page-container page-container--champions-page">
@@ -36,16 +36,14 @@ export function ChampionChoose() {
 					search={search}
 					setSearch={setSearch}
 				></SearchContainer>
-				{champions && (
-					<ChampionList
-						search={search}
-						champions={champions}
-						filteredChampions={filteredChampions}
-						isLoadingChampions={isLoadingChampions}
-						failedChampionsLoad={failedChampionsLoad}
-						loadChampions={loadChampions}
-					></ChampionList>
-				)}
+				<ChampionList
+					search={search}
+					champions={champions}
+					filteredChampions={filteredChampions}
+					isLoadingChampions={isLoadingChampions}
+					failedChampionsLoad={failedChampionsLoad}
+					loadChampions={loadChampions}
+				></ChampionList>
 			</main>
 		</div>
 	)

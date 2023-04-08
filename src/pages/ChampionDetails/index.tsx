@@ -1,18 +1,17 @@
-import axios from "axios"
-import { ChangeEvent, useCallback, useEffect, useState } from "react"
+import { ChangeEvent, useCallback, useState } from "react"
 import { useParams } from "react-router-dom"
 
 import { useAuth } from "../../hooks/useAuth"
 
 import { DotLoader } from "react-spinners"
+import { usePostSaveBuild } from "../../hooks/api/usePostSaveBuild"
+import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
+import { useGetItems } from "../../hooks/api/useGetItems"
 import { Champion } from "../../types/champion"
-import { statsInfo } from "../../utils/statsInfo"
 import { ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
-import { useGetItems } from "../../hooks/useGetItems"
-import { useGetChampionDetails } from "../../hooks/useGetChampionDetails"
+import { statsInfo } from "../../utils/statsInfo"
 
 export function ChampionDetails() {
-	const { VITE_APP_API_URL } = import.meta.env
 	const MAX_LEVEL = 18
 
 	const { user } = useAuth()
@@ -215,6 +214,8 @@ export function ChampionDetails() {
 	//   setItemStatFilter({ ...itemStatFilter, [stat]: !statCurrentFilterValue })
 	// }
 
+	const saveBuildMutation = usePostSaveBuild()
+
 	function handleSaveBuildClick() {
 		const statsData: ChampionStatsType = {}
 
@@ -232,23 +233,18 @@ export function ChampionDetails() {
 
 		setSaveBuildButtonContent("Saving...")
 
-		// TODO procurar como setar o header de forma inteligente (evitando o parsing errado do token)
-		axios
-			.post(`${VITE_APP_API_URL}/builds/create`, buildData, {
-				headers: { Authorization: `Bearer ${user?.token}` },
-			})
-			.then((response) => {
-				setTimeout(() => {
-					setSaveBuildButtonContent("Saved!")
-				}, 1000)
-			})
-			.catch((error) => {
-				console.log(error)
-				setSaveBuildButtonContent("Error")
-				setTimeout(() => {
-					setSaveBuildButtonContent("Save build")
-				}, 1500)
-			})
+		try {
+			saveBuildMutation.mutateAsync(buildData)
+			setTimeout(() => {
+				setSaveBuildButtonContent("Saved!")
+			}, 1000)
+		} catch (error) {
+			console.log(error)
+			setSaveBuildButtonContent("Error")
+			setTimeout(() => {
+				setSaveBuildButtonContent("Save build")
+			}, 1500)
+		}
 	}
 
 	function handleLoadItemsClick() {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useLocalStorage } from "./useLocalStorage.js"
+import { api } from "../services/api/index.js"
 
 type LoginData = {
 	path: string
@@ -26,6 +27,11 @@ const AuthContext = createContext<AuthContextInterface>({
 
 export function AuthProvider({ children }: AuthProviderProps) {
 	const [user, setUser] = useLocalStorage<User>("user", null)
+
+	api.defaults.headers.common["Authorization"] = user.token
+		? `Bearer ${user.token}`
+		: ""
+
 	const navigate = useNavigate()
 
 	async function login({ path, data }: LoginData) {
