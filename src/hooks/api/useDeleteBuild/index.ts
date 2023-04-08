@@ -9,13 +9,6 @@ type UseDeleteBuildParams = Pick<
 export function useDeleteBuild(params: UseDeleteBuildParams) {
 	return useDelete<Build[]>({
 		url: "/builds/delete",
-		// mutationConfig: {
-		// 	onSuccess: async () => {
-		// 		await queryClient.invalidateQueries({
-		// 			queryKey: ["/builds"],
-		// 		})
-		// 	},
-		// },
 		relatedQueryKey: ["/builds", undefined],
 		...params,
 	})
