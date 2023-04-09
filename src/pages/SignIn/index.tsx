@@ -10,10 +10,15 @@ import Logo from "../../assets/images/heimerdinger.png"
 import { FormEvent } from "react"
 import { AppName } from "../../components/AppName"
 import { useAuth } from "../../hooks/useAuth"
+import { usePostUserSignIn } from "../../hooks/api/usePostUserSignIn"
 
-type FeedbackMessageType = {
-	status?: number
-	message?: string
+const errorMessages: { [key: number]: string } = {
+	0: "Connection error. Please, try again later.",
+	200: "Success! You'll be redirected back to the store now.",
+	201: "Success! You'll be redirected back to the store now.",
+	401: "E-mail or password incorrect!",
+	422: "Both e-mail and password need to be filled in.",
+	500: "Something went wrong. Please try again later.",
 }
 
 export function SignIn() {
@@ -21,25 +26,18 @@ export function SignIn() {
 	const location = useLocation()
 	const { login } = useAuth()
 
-	const { VITE_APP_API_URL } = import.meta.env
-
 	const [email, setEmail] = useState("")
 	const [password, setPassword] = useState("")
 
-	const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessageType>(
-		{}
-	)
+	const signInMutation = usePostUserSignIn()
 
-	function handleSubmit(e: FormEvent<HTMLFormElement>) {
+	const errorStatusCode = signInMutation.error?.response?.status
+	const shouldShowError = errorStatusCode || errorStatusCode === 0
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault()
 
-		const promise = axios.post(`${VITE_APP_API_URL}/sign-in`, {
-			email,
-			password,
-		})
-
-		promise.then((response) => {
-			setFeedbackMessage(response)
+		try {
+			const response = await signInMutation.mutateAsync({ email, password })
 
 			const redirectPath = location.state?.previousPath || "/"
 
@@ -47,60 +45,7 @@ export function SignIn() {
 				login({ path: redirectPath, data: response.data })
 				navigate(redirectPath)
 			}, 1000)
-		})
-
-		promise.catch((error) => {
-			setFeedbackMessage({ status: error.status, message: error.message })
-		})
-	}
-
-	function setErrorContainerContent() {
-		let errorMessage = ""
-
-		switch (feedbackMessage.status) {
-			case 0:
-				errorMessage = "Connection error. Please, try again later."
-				break
-			case 401:
-				errorMessage = "E-mail or password incorrect!"
-				break
-			case 422:
-				errorMessage = "Both e-mail and password need to be filled in."
-				break
-			case 500:
-				errorMessage = "Something went wrong. Please try again later."
-				break
-			default:
-		}
-
-		return errorMessage.length > 0 ? (
-			<p className="form__feedback-message form__feedback-message--error">
-				<BsFillExclamationTriangleFill /> {errorMessage}
-			</p>
-		) : (
-			<></>
-		)
-	}
-
-	function setSuccessContainerContent() {
-		let successMessage = ""
-
-		switch (feedbackMessage?.status) {
-			case 200:
-			case 201:
-				successMessage = "Success! You'll be redirected back to the store now."
-				break
-			default:
-				break
-		}
-
-		return successMessage.length > 0 ? (
-			<p className="form__feedback-message form__feedback-message--success">
-				<BsCheckCircleFill /> {successMessage}
-			</p>
-		) : (
-			<></>
-		)
+		} catch (error) {}
 	}
 
 	return (
@@ -139,8 +84,18 @@ export function SignIn() {
 						title="Your password must be at least 6 characters long and it may contain especial characters"
 						onChange={(e) => setPassword(e.target.value)}
 					></input>
-					{setErrorContainerContent()}
-					{setSuccessContainerContent()}
+					{shouldShowError && (
+						<p className="form__feedback-message form__feedback-message--error">
+							<BsFillExclamationTriangleFill />
+							{errorMessages[errorStatusCode] || errorMessages[500]}
+						</p>
+					)}
+					{signInMutation.isSuccess && (
+						<p className="form__feedback-message form__feedback-message--success">
+							<BsCheckCircleFill />
+							Success! You'll be redirected back to the site now.
+						</p>
+					)}
 					<button className="form__submit-button" type="submit">
 						Sign In
 					</button>

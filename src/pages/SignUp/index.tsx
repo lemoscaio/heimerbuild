@@ -1,5 +1,4 @@
-import axios from "axios"
-import { ChangeEvent, FormEvent, useState } from "react"
+import { FormEvent, useState } from "react"
 import {
 	BsCheckCircleFill,
 	BsFillExclamationTriangleFill,
@@ -8,134 +7,46 @@ import { Link, useNavigate } from "react-router-dom"
 
 import Logo from "../../assets/images/heimerdinger.png"
 import { AppName } from "../../components/AppName/"
+import { usePostUserSignUp } from "../../hooks/api/usePostUserSignUp"
 
-type FeedbackMessageType = {
-	status?: number
-	message?: string
+const errorMessages: { [key: number]: string } = {
+	0: "Connection error. Please, try again later.",
+	409: "E-mail already registered!.",
+	422: "Both e-mail and password need to be filled in correctly.",
+	500: "Something went wrong. Please try again later.",
 }
 
 export function SignUp() {
 	const navigate = useNavigate()
-	const { VITE_APP_API_URL } = import.meta.env
 
 	const [email, setEmail] = useState("")
+
 	const [password, setPassword] = useState("")
 	const [passwordConfirmation, setPasswordConfirmation] = useState("")
+	const passwordTracking = passwordConfirmation.length > 0
+	const passwordsMatch = password === passwordConfirmation
 
-	const [trackingPassword, setTrackingPassword] = useState(false)
-	const [matchingPassword, setMatchingPassword] = useState(false)
+	const signUpMutation = usePostUserSignUp()
 
-	const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessageType>(
-		{}
-	)
+	const errorStatusCode = signUpMutation.error?.response?.status
+	const shouldShowError = errorStatusCode || errorStatusCode === 0
 
-	function handleSubmit(event: FormEvent<HTMLFormElement>) {
+	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault()
-		const promise = axios.post(`${VITE_APP_API_URL}/sign-up`, {
-			email,
-			password,
-		})
-		promise.then((response) => {
-			setFeedbackMessage({ status: response.status })
+
+		try {
+			await signUpMutation.mutateAsync({ email, password })
+
 			setTimeout(() => {
 				navigate("/sign-in")
 			}, 1000)
-		})
-		promise.catch((error) => {
-			console.log(error)
-
-			setFeedbackMessage({ status: error.status, message: error.message })
-		})
+		} catch (error) {}
 	}
 
-	function startTrackingPassword(event: ChangeEvent<HTMLInputElement>) {
-		if (event.target.name === "password") {
-			setPassword(event.target.value)
-			if (event.target.value === passwordConfirmation) setMatchingPassword(true)
-			else setMatchingPassword(false)
-		}
-		if (event.target.name === "password-confirmation") {
-			setPasswordConfirmation(event.target.value)
-			event.target.value.length > 0
-				? setTrackingPassword(true)
-				: setTrackingPassword(false)
-			if (event.target.value === password) setMatchingPassword(true)
-			else setMatchingPassword(false)
-		}
-	}
-
-	function isPasswordMatching() {
-		if (trackingPassword && matchingPassword) {
-			return (
-				<p className="form__feedback-message form__feedback-message--password-match">
-					<BsCheckCircleFill /> The passwords match!
-				</p>
-			)
-		} else if (trackingPassword && !matchingPassword) {
-			return (
-				<p className="form__feedback-message form__feedback-message--password-match">
-					<BsFillExclamationTriangleFill /> Both password fields must match!
-				</p>
-			)
-		} else {
-			return <></>
-		}
-	}
-
-	function setButtonDisabled() {
-		return !email || !matchingPassword ? true : false
-	}
-
-	function setErrorContainerContent() {
-		let errorMessage = ""
-
-		switch (feedbackMessage.status) {
-			case 0:
-				errorMessage = "Connection error. Please, try again later."
-				break
-			case 401:
-				errorMessage = "E-mail or password incorrect!"
-				break
-			case 409:
-				errorMessage = "E-mail already registered!."
-				break
-			case 422:
-				errorMessage =
-					"Both e-mail and password need to be filled in correctly."
-				break
-			case 500:
-				errorMessage = "Something went wrong. Please try again later."
-				break
-			default:
-				break
-		}
-		return errorMessage.length > 0 ? (
-			<p className="form__feedback-message form__feedback-message--error">
-				<BsFillExclamationTriangleFill /> {errorMessage}
-			</p>
-		) : (
-			<></>
-		)
-	}
-
-	function setSuccessContainerContent() {
-		let successMessage = ""
-
-		switch (feedbackMessage.status) {
-			case 200:
-			case 201:
-				successMessage = "Success! You'll be redirected to login page now."
-				break
-			default:
-				break
-		}
-		return successMessage.length > 0 ? (
-			<p className="form__feedback-message form__feedback-message--success">
-				<BsCheckCircleFill /> {successMessage}
-			</p>
-		) : (
-			<></>
-		)
+	function isButtonDisabled() {
+		if (!email || password.length === 0 || passwordConfirmation.length === 0)
+			return true
+		if (!passwordsMatch) return true
 	}
 
 	return (
@@ -172,7 +83,7 @@ export function SignUp() {
 						autoComplete="off"
 						pattern="^\S{6,20}$"
 						title="Your password must be at least 6 characters long and it may contain especial characters"
-						onChange={(e) => startTrackingPassword(e)}
+						onChange={(e) => setPassword(e.target.value)}
 					></input>
 					<input
 						className="form__input"
@@ -181,14 +92,36 @@ export function SignUp() {
 						name="password-confirmation"
 						placeholder="Confirm password"
 						autoComplete="off"
-						onChange={(e) => startTrackingPassword(e)}
+						onChange={(e) => setPasswordConfirmation(e.target.value)}
 					></input>
-					{isPasswordMatching()}
-					{setErrorContainerContent()}
-					{setSuccessContainerContent()}
+
+					{passwordTracking &&
+						(passwordsMatch ? (
+							<p className="form__feedback-message form__feedback-message--password-match">
+								<BsCheckCircleFill /> The entered passwords match!
+							</p>
+						) : (
+							<p className="form__feedback-message form__feedback-message--password-match">
+								<BsFillExclamationTriangleFill /> Both password fields must
+								match!
+							</p>
+						))}
+
+					{shouldShowError && (
+						<p className="form__feedback-message form__feedback-message--error">
+							<BsFillExclamationTriangleFill />{" "}
+							{errorMessages[errorStatusCode] || errorMessages[500]}
+						</p>
+					)}
+					{signUpMutation.isSuccess && (
+						<p className="form__feedback-message form__feedback-message--success">
+							<BsCheckCircleFill />
+							Success! You'll be redirected to login page now.
+						</p>
+					)}
 					<button
 						className="form__submit-button"
-						disabled={setButtonDisabled()}
+						disabled={isButtonDisabled()}
 						type="submit"
 					>
 						Sign Up
