@@ -10,7 +10,7 @@ interface UsePostParams<NewDataT, OldDataT, ApiResultT>
 		"url" | "mutationParams" | "mutationConfig" | "updater"
 	> {}
 
-export function usePost<NewDataT, OldDataT, ApiResultT = NewDataT>({
+export function usePost<NewDataT, OldDataT = void, ApiResultT = NewDataT>({
 	url,
 	mutationParams,
 	mutationConfig,

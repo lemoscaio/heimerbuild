@@ -15,7 +15,7 @@ export interface UseGenericMutationParams<
 	mutationConfig?: Omit<
 		UseMutationOptions<
 			AxiosResponse<ApiResultT>,
-			AxiosError,
+			AxiosError<string>,
 			NewDataT,
 			OldDataT
 		>,
@@ -39,31 +39,34 @@ export function useGenericMutation<NewDataT, OldDataT, ApiResultT = NewDataT>({
 	}
 	const mutationKey = [url, mutationParams] satisfies QueryKeyT
 
-	return useMutation<AxiosResponse<ApiResultT>, AxiosError, NewDataT, OldDataT>(
-		{
-			mutationKey,
-			mutationFn,
-			onMutate(newData: NewDataT) {
-				queryClient.cancelQueries(mutationKey)
-				queryClient.cancelQueries(relatedQueryKey)
+	return useMutation<
+		AxiosResponse<ApiResultT>,
+		AxiosError<string>,
+		NewDataT,
+		OldDataT
+	>({
+		mutationKey,
+		mutationFn,
+		onMutate(newData: NewDataT) {
+			queryClient.cancelQueries(mutationKey)
+			queryClient.cancelQueries(relatedQueryKey)
 
-				const previousData = queryClient.getQueryData<OldDataT>(relatedQueryKey)
+			const previousData = queryClient.getQueryData<OldDataT>(relatedQueryKey)
 
-				queryClient.setQueryData<OldDataT>(relatedQueryKey, (oldData) => {
-					return updater && oldData ? updater(oldData, newData) : oldData
-				})
+			queryClient.setQueryData<OldDataT>(relatedQueryKey, (oldData) => {
+				return updater && oldData ? updater(oldData, newData) : oldData
+			})
 
-				return previousData
-			},
-			onError(_err, _, context) {
-				queryClient.setQueryData(relatedQueryKey, context)
-			},
-			onSettled() {
-				queryClient.invalidateQueries(mutationKey)
-				queryClient.invalidateQueries(relatedQueryKey)
-			},
+			return previousData
+		},
+		onError(_err, _, context) {
+			queryClient.setQueryData(relatedQueryKey, context)
+		},
+		onSettled() {
+			queryClient.invalidateQueries(mutationKey)
+			queryClient.invalidateQueries(relatedQueryKey)
+		},
 
-			...mutationConfig,
-		}
-	)
+		...mutationConfig,
+	})
 }

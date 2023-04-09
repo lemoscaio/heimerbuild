@@ -8,7 +8,7 @@ type LoginData = {
 	data: { token: string }
 }
 
-type User = { token: string }
+export type User = { token: string }
 
 type AuthContextInterface = {
 	user?: User
@@ -28,7 +28,8 @@ const AuthContext = createContext<AuthContextInterface>({
 export function AuthProvider({ children }: AuthProviderProps) {
 	const [user, setUser] = useLocalStorage<User>("user", null)
 
-	api.defaults.headers.common["Authorization"] = user.token
+	// TODO Corrigir tipagem do useLocalStorage e do User nele
+	api.defaults.headers.common["Authorization"] = user?.token
 		? `Bearer ${user.token}`
 		: ""
 
@@ -46,9 +47,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 	const value = useMemo(() => ({ user, login, logout }), [user])
 
-	return <AuthContext.Provider value={value}> {children} </AuthContext.Provider>
+	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
-	return useContext(AuthContext)
+	const context = useContext(AuthContext)
+
+	if (!context) {
+		throw new Error("useAuth must be used within an AuthProvider.")
+	}
+
+	return context
 }
