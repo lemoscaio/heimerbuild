@@ -1,0 +1,12 @@
+{
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "heimerbuild",
+	"compatibility_date": "2026-09-27",
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "single-page-application"
+	},
+	// Explicit because preview URLs default to off unless set; Workers Builds previews need both.
+	"workers_dev": true,
+	"preview_urls": true
+}

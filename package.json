@@ -10,7 +10,9 @@
 		"typecheck": "tsc --noEmit",
 		"test": "bun test --pass-with-no-tests",
 		"check": "biome check",
-		"check:write": "biome check --write"
+		"check:write": "biome check --write",
+		"deploy": "bun run build && wrangler deploy",
+		"preview:upload": "bun run build && wrangler versions upload"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^4.28.0",
@@ -31,6 +33,7 @@
 		"@types/react-dom": "^18.0.6",
 		"@vitejs/plugin-react": "^2.1.0",
 		"typescript": "^5.0.3",
-		"vite": "^3.1.0"
+		"vite": "^3.1.0",
+		"wrangler": "4.142.0"
 	}
 }
