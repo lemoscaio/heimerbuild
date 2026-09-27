@@ -20,7 +20,7 @@ export async function fetcher<T>({
 export function useFetch<T>(
 	url: string | null,
 	queryParams?: object,
-	queryConfig?: UseQueryOptions<T, Error, T, QueryKeyT>
+	queryConfig?: UseQueryOptions<T, Error, T, QueryKeyT>,
 ) {
 	const queryKey = [url!, queryParams] satisfies QueryKeyT
 

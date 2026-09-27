@@ -1,12 +1,10 @@
 import { ChangeEvent, useCallback, useState } from "react"
 import { useParams } from "react-router-dom"
-
-import { useAuth } from "../../hooks/useAuth"
-
 import { DotLoader } from "react-spinners"
-import { usePostSaveBuild } from "../../hooks/api/usePostSaveBuild"
 import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
 import { useGetItems } from "../../hooks/api/useGetItems"
+import { usePostSaveBuild } from "../../hooks/api/usePostSaveBuild"
+import { useAuth } from "../../hooks/useAuth"
 import { Champion } from "../../types/champion"
 import { ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
 import { statsInfo } from "../../utils/statsInfo"
@@ -100,7 +98,9 @@ export function ChampionDetails() {
 					championStats[stat] = Number(newSpeedvalue.toFixed(2))
 				} else {
 					championStats[stat] = Number(
-						(stats[stat].flat + championLevel * stats[stat].perLevel).toFixed(2)
+						(stats[stat].flat + championLevel * stats[stat].perLevel).toFixed(
+							2,
+						),
 					)
 				}
 			}
@@ -111,7 +111,7 @@ export function ChampionDetails() {
 				}
 			})
 		},
-		[championLevel]
+		[championLevel],
 	)
 
 	const updateEachStatOnItemChange = useCallback(
@@ -157,7 +157,7 @@ export function ChampionDetails() {
 				})
 			}
 		},
-		[chosenItems]
+		[chosenItems],
 	)
 
 	function setBaseChampionStats() {
@@ -185,7 +185,7 @@ export function ChampionDetails() {
 
 	function handleItemClick(
 		e: React.MouseEvent<HTMLElement, MouseEvent>,
-		key: number
+		key: number,
 	) {
 		const indexOfItem = chosenItems.indexOf(key)
 
@@ -203,7 +203,7 @@ export function ChampionDetails() {
 
 	function handleRoleFilterClick(
 		e: React.MouseEvent<HTMLDivElement, MouseEvent>,
-		role: string
+		role: string,
 	) {
 		return role === "ALL" ? setItemRoleFilter("All") : setItemRoleFilter(role)
 	}
@@ -252,7 +252,7 @@ export function ChampionDetails() {
 	}
 
 	function handleLevelChange(
-		e: ChangeEvent<HTMLSelectElement | HTMLInputElement>
+		e: ChangeEvent<HTMLSelectElement | HTMLInputElement>,
 	) {
 		setChampionLevel(Number(e.target.value))
 		setSaveBuildButtonContent("Save Build")
@@ -283,7 +283,7 @@ export function ChampionDetails() {
 			levelOptions.push(
 				<option value={i} key={i} className="level-container__level-option">
 					{i + 1}
-				</option>
+				</option>,
 			)
 		}
 		return (
@@ -355,14 +355,14 @@ export function ChampionDetails() {
 							src={items[itemId].icon}
 							className="chosen-items__item-image"
 						/>
-					</article>
+					</article>,
 				)
 			} else {
 				itemElements.push(
 					<article
 						className="items__item-card chosen-items__item"
 						onClick={(e) => handleItemClick(e, itemId)}
-					></article>
+					></article>,
 				)
 			}
 		}

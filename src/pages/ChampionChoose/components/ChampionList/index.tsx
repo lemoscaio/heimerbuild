@@ -1,8 +1,8 @@
 import DotLoader from "react-spinners/DotLoader"
 
 import { Champion } from "../../../../types/champion"
-import { ChampionCard } from "../ChampionCard"
 import { Champions } from "../../../../types/champions"
+import { ChampionCard } from "../ChampionCard"
 
 type ChampionListProps = {
 	search: string
