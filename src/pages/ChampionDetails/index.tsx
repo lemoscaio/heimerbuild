@@ -187,16 +187,15 @@ export function ChampionDetails() {
 		e: React.MouseEvent<HTMLElement, MouseEvent>,
 		key: number
 	) {
-		const indexOfItem = chosenItems.indexOf(key)
-
-		if (indexOfItem === -1 && chosenItems.length < 6) {
-			chosenItems.push(key)
-			setChosenItems([...chosenItems])
-		}
-		if (indexOfItem !== -1) {
-			chosenItems.splice(indexOfItem, 1)
-			setChosenItems([...chosenItems])
-		}
+		setChosenItems((prev) => {
+			if (prev.includes(key)) {
+				return prev.filter((itemId) => itemId !== key)
+			}
+			if (prev.length < 6) {
+				return [...prev, key]
+			}
+			return prev
+		})
 
 		setSaveBuildButtonContent("Save Build")
 	}
