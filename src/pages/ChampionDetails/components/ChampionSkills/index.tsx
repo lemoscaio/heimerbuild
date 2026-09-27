@@ -77,7 +77,7 @@ export function ChampionSkills(props: any) {
 															</div>
 														</>
 													)
-												}
+												},
 											)}
 										</div>
 									)

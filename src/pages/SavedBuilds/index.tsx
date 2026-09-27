@@ -1,11 +1,10 @@
+import { MdDeleteForever } from "react-icons/md"
 import itemStatsIcons from "../../assets/stats-icons"
 import goldIcon from "../../assets/stats-icons/Gold_icon.png"
-
-import { MdDeleteForever } from "react-icons/md"
 import { useDeleteBuild } from "../../hooks/api/useDeleteBuild"
-import { useGetSavedBuilds } from "../../hooks/api/useGetSavedBuilds"
 import { useGetChampions } from "../../hooks/api/useGetChampions"
 import { useGetItems } from "../../hooks/api/useGetItems"
+import { useGetSavedBuilds } from "../../hooks/api/useGetSavedBuilds"
 import { Build } from "../../types/builds"
 
 export function SavedBuilds() {
@@ -40,7 +39,7 @@ export function SavedBuilds() {
 							src={items[itemId].icon}
 							className="build-card__chosen-item-image"
 						/>
-					</div>
+					</div>,
 				)
 			} else {
 				itemElements.push(<div className="build-card__chosen-item"></div>)
