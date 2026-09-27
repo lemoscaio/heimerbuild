@@ -48,6 +48,10 @@ bun run check:write  # apply Biome formatting and safe fixes
 
 CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and the build on every pull request and push to `main`.
 
+### Deployment
+
+The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. Cloudflare Workers Builds deploys `main` to production and uploads a preview version for every other branch, commenting the preview URL on the pull request. Manual equivalents: `bun run deploy` and `bun run preview:upload` (both require `wrangler login`).
+
 Copy `.env.example` to `.env` to point the app at a local API.
 
 ## Built with
