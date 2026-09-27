@@ -36,17 +36,21 @@ So my goal is to improve this project until I'll be able everything that happens
 This project uses [Bun](https://bun.com) as package manager and script runner (version pinned in `package.json` under `packageManager`). Install it with `curl -fsSL https://bun.com/install | bash`.
 
 ```bash
-bun install          # install dependencies (creates node_modules from bun.lock)
-bun run dev          # start the Vite dev server
-bun run build        # typecheck and build to dist/
-bun run preview      # serve the production build locally
-bun run typecheck    # tsc --noEmit
-bun run test         # run tests with bun test
-bun run check        # lint and format check with Biome
-bun run check:write  # apply Biome formatting and safe fixes
+bun install           # install dependencies (creates node_modules from bun.lock)
+bun run dev           # start the Vite dev server
+bun run build         # typecheck and build to dist/
+bun run preview:local # serve the production build locally
+bun run typecheck     # tsc --noEmit
+bun run test          # run tests with bun test
+bun run check         # lint and format check with Biome
+bun run check:write   # apply Biome formatting and safe fixes
 ```
 
 CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and the build on every pull request and push to `main`.
+
+### Deployment
+
+The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).
 
 Copy `.env.example` to `.env` to point the app at a local API.
 
