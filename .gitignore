@@ -27,3 +27,6 @@ dist-ssr
 
 # Cloudflare
 .wrangler
+
+# sync-data raw downloads
+.cache/
