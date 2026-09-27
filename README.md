@@ -31,6 +31,21 @@ We all know that the current training mode is not good enough. It takes time to 
 
 So my goal is to improve this project until I'll be able everything that happens in a battle that I already said and some others. This includes calculating how much time I'll take in a combo after all we know an AD Carrier does not always have the opportunity to just auto-attack the enemy to death depending on the matchup.
 
+## Development
+
+This project uses [Bun](https://bun.com) as package manager and script runner (version pinned in `package.json` under `packageManager`). Install it with `curl -fsSL https://bun.com/install | bash`.
+
+```bash
+bun install          # install dependencies (creates node_modules from bun.lock)
+bun run dev          # start the Vite dev server
+bun run build        # typecheck and build to dist/
+bun run preview      # serve the production build locally
+bun run typecheck    # tsc --noEmit
+bun run test         # run tests with bun test
+```
+
+Copy `.env.example` to `.env` to point the app at a local API.
+
 ## Built with
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)

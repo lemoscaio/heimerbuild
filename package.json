@@ -2,11 +2,13 @@
 	"name": "heimerbuild",
 	"private": true,
 	"version": "0.0.0",
+	"packageManager": "bun@1.4.2",
 	"scripts": {
-		"dev": "vite",
-		"build": "tsc && vite build",
-		"preview": "vite preview",
-		"commit": "git-cz"
+		"dev": "bun --bun vite",
+		"build": "tsc && bun --bun vite build",
+		"preview": "bun --bun vite preview",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^4.28.0",
@@ -25,14 +27,7 @@
 		"@types/react": "^18.0.17",
 		"@types/react-dom": "^18.0.6",
 		"@vitejs/plugin-react": "^2.1.0",
-		"commitizen": "^4.3.0",
-		"cz-conventional-changelog": "^3.3.0",
 		"typescript": "^5.0.3",
 		"vite": "^3.1.0"
-	},
-	"config": {
-		"commitizen": {
-			"path": "./node_modules/cz-conventional-changelog"
-		}
 	}
 }
