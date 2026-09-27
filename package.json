@@ -6,13 +6,13 @@
 	"scripts": {
 		"dev": "bun --bun vite",
 		"build": "tsc && bun --bun vite build",
-		"preview": "bun --bun vite preview",
+		"preview:local": "bun --bun vite preview",
 		"typecheck": "tsc --noEmit",
 		"test": "bun test --pass-with-no-tests",
 		"check": "biome check",
 		"check:write": "biome check --write",
 		"deploy": "bun run build && wrangler deploy",
-		"preview:upload": "bun run build && wrangler versions upload"
+		"preview": "bun run build && wrangler preview"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^4.28.0",

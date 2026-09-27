@@ -6,7 +6,8 @@
 		"directory": "./dist",
 		"not_found_handling": "single-page-application"
 	},
-	// Explicit because preview URLs default to off unless set; Workers Builds previews need both.
+	// preview_urls gates workers.dev Preview URLs (incl. `wrangler preview`) and is off unless set;
+	// workers_dev serves production on workers.dev and seeds preview_urls' default.
 	"workers_dev": true,
 	"preview_urls": true
 }
