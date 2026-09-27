@@ -42,7 +42,11 @@ bun run build        # typecheck and build to dist/
 bun run preview      # serve the production build locally
 bun run typecheck    # tsc --noEmit
 bun run test         # run tests with bun test
+bun run check        # lint and format check with Biome
+bun run check:write  # apply Biome formatting and safe fixes
 ```
+
+CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and the build on every pull request and push to `main`.
 
 Copy `.env.example` to `.env` to point the app at a local API.
 
