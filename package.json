@@ -12,7 +12,8 @@
 		"check": "biome check",
 		"check:write": "biome check --write",
 		"deploy": "bun run build && wrangler deploy",
-		"preview": "bun run build && wrangler preview"
+		"preview": "bun run build && wrangler preview",
+		"sync-data": "bun scripts/sync-data/index.ts"
 	},
 	"dependencies": {
 		"@tanstack/react-query": "^4.28.0",
