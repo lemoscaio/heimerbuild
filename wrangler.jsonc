@@ -9,5 +9,7 @@
 	// preview_urls gates workers.dev Preview URLs (incl. `wrangler preview`) and is off unless set;
 	// workers_dev serves production on workers.dev and seeds preview_urls' default.
 	"workers_dev": true,
-	"preview_urls": true
+	"preview_urls": true,
+	// Required by `wrangler preview` (Worker Previews), even when empty.
+	"previews": {}
 }
