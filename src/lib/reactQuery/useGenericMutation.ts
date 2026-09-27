@@ -6,7 +6,7 @@ import { QueryKeyT } from "./types"
 export interface UseGenericMutationParams<
 	NewDataT = void,
 	OldDataT = unknown,
-	ApiResultT = NewDataT
+	ApiResultT = NewDataT,
 > {
 	url: string
 	mutationFn: (data: NewDataT) => Promise<AxiosResponse<ApiResultT>>
@@ -34,7 +34,7 @@ export function useGenericMutation<NewDataT, OldDataT, ApiResultT = NewDataT>({
 }: UseGenericMutationParams<NewDataT, OldDataT, ApiResultT>) {
 	if (relatedQueryKey[0] === "" && updater) {
 		throw new Error(
-			"An updater function was provided without a relaterQueryKey. If you are using an updater, you must provide a relatedQueryKey"
+			"An updater function was provided without a relaterQueryKey. If you are using an updater, you must provide a relatedQueryKey",
 		)
 	}
 	const mutationKey = [url, mutationParams] satisfies QueryKeyT

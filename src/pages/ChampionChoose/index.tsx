@@ -23,7 +23,7 @@ export function ChampionChoose() {
 					const lowerCaseChampionName = championName.toLowerCase()
 					const lowerCaseSearch = search.toLowerCase()
 					if (lowerCaseChampionName.includes(lowerCaseSearch)) return true
-			  })
+				})
 			: Object.keys(champions || {})
 
 	return (
