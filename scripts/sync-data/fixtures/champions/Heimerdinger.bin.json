@@ -1,0 +1,23 @@
+{
+	"Characters/Heimerdinger/CharacterRecords/Root": {
+		"mCharacterName": "Heimerdinger",
+		"attackSpeedModifiable": {
+			"baseValue": 0.6579999923706055,
+			"__type": "ModifiableFloat"
+		},
+		"attackSpeedRatioModifiable": {
+			"baseValue": 0.625,
+			"__type": "ModifiableFloat"
+		},
+		"damagePerLevelModifiable": {
+			"baseValue": 2.700000047683716,
+			"__type": "ModifiableFloat"
+		},
+		"attackRangeModifiable": {
+			"baseValue": 550.0,
+			"__type": "ModifiableFloat"
+		},
+		"purchaseIdentities": ["Ranged"],
+		"__type": "CharacterRecord"
+	}
+}

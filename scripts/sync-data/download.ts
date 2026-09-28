@@ -8,6 +8,8 @@ const CDRAGON_BASE = "https://raw.communitydragon.org"
 const CDRAGON_ITEMS_PATH = "game/items.cdtb.bin.json"
 
 export const MANIFEST_FILE = "manifest.json"
+/** Bump when the set of cached files changes, so older caches are re-downloaded. */
+export const CACHE_LAYOUT = 2
 
 export type DownloadOptions = {
 	fetchFn?: typeof fetch
@@ -16,6 +18,7 @@ export type DownloadOptions = {
 }
 
 export type RawDataManifest = {
+	layout: number
 	version: string
 	communityDragonPatch: string
 	communityDragonFallback: boolean
@@ -114,11 +117,23 @@ export async function downloadRawData(
 		communityDragonItems.text,
 	)
 
-	await mapWithConcurrency(championIds(championList), concurrency, (id) =>
-		download(`ddragon/champion/${id}.json`, `${ddragon}/champion/${id}.json`),
+	const cdragonGame = `${CDRAGON_BASE}/${communityDragonItems.patch}/game`
+	const perChampion = championIds(championList).flatMap((id) => {
+		const name = id.toLowerCase()
+		return [
+			[`ddragon/champion/${id}.json`, `${ddragon}/champion/${id}.json`],
+			[
+				`cdragon/characters/${id}.bin.json`,
+				`${cdragonGame}/data/characters/${name}/${name}.bin.json`,
+			],
+		] as const
+	})
+	await mapWithConcurrency(perChampion, concurrency, ([path, url]) =>
+		download(path, url),
 	)
 
 	const manifest: RawDataManifest = {
+		layout: CACHE_LAYOUT,
 		version,
 		communityDragonPatch: communityDragonItems.patch,
 		communityDragonFallback: communityDragonItems.fallback,
