@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router"
+import { GameIcon } from "@/components/common/game-icon"
 import { ChampionCardShell } from "./champion-card-shell"
 
 type ChampionCardProps = {
@@ -17,9 +18,9 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 			className="group rounded-lg"
 		>
 			<ChampionCardShell className="transition group-hover:scale-110 group-hover:ring-lilac/60">
-				<img
+				<GameIcon
 					src={champion.icon}
-					alt=""
+					name={champion.name}
 					width={60}
 					height={60}
 					loading="lazy"

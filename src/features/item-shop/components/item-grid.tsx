@@ -1,3 +1,4 @@
+import { GameIcon } from "@/components/common/game-icon"
 import { ItemButton } from "@/components/common/item-button"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 
@@ -14,9 +15,9 @@ export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 			aria-label={item.name}
 			onClick={() => onItemClick(item.id)}
 		>
-			<img
+			<GameIcon
 				src={item.icon}
-				alt=""
+				name={item.name}
 				width={40}
 				height={40}
 				loading="lazy"
