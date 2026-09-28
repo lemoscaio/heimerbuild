@@ -344,7 +344,10 @@ body {
       }
 
       &__warning {
+        padding-bottom: 6px;
+
         color: $color-warning-message;
+        line-height: 1.5;
       }
 
       &__violations {
