@@ -6,6 +6,7 @@ import { MainPageLogo } from "../../components/MainPageLogo"
 import { SearchContainer } from "../../components/SearchContainer"
 import { useGetChampions } from "../../hooks/api/useGetChampions"
 import { ChampionList } from "./components/ChampionList"
+import { filterChampions } from "./filterChampions"
 
 export function ChampionChoose() {
 	const [search, setSearch] = useState("")
@@ -17,14 +18,7 @@ export function ChampionChoose() {
 		refetch: loadChampions,
 	} = useGetChampions()
 
-	const filteredChampions =
-		search.length > 0 && champions
-			? Object.keys(champions).filter((championName) => {
-					const lowerCaseChampionName = championName.toLowerCase()
-					const lowerCaseSearch = search.toLowerCase()
-					if (lowerCaseChampionName.includes(lowerCaseSearch)) return true
-				})
-			: Object.keys(champions || {})
+	const filteredChampions = champions ? filterChampions(champions, search) : []
 
 	return (
 		<div className="page-container page-container--champions-page">
@@ -37,7 +31,6 @@ export function ChampionChoose() {
 					setSearch={setSearch}
 				></SearchContainer>
 				<ChampionList
-					search={search}
 					champions={champions}
 					filteredChampions={filteredChampions}
 					isLoadingChampions={isLoadingChampions}
