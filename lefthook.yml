@@ -1,0 +1,7 @@
+# Auto-formats staged files. `biome ci` in CI is the real gate, so errors Biome
+# cannot fix are printed but do not block the commit (`|| true`).
+pre-commit:
+  jobs:
+    - name: biome
+      run: bunx biome check --write --staged --no-errors-on-unmatched || true
+      stage_fixed: true
