@@ -56,7 +56,8 @@ function breakdown(base: number, total: number): StatBreakdown {
 
 /**
  * `base` is the champion alone at `level` (1 to 18, growth included);
- * `bonus` is what the items add on top of it.
+ * `bonus` is what the items add on top of it. Attack speed is the exception:
+ * its level growth is bonus attack speed, as in game.
  */
 export function computeStats(
 	champion: ChampionInput,
@@ -98,12 +99,15 @@ export function computeStats(
 	)
 
 	computed.attackSpeed = breakdown(
-		attackSpeedAtLevel(stats.attackSpeed, level, 0),
+		stats.attackSpeed.base,
 		attackSpeedAtLevel(stats.attackSpeed, level, attackSpeedPercent),
 	)
 
 	const critChance = statAtLevel(stats.critChance, level)
-	computed.critChance = breakdown(critChance, critChance + critChancePercent)
+	computed.critChance = breakdown(
+		critChance,
+		Math.min(1, critChance + critChancePercent),
+	)
 
 	const movementSpeed = statAtLevel(stats.movementSpeed, level)
 	computed.movementSpeed = breakdown(
