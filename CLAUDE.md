@@ -42,7 +42,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 
 - React and TypeScript rules: [`.claude/rules/react-standards.md`](.claude/rules/react-standards.md) (auto-loaded for `src/**`).
 - Where new code goes: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
-- File and folder names are kebab-case; Biome enforces it once #96 lands.
+- File and folder names are kebab-case, and a feature never imports another feature; Biome enforces both in CI once #96 lands.
 - Biome is the only linter and formatter (tabs, double quotes, no semicolons). No ESLint or Prettier.
 
 ## Testing
@@ -50,7 +50,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 - Behavior tests only, with `bun test`, co-located as `*.test.ts`.
 - Test pure logic where mistakes are costly: stats engine, data pipeline, Worker, filters.
 - A few Playwright end-to-end flows for the main user journeys (#76).
-- No tests that snapshot rendered UI or assert static text and markup.
+- No snapshot tests (UI or data) and no tests that assert static text or markup. Known exception: the snapshot in `scripts/sync-data/normalize-champions.test.ts`, pending conversion to explicit assertions in its own issue.
 
 ## Workflow
 
