@@ -21,6 +21,12 @@ body {
   background: $color-primary-3;
 }
 
+// Keyboard focus is always visible (mouse clicks do not show it).
+:focus-visible {
+  outline: 2px solid $adobe-5-hex;
+  outline-offset: 2px;
+}
+
 // A button that is only an icon (item, role filter) looks like the icon.
 .icon-button {
   display: block;
@@ -28,6 +34,11 @@ body {
   border: none;
   background: none;
   cursor: pointer;
+
+  // Inside the outline: the item list scrolls and would clip an outer one.
+  &:focus-visible {
+    outline-offset: -2px;
+  }
 }
 
 .height-container {
@@ -137,8 +148,6 @@ body {
       background-color: $color-primary-2;
       border: none;
       border-radius: 15px;
-
-      outline: none;
 
       padding: 20px;
 
@@ -310,8 +319,6 @@ body {
 
         transition: background-color 100ms;
 
-        outline: none;
-
         &:hover {
           background-color: darken($color-primary-1, 5%);
         }
@@ -332,6 +339,10 @@ body {
       &__slots {
         @include flex(row, center, center, nowrap);
         gap: 5px;
+        margin: 0;
+        padding: 0;
+
+        border: none;
       }
 
       &__notice {
