@@ -225,6 +225,45 @@
 				"FlatMagicDamageMod": 110
 			},
 			"depth": 3
+		},
+		"1054": {
+			"name": "Doran's Shield",
+			"description": "<mainText><stats><attention>110</attention> Health</stats><br><br><passive>Enduring Focus</passive><br>Restore <healing>4 Health</healing> every 5 seconds. <br>After taking damage from a champion, restore <healing>Health</healing> over 8 seconds.<br><br><passive>Helping Hand</passive><br>Attacks deal <physicalDamage>5 bonus physical damage</physicalDamage> to minions.</mainText>",
+			"colloq": ";dshield",
+			"plaintext": "Good defensive starting item",
+			"image": {
+				"full": "1054.png",
+				"sprite": "item0.png",
+				"group": "item",
+				"x": 48,
+				"y": 96,
+				"w": 48,
+				"h": 48
+			},
+			"gold": {
+				"base": 450,
+				"purchasable": true,
+				"total": 450,
+				"sell": 180
+			},
+			"tags": ["Health", "HealthRegen", "Lane"],
+			"maps": {
+				"11": true,
+				"12": true,
+				"22": false,
+				"30": false,
+				"453": true
+			},
+			"stats": {
+				"FlatHPPoolMod": 110,
+				"FlatHPRegenMod": 0.8
+			},
+			"effect": {
+				"Effect1Amount": "8",
+				"Effect2Amount": "5",
+				"Effect3Amount": "45",
+				"Effect4Amount": "0.66"
+			}
 		}
 	}
 }

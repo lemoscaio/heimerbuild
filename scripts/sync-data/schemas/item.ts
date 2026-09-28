@@ -14,6 +14,7 @@ export const STAT_UNITS = {
 	abilityHaste: "flat",
 	lethality: "flat",
 	attackRange: "flat",
+	// Per 5 seconds, like champion regen (game files store per second).
 	healthRegen: "flat",
 	manaRegen: "flat",
 	attackSpeedPercent: "percent",

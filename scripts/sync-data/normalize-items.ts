@@ -13,7 +13,12 @@ import {
 	filterShopItems,
 	type RemovalRuleName,
 } from "./shop-filter"
-import { isStatField, NON_STAT_FIELDS, STAT_FIELDS } from "./stat-map"
+import {
+	isStatField,
+	NON_STAT_FIELDS,
+	STAT_FIELDS,
+	STAT_SCALE,
+} from "./stat-map"
 
 const DataDragonItemSchema = z.object({
 	name: z.string(),
@@ -87,7 +92,9 @@ function extractStats(
 					`Item ${entry.itemID}: ${field} is ${typeof value}, expected a number`,
 				)
 			}
-			if (value !== 0) stats[STAT_FIELDS[field]] = roundStat(value)
+			if (value !== 0) {
+				stats[STAT_FIELDS[field]] = roundStat(value * (STAT_SCALE[field] ?? 1))
+			}
 		} else if (!NON_STAT_FIELDS.has(field) && isStatLike(field, value)) {
 			unmapped.set(field, [...(unmapped.get(field) ?? []), `${entry.itemID}`])
 		}

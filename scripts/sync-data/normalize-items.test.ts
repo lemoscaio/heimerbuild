@@ -5,7 +5,7 @@ import map11Bin from "./fixtures/map11.bin.json"
 import { normalizeItems } from "./normalize-items"
 import { STAT_UNITS } from "./schemas/item"
 
-// Real 16.19.1 entries for Long Sword, Dagger, Serrated Dirk, Void Staff and Shadowflame.
+// Real 16.19.1 entries for Long Sword, Dagger, Doran's Shield, Serrated Dirk, Void Staff and Shadowflame.
 function itemsOf(
 	bin: unknown = communityDragonBin,
 	dataDragon: unknown = dataDragonItems,
@@ -54,6 +54,11 @@ describe("normalizeItems", () => {
 	test("stores attack speed as a percent fraction", () => {
 		expect(statsOf("1042")).toEqual({ attackSpeedPercent: 0.1 })
 		expect(STAT_UNITS.attackSpeedPercent).toBe("percent")
+	})
+
+	test("stores flat regen per 5 seconds, like champion regen", () => {
+		// Game file 0.8 per second; the tooltip says "Restore 4 Health every 5 seconds".
+		expect(statsOf("1054")).toEqual({ health: 110, healthRegen: 4 })
 	})
 
 	test("carries Data Dragon metadata", () => {
@@ -121,7 +126,7 @@ describe("normalizeItems shop filter", () => {
 		const ids = itemsOf(communityDragonBin, dataDragonWithEveryRule()).map(
 			(item) => item.id,
 		)
-		expect(ids).toEqual(["1036", "1042", "3134", "3135", "4645"])
+		expect(ids).toEqual(["1036", "1042", "1054", "3134", "3135", "4645"])
 	})
 
 	test("counts removed items per rule", () => {
