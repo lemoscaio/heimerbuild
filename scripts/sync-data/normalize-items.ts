@@ -1,12 +1,18 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
+import { type ChampionRole, championRoleSchema } from "./schemas/champion"
 import {
 	type Item,
 	type ItemStats,
 	type ItemsFile,
 	ItemsFileSchema,
 } from "./schemas/item"
+import {
+	classicItemIds,
+	filterShopItems,
+	type RemovalRuleName,
+} from "./shop-filter"
 import { isStatField, NON_STAT_FIELDS, STAT_FIELDS } from "./stat-map"
 
 const DataDragonItemSchema = z.object({
@@ -23,6 +29,7 @@ const DataDragonItemSchema = z.object({
 	from: z.array(z.string()).optional(),
 	into: z.array(z.string()).optional(),
 	inStore: z.boolean().optional(),
+	hideFromAll: z.boolean().optional(),
 	requiredChampion: z.string().optional(),
 })
 
@@ -32,6 +39,16 @@ const DataDragonItemsSchema = z.object({
 })
 
 type CommunityDragonItem = Record<string, unknown> & { itemID: number }
+
+/** CommunityDragon `mItemAttributes`: the in-game shop class filters an item is listed under. */
+const ITEM_ATTRIBUTE_ROLES: Record<number, ChampionRole> = {
+	1: "FIGHTER",
+	2: "MARKSMAN",
+	4: "ASSASSIN",
+	8: "TANK",
+	16: "MAGE",
+	32: "SUPPORT",
+}
 
 /** Removes float32 noise (~7 significant digits): 0.4000000059604645 -> 0.4. */
 function roundStat(value: number): number {
@@ -78,6 +95,21 @@ function extractStats(
 	return stats
 }
 
+function extractRoles(entry: CommunityDragonItem): ChampionRole[] {
+	const attributes = z.array(z.number()).optional().parse(entry.mItemAttributes)
+	const roles = new Set<ChampionRole>()
+	for (const attribute of attributes ?? []) {
+		const role = ITEM_ATTRIBUTE_ROLES[attribute]
+		if (!role) {
+			throw new Error(
+				`Item ${entry.itemID}: unknown mItemAttributes value ${attribute}`,
+			)
+		}
+		roles.add(role)
+	}
+	return championRoleSchema.options.filter((role) => roles.has(role))
+}
+
 function formatUnmapped(unmapped: Map<string, string[]>): string {
 	const lines = [...unmapped].map(
 		([field, ids]) =>
@@ -90,15 +122,23 @@ function formatUnmapped(unmapped: Map<string, string[]>): string {
 	].join("\n")
 }
 
+export type NormalizedItems = {
+	file: ItemsFile
+	removed: Record<RemovalRuleName, number>
+}
+
+/** Keeps only items buyable on Summoner's Rift; `removed` counts the items each rule dropped. */
 export function normalizeItems(
 	dataDragonItems: unknown,
 	communityDragonBin: unknown,
-): ItemsFile {
+	map11Bin: unknown,
+): NormalizedItems {
 	const { version, data } = DataDragonItemsSchema.parse(dataDragonItems)
 	const binItems = indexCommunityDragonItems(communityDragonBin)
+	const { kept, removed } = filterShopItems(data, classicItemIds(map11Bin))
 	const unmapped = new Map<string, string[]>()
 
-	const items = Object.entries(data)
+	const items = kept
 		.sort(([a], [b]) => Number(a) - Number(b))
 		.map(([id, item]): Item => {
 			const entry = binItems.get(id)
@@ -120,30 +160,39 @@ export function normalizeItems(
 				into: item.into ?? [],
 				inStore: item.inStore ?? true,
 				requiredChampion: item.requiredChampion,
+				roles: extractRoles(entry),
 				stats: extractStats(entry, unmapped),
 			}
 		})
 
 	if (unmapped.size > 0) throw new Error(formatUnmapped(unmapped))
-	return ItemsFileSchema.parse({ version, items })
+	return { file: ItemsFileSchema.parse({ version, items }), removed }
 }
 
 export type SyncItemsPaths = { cacheDir: string; outDir: string }
 
 /** Reads the raw cache of one version and writes `<outDir>/items.json`. */
-export async function syncItems({
-	cacheDir,
-	outDir,
-}: SyncItemsPaths): Promise<{ path: string; count: number; bytes: number }> {
+export async function syncItems({ cacheDir, outDir }: SyncItemsPaths): Promise<{
+	path: string
+	count: number
+	bytes: number
+	removed: NormalizedItems["removed"]
+}> {
 	const readJson = async (path: string): Promise<unknown> =>
 		JSON.parse(await readFile(join(cacheDir, path), "utf8"))
-	const file = normalizeItems(
+	const { file, removed } = normalizeItems(
 		await readJson("ddragon/item.json"),
 		await readJson("cdragon/items.cdtb.bin.json"),
+		await readJson("cdragon/map11.bin.json"),
 	)
 	const text = JSON.stringify(file)
 	const path = join(outDir, "items.json")
 	await mkdir(outDir, { recursive: true })
 	await writeFile(path, text)
-	return { path, count: file.items.length, bytes: Buffer.byteLength(text) }
+	return {
+		path,
+		count: file.items.length,
+		bytes: Buffer.byteLength(text),
+		removed,
+	}
 }

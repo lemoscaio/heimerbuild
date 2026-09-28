@@ -127,6 +127,12 @@ async function writeOutputs(version: string): Promise<void> {
 	)
 
 	const items = await syncItems({ cacheDir, outDir })
+	const removed = Object.entries(items.removed)
+		.map(([rule, count]) => `  ${rule}: ${count}`)
+		.join("\n")
+	console.log(
+		`Items removed from the Summoner's Rift shop, per rule:\n${removed}`,
+	)
 	console.log(
 		`Wrote public/data/${version}/items.json (${items.count} items, ${formatBytes(items.bytes)})`,
 	)
