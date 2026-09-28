@@ -2,7 +2,7 @@
 
 Target structure for `src/`, grouped by feature instead of by file type. Component and hook rules: [`.claude/rules/react-standards.md`](../.claude/rules/react-standards.md).
 
-> **Migration:** the tree follows this structure since #96 (kebab-case) and #42 (feature folders). What is still pending is in the [Migration map](#migration-map).
+> **Migration:** the tree follows this structure since #96 (kebab-case) and #42 (feature folders), and styling is Tailwind and shadcn/ui only since #40. Nothing is pending (see the [Migration map](#migration-map)).
 
 ## Target structure
 
@@ -26,7 +26,7 @@ src/
 ├── hooks/                hooks used by 2+ features
 ├── types/                types used by 2+ features (not derivable from a schema)
 ├── assets/               images imported by code
-└── styles/               app.css: Tailwind entry, theme tokens (legacy SCSS until #40 ends)
+└── styles/               app.css: Tailwind entry, theme tokens, base styles
 ```
 
 ### Feature anatomy
@@ -86,8 +86,4 @@ import { computeStats } from "@/lib/stats/compute-stats"
 
 ## Migration map
 
-Moved in #96, #42 and #41. Still pending:
-
-| Current | Target | Issue |
-| --- | --- | --- |
-| `src/styles/index.scss` | Tailwind utilities and `components/ui` (shadcn/ui) | #40 |
+Moved in #96, #42, #41 and #40 (SCSS to Tailwind utilities and `components/ui`). Nothing is pending.

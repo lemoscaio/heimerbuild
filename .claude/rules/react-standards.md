@@ -91,14 +91,14 @@ export function StatRow({ stat, value, className, ...props }: StatRowProps) {
 - Tailwind 4 utilities; theme tokens (palette, fonts, header height) live in `@theme` in `src/styles/app.css`. Prefer the Tailwind spacing, font-size and radius scales over arbitrary values.
 - Merge classes with `cn()` only; conditional classes use object syntax, never template strings. Biome sorts classes (`useSortedClasses`).
 - UI primitives are shadcn/ui components (Base UI) in `src/components/ui/`, added with `bunx shadcn@latest add <name>` and then adapted to the rules here (named exports, `@/lib/cn`).
-- Until #40 ends, unmigrated BEM classes live in `src/styles/index.scss` inside `@layer legacy`, below Tailwind utilities.
+- `src/styles/app.css` is the only stylesheet: global rules (base styles, custom utilities such as `scrollbar-purple`) go there, never in a new CSS file.
 
 ```tsx
 // Wrong
-className={`item-slot ${isEmpty ? "opacity-50" : ""}`}
+className={`size-10 rounded-sm ${isEmpty ? "opacity-50" : ""}`}
 
 // Correct
-className={cn("item-slot", { "opacity-50": isEmpty })}
+className={cn("size-10 rounded-sm", { "opacity-50": isEmpty })}
 ```
 
 ## Conditional rendering

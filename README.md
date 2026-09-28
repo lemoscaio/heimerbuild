@@ -79,10 +79,10 @@ src/
 ├── routes/       TanStack Router routes: loaders, search schemas, thin pages
 ├── features/     champions, build-calculator, item-shop (a feature never imports another)
 ├── data/         game data loading: services (fetch + Zod) and hooks
-├── components/   common/ shared app UI (ui/ for primitives, when they exist)
+├── components/   ui/ shadcn/ui primitives, common/ shared app UI
 ├── lib/          pure code, including the stats engine in lib/stats
 ├── assets/       images imported by code
-└── styles/       Tailwind entry and theme (app.css), SCSS being migrated
+└── styles/       Tailwind entry and theme (app.css)
 ```
 
 Files and folders are kebab-case, `@/` resolves to `src/`, and Biome enforces the naming and import rules in CI.
@@ -109,7 +109,6 @@ The `Sync game data` workflow (`.github/workflows/sync-data.yml`) runs daily and
 ![Biome](https://img.shields.io/badge/biome-%2360A5FA.svg?style=for-the-badge&logo=biome&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-%23000000.svg?style=for-the-badge&logo=shadcnui&logoColor=white)
-![SASS](https://img.shields.io/badge/SASS-hotpink.svg?style=for-the-badge&logo=SASS&logoColor=white)
 
 ## Data and legal
 

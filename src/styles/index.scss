@@ -1,9 +1,0 @@
-@import "media-queries";
-@import "mixins";
-@import "variables";
-@import "theme";
-@import "functions";
-
-// Styles not yet migrated to Tailwind; the layer order is declared in app.css.
-@layer legacy {
-}
