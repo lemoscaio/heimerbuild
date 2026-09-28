@@ -38,7 +38,7 @@ bun install           # install dependencies (creates node_modules from bun.lock
 bun run dev           # start the Vite dev server
 bun run build         # typecheck and build to dist/
 bun run preview:local # serve the production build locally
-bun run typecheck     # tsc --noEmit
+bun run typecheck     # type-check the app and the tests, scripts and worker
 bun run test          # run tests with bun test
 bun run check         # lint and format check with Biome
 bun run check:write   # apply Biome formatting and safe fixes
