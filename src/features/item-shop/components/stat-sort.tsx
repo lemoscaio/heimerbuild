@@ -1,7 +1,21 @@
-import type { ChangeEvent } from "react"
 import { Button } from "@/components/ui/button"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
+import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { shopStats } from "../lib/shop-stats"
 import type { ItemSort } from "../lib/sort-items-by-stat"
+
+// `null` is the shop's own order.
+const sortOptions = [
+	{ value: null, label: "Shop order" },
+	...shopStats.map(({ stat, label }) => ({ value: stat, label })),
+]
 
 type StatSortProps = {
 	sort: ItemSort | undefined
@@ -9,10 +23,7 @@ type StatSortProps = {
 }
 
 export function StatSort({ sort, onSortChange }: StatSortProps) {
-	function handleStatChange(event: ChangeEvent<HTMLSelectElement>) {
-		const stat = shopStats.find(
-			(option) => option.stat === event.target.value,
-		)?.stat
+	function handleStatChange(stat: StatKey | null) {
 		onSortChange(
 			stat ? { stat, direction: sort?.direction ?? "desc" } : undefined,
 		)
@@ -28,22 +39,26 @@ export function StatSort({ sort, onSortChange }: StatSortProps) {
 	}
 
 	return (
-		<div className="items__stat-sort">
-			<label className="items__sort-label">
-				Sort by
-				<select
-					className="items__sort-select"
-					value={sort?.stat ?? ""}
-					onChange={handleStatChange}
-				>
-					<option value="">Shop order</option>
-					{shopStats.map(({ stat, label }) => (
-						<option key={stat} value={stat}>
+		<div className="flex flex-wrap items-center justify-center gap-2 px-2.5 pb-2 text-white text-xs">
+			<Select
+				items={sortOptions}
+				value={sort?.stat ?? null}
+				onValueChange={handleStatChange}
+			>
+				<div className="flex items-center gap-1.5">
+					<SelectLabel>Sort by</SelectLabel>
+					<SelectTrigger size="sm" className="w-48">
+						<SelectValue />
+					</SelectTrigger>
+				</div>
+				<SelectContent>
+					{sortOptions.map(({ value, label }) => (
+						<SelectItem key={label} value={value} className="text-xs">
 							{label}
-						</option>
+						</SelectItem>
 					))}
-				</select>
-			</label>
+				</SelectContent>
+			</Select>
 			<Button
 				type="button"
 				size="sm"

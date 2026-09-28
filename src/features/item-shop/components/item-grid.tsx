@@ -11,7 +11,6 @@ export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 		<ItemButton
 			key={item.id}
 			item={item}
-			className="items__item-card"
 			aria-label={item.name}
 			onClick={() => onItemClick(item.id)}
 		>
@@ -21,7 +20,7 @@ export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 				width={40}
 				height={40}
 				loading="lazy"
-				className="items__item-image"
+				className="size-10"
 			/>
 		</ItemButton>
 	))
