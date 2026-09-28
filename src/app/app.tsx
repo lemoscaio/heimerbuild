@@ -7,7 +7,7 @@ import { Router } from "./router"
 export function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<ReactQueryDevtools initialIsOpen={false} />
+			{import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
 			<BrowserRouter>
 				<Router />
 			</BrowserRouter>

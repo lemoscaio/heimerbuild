@@ -1,6 +1,7 @@
 import { type ChangeEvent, useState } from "react"
 import { DotLoader } from "react-spinners"
 import { useChampion } from "@/data/hooks/use-champion"
+import { useCurrentPatch } from "@/data/hooks/use-current-patch"
 import { useItems } from "@/data/hooks/use-items"
 import { type ComputedStats, computeStats } from "@/lib/stats/compute-stats"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
@@ -22,16 +23,15 @@ type ChampionDetailsProps = {
 }
 
 export function ChampionDetails({ championKey }: ChampionDetailsProps) {
-	const { data: championInfo } = useChampion(championKey)
+	const patch = useCurrentPatch()
+	const { data: championInfo } = useChampion(patch.data, championKey)
 
 	const [championLevel, setChampionLevel] = useState(MIN_LEVEL)
 
-	const {
-		data: items,
-		isLoading: isLoadingItems,
-		isError: failedItemsLoad,
-		refetch: loadItems,
-	} = useItems()
+	const itemsQuery = useItems(patch.data)
+	const items = itemsQuery.data
+	const failedItemsLoad = patch.isError || itemsQuery.isError
+	const isLoadingItems = itemsQuery.isPending && !failedItemsLoad
 
 	const [itemRoleFilter, setItemRoleFilter] = useState("All")
 
@@ -118,7 +118,11 @@ export function ChampionDetails({ championKey }: ChampionDetailsProps) {
 	// }
 
 	function handleLoadItemsClick() {
-		loadItems()
+		if (patch.isError) {
+			patch.refetch()
+		} else {
+			itemsQuery.refetch()
+		}
 	}
 
 	function handleLevelChange(
