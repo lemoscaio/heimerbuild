@@ -30,7 +30,8 @@ test("the shop filters by a stat and sorts by it", async ({
 		withAbilityPower.map((item) => item.name).sort(),
 	)
 
-	await page.getByLabel("Sort by").selectOption("abilityPower")
+	await page.getByRole("combobox", { name: "Sort by" }).click()
+	await page.getByRole("option", { name: "Ability Power" }).click()
 	await expect
 		.poll(async () =>
 			(await itemNames(shop)).map((name) => abilityPowerOf.get(name)),

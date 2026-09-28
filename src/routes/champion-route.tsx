@@ -15,6 +15,7 @@ import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
 import { ChampionHeaderSkeleton } from "@/features/champions/components/champion-header-skeleton"
 import { ItemGridSkeleton } from "@/features/item-shop/components/item-grid-skeleton"
+import { ItemList } from "@/features/item-shop/components/item-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { pageWithHeaderRoute } from "./page-with-header-route"
 
@@ -103,11 +104,9 @@ function ChampionPagePending() {
 				<span className="sr-only">Loading champion</span>
 				<ChampionHeaderSkeleton />
 				<BuildSkeleton />
-				<div className="champion-info__items items">
-					<div className="items__list">
-						<ItemGridSkeleton />
-					</div>
-				</div>
+				<ItemList>
+					<ItemGridSkeleton />
+				</ItemList>
 			</main>
 		</ChampionPageLayout>
 	)

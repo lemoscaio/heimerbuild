@@ -1,28 +1,32 @@
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { shopStats } from "../lib/shop-stats"
 
 type StatFilterProps = {
 	stats: readonly StatKey[]
-	onToggleStat: (stat: StatKey) => void
+	onStatsChange: (stats: StatKey[]) => void
 }
 
-export function StatFilter({ stats, onToggleStat }: StatFilterProps) {
+export function StatFilter({ stats, onStatsChange }: StatFilterProps) {
 	return (
-		<fieldset className="items__stat-filter">
-			<legend className="sr-only">Filter by stat</legend>
+		<ToggleGroup
+			multiple
+			aria-label="Filter by stat"
+			className="flex-wrap justify-center px-2.5 pb-1.5"
+			value={stats}
+			onValueChange={onStatsChange}
+		>
 			{shopStats.map(({ stat, label, icon }) => (
-				<button
-					type="button"
+				<ToggleGroupItem
 					key={stat}
-					className="items__stat-chip icon-button"
+					value={stat}
+					size="icon-sm"
 					title={label}
 					aria-label={label}
-					aria-pressed={stats.includes(stat)}
-					onClick={() => onToggleStat(stat)}
 				>
-					<img src={icon} alt="" className="items__stat-icon" />
-				</button>
+					<img src={icon} alt="" className="size-full" />
+				</ToggleGroupItem>
 			))}
-		</fieldset>
+		</ToggleGroup>
 	)
 }

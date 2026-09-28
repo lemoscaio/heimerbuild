@@ -10,6 +10,7 @@ import { filterItemsByStats } from "../lib/filter-items-by-stats"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
 import { ItemGrid } from "./item-grid"
 import { ItemGridSkeleton } from "./item-grid-skeleton"
+import { ItemList } from "./item-list"
 import { RoleFilter } from "./role-filter"
 import { StatFilter } from "./stat-filter"
 import { StatSort } from "./stat-sort"
@@ -33,40 +34,32 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 		: []
 	const items = sort ? sortItemsByStat(filteredItems, sort) : filteredItems
 
-	function toggleStat(stat: StatKey) {
-		setStats((current) =>
-			current.includes(stat)
-				? current.filter((selected) => selected !== stat)
-				: [...current, stat],
-		)
-	}
-
 	return (
-		<div className="champion-info__items items">
+		<div className="bg-primary-4">
 			<RoleFilter role={role} onRoleChange={setRole} />
-			<StatFilter stats={stats} onToggleStat={toggleStat} />
+			<StatFilter stats={stats} onStatsChange={setStats} />
 			<StatSort sort={sort} onSortChange={setSort} />
-			<div className="items__second-row">
-				<section className="items__list" aria-label="Item shop">
-					<ItemGrid items={items} onItemClick={onItemClick} />
-					{itemsQuery.isSuccess && !items.length && (
-						<p className="items__empty">No items match these filters.</p>
-					)}
-					{itemsQuery.isPending && (
-						<>
-							<span className="sr-only" role="status">
-								Loading items
-							</span>
-							<ItemGridSkeleton />
-						</>
-					)}
-					{itemsQuery.isError && (
-						<LoadError className="pb-8" onRetry={() => itemsQuery.refetch()}>
-							Could not load the items. Check your connection.
-						</LoadError>
-					)}
-				</section>
-			</div>
+			<ItemList aria-label="Item shop">
+				<ItemGrid items={items} onItemClick={onItemClick} />
+				{itemsQuery.isSuccess && !items.length && (
+					<p className="w-full p-5 text-center text-white">
+						No items match these filters.
+					</p>
+				)}
+				{itemsQuery.isPending && (
+					<>
+						<span className="sr-only" role="status">
+							Loading items
+						</span>
+						<ItemGridSkeleton />
+					</>
+				)}
+				{itemsQuery.isError && (
+					<LoadError className="pb-8" onRetry={() => itemsQuery.refetch()}>
+						Could not load the items. Check your connection.
+					</LoadError>
+				)}
+			</ItemList>
 		</div>
 	)
 }
