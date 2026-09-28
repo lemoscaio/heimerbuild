@@ -18,11 +18,15 @@ test("adding and removing items changes the totals, and a build the game forbids
 }) => {
 	await page.goto("/champions/Heimerdinger")
 	const stats = statsPanel(page)
-	await expect(shopItem(page, "Long Sword")).toBeVisible()
+	// Data Dragon is blocked: a tile shows its item's name in place of the icon.
+	await expect(
+		shopItem(page, "Long Sword").getByText("Long Sword"),
+	).toBeVisible()
 	const noItems = await stats.textContent()
 
 	await shopItem(page, "Long Sword").click()
 	await expect(chosenItems(page)).toHaveCount(1)
+	await expect(chosenItems(page).getByText("Long Sword")).toBeVisible()
 	await expect(stats).not.toHaveText(noItems ?? "")
 	const withSword = await stats.textContent()
 

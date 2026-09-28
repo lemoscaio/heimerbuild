@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react"
+import { GameIcon } from "@/components/common/game-icon"
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -21,10 +22,10 @@ export function ChampionHeader({ champion, children }: ChampionHeaderProps) {
 	return (
 		<>
 			<ChampionHeaderLayout>
-				<img
+				<GameIcon
 					src={champion.icon}
-					alt=""
-					className="size-18 rounded-md border border-primary-1 object-cover"
+					name={champion.name}
+					className="size-18 rounded-md border border-primary-1"
 				/>
 				<div className="flex flex-col gap-0.5 font-display">
 					<h3 className="font-extrabold text-2xl leading-tight">

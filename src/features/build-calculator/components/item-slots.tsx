@@ -1,5 +1,6 @@
 import { TriangleAlert } from "lucide-react"
 import { useLayoutEffect, useRef } from "react"
+import { GameIcon } from "@/components/common/game-icon"
 import { ItemButton } from "@/components/common/item-button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
@@ -68,7 +69,11 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 							aria-label={`Remove ${item.name}`}
 							onClick={(event) => handleRemove(slot, event)}
 						>
-							<img src={item.icon} alt="" className="w-full rounded-sm" />
+							<GameIcon
+								src={item.icon}
+								name={item.name}
+								className="size-full rounded-sm"
+							/>
 						</ItemButton>
 					)
 				})}
