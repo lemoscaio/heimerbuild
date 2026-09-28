@@ -5,7 +5,7 @@ import { useDeleteBuild } from "../../hooks/api/useDeleteBuild"
 import { useGetChampions } from "../../hooks/api/useGetChampions"
 import { useGetItems } from "../../hooks/api/useGetItems"
 import { useGetSavedBuilds } from "../../hooks/api/useGetSavedBuilds"
-import { Build } from "../../types/builds"
+import type { Build } from "../../types/builds"
 
 export function SavedBuilds() {
 	const { data: builds } = useGetSavedBuilds()
@@ -213,8 +213,12 @@ export function SavedBuilds() {
 											{/* <div className="build-card__champion">
 													{champions && (
 														<img
-															src={champions[build.championKey].icon}
-															alt={champions[build.championKey].name}
+															src={
+																champions.find(
+																	(champion) => champion.key === build.championKey,
+																)?.icon
+															}
+															alt={build.championName}
 															className="build-card__champion-image"
 														/>
 													)}

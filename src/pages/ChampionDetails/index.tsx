@@ -1,13 +1,18 @@
-import { ChangeEvent, useCallback, useState } from "react"
+import { type ChangeEvent, useCallback, useState } from "react"
 import { useParams } from "react-router-dom"
 import { DotLoader } from "react-spinners"
+import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
 import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
 import { useGetItems } from "../../hooks/api/useGetItems"
 import { usePostSaveBuild } from "../../hooks/api/usePostSaveBuild"
 import { useAuth } from "../../hooks/useAuth"
-import { Champion } from "../../types/champion"
-import { ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
+import { type ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
 import { statsInfo } from "../../utils/statsInfo"
+import {
+	type LegacyStats,
+	toLegacyChampionStats,
+	toLegacyItemStats,
+} from "./legacyStats"
 
 export function ChampionDetails() {
 	const MAX_LEVEL = 18
@@ -71,10 +76,7 @@ export function ChampionDetails() {
 
 	function filterItemsByRole(itemId: number) {
 		const item = items && items[itemId]
-		const itemTags = item?.shop.tags
-		if (itemTags?.includes(itemRoleFilter)) {
-			return true
-		}
+		return item?.roles.includes(itemRoleFilter as ChampionRole)
 	}
 
 	const [chosenItems, setChosenItems] = useState<number[]>([])
@@ -86,8 +88,8 @@ export function ChampionDetails() {
 	// TODO IMPROVE STATS TYPE
 
 	const updateEachStatOnLeveLChange = useCallback(
-		(stats: Champion["stats"], championStats: ChampionStatsType) => {
-			for (let stat in stats) {
+		(stats: LegacyStats, championStats: ChampionStatsType) => {
+			for (const stat in stats) {
 				if (stat === "attackSpeed") {
 					const newSpeedvalue =
 						stats[stat].flat *
@@ -112,13 +114,13 @@ export function ChampionDetails() {
 	)
 
 	const updateEachStatOnItemChange = useCallback(
-		(stats: Champion["stats"], championStats: ChampionStatsType) => {
+		(championStats: ChampionStatsType) => {
 			if (items && chosenItems.length > 0) {
 				chosenItems.forEach((itemId) => {
-					const item = items[itemId]
+					const itemStats = toLegacyItemStats(items[itemId].stats)
 
-					Object.keys(item.stats).map((statName) => {
-						const stat = item.stats[statName]
+					Object.keys(itemStats).map((statName) => {
+						const stat = itemStats[statName]
 
 						let correctLabel
 						if (championStats[statName] !== undefined) {
@@ -157,11 +159,14 @@ export function ChampionDetails() {
 		[chosenItems],
 	)
 
+	const legacyChampionStats =
+		championInfo && toLegacyChampionStats(championInfo.stats)
+
 	function setBaseChampionStats() {
 		const championStats: ChampionStatsType = {}
 
-		championInfo &&
-			updateEachStatOnLeveLChange(championInfo.stats, championStats)
+		legacyChampionStats &&
+			updateEachStatOnLeveLChange(legacyChampionStats, championStats)
 
 		return championStats
 	}
@@ -169,10 +174,9 @@ export function ChampionDetails() {
 	function setChampionStats() {
 		const championStats: ChampionStatsType = {}
 
-		championInfo &&
-			updateEachStatOnLeveLChange(championInfo.stats, championStats)
-		championInfo &&
-			updateEachStatOnItemChange(championInfo.stats, championStats)
+		legacyChampionStats &&
+			updateEachStatOnLeveLChange(legacyChampionStats, championStats)
+		championInfo && updateEachStatOnItemChange(championStats)
 
 		return championStats
 	}

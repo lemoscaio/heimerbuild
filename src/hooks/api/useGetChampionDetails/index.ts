@@ -1,6 +1,10 @@
-import { useFetch } from "../../../lib/reactQuery/useFetch"
-import { Champion } from "../../../types/champion"
+import { fetchChampion } from "../../../services/gameData"
+import { usePatchQuery } from "../usePatchQuery"
 
 export function useGetChampionDetails(championKey: string | undefined) {
-	return useFetch<Champion>(championKey ? "/champions/" + championKey : null)
+	return usePatchQuery(
+		["champion", championKey ?? ""],
+		(patch) => fetchChampion(patch, championKey ?? ""),
+		{ enabled: championKey !== undefined },
+	)
 }

@@ -1,12 +1,11 @@
 import DotLoader from "react-spinners/DotLoader"
 
-import type { Champion } from "../../../../types/champion"
-import type { Champions } from "../../../../types/champions"
+import type { ChampionSummary } from "../../../../../scripts/sync-data/schemas/champion"
 import { ChampionCard } from "../ChampionCard"
 
 type ChampionListProps = {
-	champions: Champions | undefined
-	filteredChampions: Champion[]
+	champions: ChampionSummary[] | undefined
+	filteredChampions: ChampionSummary[]
 	isLoadingChampions: boolean
 	failedChampionsLoad: boolean
 	loadChampions: () => void

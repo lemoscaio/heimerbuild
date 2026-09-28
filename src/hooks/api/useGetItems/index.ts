@@ -1,6 +1,6 @@
-import { useFetch } from "../../../lib/reactQuery/useFetch"
-import { Items } from "../../../types/items"
+import { fetchItems } from "../../../services/gameData"
+import { usePatchQuery } from "../usePatchQuery"
 
 export function useGetItems() {
-	return useFetch<Items>("/items")
+	return usePatchQuery(["items"], fetchItems)
 }
