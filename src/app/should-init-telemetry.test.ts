@@ -1,26 +1,30 @@
 import { describe, expect, test } from "bun:test"
-import { shouldInitSentry } from "./should-init-sentry"
+import { shouldInitTelemetry } from "./should-init-telemetry"
 
-describe("shouldInitSentry", () => {
+describe("shouldInitTelemetry", () => {
 	test.each(["preview", "production"] as const)(
-		"starts Sentry on %s deploys",
+		"starts on %s deploys",
 		(environment) => {
 			expect(
-				shouldInitSentry({ environment, enabledLocally: false, isE2e: false }),
+				shouldInitTelemetry({
+					environment,
+					enabledLocally: false,
+					isE2e: false,
+				}),
 			).toBe(true)
 		},
 	)
 
 	test("stays off locally unless enabled", () => {
 		expect(
-			shouldInitSentry({
+			shouldInitTelemetry({
 				environment: "development",
 				enabledLocally: false,
 				isE2e: false,
 			}),
 		).toBe(false)
 		expect(
-			shouldInitSentry({
+			shouldInitTelemetry({
 				environment: "development",
 				enabledLocally: true,
 				isE2e: false,
@@ -32,7 +36,7 @@ describe("shouldInitSentry", () => {
 		"never starts for an E2E run on %s",
 		(environment) => {
 			expect(
-				shouldInitSentry({ environment, enabledLocally: true, isE2e: true }),
+				shouldInitTelemetry({ environment, enabledLocally: true, isE2e: true }),
 			).toBe(false)
 		},
 	)

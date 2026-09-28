@@ -7,15 +7,15 @@ import { defineConfig } from "vite"
 
 // Cloudflare Workers Builds sets WORKERS_CI, WORKERS_CI_BRANCH and WORKERS_CI_COMMIT_SHA.
 const branch = process.env.WORKERS_CI_BRANCH
-const sentryEnvironment = !process.env.WORKERS_CI
+const appEnvironment = !process.env.WORKERS_CI
 	? "development"
 	: branch === "main"
 		? "production"
 		: "preview"
-const sentryRelease = process.env.WORKERS_CI_COMMIT_SHA
+const appRelease = process.env.WORKERS_CI_COMMIT_SHA
 const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN
 // Source maps exist only to be uploaded; the plugin deletes them from dist afterwards.
-const uploadSourceMaps = !!sentryAuthToken && !!sentryRelease
+const uploadSourceMaps = !!sentryAuthToken && !!appRelease
 
 export default defineConfig({
 	plugins: [
@@ -27,15 +27,15 @@ export default defineConfig({
 				org: "caio-lemos",
 				project: "heimerbuild-web",
 				authToken: sentryAuthToken,
-				release: { name: sentryRelease },
+				release: { name: appRelease },
 				sourcemaps: { filesToDeleteAfterUpload: ["./dist/**/*.map"] },
 				telemetry: false,
 			}),
 	],
 	define: {
-		"import.meta.env.SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
-		"import.meta.env.SENTRY_RELEASE": sentryRelease
-			? JSON.stringify(sentryRelease)
+		"import.meta.env.APP_ENVIRONMENT": JSON.stringify(appEnvironment),
+		"import.meta.env.APP_RELEASE": appRelease
+			? JSON.stringify(appRelease)
 			: "undefined",
 		// Tree-shakes Sentry's debug logging and the Replay iframe/shadow DOM recording we never use.
 		__SENTRY_DEBUG__: false,
