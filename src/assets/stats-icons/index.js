@@ -16,7 +16,7 @@ import omniVampIcon from "./omnivamp-icon.png"
 import attackRangeIcon from "./range-icon.png"
 import tenacityIcon from "./tenacity-icon.png"
 
-export default {
+export const statsIcons = {
 	attackDamage: adIcon,
 	armor: armorIcon,
 	attackSpeed: atkSpeedIcon,

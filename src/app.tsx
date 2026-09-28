@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom"
 import { Router } from "./routes/router"
 import { queryClient } from "./services/api"
 
-export default function App() {
+export function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<ReactQueryDevtools initialIsOpen={false} />
