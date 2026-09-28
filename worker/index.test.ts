@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test"
+import { afterEach, describe, expect, mock, spyOn, test } from "bun:test"
+import { SENTRY_DSN } from "../src/app/sentry-config"
 import worker from "./index"
 
 function envReturning(response: Response) {
@@ -89,5 +90,30 @@ describe("worker", () => {
 
 		expect(response.status).toBe(404)
 		expect(response.headers.get("Cache-Control")).toBe("no-store")
+	})
+
+	describe("Sentry tunnel", () => {
+		afterEach(() => {
+			mock.restore()
+		})
+
+		test("forwards /monitoring to Sentry without touching the assets", async () => {
+			const upstream = spyOn(globalThis, "fetch").mockResolvedValue(
+				new Response("{}"),
+			)
+			const { env, requests } = envReturning(new Response("asset"))
+
+			const response = await worker.fetch(
+				new Request("https://example.com/monitoring", {
+					method: "POST",
+					body: `${JSON.stringify({ dsn: SENTRY_DSN })}\n{}`,
+				}),
+				env,
+			)
+
+			expect(response.status).toBe(200)
+			expect(upstream).toHaveBeenCalledTimes(1)
+			expect(requests).toEqual([])
+		})
 	})
 })
