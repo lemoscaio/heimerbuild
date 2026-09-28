@@ -31,7 +31,7 @@ exports[`normalizeChampion Heimerdinger matches the snapshot 1`] = `
       "perLevelPercent": 1.36,
       "ratio": 0.625,
     },
-    "criticalStrike": {
+    "critChance": {
       "base": 0,
       "perLevel": 0,
     },
@@ -43,7 +43,7 @@ exports[`normalizeChampion Heimerdinger matches the snapshot 1`] = `
       "base": 7,
       "perLevel": 0.55,
     },
-    "magicResistance": {
+    "magicResist": {
       "base": 30,
       "perLevel": 1.3,
     },
@@ -55,7 +55,7 @@ exports[`normalizeChampion Heimerdinger matches the snapshot 1`] = `
       "base": 8,
       "perLevel": 0.8,
     },
-    "movespeed": {
+    "movementSpeed": {
       "base": 340,
       "perLevel": 0,
     },
