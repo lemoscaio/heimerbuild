@@ -6,7 +6,6 @@
 
 // Styles not yet migrated to Tailwind; the layer order is declared in app.css.
 @layer legacy {
-@import "level-slider";
 @import "scrollbar";
 
 // A button that is only an icon (item, role filter) looks like the icon.
@@ -23,369 +22,119 @@
   }
 }
 
-.height-container {
-  position: relative;
-  width: 100%;
-  height: 100vh;
+// Item shop (champion page)
+.items {
+  background-color: $color-primary-4;
 
-  background-color: darken($color-primary-2, 10%);
-
-  @include desktop-only() {
-    height: max-content;
-  }
-}
-
-.width-container {
-  @include desktop-only() {
-    margin: 0 auto;
-    max-width: 800px;
-
-    padding: 80px 0 20px;
-  }
-}
-
-.page-container {
-  width: 100%;
-  height: 100%;
-  background: $color-primary-3;
-
-  &--champion-page {
-    @include desktop-only() {
-      border-radius: 10px;
-
-      box-shadow: 6px 6px 15px -4px rgba(0, 0, 0, 0.25);
-    }
-  }
-}
-
-// Champions Page
-
-// Champion Page
-
-.champion-page {
-  min-height: 100vh;
-
-  font-size: 14px;
-
-  padding-top: $header-height;
-
-  @include desktop-only() {
-    padding-top: 0;
+  &__filter-row {
+    @include flex(row, center, center, nowrap);
+    gap: 5px;
+    padding: 5px 0;
   }
 
-  .champion-info {
-    &__patch-notice {
-      padding: 8px 15px 0;
+  &__second-row {
+    @include flex;
+    gap: 5px;
+    margin: 0 5px;
+  }
 
-      color: $adobe-5-hex;
-      font-size: em(12);
+  &__list {
+    @include flex(row, center, flex-start, wrap);
+    align-content: flex-start;
+    gap: 5px;
+
+    height: 40vh;
+    width: 100%;
+    overflow: auto;
+
+    padding-bottom: 10px;
+  }
+
+  &__filter-roles {
+    width: 30px;
+    height: 30px;
+
+    cursor: pointer;
+  }
+
+  &__role-icon {
+    height: 100%;
+    width: 100%;
+  }
+
+  &__filter-roles,
+  &__stat-chip {
+    border-radius: 4px;
+
+    &[aria-pressed="true"] {
+      background-color: $color-primary-1;
+      box-shadow: inset 0 0 0 1px $adobe-5-hex;
     }
+  }
 
-    .level-container {
-      @include flex(row, flex-start, center, nowrap);
-      padding: 12px 15px;
-      gap: 25px;
+  &__stat-filter {
+    @include flex(row, center, center, wrap);
+    gap: 4px;
+    margin: 0;
+    padding: 0 10px 5px;
 
-      background: rgb(27, 23, 50);
-      background: linear-gradient(180deg, rgba(27, 23, 50, 1) 0%, rgba(65, 61, 86, 1) 100%);
-      color: white;
+    border: none;
+  }
 
-      &__label {
-        flex-wrap: nowrap;
-      }
+  &__stat-chip {
+    width: 26px;
+    height: 26px;
+    padding: 3px;
+  }
 
-      &__level-select {
-        margin-top: 5px;
-        margin-left: 10px;
-        padding: 5px;
+  &__stat-icon {
+    width: 100%;
+    height: 100%;
+  }
 
-        background-color: $color-primary-1;
-        border: none;
-        border-radius: 5px;
+  &__stat-sort {
+    @include flex(row, center, center, wrap);
+    gap: 8px;
+    padding: 0 10px 8px;
 
-        color: white;
-        font-weight: 700;
+    color: white;
+    font-size: em(12);
+  }
 
-        transition: background-color 100ms;
+  &__sort-select {
+    margin-left: 6px;
+    padding: 4px;
 
-        &:hover {
-          background-color: darken($color-primary-1, 5%);
-        }
-      }
+    background-color: $color-primary-1;
+    border: none;
+    border-radius: 5px;
 
-      &__level-slider {
-        width: min(300px, 100%);
-      }
-    }
+    color: white;
+    font-size: inherit;
+  }
 
-    .chosen-items {
-      padding: 12px 0 4px;
+  &__empty {
+    width: 100%;
+    padding: 20px;
 
-      background-color: $color-primary-3;
+    color: white;
+    text-align: center;
+  }
 
-      box-shadow: inset 0px 0px 8px rgba(0, 0, 0, 0.7);
+  &__item-card {
+    cursor: pointer;
+  }
 
-      &__slots {
-        @include flex(row, center, center, nowrap);
-        gap: 5px;
-        margin: 0;
-        padding: 0;
-
-        border: none;
-      }
-
-      &__notice {
-        min-height: 1.4em;
-        padding: 4px 10px 0;
-
-        color: $adobe-5-hex;
-        font-size: em(12);
-        text-align: center;
-      }
-
-      &__warning {
-        padding-bottom: 6px;
-
-        color: $color-warning-message;
-        line-height: 1.5;
-      }
-
-      &__violations {
-        list-style: none;
-      }
-
-      &__item {
-        background-color: $color-primary-1;
-        width: 40px;
-        height: 40px;
-
-        border-radius: 3px;
-      }
-
-      &__item-image {
-        border-radius: 3px;
-        width: 100%;
-      }
-    }
-
-    .items {
-      background-color: $color-primary-4;
-
-      &__filter-row {
-        @include flex(row, center, center, nowrap);
-        gap: 5px;
-        padding: 5px 0;
-      }
-
-      &__second-row {
-        @include flex;
-        gap: 5px;
-        margin: 0 5px;
-      }
-
-      &__list {
-        @include flex(row, center, flex-start, wrap);
-        align-content: flex-start;
-        gap: 5px;
-
-        height: 40vh;
-        width: 100%;
-        overflow: auto;
-
-        padding-bottom: 10px;
-      }
-
-      &__filter-roles {
-        width: 30px;
-        height: 30px;
-
-        cursor: pointer;
-      }
-
-      &__role-icon {
-        height: 100%;
-        width: 100%;
-      }
-
-      &__filter-roles,
-      &__stat-chip {
-        border-radius: 4px;
-
-        &[aria-pressed="true"] {
-          background-color: $color-primary-1;
-          box-shadow: inset 0 0 0 1px $adobe-5-hex;
-        }
-      }
-
-      &__stat-filter {
-        @include flex(row, center, center, wrap);
-        gap: 4px;
-        margin: 0;
-        padding: 0 10px 5px;
-
-        border: none;
-      }
-
-      &__stat-chip {
-        width: 26px;
-        height: 26px;
-        padding: 3px;
-      }
-
-      &__stat-icon {
-        width: 100%;
-        height: 100%;
-      }
-
-      &__stat-sort {
-        @include flex(row, center, center, wrap);
-        gap: 8px;
-        padding: 0 10px 8px;
-
-        color: white;
-        font-size: em(12);
-      }
-
-      &__sort-select {
-        margin-left: 6px;
-        padding: 4px;
-
-        background-color: $color-primary-1;
-        border: none;
-        border-radius: 5px;
-
-        color: white;
-        font-size: inherit;
-      }
-
-      &__empty {
-        width: 100%;
-        padding: 20px;
-
-        color: white;
-        text-align: center;
-      }
-
-      &__item-card {
-        cursor: pointer;
-      }
-
-      &__item-image {
-        width: 40px;
-      }
-    }
-
-    .stats {
-      height: 100%;
-      width: 100%;
-
-      background-color: $color-primary-3;
-
-      padding: 15px 10px;
-
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      row-gap: 15px;
-      column-gap: 10px;
-
-      color: white;
-
-      @include desktop-only() {
-        border-radius: 0 0 20px 20px;
-
-        grid-template-columns: 1fr;
-
-        width: 500px;
-
-        margin: 0 auto;
-      }
-
-      &__group-1 {
-        grid-row-start: 1;
-        grid-row-end: 1;
-        grid-column-start: 1;
-        grid-column-end: 1;
-      }
-      &__group-2 {
-        grid-row-start: 1;
-        grid-row-end: 1;
-        grid-column-start: 2;
-        grid-column-end: 2;
-      }
-      &__group-3 {
-        grid-row-start: 2;
-        grid-row-end: 2;
-        grid-column-start: 1;
-        grid-column-end: 1;
-      }
-      &__group-4 {
-        grid-row-start: 2;
-        grid-row-end: 2;
-        grid-column-start: 2;
-        grid-column-end: 2;
-      }
-
-      &__stat {
-        margin: 4px 0;
-        font-size: em(14);
-        @include flex(row, flex-start, center, nowrap);
-
-        line-height: 16px;
-
-        &--additional {
-          color: $color-success-message;
-        }
-      }
-
-      &__stat-icon {
-        margin-right: 5px;
-      }
-    }
+  &__item-image {
+    width: 40px;
   }
 }
 
 // Components
 
-.skeleton--text {
-  width: 140px;
-  height: 14px;
-}
-
-.skeleton--slider {
-  width: min(300px, 100%);
-  height: 10px;
-}
-
 .items__item-skeleton {
   width: 40px;
   height: 40px;
-}
-
-.copy-build-link {
-  @include flex(column, flex-start, flex-end);
-  gap: 4px;
-
-  &__status {
-    min-height: 1em;
-
-    color: $color-success-message;
-    font-size: em(12);
-
-    &--failed {
-      color: white;
-    }
-  }
-
-  &__fallback {
-    width: 220px;
-    padding: 4px;
-
-    background-color: $color-primary-2;
-    border: none;
-    border-radius: $card-border-radius;
-
-    color: white;
-  }
 }
 
 }

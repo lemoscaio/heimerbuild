@@ -1,5 +1,14 @@
-import type { ChangeEvent } from "react"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectLabel,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
+import { LevelRowLayout } from "./level-row-layout"
 
 const levels = Array.from(
 	{ length: MAX_LEVEL - MIN_LEVEL + 1 },
@@ -12,44 +21,35 @@ type LevelSelectorProps = {
 }
 
 export function LevelSelector({ level, onLevelChange }: LevelSelectorProps) {
-	function handleChange(
-		event: ChangeEvent<HTMLSelectElement | HTMLInputElement>,
-	) {
-		onLevelChange(Number(event.target.value))
-	}
-
 	return (
-		<div className="champion-info__level-container level-container">
-			<label htmlFor="championLevel" className="level-container__label">
-				Current Level:
-				<select
-					className="level-container__level-select"
-					name="championLevel"
-					id="championLevel"
-					value={level}
-					onChange={handleChange}
-				>
+		<LevelRowLayout>
+			<Select
+				value={level}
+				onValueChange={(value) => value !== null && onLevelChange(value)}
+			>
+				<div className="flex shrink-0 items-center gap-2">
+					<SelectLabel className="text-sm">Current Level:</SelectLabel>
+					<SelectTrigger className="min-w-15 font-bold">
+						<SelectValue />
+					</SelectTrigger>
+				</div>
+				<SelectContent className="min-w-15">
 					{levels.map((option) => (
-						<option
-							value={option}
-							key={option}
-							className="level-container__level-option"
-						>
+						<SelectItem key={option} value={option}>
 							{option}
-						</option>
+						</SelectItem>
 					))}
-				</select>
-			</label>
-			<input
-				className="level-container__level-slider level-slider"
-				type="range"
+				</SelectContent>
+			</Select>
+			<Slider
+				className="max-w-75"
 				aria-label="Champion level"
 				min={MIN_LEVEL}
 				max={MAX_LEVEL}
-				step="1"
+				step={1}
 				value={level}
-				onChange={handleChange}
+				onValueChange={(value) => onLevelChange(value)}
 			/>
-		</div>
+		</LevelRowLayout>
 	)
 }

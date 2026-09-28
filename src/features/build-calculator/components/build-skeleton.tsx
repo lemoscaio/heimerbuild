@@ -1,5 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton"
 import { MAX_ITEMS } from "../lib/build-items"
+import { ItemSlotsPanel } from "./item-slots-panel"
+import { LevelRowLayout } from "./level-row-layout"
 
 const slots = Array.from({ length: MAX_ITEMS }, (_, index) => index)
 
@@ -7,18 +9,18 @@ const slots = Array.from({ length: MAX_ITEMS }, (_, index) => index)
 export function BuildSkeleton() {
 	return (
 		<>
-			<div className="champion-info__level-container level-container">
-				<Skeleton className="skeleton--text" />
-				<Skeleton className="skeleton--slider" />
-			</div>
-			<div className="champion-info__chosen-items chosen-items">
-				<div className="chosen-items__slots">
+			<LevelRowLayout>
+				<Skeleton className="h-8 w-35 shrink-0" />
+				<Skeleton className="h-2 w-full max-w-75" />
+			</LevelRowLayout>
+			<ItemSlotsPanel>
+				<div className="flex justify-center gap-1.5">
 					{slots.map((slot) => (
-						<Skeleton key={slot} className="chosen-items__item" />
+						<Skeleton key={slot} className="size-10 rounded-sm" />
 					))}
 				</div>
-				<p className="chosen-items__notice" />
-			</div>
+				<div className="min-h-5" />
+			</ItemSlotsPanel>
 		</>
 	)
 }

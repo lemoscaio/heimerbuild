@@ -73,57 +73,52 @@ function ChampionPage() {
 	}).href
 
 	return (
-		<div className="width-container">
-			<div className="page-container page-container--champion-page">
-				<div className="widthWrapper">
-					{build.champion && (
-						<main className="champion-page">
-							<div className="champion-page__champion-info champion-info">
-								<ChampionHeader champion={build.champion}>
-									<CopyBuildLink href={buildHref} />
-								</ChampionHeader>
-								{unavailablePatch && (
-									<PatchNotice
-										requestedPatch={unavailablePatch}
-										patch={patch}
-									/>
-								)}
-								<LevelSelector
-									level={build.level}
-									onLevelChange={build.setLevel}
-								/>
-								<ItemSlots
-									items={build.items}
-									onRemoveItem={build.removeItem}
-									notice={build.notice}
-								/>
-								<ItemShop patch={patch} onItemClick={build.addItem} />
-								{build.stats && <StatsPanel stats={build.stats} />}
-							</div>
-						</main>
+		<ChampionPageLayout>
+			{build.champion && (
+				<main className="min-h-screen pt-header text-sm lg:pt-0">
+					<ChampionHeader champion={build.champion}>
+						<CopyBuildLink href={buildHref} />
+					</ChampionHeader>
+					{unavailablePatch && (
+						<PatchNotice requestedPatch={unavailablePatch} patch={patch} />
 					)}
-				</div>
-			</div>
-		</div>
+					<LevelSelector level={build.level} onLevelChange={build.setLevel} />
+					<ItemSlots
+						items={build.items}
+						onRemoveItem={build.removeItem}
+						notice={build.notice}
+					/>
+					<ItemShop patch={patch} onItemClick={build.addItem} />
+					{build.stats && <StatsPanel stats={build.stats} />}
+				</main>
+			)}
+		</ChampionPageLayout>
 	)
 }
 
 function ChampionPagePending() {
 	return (
-		<div className="width-container">
-			<div className="page-container page-container--champion-page">
-				<main className="champion-page" role="status">
-					<span className="sr-only">Loading champion</span>
-					<div className="champion-page__champion-info champion-info">
-						<ChampionHeaderSkeleton />
-						<BuildSkeleton />
-						<div className="champion-info__items items">
-							<div className="items__list">
-								<ItemGridSkeleton />
-							</div>
-						</div>
+		<ChampionPageLayout>
+			<main className="min-h-screen pt-header text-sm lg:pt-0" role="status">
+				<span className="sr-only">Loading champion</span>
+				<ChampionHeaderSkeleton />
+				<BuildSkeleton />
+				<div className="champion-info__items items">
+					<div className="items__list">
+						<ItemGridSkeleton />
 					</div>
-				</main>
+				</div>
+			</main>
+		</ChampionPageLayout>
+	)
+}
+
+/** The centred card that holds the champion page on desktop; full width on smaller screens. */
+function ChampionPageLayout({ children }: React.PropsWithChildren) {
+	return (
+		<div className="lg:mx-auto lg:max-w-200 lg:pt-20 lg:pb-5">
+			<div className="size-full bg-primary-3 lg:rounded-xl lg:shadow-black/25 lg:shadow-lg">
+				{children}
 			</div>
 		</div>
 	)

@@ -10,7 +10,7 @@ export const pageWithHeaderRoute = createRoute({
 
 function PageWithHeader() {
 	return (
-		<div className="height-container">
+		<div className="relative min-h-screen w-full bg-backdrop">
 			<Header />
 			<Outlet />
 		</div>
