@@ -1,3 +1,4 @@
+import { captureReactException } from "@sentry/react"
 import { createRouter } from "@tanstack/react-router"
 import { championRoute } from "@/routes/champion-route"
 import { homeRoute } from "@/routes/home-route"
@@ -17,6 +18,10 @@ export const router = createRouter({
 	context: { queryClient },
 	// React Query owns caching; the router always asks it on preload.
 	defaultPreloadStaleTime: 0,
+	// Loader and render errors that a route's errorComponent shows.
+	defaultOnCatch: (error, errorInfo) => {
+		captureReactException(error, errorInfo)
+	},
 	stringifySearch,
 })
 
