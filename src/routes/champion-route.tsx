@@ -1,5 +1,6 @@
 import { createRoute, Link, notFound, useRouter } from "@tanstack/react-router"
 import { RouteError } from "@/components/common/route-error"
+import { buttonVariants } from "@/components/ui/button"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { GameDataUnavailableError } from "@/data/services/game-data"
 import { BuildSkeleton } from "@/features/build-calculator/components/build-skeleton"
@@ -112,7 +113,7 @@ function ChampionPagePending() {
 		<div className="width-container">
 			<div className="page-container page-container--champion-page">
 				<main className="champion-page" role="status">
-					<span className="visually-hidden">Loading champion</span>
+					<span className="sr-only">Loading champion</span>
 					<div className="champion-page__champion-info champion-info">
 						<ChampionHeaderSkeleton />
 						<BuildSkeleton />
@@ -130,9 +131,9 @@ function ChampionPagePending() {
 
 function ChampionNotFound() {
 	return (
-		<div className="page-container route-status load-error-container">
+		<div className="flex min-h-screen flex-col items-center justify-center gap-5 px-5 pt-[calc(var(--spacing-header)+--spacing(10))] pb-10 text-white">
 			<p>Champion not found.</p>
-			<Link to="/" className="load-button">
+			<Link to="/" className={buttonVariants({ size: "lg" })}>
 				Back to all champions
 			</Link>
 		</div>

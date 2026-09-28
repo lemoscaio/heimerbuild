@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Button } from "@/components/ui/button"
 import { copyToClipboard } from "../services/copy-to-clipboard"
 
 const FEEDBACK_MS = 2500
@@ -26,13 +27,9 @@ export function CopyBuildLink({ href }: CopyBuildLinkProps) {
 
 	return (
 		<div className="copy-build-link">
-			<button
-				type="button"
-				className="load-button copy-build-link__button"
-				onClick={handleClick}
-			>
+			<Button type="button" size="lg" onClick={handleClick}>
 				Copy link
-			</button>
+			</Button>
 			<span
 				role="status"
 				className={

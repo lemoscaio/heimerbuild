@@ -11,7 +11,7 @@ export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 		<ItemButton
 			key={item.id}
 			item={item}
-			className="items__item-card icon-button"
+			className="items__item-card"
 			aria-label={item.name}
 			onClick={() => onItemClick(item.id)}
 		>

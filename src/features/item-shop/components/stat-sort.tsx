@@ -1,4 +1,5 @@
 import type { ChangeEvent } from "react"
+import { Button } from "@/components/ui/button"
 import { shopStats } from "../lib/shop-stats"
 import type { ItemSort } from "../lib/sort-items-by-stat"
 
@@ -43,14 +44,14 @@ export function StatSort({ sort, onSortChange }: StatSortProps) {
 					))}
 				</select>
 			</label>
-			<button
+			<Button
 				type="button"
-				className="items__sort-direction load-button"
+				size="sm"
 				disabled={!sort}
 				onClick={toggleDirection}
 			>
 				{sort?.direction === "asc" ? "Lowest first" : "Highest first"}
-			</button>
+			</Button>
 		</div>
 	)
 }

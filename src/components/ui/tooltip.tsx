@@ -1,34 +1,62 @@
-import { useLayoutEffect } from "react"
-import { createPortal } from "react-dom"
-import { tooltipPosition } from "@/lib/tooltip-position"
+import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
+import { cn } from "@/lib/cn"
 
-type TooltipProps = {
-	/** The element the tooltip points at; it goes above it, or below when there is no room. */
-	anchor: HTMLElement
-	ref: React.RefObject<HTMLDivElement | null>
-} & Omit<React.ComponentProps<"div">, "ref">
-
-/** Rendered in `document.body` with a fixed position, so scrolling containers never clip it. */
-export function Tooltip({ anchor, ref, className, ...props }: TooltipProps) {
-	useLayoutEffect(() => {
-		const element = ref.current
-		if (!element) return
-		const { top, left } = tooltipPosition(
-			anchor.getBoundingClientRect(),
-			element.getBoundingClientRect(),
-			{ width: window.innerWidth, height: window.innerHeight },
-		)
-		element.style.top = `${top}px`
-		element.style.left = `${left}px`
-	}, [anchor, ref])
-
-	return createPortal(
-		<div
-			ref={ref}
-			role="tooltip"
-			className={className ? `tooltip ${className}` : "tooltip"}
+export function TooltipProvider({
+	delay = 0,
+	...props
+}: TooltipPrimitive.Provider.Props) {
+	return (
+		<TooltipPrimitive.Provider
+			data-slot="tooltip-provider"
+			delay={delay}
 			{...props}
-		/>,
-		document.body,
+		/>
+	)
+}
+
+export function Tooltip(props: TooltipPrimitive.Root.Props) {
+	return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+}
+
+export function TooltipTrigger(props: TooltipPrimitive.Trigger.Props) {
+	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+}
+
+type TooltipContentProps = TooltipPrimitive.Popup.Props &
+	Pick<
+		TooltipPrimitive.Positioner.Props,
+		"align" | "alignOffset" | "side" | "sideOffset"
+	>
+
+/** Base UI tooltips are visual only: `role="tooltip"` lets a trigger point at it with `aria-describedby`. */
+export function TooltipContent({
+	className,
+	side = "top",
+	sideOffset = 6,
+	align = "center",
+	alignOffset = 0,
+	...props
+}: TooltipContentProps) {
+	return (
+		<TooltipPrimitive.Portal>
+			<TooltipPrimitive.Positioner
+				align={align}
+				alignOffset={alignOffset}
+				side={side}
+				sideOffset={sideOffset}
+				collisionPadding={8}
+				className="isolate z-50 data-anchor-hidden:invisible"
+			>
+				<TooltipPrimitive.Popup
+					data-slot="tooltip-content"
+					role="tooltip"
+					className={cn(
+						"data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 z-50 w-fit max-w-[min(var(--container-xs),var(--available-width))] origin-(--transform-origin) rounded-md border border-border bg-popover px-2.5 py-2 text-popover-foreground text-xs leading-snug shadow-black/50 shadow-lg data-closed:animate-out data-open:animate-in motion-reduce:animate-none",
+						className,
+					)}
+					{...props}
+				/>
+			</TooltipPrimitive.Positioner>
+		</TooltipPrimitive.Portal>
 	)
 }

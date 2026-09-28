@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { LoadError } from "@/components/common/load-error"
 import { useItems } from "@/data/hooks/use-items"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import {
@@ -53,26 +54,16 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 					)}
 					{itemsQuery.isPending && (
 						<>
-							<span className="visually-hidden" role="status">
+							<span className="sr-only" role="status">
 								Loading items
 							</span>
 							<ItemGridSkeleton />
 						</>
 					)}
 					{itemsQuery.isError && (
-						<div
-							className="items__load-error-container load-error-container"
-							role="alert"
-						>
-							<p>Could not load the items. Check your connection.</p>
-							<button
-								type="button"
-								className="items__load-button load-button"
-								onClick={() => itemsQuery.refetch()}
-							>
-								Try again
-							</button>
-						</div>
+						<LoadError className="pb-8" onRetry={() => itemsQuery.refetch()}>
+							Could not load the items. Check your connection.
+						</LoadError>
 					)}
 				</section>
 			</div>
