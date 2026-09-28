@@ -82,7 +82,7 @@ src/
 ├── components/   common/ shared app UI (ui/ for primitives, when they exist)
 ├── lib/          pure code, including the stats engine in lib/stats
 ├── assets/       images imported by code
-└── styles/       global SCSS
+└── styles/       Tailwind entry and theme (app.css), SCSS being migrated
 ```
 
 Files and folders are kebab-case, `@/` resolves to `src/`, and Biome enforces the naming and import rules in CI.
@@ -107,6 +107,8 @@ The `Sync game data` workflow (`.github/workflows/sync-data.yml`) runs daily and
 ![Zod](https://img.shields.io/badge/zod-%233068b7.svg?style=for-the-badge&logo=zod&logoColor=white)
 ![Cloudflare Workers](https://img.shields.io/badge/cloudflare%20workers-%23F38020.svg?style=for-the-badge&logo=cloudflareworkers&logoColor=white)
 ![Biome](https://img.shields.io/badge/biome-%2360A5FA.svg?style=for-the-badge&logo=biome&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-%23000000.svg?style=for-the-badge&logo=shadcnui&logoColor=white)
 ![SASS](https://img.shields.io/badge/SASS-hotpink.svg?style=for-the-badge&logo=SASS&logoColor=white)
 
 ## Data and legal
