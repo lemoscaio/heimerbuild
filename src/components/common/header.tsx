@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router"
-import heimerLogo from "@/assets/images/heimerdinger.png"
+// A separate file: inlined, it would add 4.7 kB to the bundle that every page loads.
+import heimerLogo from "@/assets/images/heimerdinger-logo.webp?no-inline"
 
 export function Header() {
 	return (

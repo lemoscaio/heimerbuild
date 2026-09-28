@@ -90,5 +90,4 @@ Moved in #96, #42 and #41. Still pending:
 
 | Current | Target | Issue |
 | --- | --- | --- |
-| `src/types/stats.ts` (empty) | deleted | #37 |
 | `src/styles/` | replaced by Tailwind | #40 |

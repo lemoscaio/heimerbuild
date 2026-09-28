@@ -8,7 +8,6 @@ import critIcon from "./critical-strike-chance-icon.png"
 import critDamageIcon from "./critical-strike-damage-icon.png"
 import healAndShieldPowerIcon from "./heal-and-shield-power-icon.png"
 import hpIcon from "./heal-power.png"
-import onHitIcon from "./life-steal-icon.png"
 import lifeStealIcon from "./life-steal-icon.png"
 import magicPenIcon from "./magic-penetration-icon.png"
 import mrIcon from "./magic-resistance-icon.png"
@@ -37,11 +36,8 @@ export const statsIcons = {
 	mana: mpIcon,
 	flatMagicPenetration: magicPenIcon,
 	percentageMagicPenetration: magicPenIcon,
-	magicPenetration: magicPenIcon,
-	physicalVamp: omniVampIcon,
 	omniVamp: omniVampIcon,
 	tenacity: tenacityIcon,
-	onHit: onHitIcon,
 	criticalStrikeDamage: critDamageIcon,
 	healAndShieldPower: healAndShieldPowerIcon,
 	manaRegen: manaRegenIcon,

@@ -15,7 +15,14 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 			params={{ key: champion.key }}
 			className="champion-card"
 		>
-			<img src={champion.icon} alt="" className="champion-card__image" />
+			<img
+				src={champion.icon}
+				alt=""
+				width={60}
+				height={60}
+				loading="lazy"
+				className="champion-card__image"
+			/>
 			<h3 className="champion-card__name">{champion.name}</h3>
 		</Link>
 	)
