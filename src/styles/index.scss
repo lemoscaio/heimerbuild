@@ -569,30 +569,6 @@ body {
       font-size: em(16);
     }
 
-    &__save-build {
-      position: absolute;
-      right: 25px;
-      background-color: $color-primary-1;
-
-      color: white;
-
-      width: 90px;
-
-      padding: 6px 10px;
-
-      border: none;
-      border-radius: $card-border-radius;
-
-      cursor: pointer;
-
-      transition: background 300ms;
-
-      &[disabled] {
-        background-color: $color-disabled-button;
-        user-select: none;
-      }
-    }
-
     .level-container {
       @include flex(row, flex-start, center, nowrap);
       padding: 12px 15px;
