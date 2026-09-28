@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import type { ChampionSummary } from "../../../scripts/sync-data/schemas/champion"
+import type { ChampionSummary } from "../../../../scripts/sync-data/schemas/champion"
 import { filterChampions } from "./filter-champions"
 
 function championsNamed(...names: string[]): ChampionSummary[] {

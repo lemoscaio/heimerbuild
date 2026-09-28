@@ -1,4 +1,4 @@
-import type { ChampionSummary } from "../../../scripts/sync-data/schemas/champion"
+import type { ChampionSummary } from "../../../../scripts/sync-data/schemas/champion"
 
 // Keeps only letters and digits, so "kaisa" matches "Kai'Sa".
 const NON_ALPHANUMERIC = /[^\p{L}\p{N}]/gu

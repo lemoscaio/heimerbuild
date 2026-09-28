@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { dataManifestSchema } from "../../scripts/sync-data/schemas/manifest"
+import { dataManifestSchema } from "../../../scripts/sync-data/schemas/manifest"
 import {
 	fetchGameData,
 	GameDataUnavailableError,

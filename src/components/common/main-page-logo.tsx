@@ -1,4 +1,4 @@
-import heimgerdingerGif from "../assets/images/heimerdinger.gif"
+import heimgerdingerGif from "@/assets/images/heimerdinger.gif"
 
 export function MainPageLogo() {
 	return (

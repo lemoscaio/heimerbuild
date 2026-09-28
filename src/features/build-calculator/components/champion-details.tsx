@@ -1,13 +1,12 @@
 import { type ChangeEvent, useState } from "react"
-import { useParams } from "react-router-dom"
 import { DotLoader } from "react-spinners"
-import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
-import { useGetChampionDetails } from "../../hooks/api/use-get-champion-details"
-import { useGetItems } from "../../hooks/api/use-get-items"
-import { type ComputedStats, computeStats } from "../../lib/stats/compute-stats"
-import { MAX_LEVEL, MIN_LEVEL } from "../../lib/stats/growth"
-import { type ChampionRoles, rolesInfo } from "../../utils/roles-info"
-import { formatStat, statRows } from "../../utils/stats-info"
+import { useChampion } from "@/data/hooks/use-champion"
+import { useItems } from "@/data/hooks/use-items"
+import { type ComputedStats, computeStats } from "@/lib/stats/compute-stats"
+import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
+import type { ChampionRole } from "../../../../scripts/sync-data/schemas/champion"
+import { type ChampionRoles, rolesInfo } from "../lib/roles-info"
+import { formatStat, statRows } from "../lib/stats-info"
 
 const levelOptions = Array.from(
 	{ length: MAX_LEVEL - MIN_LEVEL + 1 },
@@ -18,10 +17,12 @@ const levelOptions = Array.from(
 	</option>
 ))
 
-export function ChampionDetails() {
-	const { championKey } = useParams()
+type ChampionDetailsProps = {
+	championKey: string | undefined
+}
 
-	const { data: championInfo } = useGetChampionDetails(championKey)
+export function ChampionDetails({ championKey }: ChampionDetailsProps) {
+	const { data: championInfo } = useChampion(championKey)
 
 	const [championLevel, setChampionLevel] = useState(MIN_LEVEL)
 
@@ -30,7 +31,7 @@ export function ChampionDetails() {
 		isLoading: isLoadingItems,
 		isError: failedItemsLoad,
 		refetch: loadItems,
-	} = useGetItems()
+	} = useItems()
 
 	const [itemRoleFilter, setItemRoleFilter] = useState("All")
 

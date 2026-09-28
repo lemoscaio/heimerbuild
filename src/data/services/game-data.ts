@@ -2,13 +2,13 @@ import type { z } from "zod"
 import {
 	championIndexSchema,
 	championSchema,
-} from "../../scripts/sync-data/schemas/champion"
+} from "../../../scripts/sync-data/schemas/champion"
 import {
 	type Item,
 	type ItemsFile,
 	ItemsFileSchema,
-} from "../../scripts/sync-data/schemas/item"
-import { dataManifestSchema } from "../../scripts/sync-data/schemas/manifest"
+} from "../../../scripts/sync-data/schemas/item"
+import { dataManifestSchema } from "../../../scripts/sync-data/schemas/manifest"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
 
