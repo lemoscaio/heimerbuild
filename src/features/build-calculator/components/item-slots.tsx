@@ -1,3 +1,4 @@
+import { ItemButton } from "@/components/common/item-button"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { MAX_ITEMS } from "../lib/build-items"
 
@@ -22,15 +23,15 @@ export function ItemSlots({ items, onItemClick }: ItemSlotsProps) {
 					)
 				}
 				return (
-					<button
-						type="button"
+					<ItemButton
 						key={item.id}
+						item={item}
 						className="items__item-card chosen-items__item icon-button"
 						aria-label={`Remove ${item.name}`}
 						onClick={() => onItemClick(item.id)}
 					>
 						<img src={item.icon} alt="" className="chosen-items__item-image" />
-					</button>
+					</ItemButton>
 				)
 			})}
 		</div>

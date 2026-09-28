@@ -74,6 +74,18 @@ describe("normalizeItems", () => {
 		expect(itemOf("3134").maps).toContain(11)
 	})
 
+	test("carries the description and plaintext as plain text", () => {
+		expect(itemOf("4645")).toMatchObject({
+			description:
+				"Cinderbloom\nMagic and true damage Critically Strike enemies below 40% Health, dealing 20% increased damage.",
+			plaintext: "",
+		})
+		expect(itemOf("3134")).toMatchObject({
+			description: "",
+			plaintext: "Increases Attack Damage and Lethality",
+		})
+	})
+
 	test("fails the sync on an unmapped stat-like field", () => {
 		const bin = structuredClone(communityDragonBin) as Record<
 			string,
