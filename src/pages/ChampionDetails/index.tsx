@@ -4,8 +4,6 @@ import { DotLoader } from "react-spinners"
 import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
 import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
 import { useGetItems } from "../../hooks/api/useGetItems"
-import { usePostSaveBuild } from "../../hooks/api/usePostSaveBuild"
-import { useAuth } from "../../hooks/useAuth"
 import { type ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
 import { statsInfo } from "../../utils/statsInfo"
 import {
@@ -17,15 +15,11 @@ import {
 export function ChampionDetails() {
 	const MAX_LEVEL = 18
 
-	const { user } = useAuth()
 	const { championKey } = useParams()
 
 	const { data: championInfo } = useGetChampionDetails(championKey)
 
 	const [championLevel, setChampionLevel] = useState(0)
-
-	const [saveBuildButtonContent, setSaveBuildButtonContent] =
-		useState("Save Build")
 
 	const {
 		data: items,
@@ -198,8 +192,6 @@ export function ChampionDetails() {
 			chosenItems.splice(indexOfItem, 1)
 			setChosenItems([...chosenItems])
 		}
-
-		setSaveBuildButtonContent("Save Build")
 	}
 
 	function handleRoleFilterClick(
@@ -215,39 +207,6 @@ export function ChampionDetails() {
 	//   setItemStatFilter({ ...itemStatFilter, [stat]: !statCurrentFilterValue })
 	// }
 
-	const saveBuildMutation = usePostSaveBuild()
-
-	function handleSaveBuildClick() {
-		const statsData: ChampionStatsType = {}
-
-		statsInfo.order.forEach((stat) => {
-			statsData[stat] = championStats[stat]
-		})
-
-		const buildData = {
-			championName: championInfo?.name,
-			championKey: championInfo?.key,
-			level: championLevel,
-			items: chosenItems,
-			stats: statsData,
-		}
-
-		setSaveBuildButtonContent("Saving...")
-
-		try {
-			saveBuildMutation.mutateAsync(buildData)
-			setTimeout(() => {
-				setSaveBuildButtonContent("Saved!")
-			}, 1000)
-		} catch (error) {
-			console.log(error)
-			setSaveBuildButtonContent("Error")
-			setTimeout(() => {
-				setSaveBuildButtonContent("Save build")
-			}, 1500)
-		}
-	}
-
 	function handleLoadItemsClick() {
 		loadItems()
 	}
@@ -256,25 +215,6 @@ export function ChampionDetails() {
 		e: ChangeEvent<HTMLSelectElement | HTMLInputElement>,
 	) {
 		setChampionLevel(Number(e.target.value))
-		setSaveBuildButtonContent("Save Build")
-	}
-
-	function createSaveBuildButtonElement() {
-		const disabled =
-			saveBuildButtonContent === "Saving..." ||
-			saveBuildButtonContent === "Error"
-
-		return (
-			user && (
-				<button
-					className="champion-info__save-build"
-					onClick={handleSaveBuildClick}
-					disabled={disabled}
-				>
-					{saveBuildButtonContent}
-				</button>
-			)
-		)
 	}
 
 	function createLevelSelectElement() {
@@ -518,7 +458,6 @@ export function ChampionDetails() {
 												{championInfo.title}
 											</h4>
 										</div>
-										{createSaveBuildButtonElement()}
 									</div>
 									{/* {createChampionLoreElement()} */}
 									{createLevelSelectElement()}

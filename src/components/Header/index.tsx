@@ -1,26 +1,7 @@
-import { FaUser } from "react-icons/fa"
-import { Link, useLocation, useNavigate } from "react-router-dom"
+import { Link } from "react-router-dom"
 import heimerLogo from "../../assets/images/heimerdinger.png"
-import { useAuth } from "../../hooks/useAuth"
 
 export default function Header() {
-	const navigate = useNavigate()
-	const location = useLocation()
-
-	const { user, logout } = useAuth()
-
-	function handleGoToLoginClick() {
-		navigate("/sign-in", { state: { previousPath: location.pathname } })
-	}
-
-	function handleUserClick() {
-		navigate("/user", { state: { previousPath: location.pathname } })
-	}
-
-	function handleLogoutClick() {
-		logout()
-	}
-
 	return (
 		<header className="header">
 			<div className="header__link">
@@ -31,36 +12,8 @@ export default function Header() {
 					<img className="header__logo" src={heimerLogo} alt="" />
 				</Link>
 			</div>
-			<div>
-				{!user && (
-					<p
-						className="header__link champions-page__header-link"
-						onClick={handleGoToLoginClick}
-					>
-						Login
-					</p>
-				)}
-				{user && location.pathname !== "/user" && (
-					<>
-						<p
-							className="champions-page__header-link"
-							onClick={handleUserClick}
-						>
-							<FaUser className="champions-page__header-user-icon" />
-						</p>
-					</>
-				)}
-				{user && location.pathname === "/user" && (
-					<>
-						<p
-							className="champions-page__header-link"
-							onClick={handleLogoutClick}
-						>
-							Logout
-						</p>
-					</>
-				)}
-			</div>
+			{/* Third flex slot keeps the logo centred between the edges. */}
+			<div />
 		</header>
 	)
 }
