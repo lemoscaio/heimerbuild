@@ -5,11 +5,14 @@ import {
 } from "@sentry/react"
 import { router } from "./router"
 import { SENTRY_DSN, SENTRY_TUNNEL_PATH } from "./sentry-config"
+import { shouldInitSentry } from "./should-init-sentry"
 
 declare global {
 	interface Window {
 		/** Non-production builds only: throws an uncaught error to test reporting end to end. */
 		__HB_SENTRY_TEST__?: () => void
+		/** Set by the Playwright flows before any script runs (e2e/fixtures.ts). */
+		__HB_E2E__?: boolean
 	}
 }
 
@@ -17,8 +20,11 @@ const environment = import.meta.env.SENTRY_ENVIRONMENT
 
 export function initSentry() {
 	if (
-		environment === "development" &&
-		import.meta.env.VITE_SENTRY_ENABLED !== "true"
+		!shouldInitSentry({
+			environment,
+			enabledLocally: import.meta.env.VITE_SENTRY_ENABLED === "true",
+			isE2e: window.__HB_E2E__ === true,
+		})
 	) {
 		return
 	}
