@@ -93,7 +93,7 @@ The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with S
 
 ### Error monitoring
 
-Sentry (`@sentry/react`, set up in `src/app/sentry.ts`) reports errors, sampled traces and on-error session replays from preview and production deploys, sent through the Worker's `/monitoring` tunnel so ad-blockers do not drop them. Local builds send nothing unless `VITE_SENTRY_ENABLED=true`. When the `SENTRY_AUTH_TOKEN` build secret is set, Workers Builds uploads hidden source maps for the commit SHA release and deletes them from `dist/`.
+Sentry (`@sentry/react`, set up in `src/app/sentry.ts`) reports errors, sampled traces and on-error session replays from preview and production deploys, sent through the Worker's `/monitoring` tunnel so ad-blockers do not drop them. Local builds send nothing unless `VITE_SENTRY_ENABLED=true`, and the Playwright flows mark their pages (`window.__HB_E2E__`) so Sentry never starts during E2E runs. When the `SENTRY_AUTH_TOKEN` build secret is set, Workers Builds uploads hidden source maps for the commit SHA release and deletes them from `dist/`.
 
 ### Game data
 

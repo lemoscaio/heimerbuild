@@ -30,7 +30,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 - `scripts/sync-data/`: data pipeline. `schemas/` holds the Zod schemas shared by the pipeline and the app.
 - `public/data/`: generated game data, committed. Never edit by hand.
 - `worker/`: tiny Worker that turns SPA fallbacks for missing `/data/*` and `/assets/*` into real 404s and tunnels Sentry envelopes posted to `/monitoring` (our project only).
-- Sentry: `src/app/sentry.ts` (DSN in `sentry-config.ts`); on in preview and production builds, off locally unless `VITE_SENTRY_ENABLED=true`; source maps upload only when the `SENTRY_AUTH_TOKEN` build secret exists.
+- Sentry: `src/app/sentry.ts` (DSN in `sentry-config.ts`); on in preview and production builds, off locally unless `VITE_SENTRY_ENABLED=true` and never started in Playwright flows (`window.__HB_E2E__`, set in `e2e/fixtures.ts`); source maps upload only when the `SENTRY_AUTH_TOKEN` build secret exists.
 - `wrangler.jsonc`, `public/_headers`: hosting and cache rules.
 
 ## Game data pipeline
