@@ -401,5 +401,36 @@
 			"__type": "ItemDataClient"
 		},
 		"__type": "ItemData"
+	},
+	"Items/ItemGroups/Default": {
+		"mItemGroupID": "Default",
+		"__type": "ItemGroup"
+	},
+	"{1c3fcb8a}": {
+		"mItemGroupID": "{20b00c0e}",
+		"mMaxGroupOwnable": 1,
+		"__type": "ItemGroup"
+	},
+	"Items/ItemGroups/VoidPen": {
+		"mItemGroupID": "VoidPen",
+		"mMaxGroupOwnable": 1,
+		"__type": "ItemGroup"
+	},
+	"{bd7d02c0}": {
+		"mItemGroupID": "4645",
+		"mMaxGroupOwnable": 1,
+		"__type": "ItemGroup"
+	},
+	"Items/ItemGroups/DoransItems": {
+		"mItemGroupID": "DoransItems",
+		"mMaxGroupOwnable": 1,
+		"__type": "ItemGroup"
+	},
+	"{5c63b904}": {
+		"mItemGroupID": "{fe69194d}",
+		"{1e6bbb83}": {
+			"__type": "{138c2ac6}"
+		},
+		"__type": "ItemGroup"
 	}
 }
