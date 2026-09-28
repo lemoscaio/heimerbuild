@@ -13,7 +13,7 @@ function shopItem(page: Page, name: string) {
 		.getByRole("button", { name, exact: true })
 }
 
-test("adding and removing items changes the totals, and a refused item is not added", async ({
+test("adding and removing items changes the totals, and a build the game forbids is kept with a warning", async ({
 	page,
 }) => {
 	await page.goto("/champions/Heimerdinger")
@@ -31,14 +31,25 @@ test("adding and removing items changes the totals, and a refused item is not ad
 	await expect(stats).not.toHaveText(withSword ?? "")
 	const withBoth = await stats.textContent()
 
-	// A build holds one copy of each legendary: the second one is refused with a notice.
+	// The game allows one Rabadon's Deathcap: the copy is added anyway and a warning names it.
+	const warning = page.getByRole("status").filter({ hasText: /\S/ })
+	await expect(warning).toHaveCount(0)
 	await shopItem(page, "Rabadon's Deathcap").click()
-	await expect(page.getByRole("status").filter({ hasText: /\S/ })).toBeVisible()
 	expect(await itemNames(chosenItems(page))).toEqual([
 		"Remove Long Sword",
 		"Remove Rabadon's Deathcap",
+		"Remove Rabadon's Deathcap",
 	])
+	await expect(stats).not.toHaveText(withBoth ?? "")
+	await expect(warning).toContainText("Rabadon's Deathcap")
+
+	await page
+		.getByRole("button", { name: "Remove Rabadon's Deathcap" })
+		.first()
+		.click()
+	await expect(chosenItems(page)).toHaveCount(2)
 	await expect(stats).toHaveText(withBoth ?? "")
+	await expect(warning).toHaveCount(0)
 
 	await page.getByRole("button", { name: "Remove Rabadon's Deathcap" }).click()
 	await expect(chosenItems(page)).toHaveCount(1)
