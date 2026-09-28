@@ -2,11 +2,12 @@ import type { ComputedStats } from "@/lib/stats/compute-stats"
 import { statRows } from "../lib/stats-info"
 import { StatRow } from "./stat-row"
 
+// Grid order: core stats next to penetration, then resources next to tenacity.
 const statGroups = [
-	{ className: "stats__group-1", rows: statRows.slice(0, 8) },
-	{ className: "stats__group-2", rows: statRows.slice(12, 19) },
-	{ className: "stats__group-3", rows: statRows.slice(8, 12) },
-	{ className: "stats__group-4", rows: statRows.slice(19) },
+	{ key: "core", rows: statRows.slice(0, 8) },
+	{ key: "penetration", rows: statRows.slice(12, 19) },
+	{ key: "resources", rows: statRows.slice(8, 12) },
+	{ key: "tenacity", rows: statRows.slice(19) },
 ]
 
 type StatsPanelProps = {
@@ -15,9 +16,12 @@ type StatsPanelProps = {
 
 export function StatsPanel({ stats }: StatsPanelProps) {
 	return (
-		<section className="champion-info__stats stats" aria-label="Champion stats">
-			{statGroups.map(({ className, rows }) => (
-				<ul key={className} className={`stats__group ${className}`}>
+		<section
+			className="grid grid-cols-2 gap-x-2.5 gap-y-4 bg-primary-3 px-2.5 py-4 text-white lg:mx-auto lg:w-125"
+			aria-label="Champion stats"
+		>
+			{statGroups.map(({ key, rows }) => (
+				<ul key={key}>
 					{rows.map((info) => (
 						<StatRow key={info.stat} info={info} breakdown={stats[info.stat]} />
 					))}

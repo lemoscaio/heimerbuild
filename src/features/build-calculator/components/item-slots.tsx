@@ -1,11 +1,14 @@
+import { TriangleAlert } from "lucide-react"
 import { useLayoutEffect, useRef } from "react"
 import { ItemButton } from "@/components/common/item-button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { MAX_ITEMS } from "../lib/build-items"
 import {
 	type BuildViolation,
 	findBuildViolations,
 } from "../lib/build-violations"
+import { ItemSlotsPanel } from "./item-slots-panel"
 
 const slots = Array.from({ length: MAX_ITEMS }, (_, index) => index)
 
@@ -40,8 +43,12 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 	}
 
 	return (
-		<div className="champion-info__chosen-items chosen-items">
-			<fieldset ref={slotsRef} className="chosen-items__slots" tabIndex={-1}>
+		<ItemSlotsPanel>
+			<fieldset
+				ref={slotsRef}
+				className="flex justify-center gap-1.5"
+				tabIndex={-1}
+			>
 				<legend className="sr-only">Chosen items</legend>
 				{slots.map((slot) => {
 					const item = items[slot]
@@ -49,7 +56,7 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 						return (
 							<div
 								key={`empty-${slot}`}
-								className="items__item-card chosen-items__item"
+								className="size-10 rounded-sm bg-primary-1"
 							/>
 						)
 					}
@@ -57,36 +64,40 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 						<ItemButton
 							key={`${slot}-${item.id}`}
 							item={item}
-							className="items__item-card chosen-items__item"
+							className="size-10 rounded-sm bg-primary-1"
 							aria-label={`Remove ${item.name}`}
 							onClick={(event) => handleRemove(slot, event)}
 						>
-							<img
-								src={item.icon}
-								alt=""
-								className="chosen-items__item-image"
-							/>
+							<img src={item.icon} alt="" className="w-full rounded-sm" />
 						</ItemButton>
 					)
 				})}
 			</fieldset>
-			<div className="chosen-items__notice" role="status" aria-live="polite">
+			<div
+				className="flex min-h-5 flex-col items-center gap-2 px-2.5 pt-1 pb-2 text-center text-lilac text-xs"
+				role="status"
+				aria-live="polite"
+			>
 				{notice && <p>{notice}</p>}
 				{!!violations.length && <BuildWarning violations={violations} />}
 			</div>
-		</div>
+		</ItemSlotsPanel>
 	)
 }
 
 function BuildWarning({ violations }: { violations: BuildViolation[] }) {
 	return (
-		<div className="chosen-items__warning">
-			<p>Not possible in-game:</p>
-			<ul className="chosen-items__violations">
-				{violations.map(({ group, message }) => (
-					<li key={group}>{message}</li>
-				))}
-			</ul>
-		</div>
+		// The surrounding status region announces the warning: no nested alert.
+		<Alert variant="warning" role="none" className="w-fit max-w-sm text-xs">
+			<TriangleAlert aria-hidden="true" />
+			<AlertTitle>Not possible in-game</AlertTitle>
+			<AlertDescription className="text-xs">
+				<ul>
+					{violations.map(({ group, message }) => (
+						<li key={group}>{message}</li>
+					))}
+				</ul>
+			</AlertDescription>
+		</Alert>
 	)
 }

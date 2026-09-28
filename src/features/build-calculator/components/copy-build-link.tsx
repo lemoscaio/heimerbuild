@@ -1,5 +1,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/cn"
 import { copyToClipboard } from "../services/copy-to-clipboard"
 
 const FEEDBACK_MS = 2500
@@ -26,24 +28,22 @@ export function CopyBuildLink({ href }: CopyBuildLinkProps) {
 	}
 
 	return (
-		<div className="copy-build-link">
+		<div className="flex flex-col items-end gap-1">
 			<Button type="button" size="lg" onClick={handleClick}>
 				Copy link
 			</Button>
 			<span
 				role="status"
-				className={
-					status === "failed"
-						? "copy-build-link__status copy-build-link__status--failed"
-						: "copy-build-link__status"
-				}
+				className={cn("min-h-4 text-right text-success text-xs", {
+					"text-white": status === "failed",
+				})}
 			>
 				{status === "copied" && "Link copied"}
 				{status === "failed" && "Could not copy. Select the link below."}
 			</span>
 			{status === "failed" && (
-				<input
-					className="copy-build-link__fallback"
+				<Input
+					className="h-7 w-full max-w-55 border-none bg-primary-2 text-xs md:text-xs"
 					aria-label="Build link"
 					readOnly
 					value={copiedUrl}
