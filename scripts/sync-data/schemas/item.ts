@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { championRoleSchema } from "./champion"
 
 /** `percent` values are fractions: 0.1 means 10%. */
 export type StatUnit = "flat" | "percent"
@@ -63,6 +64,8 @@ export const ItemSchema = z.strictObject({
 	into: z.array(z.string()),
 	inStore: z.boolean(),
 	requiredChampion: z.string().optional(),
+	/** In-game shop class filters (CommunityDragon `mItemAttributes`); empty means "All Items" only. */
+	roles: z.array(championRoleSchema),
 	stats: ItemStatsSchema,
 })
 

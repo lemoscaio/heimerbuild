@@ -1,0 +1,37 @@
+{
+	"Maps/Shipping/Map11/Modes/CLASSIC": {
+		"mModeName": "CLASSIC",
+		"itemLists": ["{413f2f94}", "{becd97c7}"],
+		"mItemShopData": "{8f58df52}",
+		"__type": "GameModeMapData"
+	},
+	"Maps/Shipping/Map11/Modes/SWIFTPLAY": {
+		"mModeName": "SWIFTPLAY",
+		"itemLists": ["{413f2f94}", "{53f3ac3c}"],
+		"mItemShopData": "{8f58df52}",
+		"__type": "GameModeMapData"
+	},
+	"{413f2f94}": {
+		"mItems": [
+			"Items/1036",
+			"Items/1042",
+			"Items/3134",
+			"Items/3135",
+			"Items/4645",
+			"Items/9001",
+			"Items/9002",
+			"Items/9003",
+			"Items/9004",
+			"Items/9005"
+		],
+		"__type": "GameModeItemList"
+	},
+	"{becd97c7}": {
+		"mItems": ["Items/1054", "Items/1055", "Items/1056"],
+		"__type": "GameModeItemList"
+	},
+	"{53f3ac3c}": {
+		"mItems": ["Items/2051"],
+		"__type": "GameModeItemList"
+	}
+}

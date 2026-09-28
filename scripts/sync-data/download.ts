@@ -9,7 +9,7 @@ const CDRAGON_ITEMS_PATH = "game/items.cdtb.bin.json"
 
 export const MANIFEST_FILE = "manifest.json"
 /** Bump when the set of cached files changes, so older caches are re-downloaded. */
-export const CACHE_LAYOUT = 2
+export const CACHE_LAYOUT = 3
 
 export type DownloadOptions = {
 	fetchFn?: typeof fetch
@@ -128,7 +128,14 @@ export async function downloadRawData(
 			],
 		] as const
 	})
-	await mapWithConcurrency(perChampion, concurrency, ([path, url]) =>
+	const cdragonFiles = [
+		...perChampion,
+		[
+			"cdragon/map11.bin.json",
+			`${cdragonGame}/data/maps/shipping/map11/map11.bin.json`,
+		],
+	] as const
+	await mapWithConcurrency(cdragonFiles, concurrency, ([path, url]) =>
 		download(path, url),
 	)
 

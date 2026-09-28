@@ -35,10 +35,7 @@ export function ChampionDetails() {
 
 	function setDisplayedItems() {
 		if (items) {
-			const allItems = Object.keys(items).filter((itemId) => {
-				const item = items[itemId]
-				return item?.shop?.purchasable
-			})
+			const allItems = Object.keys(items)
 
 			const roleFilteredItems =
 				itemRoleFilter !== "All"
