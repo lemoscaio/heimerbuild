@@ -1,4 +1,4 @@
-import { DotLoader } from "react-spinners"
+import DotLoader from "react-spinners/esm/DotLoader"
 
 export function RoutePending() {
 	return (

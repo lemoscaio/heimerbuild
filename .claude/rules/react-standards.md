@@ -188,7 +188,7 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 
 ## Routing
 
-- Route components are thin: read params, compose feature components, nothing else.
+- Route components are thin: read params, compose feature components, nothing else. The one extra they may do is call a feature hook to wire two features together through props and callbacks (champion route: `useBuild()` feeds `ItemShop`'s `onItemClick`).
 - TanStack Router with code-based routes. Each route lives in `src/routes/<name>-route.tsx` (`createRoute` + its page component), and `src/app/router.tsx` assembles the tree.
 - Loaders load data through the `queryOptions()` factories (`queryClient.ensureQueryData(gameDataQueries...)`); components then read the same queries from the cache.
 - Every data route sets `pendingComponent` and `errorComponent`, and `notFoundComponent` when a param can point at nothing.

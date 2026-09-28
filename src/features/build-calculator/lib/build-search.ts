@@ -1,7 +1,6 @@
 import { z } from "zod"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
-
-const MAX_ITEMS = 6
+import { MAX_ITEMS } from "./build-items"
 
 // The router JSON-parses each value: `items=3089` arrives as a number,
 // `items=3089,3020` as a string and `items=[3089,3020]` as an array.

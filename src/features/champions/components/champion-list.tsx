@@ -1,4 +1,4 @@
-import DotLoader from "react-spinners/DotLoader"
+import DotLoader from "react-spinners/esm/DotLoader"
 
 import type { ChampionSummary } from "../../../../scripts/sync-data/schemas/champion"
 import { ChampionCard } from "./champion-card"

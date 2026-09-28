@@ -3,14 +3,14 @@ import type { StatName } from "@/lib/stats/compute-stats"
 
 type StatFormat = "flat" | "percent" | "attackSpeed"
 
-type StatRow = {
+export type StatRowInfo = {
 	stat: StatName
 	label: string
 	icon: string
 	format?: StatFormat
 }
 
-export const statRows: readonly StatRow[] = [
+export const statRows: readonly StatRowInfo[] = [
 	{
 		stat: "attackDamage",
 		label: "Attack Damage",

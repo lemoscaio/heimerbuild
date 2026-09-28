@@ -48,6 +48,7 @@ features/<feature>/
 ### Import boundaries
 
 - **A feature never imports another feature. No exceptions.** Routes compose features; anything two features need is promoted to a shared layer.
+- When two features interact, the route wires them with props and callbacks. Example: the champion route calls `useBuild()` (build-calculator) and passes `build.toggleItem` to `ItemShop` (item-shop) as `onItemClick`; the shop never knows about the build.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`.
 - Shared layers never import from `features/` or `routes/`.
 - CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override per feature lists the other features, one covers the shared layers. **Adding a feature means adding its override and its name to the other features' lists.**
@@ -85,11 +86,9 @@ import { computeStats } from "@/lib/stats/compute-stats"
 
 ## Migration map
 
-Moved in #96 and #42. Still pending:
+Moved in #96, #42 and #41. Still pending:
 
 | Current | Target | Issue |
 | --- | --- | --- |
-| `src/features/build-calculator/components/champion-details.tsx` (whole champion page, includes the item grid) | `LevelSlider`, `ItemSlots`, `StatsPanel` + `useBuild()` in `features/build-calculator`; `ItemShop` + `RoleFilter` in `features/item-shop`; `ChampionHeader` in `features/champions` | #41 |
-| `src/features/build-calculator/lib/roles-info.ts` | `features/item-shop/lib/` once `ItemShop` is extracted | #41 |
 | `src/types/stats.ts` (empty) | deleted | #37 |
 | `src/styles/` | replaced by Tailwind | #40 |
