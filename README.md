@@ -1,35 +1,34 @@
-<div align="center"><img style = "width:100%;"src="https://i.imgur.com/lslR2VY.gif"></img></div>
+<div align="center"><img style="width:100%;" src="https://i.imgur.com/lslR2VY.gif"></div>
 <hr>
-<h2 align=center>HeimerBuild</h2>
-<h4 align=center>A League of Legends build calculator built with React.JS.</h4>
+<h2 align=center>Heimerbuild</h2>
+<h4 align=center>A League of Legends build calculator with game-accurate numbers.</h4>
+<p align=center><a href="https://heimerbuild.caio-lemos94.workers.dev">heimerbuild.caio-lemos94.workers.dev</a></p>
 <br>
-<div align=center style="display:flex; justify-content: center; gap:5%">
-    <img style = "width:750px;"src="https://i.imgur.com/tkxIZ4f.png">
+<div align=center>
+    <img style="width:750px;" src="https://i.imgur.com/tkxIZ4f.png">
 </div>
 <br><hr>
 
-## Portuguese demo video
-
-https://github.com/lemoscaio/heimerbuild/assets/74937642/0db701dd-f5d7-47ce-bb57-3985efaf4bef
-
 ## Features
 
-- All champions with updated stats
-- Choose a champion and see all base stats of it, its roles, attack type and lore
-- Change the champion level and see the stats update to the chosen level
-- Choose up to 6 items, copies included, and see the additional stats given by them; a warning explains combinations the game does not allow (two pairs of boots, two Rabadon's Deathcaps)
-- Filter the items by champion role and by stats, and sort them by a stat
-- Hover, focus or tap an item to see its price, stats and description
-- Share a build as a link (`/champions/Heimerdinger?lvl=11&items=3089,3020&patch=16.19.1`)
+- **Every champion, always on the current patch.** Game data is pulled from Riot's Data Dragon and CommunityDragon and refreshed automatically when a new patch ships.
+- **Stats that match the game.** Level growth, attack speed and item bonuses follow the in-game formulas, and item data is checked against the game's own tooltips.
+- **Build from level 1 to 18 with up to 6 items**, and see base, bonus and total for every stat.
+- **Know when a build isn't possible in-game.** Build what you want; if it breaks a game rule (two pairs of boots, two copies of a legendary), Heimerbuild tells you which rule and why.
+- **Find the right item fast.** Filter the shop by role or by stats, sort it by any stat, and check price, stats and description in a tooltip.
+- **Share a build with a link.** The champion, level and items live in the URL.
+- **Champion details:** roles, attack type and lore.
 
-## Motivation
-I love how complex League of Legends is, and how every patch the meta can change by simply modifying the AD ratio for a certain character.
+## Why Heimerbuild
 
-Because of this, I always wondered how I could calculate every aspect of a battle, starting from calculating all stats given by items, runes, and level, to how much damage I could do in a combo mixing all of the champion's skills depending on which champion I'm playing against. 
+League is a game of numbers. A small change to an AD ratio can reshape the meta, and deciding between two items often comes down to math the client never shows you. Practice Tool can answer some of it, but it means starting a match, buying items and reading numbers by hand.
 
-We all know that the current training mode is not good enough. It takes time to start a new training session since it's a real match after all. Not only that but there's no way of changing the runes quickly without creating a new match.
+Heimerbuild answers those questions in seconds, with numbers you can trust. Today it covers champion and item stats. Next up:
 
-So my goal is to improve this project until I'll be able everything that happens in a battle that I already said and some others. This includes calculating how much time I'll take in a combo after all we know an AD Carrier does not always have the opportunity to just auto-attack the enemy to death depending on the matchup.
+- **Damage calculator:** auto-attack and ability damage against a chosen champion, damage taken, and eventually full combos.
+- **More build parameters:** runes, item stacks, dragons and role quest rewards.
+- **Build suggestions** based on win rates, and **pro builds**.
+- **Community builds** that players can publish, explain and vote on.
 
 ## Development
 
@@ -101,9 +100,20 @@ The `Sync game data` workflow (`.github/workflows/sync-data.yml`) runs daily and
 ## Built with
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
-![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+![Bun](https://img.shields.io/badge/bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)
+![TanStack](https://img.shields.io/badge/tanstack-%23FF4154.svg?style=for-the-badge&logo=reactquery&logoColor=white)
+![Zod](https://img.shields.io/badge/zod-%233068b7.svg?style=for-the-badge&logo=zod&logoColor=white)
+![Cloudflare Workers](https://img.shields.io/badge/cloudflare%20workers-%23F38020.svg?style=for-the-badge&logo=cloudflareworkers&logoColor=white)
+![Biome](https://img.shields.io/badge/biome-%2360A5FA.svg?style=for-the-badge&logo=biome&logoColor=white)
 ![SASS](https://img.shields.io/badge/SASS-hotpink.svg?style=for-the-badge&logo=SASS&logoColor=white)
-![Visual Studio Code](https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white)
+
+## Data and legal
+
+Game data comes from Riot Games' [Data Dragon](https://developer.riotgames.com/docs/lol#data-dragon) and [CommunityDragon](https://www.communitydragon.org/).
+
+Heimerbuild isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
 
 ## Contact
 
