@@ -154,6 +154,8 @@ async function chooseOption(select: Locator, label: string) {
 	}
 	await select.click()
 	await select.page().getByRole("option", { name: label, exact: true }).click()
+	// The pointer would rest on an item under the closed list and open its tooltip.
+	await select.page().mouse.move(0, 0)
 }
 
 /** Lazy images never load outside the viewport, so a full-page shot would miss them. */
