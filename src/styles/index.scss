@@ -374,6 +374,7 @@ body {
 
       &__list {
         @include flex(row, center, flex-start, wrap);
+        align-content: flex-start;
         gap: 5px;
 
         height: 40vh;
@@ -568,6 +569,72 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.skeleton {
+  border-radius: 4px;
+  background-color: $color-primary-2;
+
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+
+  &--heading {
+    width: 200px;
+    height: 28px;
+  }
+
+  &--text {
+    width: 140px;
+    height: 14px;
+  }
+
+  &--text-short {
+    width: 90px;
+    height: 12px;
+  }
+
+  &--slider {
+    width: min(300px, 100%);
+    height: 10px;
+  }
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.champion-card--skeleton {
+  cursor: default;
+}
+
+.champion-card__image-skeleton {
+  width: 60px;
+  height: 60px;
+}
+
+.champion-card__name-skeleton {
+  width: 48px;
+  height: 10px;
+}
+
+.champion-info__header-image-skeleton {
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
+}
+
+.items__item-skeleton {
+  width: 40px;
+  height: 40px;
+}
+
+.champion-info__name-title .skeleton + .skeleton {
+  margin-top: 8px;
 }
 
 .tooltip {

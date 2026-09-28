@@ -4,14 +4,17 @@ export function RouteError() {
 	const router = useRouter()
 
 	return (
-		<div className="page-container route-status load-error-container">
-			<p>Something went wrong!</p>
+		<div
+			className="page-container route-status load-error-container"
+			role="alert"
+		>
+			<p>Could not load the game data. Check your connection.</p>
 			<button
 				type="button"
 				className="load-button"
 				onClick={() => router.invalidate()}
 			>
-				Click here to try again
+				Try again
 			</button>
 		</div>
 	)

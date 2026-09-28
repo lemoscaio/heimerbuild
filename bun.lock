@@ -12,7 +12,6 @@
         "latest": "^0.2.0",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
-        "react-spinners": "^0.17.1",
         "sass": "^1.105.0",
         "zod": "^4.6.5",
       },
@@ -540,8 +539,6 @@
     "react": ["react@19.3.0", "", {}, "sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog=="],
 
     "react-dom": ["react-dom@19.3.0", "", { "dependencies": { "scheduler": "^0.28.0" }, "peerDependencies": { "react": "^19.3.0" } }, "sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q=="],
-
-    "react-spinners": ["react-spinners@0.17.1", "", { "peerDependencies": { "react": "^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-YktwnYeMWpvior5/MCyl+gbFuIK98PLfsZ0sp92t15r4nMpWpXj77YyJiBiD2EM3Lcz1lNjpqICjt8gMGtxclw=="],
 
     "readdirp": ["readdirp@5.1.1", "", {}, "sha512-Kko+Y5XQ6fM+Ce3dq3m9YGxnacYZYl9cA1wZjaF3Vbry2L3i1qVg8+CAgNPsXRArPMUMCaOR7oa9Nqntc43JKA=="],
 

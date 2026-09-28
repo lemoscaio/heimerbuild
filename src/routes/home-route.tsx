@@ -2,9 +2,9 @@ import { createRoute } from "@tanstack/react-router"
 import { AppName } from "@/components/common/app-name"
 import { MainPageLogo } from "@/components/common/main-page-logo"
 import { RouteError } from "@/components/common/route-error"
-import { RoutePending } from "@/components/common/route-pending"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { ChampionBrowser } from "@/features/champions/components/champion-browser"
+import { ChampionGridSkeleton } from "@/features/champions/components/champion-grid-skeleton"
 import { rootRoute } from "./root-route"
 
 export const homeRoute = createRoute({
@@ -17,7 +17,7 @@ export const homeRoute = createRoute({
 		await queryClient.ensureQueryData(gameDataQueries.champions(currentPatch))
 	},
 	component: HomePage,
-	pendingComponent: RoutePending,
+	pendingComponent: HomePending,
 	errorComponent: RouteError,
 })
 
@@ -28,6 +28,18 @@ function HomePage() {
 				<AppName />
 				<MainPageLogo />
 				<ChampionBrowser />
+			</main>
+		</div>
+	)
+}
+
+function HomePending() {
+	return (
+		<div className="page-container page-container--champions-page">
+			<main className="champions-page">
+				<AppName />
+				<MainPageLogo />
+				<ChampionGridSkeleton />
 			</main>
 		</div>
 	)
