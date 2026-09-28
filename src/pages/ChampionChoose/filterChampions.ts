@@ -1,5 +1,4 @@
-import type { Champion } from "../../types/champion"
-import type { Champions } from "../../types/champions"
+import type { ChampionSummary } from "../../../scripts/sync-data/schemas/champion"
 
 // Keeps only letters and digits, so "kaisa" matches "Kai'Sa".
 const NON_ALPHANUMERIC = /[^\p{L}\p{N}]/gu
@@ -9,11 +8,11 @@ function normalize(text: string) {
 }
 
 export function filterChampions(
-	champions: Champions,
+	champions: ChampionSummary[],
 	search: string,
-): Champion[] {
+): ChampionSummary[] {
 	const query = normalize(search)
-	return Object.values(champions).filter((champion) =>
+	return champions.filter((champion) =>
 		normalize(champion.name).includes(query),
 	)
 }

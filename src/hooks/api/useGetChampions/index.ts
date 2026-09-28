@@ -1,6 +1,6 @@
-import { useFetch } from "../../../lib/reactQuery/useFetch"
-import { Champions } from "../../../types/champions"
+import { fetchChampionIndex } from "../../../services/gameData"
+import { usePatchQuery } from "../usePatchQuery"
 
 export function useGetChampions() {
-	return useFetch<Champions>("/champions")
+	return usePatchQuery(["champions"], fetchChampionIndex)
 }

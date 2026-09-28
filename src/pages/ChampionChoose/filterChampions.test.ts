@@ -1,13 +1,10 @@
 import { describe, expect, test } from "bun:test"
 
-import type { Champion } from "../../types/champion"
-import type { Champions } from "../../types/champions"
+import type { ChampionSummary } from "../../../scripts/sync-data/schemas/champion"
 import { filterChampions } from "./filterChampions"
 
-function championsNamed(...names: string[]): Champions {
-	return Object.fromEntries(
-		names.map((name, id) => [name, { id, name } as Champion]),
-	)
+function championsNamed(...names: string[]): ChampionSummary[] {
+	return names.map((name, id) => ({ id, name }) as ChampionSummary)
 }
 
 const champions = championsNamed(
