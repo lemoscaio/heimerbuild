@@ -116,4 +116,29 @@ describe("worker", () => {
 			expect(requests).toEqual([])
 		})
 	})
+
+	describe("PostHog proxy", () => {
+		afterEach(() => {
+			mock.restore()
+		})
+
+		test("forwards /ingest/* to PostHog without touching the assets", async () => {
+			const upstream = spyOn(globalThis, "fetch").mockResolvedValue(
+				new Response('{"status":1}'),
+			)
+			const { env, requests } = envReturning(new Response("asset"))
+
+			const response = await worker.fetch(
+				new Request("https://example.com/ingest/e/", {
+					method: "POST",
+					body: "{}",
+				}),
+				env,
+			)
+
+			expect(response.status).toBe(200)
+			expect(upstream).toHaveBeenCalledTimes(1)
+			expect(requests).toEqual([])
+		})
+	})
 })

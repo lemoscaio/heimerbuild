@@ -1,4 +1,5 @@
 import { SENTRY_TUNNEL_PATH } from "../src/app/sentry-config"
+import { isPostHogProxyPath, proxyPostHog } from "./posthog-proxy"
 import { forwardEnvelope } from "./sentry-tunnel"
 
 type Env = {
@@ -22,6 +23,9 @@ export default {
 		const { pathname } = new URL(request.url)
 		if (pathname === SENTRY_TUNNEL_PATH) {
 			return forwardEnvelope(request)
+		}
+		if (isPostHogProxyPath(pathname)) {
+			return proxyPostHog(request)
 		}
 
 		const response = await env.ASSETS.fetch(request)
