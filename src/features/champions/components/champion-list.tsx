@@ -1,6 +1,7 @@
 import { LoadError } from "@/components/common/load-error"
 import type { ChampionSummary } from "../../../../scripts/sync-data/schemas/champion"
 import { ChampionCard } from "./champion-card"
+import { ChampionGrid } from "./champion-grid"
 import { ChampionGridSkeleton } from "./champion-grid-skeleton"
 
 type ChampionListProps = {
@@ -27,7 +28,7 @@ export function ChampionList(props: ChampionListProps) {
 	return (
 		<>
 			{champions && (
-				<div className="champions-list">
+				<ChampionGrid>
 					{filteredChampions.length > 0 ? (
 						filteredChampions.map((champion) => (
 							<ChampionCard
@@ -38,15 +39,15 @@ export function ChampionList(props: ChampionListProps) {
 					) : (
 						<p>No champions found.</p>
 					)}
-				</div>
+				</ChampionGrid>
 			)}
 			{isLoadingChampions && <ChampionGridSkeleton />}
 			{failedChampionsLoad && (
-				<div className="champions-list">
+				<ChampionGrid>
 					<LoadError onRetry={handleLoadChampionsClick}>
 						Could not load the champions. Check your connection.
 					</LoadError>
-				</div>
+				</ChampionGrid>
 			)}
 		</>
 	)

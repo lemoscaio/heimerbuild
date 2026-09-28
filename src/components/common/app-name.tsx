@@ -1,8 +1,8 @@
 export function AppName() {
 	return (
-		<div className="app-name-container">
-			<h1 className="app-name-container__title">Heimerbuild</h1>
-			<h2 className="app-name-container__subtitle">
+		<div className="select-none pb-5 text-center text-white">
+			<h1 className="font-logo text-8xl leading-none">Heimerbuild</h1>
+			<h2 className="mt-2 font-display text-subtle text-xl">
 				League of Legends build calculator
 			</h2>
 		</div>

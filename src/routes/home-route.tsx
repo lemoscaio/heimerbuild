@@ -23,24 +23,20 @@ export const homeRoute = createRoute({
 
 function HomePage() {
 	return (
-		<div className="page-container page-container--champions-page">
-			<main className="champions-page">
-				<AppName />
-				<MainPageLogo />
-				<ChampionBrowser />
-			</main>
-		</div>
+		<main className="min-h-screen pt-15 pb-10">
+			<AppName />
+			<MainPageLogo />
+			<ChampionBrowser />
+		</main>
 	)
 }
 
 function HomePending() {
 	return (
-		<div className="page-container page-container--champions-page">
-			<main className="champions-page">
-				<AppName />
-				<MainPageLogo />
-				<ChampionGridSkeleton />
-			</main>
-		</div>
+		<main className="min-h-screen pt-15 pb-10">
+			<AppName />
+			<MainPageLogo />
+			<ChampionGridSkeleton />
+		</main>
 	)
 }

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router"
+import { ChampionCardShell } from "./champion-card-shell"
 
 type ChampionCardProps = {
 	champion: {
@@ -13,17 +14,21 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 		<Link
 			to="/champions/$key"
 			params={{ key: champion.key }}
-			className="champion-card"
+			className="group rounded-lg"
 		>
-			<img
-				src={champion.icon}
-				alt=""
-				width={60}
-				height={60}
-				loading="lazy"
-				className="champion-card__image"
-			/>
-			<h3 className="champion-card__name">{champion.name}</h3>
+			<ChampionCardShell className="transition group-hover:scale-110 group-hover:ring-lilac/60">
+				<img
+					src={champion.icon}
+					alt=""
+					width={60}
+					height={60}
+					loading="lazy"
+					className="size-15 rounded-md"
+				/>
+				<h3 className="w-full text-center text-xs leading-tight tracking-tight">
+					{champion.name}
+				</h3>
+			</ChampionCardShell>
 		</Link>
 	)
 }
