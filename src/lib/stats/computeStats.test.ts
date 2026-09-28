@@ -100,13 +100,15 @@ describe("computeStats", () => {
 
 			const { attackSpeed } = computeStats(champion, 18, twoItems)
 
+			expect(attackSpeed.base).toBe(0.658)
 			expect(Math.abs(attackSpeed.total - expected)).toBeLessThan(0.001)
 		})
 
-		test("level bonus alone uses the growth curve", () => {
+		test("attack speed from levels is bonus, not base", () => {
 			const { attackSpeed } = computeStats(heimerdinger, 9, [])
 
-			expect(attackSpeed.base).toBeCloseTo(0.658 + 0.625 * 0.0136 * 6.74, 10)
+			expect(attackSpeed.base).toBe(0.658)
+			expect(attackSpeed.bonus).toBeCloseTo(0.625 * 0.0136 * 6.74, 10)
 		})
 	})
 
