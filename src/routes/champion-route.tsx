@@ -1,12 +1,15 @@
-import { createRoute, Link, notFound } from "@tanstack/react-router"
+import { createRoute, Link, notFound, useRouter } from "@tanstack/react-router"
 import { RouteError } from "@/components/common/route-error"
 import { RoutePending } from "@/components/common/route-pending"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { GameDataUnavailableError } from "@/data/services/game-data"
+import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
+import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { useBuild } from "@/features/build-calculator/hooks/use-build"
+import { resolveBuildPatch } from "@/features/build-calculator/lib/build-patch"
 import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
@@ -15,25 +18,31 @@ import { pageWithHeaderRoute } from "./page-with-header-route"
 export const championRoute = createRoute({
 	getParentRoute: () => pageWithHeaderRoute,
 	path: "/champions/$key",
-	// Parsed so shared links are typed; the page reads it once #48 lands.
 	validateSearch: buildSearchSchema,
-	loader: async ({ context: { queryClient }, params: { key } }) => {
-		const { currentPatch } = await queryClient.ensureQueryData(
+	loaderDeps: ({ search }) => ({ patch: search.patch }),
+	loader: async ({
+		context: { queryClient },
+		params: { key },
+		deps: { patch: requestedPatch },
+	}) => {
+		const manifest = await queryClient.ensureQueryData(
 			gameDataQueries.manifest(),
 		)
+		const { patch, unavailablePatch } = resolveBuildPatch(
+			manifest,
+			requestedPatch,
+		)
 		// Items keep their own loading and error state inside the page.
-		queryClient.prefetchQuery(gameDataQueries.items(currentPatch))
+		queryClient.prefetchQuery(gameDataQueries.items(patch))
 		try {
-			await queryClient.ensureQueryData(
-				gameDataQueries.champion(currentPatch, key),
-			)
+			await queryClient.ensureQueryData(gameDataQueries.champion(patch, key))
 		} catch (error) {
 			if (error instanceof GameDataUnavailableError) {
 				throw notFound()
 			}
 			throw error
 		}
-		return { patch: currentPatch }
+		return { patch, unavailablePatch }
 	},
 	component: ChampionPage,
 	pendingComponent: RoutePending,
@@ -43,8 +52,22 @@ export const championRoute = createRoute({
 
 function ChampionPage() {
 	const { key } = championRoute.useParams()
-	const { patch } = championRoute.useLoaderData()
-	const build = useBuild(patch, key)
+	const { patch, unavailablePatch } = championRoute.useLoaderData()
+	const search = championRoute.useSearch()
+	const navigate = championRoute.useNavigate()
+	const router = useRouter()
+	const build = useBuild({
+		patch,
+		championKey: key,
+		search,
+		onSearchChange: (nextSearch, { replace }) =>
+			navigate({ search: nextSearch, replace, resetScroll: false }),
+	})
+	const buildHref = router.buildLocation({
+		to: championRoute.fullPath,
+		params: { key },
+		search: build.shareSearch,
+	}).href
 
 	return (
 		<div className="width-container">
@@ -53,7 +76,15 @@ function ChampionPage() {
 					{build.champion && (
 						<main className="champion-page">
 							<div className="champion-page__champion-info champion-info">
-								<ChampionHeader champion={build.champion} />
+								<ChampionHeader champion={build.champion}>
+									<CopyBuildLink href={buildHref} />
+								</ChampionHeader>
+								{unavailablePatch && (
+									<PatchNotice
+										requestedPatch={unavailablePatch}
+										patch={patch}
+									/>
+								)}
 								<LevelSelector
 									level={build.level}
 									onLevelChange={build.setLevel}
