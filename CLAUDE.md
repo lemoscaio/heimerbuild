@@ -46,6 +46,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 - Where new code goes: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
 - File and folder names are kebab-case, and a feature never imports another feature; Biome enforces both in CI once #96 lands.
 - Biome is the only linter and formatter (tabs, double quotes, no semicolons). No ESLint or Prettier.
+- A lefthook pre-commit hook (`lefthook.yml`, installed by `bun install`) runs `biome check --write` on staged files and re-stages them; it never blocks on unfixable errors, so still run `bunx biome ci` before pushing.
 
 ## Testing
 

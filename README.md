@@ -46,6 +46,8 @@ bun run check:write   # apply Biome formatting and safe fixes
 
 CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and the build on every pull request and push to `main`.
 
+`bun install` also installs a [lefthook](https://lefthook.dev) pre-commit hook (`lefthook.yml`) that formats staged files with `biome check --write` and re-stages them; errors Biome cannot fix do not block the commit (CI catches them). Skip it once with `LEFTHOOK=0 git commit ...`.
+
 ### Worktrees
 
 `scripts/wt` runs several git worktrees side by side, each with its own Vite port:
