@@ -1,0 +1,23 @@
+{
+	"Characters/Garen/CharacterRecords/Root": {
+		"mCharacterName": "Garen",
+		"attackSpeedModifiable": {
+			"baseValue": 0.625,
+			"__type": "ModifiableFloat"
+		},
+		"attackSpeedRatioModifiable": {
+			"baseValue": 0.625,
+			"__type": "ModifiableFloat"
+		},
+		"damagePerLevelModifiable": {
+			"baseValue": 4.5,
+			"__type": "ModifiableFloat"
+		},
+		"attackRangeModifiable": {
+			"baseValue": 175.0,
+			"__type": "ModifiableFloat"
+		},
+		"purchaseIdentities": ["Melee"],
+		"__type": "CharacterRecord"
+	}
+}

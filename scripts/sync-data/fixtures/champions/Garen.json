@@ -1,0 +1,39 @@
+{
+	"version": "16.19.1",
+	"data": {
+		"Garen": {
+			"id": "Garen",
+			"key": "86",
+			"name": "Garen",
+			"title": "The Might of Demacia",
+			"tags": ["Fighter", "Tank"],
+			"lore": "A proud and noble warrior, Garen fights as one of the Dauntless Vanguard. He is popular among his fellows, and respected well enough by his enemies—not least as a scion of the prestigious Crownguard family, entrusted with defending Demacia and its ideals. Clad in magic-resistant armor and bearing a mighty broadsword, Garen stands ready to confront mages and sorcerers on the field of battle, in a veritable whirlwind of righteous steel.",
+			"partype": "None",
+			"stats": {
+				"hp": 690,
+				"hpperlevel": 98,
+				"mp": 0,
+				"mpperlevel": 0,
+				"movespeed": 340,
+				"armor": 38,
+				"armorperlevel": 4.2,
+				"spellblock": 32,
+				"spellblockperlevel": 1.55,
+				"attackrange": 175,
+				"hpregen": 8,
+				"hpregenperlevel": 0.5,
+				"mpregen": 0,
+				"mpregenperlevel": 0,
+				"crit": 0,
+				"critperlevel": 0,
+				"attackdamage": 69,
+				"attackdamageperlevel": 0,
+				"attackspeedperlevel": 3.65,
+				"attackspeed": 0.625
+			},
+			"image": {
+				"full": "Garen.png"
+			}
+		}
+	}
+}

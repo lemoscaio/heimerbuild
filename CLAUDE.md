@@ -50,7 +50,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 - Behavior tests only, with `bun test`, co-located as `*.test.ts`.
 - Test pure logic where mistakes are costly: stats engine, data pipeline, Worker, filters.
 - A few Playwright end-to-end flows for the main user journeys (#76).
-- No snapshot tests (UI or data) and no tests that assert static text or markup. Known exception: the snapshot in `scripts/sync-data/normalize-champions.test.ts`, pending conversion to explicit assertions in its own issue.
+- No snapshot tests (UI or data) and no tests that assert static text or markup.
 
 ## Workflow
 

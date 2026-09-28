@@ -1,0 +1,23 @@
+{
+	"Characters/Kennen/CharacterRecords/Root": {
+		"mCharacterName": "Kennen",
+		"attackSpeedModifiable": {
+			"baseValue": 0.625,
+			"__type": "ModifiableFloat"
+		},
+		"attackSpeedRatioModifiable": {
+			"baseValue": 0.6899999976158142,
+			"__type": "ModifiableFloat"
+		},
+		"damagePerLevelModifiable": {
+			"baseValue": 3.75,
+			"__type": "ModifiableFloat"
+		},
+		"attackRangeModifiable": {
+			"baseValue": 550.0,
+			"__type": "ModifiableFloat"
+		},
+		"purchaseIdentities": ["Ranged"],
+		"__type": "CharacterRecord"
+	}
+}
