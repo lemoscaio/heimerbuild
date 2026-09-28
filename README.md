@@ -19,8 +19,6 @@ https://github.com/lemoscaio/heimerbuild/assets/74937642/0db701dd-f5d7-47ce-bb57
 - Change the champion level and see the stats update to the chosen level
 - Chose up to 6 items and see the additional stats given by them
 - Filter the items by champion role
-- Create an account and save each build
-- Access the user page and see all saved builds
 
 ## Motivation
 I love how complex League of Legends is, and how every patch the meta can change by simply modifying the AD ratio for a certain character.
@@ -51,8 +49,6 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and th
 ### Deployment
 
 The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. A small Worker (`worker/index.ts`) runs first for `/data/*` and `/assets/*` so missing files there return an uncached 404 instead of `index.html`. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).
-
-Copy `.env.example` to `.env` to point the account features (sign-in, saved builds) at a local API.
 
 ### Game data
 
