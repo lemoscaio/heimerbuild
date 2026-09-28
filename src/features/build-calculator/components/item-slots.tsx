@@ -57,7 +57,7 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 						<ItemButton
 							key={`${slot}-${item.id}`}
 							item={item}
-							className="items__item-card chosen-items__item icon-button"
+							className="items__item-card chosen-items__item"
 							aria-label={`Remove ${item.name}`}
 							onClick={(event) => handleRemove(slot, event)}
 						>

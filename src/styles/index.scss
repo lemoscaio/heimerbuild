@@ -586,55 +586,6 @@
   margin-top: 8px;
 }
 
-.tooltip {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 20;
-  max-width: min(300px, calc(100vw - 16px));
-  padding: 8px 10px;
-
-  background-color: $color-primary-4;
-  border: 1px solid $color-primary-1;
-  border-radius: $card-border-radius;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-
-  color: white;
-  // Portaled into <body>, outside the elements that set the app font.
-  font-family: $main-font;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.item-details {
-  @include flex(column);
-  gap: 6px;
-
-  &__name {
-    font-size: 14px;
-    font-weight: 700;
-  }
-
-  &__gold {
-    color: #e6c65c;
-  }
-
-  &__stat-value {
-    color: $color-success-message;
-    font-weight: 700;
-  }
-
-  &__plaintext {
-    color: $adobe-5-hex;
-    font-style: italic;
-  }
-
-  &__description {
-    color: #d6d4e0;
-    white-space: pre-line;
-  }
-}
-
 .copy-build-link {
   @include flex(column, flex-start, flex-end);
   gap: 4px;
