@@ -30,6 +30,3 @@ dist-ssr
 
 # sync-data raw downloads
 .cache/
-
-# sync-data generated output
-public/data/
