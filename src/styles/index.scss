@@ -147,10 +147,6 @@
 
     color: white;
 
-    &__loader {
-      margin-top: 20px;
-    }
-
     .champion-card {
       width: 60px;
 
@@ -389,21 +385,6 @@
         padding-bottom: 10px;
       }
 
-      &__loader {
-        align-self: center;
-        margin-bottom: 30px;
-      }
-
-      &__load-error-container {
-        padding-bottom: 30px;
-      }
-
-      &__load-button {
-        &:active {
-          background-color: $color-primary-2;
-        }
-      }
-
       &__filter-roles {
         width: 30px;
         height: 30px;
@@ -465,15 +446,6 @@
 
         color: white;
         font-size: inherit;
-      }
-
-      &__sort-direction {
-        padding: 4px 10px;
-
-        &:disabled {
-          opacity: 0.5;
-          cursor: default;
-        }
       }
 
       &__empty {
@@ -667,10 +639,6 @@
   @include flex(column, flex-start, flex-end);
   gap: 4px;
 
-  &__button {
-    white-space: nowrap;
-  }
-
   &__status {
     min-height: 1em;
 
@@ -713,35 +681,4 @@
   }
 }
 
-.load-error-container {
-  height: 100%;
-
-  @include flex(column, center, center);
-  gap: 20px;
-
-  color: white;
-}
-
-.load-button {
-  background-color: $color-primary-1;
-  color: white;
-
-  padding: 10px;
-
-  border-radius: $card-border-radius;
-  border: none;
-
-  cursor: pointer;
-
-  transition: background 100ms;
-
-  &:active {
-    background-color: $color-primary-4;
-  }
-}
-
-.route-status {
-  min-height: 100vh;
-  padding: calc(#{$header-height} + 40px) 20px 40px;
-}
 }
