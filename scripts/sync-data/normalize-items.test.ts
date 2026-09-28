@@ -1,16 +1,38 @@
 import { describe, expect, test } from "bun:test"
 import communityDragonBin from "./fixtures/cdragon-items.json"
 import dataDragonItems from "./fixtures/ddragon-item.json"
+import map11Bin from "./fixtures/map11.bin.json"
 import { normalizeItems } from "./normalize-items"
 import { STAT_UNITS } from "./schemas/item"
 
 // Real 16.19.1 entries for Long Sword, Dagger, Serrated Dirk, Void Staff and Shadowflame.
-function statsOf(id: string, bin: unknown = communityDragonBin) {
-	const item = normalizeItems(dataDragonItems, bin).items.find(
-		(entry) => entry.id === id,
-	)
+function itemsOf(
+	bin: unknown = communityDragonBin,
+	dataDragon: unknown = dataDragonItems,
+) {
+	return normalizeItems(dataDragon, bin, map11Bin).file.items
+}
+
+function itemOf(id: string, bin: unknown = communityDragonBin) {
+	const item = itemsOf(bin).find((entry) => entry.id === id)
 	if (!item) throw new Error(`item ${id} missing from output`)
-	return item.stats
+	return item
+}
+
+function statsOf(id: string) {
+	return itemOf(id).stats
+}
+
+type DataDragonItems = { data: Record<string, Record<string, unknown>> }
+
+/** Adds a copy of Long Sword under `id` with `overrides` applied. */
+function withLongSwordCopy(
+	items: DataDragonItems,
+	id: string,
+	overrides: Record<string, unknown>,
+): DataDragonItems {
+	items.data[id] = { ...structuredClone(items.data["1036"]), ...overrides }
+	return items
 }
 
 describe("normalizeItems", () => {
@@ -35,10 +57,7 @@ describe("normalizeItems", () => {
 	})
 
 	test("carries Data Dragon metadata", () => {
-		const dirk = normalizeItems(dataDragonItems, communityDragonBin).items.find(
-			(item) => item.id === "3134",
-		)
-		expect(dirk).toMatchObject({
+		expect(itemOf("3134")).toMatchObject({
 			name: "Serrated Dirk",
 			icon: "3134.png",
 			gold: { base: 300, total: 1000, sell: 700, purchasable: true },
@@ -46,7 +65,7 @@ describe("normalizeItems", () => {
 			from: ["1036", "1036"],
 			inStore: true,
 		})
-		expect(dirk?.maps).toContain(11)
+		expect(itemOf("3134").maps).toContain(11)
 	})
 
 	test("fails the sync on an unmapped stat-like field", () => {
@@ -55,16 +74,103 @@ describe("normalizeItems", () => {
 			Record<string, unknown>
 		>
 		bin["Items/1042"].mFlatBogusMod = 5
-		expect(() => normalizeItems(dataDragonItems, bin)).toThrow(
-			/mFlatBogusMod \(items 1042\)/,
-		)
+		expect(() => itemsOf(bin)).toThrow(/mFlatBogusMod \(items 1042\)/)
 	})
 
 	test("fails when a Data Dragon item has no CommunityDragon entry", () => {
 		const bin = structuredClone(communityDragonBin) as Record<string, unknown>
 		delete bin["Items/3134"]
-		expect(() => normalizeItems(dataDragonItems, bin)).toThrow(
+		expect(() => itemsOf(bin)).toThrow(
 			"Item 3134 (Serrated Dirk) has no CommunityDragon entry",
+		)
+	})
+})
+
+describe("normalizeItems shop filter", () => {
+	const longSword = (dataDragonItems as DataDragonItems).data["1036"]
+	const overridesByRule = {
+		notPurchasable: {
+			id: "9001",
+			overrides: {
+				gold: { ...(longSword.gold as object), purchasable: false },
+			},
+		},
+		notOnSummonersRift: {
+			id: "9002",
+			overrides: { maps: { "11": false, "12": true } },
+		},
+		requiredChampion: {
+			id: "9003",
+			overrides: { requiredChampion: "Kalista" },
+		},
+		notInStore: { id: "9004", overrides: { inStore: false } },
+		hiddenFromAll: { id: "9005", overrides: { hideFromAll: true } },
+		// Guardian's Horn: flagged for map 11 but only listed for Swiftplay.
+		notInClassicItemList: { id: "2051", overrides: {} },
+	}
+
+	function dataDragonWithEveryRule(): DataDragonItems {
+		const items = structuredClone(dataDragonItems) as DataDragonItems
+		for (const { id, overrides } of Object.values(overridesByRule)) {
+			withLongSwordCopy(items, id, overrides)
+		}
+		return items
+	}
+
+	test("keeps only items buyable on Summoner's Rift", () => {
+		const ids = itemsOf(communityDragonBin, dataDragonWithEveryRule()).map(
+			(item) => item.id,
+		)
+		expect(ids).toEqual(["1036", "1042", "3134", "3135", "4645"])
+	})
+
+	test("counts removed items per rule", () => {
+		const { removed } = normalizeItems(
+			dataDragonWithEveryRule(),
+			communityDragonBin,
+			map11Bin,
+		)
+		expect(removed).toEqual({
+			notPurchasable: 1,
+			notOnSummonersRift: 1,
+			requiredChampion: 1,
+			notInStore: 1,
+			hiddenFromAll: 1,
+			notInClassicItemList: 1,
+		})
+	})
+
+	test("counts an item breaking several rules only under the first", () => {
+		const items = withLongSwordCopy(
+			structuredClone(dataDragonItems) as DataDragonItems,
+			"9001",
+			{ ...overridesByRule.notPurchasable.overrides, inStore: false },
+		)
+		const { removed } = normalizeItems(items, communityDragonBin, map11Bin)
+		expect(removed.notPurchasable).toBe(1)
+		expect(removed.notInStore).toBe(0)
+	})
+})
+
+describe("normalizeItems roles", () => {
+	type Bin = Record<string, Record<string, unknown>>
+
+	test("maps mItemAttributes to the in-game shop class filters", () => {
+		expect(itemOf("1036").roles).toEqual(["ASSASSIN", "FIGHTER", "MARKSMAN"])
+		expect(itemOf("3135").roles).toEqual(["MAGE"])
+	})
+
+	test("leaves roles empty when the item has no attributes", () => {
+		const bin = structuredClone(communityDragonBin) as Bin
+		delete bin["Items/3135"].mItemAttributes
+		expect(itemOf("3135", bin).roles).toEqual([])
+	})
+
+	test("fails the sync on an unknown attribute value", () => {
+		const bin = structuredClone(communityDragonBin) as Bin
+		bin["Items/3135"].mItemAttributes = [16, 64]
+		expect(() => itemsOf(bin)).toThrow(
+			"Item 3135: unknown mItemAttributes value 64",
 		)
 	})
 })
