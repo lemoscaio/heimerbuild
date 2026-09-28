@@ -4,7 +4,8 @@
   height: 100%;
   background: transparent;
 
-  &:focus {
+  // The global :focus-visible outline marks keyboard focus.
+  &:focus:not(:focus-visible) {
     outline: none;
   }
 

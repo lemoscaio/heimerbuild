@@ -10,11 +10,12 @@ export function SearchContainer(props: SearchContainerProps) {
 		<div className="champions-page__search-container search-container">
 			<input
 				className="search-container__input"
+				type="search"
 				placeholder="Search a champion"
+				aria-label="Search a champion"
 				value={search}
 				onChange={(e) => setSearch(e.target.value)}
-				autoFocus
-			></input>
+			/>
 		</div>
 	)
 }
