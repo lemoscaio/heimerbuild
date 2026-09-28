@@ -12,6 +12,8 @@ import { track } from "@/lib/analytics/analytics"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { LevelRowLayout } from "./level-row-layout"
 
+const LEVEL_TRACK_DELAY_MS = 800
+
 const levels = Array.from(
 	{ length: MAX_LEVEL - MIN_LEVEL + 1 },
 	(_, index) => MIN_LEVEL + index,
@@ -23,14 +25,19 @@ type LevelSelectorProps = {
 }
 
 export function LevelSelector({ level, onLevelChange }: LevelSelectorProps) {
-	// The slider changes the level on every tick: track only where a drag or key press ends.
+	// The slider changes the level on every tick and commits on every arrow key:
+	// track only the level the user settles on.
 	const trackedLevel = useRef(level)
+	const trackTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
 	function trackLevel(nextLevel: number) {
-		if (nextLevel !== trackedLevel.current) {
-			trackedLevel.current = nextLevel
-			track("level_changed", { level: nextLevel })
-		}
+		clearTimeout(trackTimeout.current)
+		trackTimeout.current = setTimeout(() => {
+			if (nextLevel !== trackedLevel.current) {
+				trackedLevel.current = nextLevel
+				track("level_changed", { level: nextLevel })
+			}
+		}, LEVEL_TRACK_DELAY_MS)
 	}
 
 	function handleSelect(nextLevel: number) {
