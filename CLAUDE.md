@@ -6,8 +6,6 @@ League of Legends build calculator: pick a champion, set its level (1-18), add u
 
 Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, TanStack Router, Zod, Biome, Tailwind 4 with shadcn/ui (Base UI primitives), Cloudflare Workers static assets.
 
-In progress: the SCSS in `src/styles/index.scss` is being migrated to Tailwind (#40).
-
 ## Commands
 
 ```bash
