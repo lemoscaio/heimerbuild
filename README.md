@@ -66,6 +66,25 @@ scripts/wt destroy <name> [--force]  # stop, remove, delete the branch once merg
 - `destroy` refuses when the worktree has uncommitted changes unless `--force`. It deletes the branch only when it is merged (a merged PR, including squash merges, or no commits beyond `origin/main`).
 - When run by Claude Code (`CLAUDECODE=1`), `create` prefixes the name with `claude-` and writes a `.claude-worktree` file (created, branch, purpose), which git ignores through `.git/info/exclude`.
 
+### Source layout
+
+`src/` is grouped by feature. Full rules and the "where does new code go" table: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
+
+```
+src/
+├── main.tsx      Vite entry
+├── app/          App, providers, query client, router, layouts
+├── routes/       thin route components that compose features
+├── features/     champions, build-calculator (a feature never imports another)
+├── data/         game data loading: services (fetch + Zod) and hooks
+├── components/   common/ shared app UI (ui/ for primitives, when they exist)
+├── lib/          pure code, including the stats engine in lib/stats
+├── assets/       images imported by code
+└── styles/       global SCSS
+```
+
+Files and folders are kebab-case, `@/` resolves to `src/`, and Biome enforces the naming and import rules in CI.
+
 ### Deployment
 
 The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. A small Worker (`worker/index.ts`) runs first for `/data/*` and `/assets/*` so missing files there return an uncached 404 instead of `index.html`. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).

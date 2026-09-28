@@ -2,7 +2,7 @@
 
 Target structure for `src/`, grouped by feature instead of by file type. Component and hook rules: [`.claude/rules/react-standards.md`](../.claude/rules/react-standards.md).
 
-> **Migration:** the current tree does not match this yet. **New code follows the target structure.** Existing code moves in #96 (kebab-case rename) and #42 (feature folders); see [Migration map](#migration-map).
+> **Migration:** the tree follows this structure since #96 (kebab-case) and #42 (feature folders). What is still pending is in the [Migration map](#migration-map).
 
 ## Target structure
 
@@ -84,29 +84,13 @@ import { computeStats } from "@/lib/stats/compute-stats"
 
 ## Migration map
 
+Moved in #96 and #42. Still pending:
+
 | Current | Target | Issue |
 | --- | --- | --- |
-| `src/main.tsx` | stays | |
-| `src/App.tsx` | `src/app/app.tsx` (named export) | #96, #42 |
-| `src/routes/Router.tsx` | `src/app/router.tsx`, then TanStack Router route files | #42, #35 |
-| `src/layouts/PageWithHeader/` | `src/app/layouts/page-with-header.tsx` | #42 |
-| `src/pages/ChampionChoose/index.tsx` | `src/routes/` (thin) + `features/champions/components/` | #42 |
-| `src/pages/ChampionChoose/components/*` | `features/champions/components/` | #42 |
-| `src/pages/ChampionChoose/filterChampions.ts` (+ test) | `features/champions/lib/filter-champions.ts` | #42 |
-| `src/pages/ChampionDetails/index.tsx` | `src/routes/` (thin) + `features/build-calculator`, `features/item-shop`, `features/champions` | #41, #42 |
-| `src/pages/ChampionDetails/components/ChampionSkills/` | `features/champions/components/champion-skills.tsx` | #42 |
-| `src/pages/ChampionDetails/legacyStats.ts` | deleted by the stats engine (PR 93) | #18 |
-| `src/lib/stats/` (PR 93, not on `main` yet) | stays; files renamed to kebab-case | #96 |
-| `src/components/AppName`, `Header`, `MainPageLogo` | `components/common/` | #42 |
-| `src/components/SearchContainer` | `features/champions/components/` (only consumer) | #42 |
-| `src/hooks/api/usePatchQuery.ts` | `data/hooks/`, replaced by query options | #42, #33 |
-| `src/hooks/api/useGetChampions`, `useGetChampionDetails`, `useGetItems` | `data/hooks/use-champions.ts`, `use-champion.ts`, `use-items.ts` | #42 |
-| `src/services/gameData.ts` (+ test) | `data/services/game-data.ts` | #42 |
-| `src/services/api/index.ts` (QueryClient) | `src/app/query-client.ts` | #42 |
-| `src/utils/statsInfo.ts` | `features/build-calculator/lib/` | #42 |
-| `src/utils/rolesInfo.ts` | `features/item-shop/lib/` | #42 |
+| `src/features/build-calculator/components/champion-details.tsx` (whole champion page, includes the item grid) | `LevelSlider`, `ItemSlots`, `StatsPanel` + `useBuild()` in `features/build-calculator`; `ItemShop` + `RoleFilter` in `features/item-shop`; `ChampionHeader` in `features/champions` | #41 |
+| `src/features/build-calculator/lib/roles-info.ts` | `features/item-shop/lib/` once `ItemShop` is extracted | #41 |
+| `src/app/router.tsx` + `src/routes/*-page.tsx` | TanStack Router route files | #35 |
+| `src/data/hooks/use-patch-query.ts` | query options | #33 |
 | `src/types/stats.ts` (empty) | deleted | #37 |
-| `src/assets/` | stays | |
 | `src/styles/` | replaced by Tailwind | #40 |
-
-Until a folder is migrated, do not add new files to `src/pages/`, `src/hooks/api/`, `src/services/` or `src/utils/`: put new code in its target location.
