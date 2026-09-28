@@ -4,9 +4,9 @@ League of Legends build calculator: pick a champion, set its level (1-18), add u
 
 ## Stack
 
-Bun, Vite, React, TypeScript, TanStack Query, Zod, Biome, SCSS, Cloudflare Workers static assets.
+Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query, Zod, Biome, SCSS, Cloudflare Workers static assets.
 
-Planned (check the issue before assuming it landed): Vite 8, React 19 + React Compiler, TypeScript 7 (#32), TanStack Query v5 (#33), TanStack Router (#35), Tailwind 4 (#40).
+Planned (check the issue before assuming it landed): TanStack Query v5 (#33), TanStack Router (#35), Tailwind 4 (#40).
 
 ## Commands
 
@@ -15,7 +15,7 @@ bun install           # install dependencies
 bun run dev           # Vite dev server
 bun run sync-data     # regenerate public/data/<patch>/ (--version x.y.z, --offline)
 bun run check         # Biome lint + format check (check:write to fix)
-bun run typecheck     # tsc --noEmit
+bun run typecheck     # tsc on the app (tsconfig.json) and on tests, scripts and worker (tsconfig.test.json)
 bun run test          # bun test
 bun run build         # typecheck + production build to dist/
 bun run preview:local # serve dist/ locally
@@ -51,6 +51,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 ## Testing
 
 - Behavior tests only, with `bun test`, co-located as `*.test.ts`.
+- Tests, `scripts/`, `worker/` and `vite.config.ts` are type-checked by `tsconfig.test.json` (Bun types). The app config `tsconfig.json` has no Bun or Node types, so browser code cannot use their globals.
 - Test pure logic where mistakes are costly: stats engine, data pipeline, Worker, filters.
 - A few Playwright end-to-end flows for the main user journeys (#76).
 - No snapshot tests (UI or data) and no tests that assert static text or markup.

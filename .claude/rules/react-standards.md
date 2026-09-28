@@ -84,7 +84,7 @@ export function StatRow({ stat, value, className, ...props }: StatRowProps) {
 }
 ```
 
-- `ref` is a regular prop; no `forwardRef` **(after #32, React 19)**.
+- `ref` is a regular prop; no `forwardRef` (React 19).
 
 ## Styling
 
@@ -191,4 +191,4 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 
 ## Performance
 
-- **(after #32, React Compiler)** Do not add `useMemo`, `useCallback` or `memo` for performance; the compiler handles it. Keep them only where referential identity is part of the contract.
+- The React Compiler is on (`vite.config.ts`). Do not add `useMemo`, `useCallback` or `memo` for performance; the compiler handles it. Keep them only where referential identity is part of the contract.
