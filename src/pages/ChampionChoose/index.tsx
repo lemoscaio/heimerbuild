@@ -1,7 +1,6 @@
 import { useState } from "react"
 
 import { AppName } from "../../components/AppName/"
-import { HeaderAlternative } from "../../components/HeaderAlternative/"
 import { MainPageLogo } from "../../components/MainPageLogo"
 import { SearchContainer } from "../../components/SearchContainer"
 import { useGetChampions } from "../../hooks/api/useGetChampions"
@@ -22,7 +21,6 @@ export function ChampionChoose() {
 
 	return (
 		<div className="page-container page-container--champions-page">
-			<HeaderAlternative></HeaderAlternative>
 			<main className="champions-page">
 				<AppName></AppName>
 				<MainPageLogo></MainPageLogo>
