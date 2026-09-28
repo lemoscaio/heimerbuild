@@ -3,8 +3,13 @@ import { RouteError } from "@/components/common/route-error"
 import { RoutePending } from "@/components/common/route-pending"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { GameDataUnavailableError } from "@/data/services/game-data"
-import { ChampionDetails } from "@/features/build-calculator/components/champion-details"
+import { ItemSlots } from "@/features/build-calculator/components/item-slots"
+import { LevelSelector } from "@/features/build-calculator/components/level-selector"
+import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
+import { useBuild } from "@/features/build-calculator/hooks/use-build"
 import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
+import { ChampionHeader } from "@/features/champions/components/champion-header"
+import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { pageWithHeaderRoute } from "./page-with-header-route"
 
 export const championRoute = createRoute({
@@ -28,6 +33,7 @@ export const championRoute = createRoute({
 			}
 			throw error
 		}
+		return { patch: currentPatch }
 	},
 	component: ChampionPage,
 	pendingComponent: RoutePending,
@@ -37,8 +43,31 @@ export const championRoute = createRoute({
 
 function ChampionPage() {
 	const { key } = championRoute.useParams()
+	const { patch } = championRoute.useLoaderData()
+	const build = useBuild(patch, key)
 
-	return <ChampionDetails championKey={key} />
+	return (
+		<div className="width-container">
+			<div className="page-container page-container--champion-page">
+				<div className="widthWrapper">
+					{build.champion && (
+						<main className="champion-page">
+							<div className="champion-page__champion-info champion-info">
+								<ChampionHeader champion={build.champion} />
+								<LevelSelector
+									level={build.level}
+									onLevelChange={build.setLevel}
+								/>
+								<ItemSlots items={build.items} onItemClick={build.toggleItem} />
+								<ItemShop patch={patch} onItemClick={build.toggleItem} />
+								{build.stats && <StatsPanel stats={build.stats} />}
+							</div>
+						</main>
+					)}
+				</div>
+			</div>
+		</div>
+	)
 }
 
 function ChampionNotFound() {
