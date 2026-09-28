@@ -1,6 +1,7 @@
 import {
 	type APIRequestContext,
 	test as base,
+	expect,
 	type Locator,
 	type Page,
 } from "@playwright/test"
@@ -9,7 +10,8 @@ import { dataManifestSchema } from "../scripts/sync-data/schemas/manifest"
 
 /**
  * Every flow runs with Data Dragon blocked (behavior must never depend on icons loading)
- * and marked as E2E, so the app never starts Sentry (src/app/sentry.ts).
+ * and marked as E2E, so the app never starts Sentry or PostHog (src/app/should-init-telemetry.ts).
+ * A flow fails if anything still reaches PostHog or its proxy.
  */
 export const test = base.extend({
 	context: async ({ context }, use) => {
@@ -19,7 +21,18 @@ export const test = base.extend({
 		await context.route(/^https:\/\/ddragon\.leagueoflegends\.com\//, (route) =>
 			route.abort(),
 		)
+		const analyticsRequests: string[] = []
+		context.on("request", (request) => {
+			const { hostname, pathname } = new URL(request.url())
+			if (
+				pathname.startsWith("/ingest/") ||
+				hostname.endsWith(".posthog.com")
+			) {
+				analyticsRequests.push(request.url())
+			}
+		})
 		await use(context)
+		expect(analyticsRequests, "E2E runs must not send analytics").toEqual([])
 	},
 })
 
