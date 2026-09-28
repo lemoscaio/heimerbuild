@@ -8,7 +8,10 @@ import {
 	type ItemsFile,
 	ItemsFileSchema,
 } from "../../../scripts/sync-data/schemas/item"
-import { dataManifestSchema } from "../../../scripts/sync-data/schemas/manifest"
+import {
+	type DataManifest,
+	dataManifestSchema,
+} from "../../../scripts/sync-data/schemas/manifest"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
 
@@ -44,13 +47,35 @@ export function fetchManifest() {
 	return fetchGameData("/data/manifest.json", dataManifestSchema)
 }
 
-export function fetchChampionIndex(patch: string) {
-	return fetchGameData(`/data/${patch}/champions.json`, championIndexSchema)
+export type DataFileHashes = DataManifest["files"]
+
+/**
+ * `/data/<segments>?v=<content hash>`: a fixed file gets a new URL, so the one-year
+ * immutable cache never serves the old one. Files missing from the manifest keep a plain URL.
+ */
+export function dataFileUrl(
+	segments: readonly string[],
+	files: DataFileHashes,
+): string {
+	const url = `/data/${segments.map(encodeURIComponent).join("/")}`
+	const hash = files[segments.join("/")]
+	return hash ? `${url}?v=${hash}` : url
 }
 
-export function fetchChampion(patch: string, key: string) {
+export function fetchChampionIndex(patch: string, files: DataFileHashes) {
 	return fetchGameData(
-		`/data/${patch}/champions/${encodeURIComponent(key)}.json`,
+		dataFileUrl([patch, "champions.json"], files),
+		championIndexSchema,
+	)
+}
+
+export function fetchChampion(
+	patch: string,
+	key: string,
+	files: DataFileHashes,
+) {
+	return fetchGameData(
+		dataFileUrl([patch, "champions", `${key}.json`], files),
 		championSchema,
 	)
 }
@@ -67,8 +92,14 @@ export function toItemsById({ version, items }: ItemsFile): ItemsById {
 	)
 }
 
-export async function fetchItems(patch: string): Promise<ItemsById> {
+export async function fetchItems(
+	patch: string,
+	files: DataFileHashes,
+): Promise<ItemsById> {
 	return toItemsById(
-		await fetchGameData(`/data/${patch}/items.json`, ItemsFileSchema),
+		await fetchGameData(
+			dataFileUrl([patch, "items.json"], files),
+			ItemsFileSchema,
+		),
 	)
 }

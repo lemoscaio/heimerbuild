@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query"
+import { type QueryClient, queryOptions } from "@tanstack/react-query"
 import {
 	fetchChampion,
 	fetchChampionIndex,
@@ -12,10 +12,15 @@ function retryUnlessUnavailable(failureCount: number, error: Error) {
 	return !(error instanceof GameDataUnavailableError) && failureCount < 3
 }
 
-// Patch files are immutable; the manifest is read once per session.
+// Patch files are versioned by content hash; the manifest is read once per session.
 const gameDataDefaults = {
 	staleTime: Number.POSITIVE_INFINITY,
 	retry: retryUnlessUnavailable,
+}
+
+async function dataFileHashes(client: QueryClient) {
+	const { files } = await client.ensureQueryData(gameDataQueries.manifest())
+	return files
 }
 
 export const gameDataQueries = {
@@ -30,19 +35,22 @@ export const gameDataQueries = {
 	champions: (patch: string) =>
 		queryOptions({
 			queryKey: [...gameDataQueries.patch(patch), "champions"],
-			queryFn: () => fetchChampionIndex(patch),
+			queryFn: async ({ client }) =>
+				fetchChampionIndex(patch, await dataFileHashes(client)),
 			...gameDataDefaults,
 		}),
 	champion: (patch: string, key: string) =>
 		queryOptions({
 			queryKey: [...gameDataQueries.patch(patch), "champions", key],
-			queryFn: () => fetchChampion(patch, key),
+			queryFn: async ({ client }) =>
+				fetchChampion(patch, key, await dataFileHashes(client)),
 			...gameDataDefaults,
 		}),
 	items: (patch: string) =>
 		queryOptions({
 			queryKey: [...gameDataQueries.patch(patch), "items"],
-			queryFn: () => fetchItems(patch),
+			queryFn: async ({ client }) =>
+				fetchItems(patch, await dataFileHashes(client)),
 			...gameDataDefaults,
 		}),
 }
