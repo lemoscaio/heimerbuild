@@ -7,9 +7,15 @@ import {
 import { type Item, ItemsFileSchema } from "../scripts/sync-data/schemas/item"
 import { dataManifestSchema } from "../scripts/sync-data/schemas/manifest"
 
-/** Every flow runs with Data Dragon blocked: behavior must never depend on icons loading. */
+/**
+ * Every flow runs with Data Dragon blocked (behavior must never depend on icons loading)
+ * and marked as E2E, so the app never starts Sentry (src/app/sentry.ts).
+ */
 export const test = base.extend({
 	context: async ({ context }, use) => {
+		await context.addInitScript(() => {
+			Object.assign(window, { __HB_E2E__: true })
+		})
 		await context.route(/^https:\/\/ddragon\.leagueoflegends\.com\//, (route) =>
 			route.abort(),
 		)

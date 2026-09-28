@@ -1,3 +1,6 @@
+import { SENTRY_TUNNEL_PATH } from "../src/app/sentry-config"
+import { forwardEnvelope } from "./sentry-tunnel"
+
 type Env = {
 	ASSETS: { fetch: (request: Request) => Promise<Response> }
 }
@@ -16,8 +19,12 @@ function isHtml(response: Response): boolean {
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
-		const response = await env.ASSETS.fetch(request)
 		const { pathname } = new URL(request.url)
+		if (pathname === SENTRY_TUNNEL_PATH) {
+			return forwardEnvelope(request)
+		}
+
+		const response = await env.ASSETS.fetch(request)
 
 		const isMissing = response.status === 404 || isHtml(response)
 		if (!isStaticPath(pathname) || !isMissing) {

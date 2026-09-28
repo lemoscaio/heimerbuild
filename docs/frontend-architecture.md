@@ -8,8 +8,8 @@ Target structure for `src/`, grouped by feature instead of by file type. Compone
 
 ```
 src/
-├── main.tsx              Vite entry: mounts <App /> and global styles, nothing else
-├── app/                  app shell: App, providers, query client, router (route tree)
+├── main.tsx              Vite entry: starts Sentry, mounts <App /> and global styles, nothing else
+├── app/                  app shell: App, providers, query client, router (route tree), Sentry setup
 ├── routes/               TanStack Router code routes: one *-route.tsx per route
 ├── features/             feature slices, never import each other
 │   ├── champions/        champion grid, search, champion header and skills
