@@ -1,16 +1,12 @@
-import { type ChangeEvent, useCallback, useState } from "react"
+import { type ChangeEvent, useState } from "react"
 import { useParams } from "react-router-dom"
 import { DotLoader } from "react-spinners"
 import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
 import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
 import { useGetItems } from "../../hooks/api/useGetItems"
+import { type ComputedStats, computeStats } from "../../lib/stats/computeStats"
 import { type ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
-import { statsInfo } from "../../utils/statsInfo"
-import {
-	type LegacyStats,
-	toLegacyChampionStats,
-	toLegacyItemStats,
-} from "./legacyStats"
+import { formatStat, statRows } from "../../utils/statsInfo"
 
 export function ChampionDetails() {
 	const MAX_LEVEL = 18
@@ -75,108 +71,13 @@ export function ChampionDetails() {
 
 	const [chosenItems, setChosenItems] = useState<number[]>([])
 
-	type ChampionStatsType = {
-		[key: string]: number
-	}
-
-	// TODO IMPROVE STATS TYPE
-
-	const updateEachStatOnLeveLChange = useCallback(
-		(stats: LegacyStats, championStats: ChampionStatsType) => {
-			for (const stat in stats) {
-				if (stat === "attackSpeed") {
-					const newSpeedvalue =
-						stats[stat].flat *
-						(1 + (championLevel * stats[stat].perLevel) / 100)
-					championStats[stat] = Number(newSpeedvalue.toFixed(2))
-				} else {
-					championStats[stat] = Number(
-						(stats[stat].flat + championLevel * stats[stat].perLevel).toFixed(
-							2,
-						),
-					)
-				}
-			}
-
-			statsInfo.order.forEach((stat) => {
-				if (championStats[stat] === undefined) {
-					championStats[stat] = 0
-				}
-			})
-		},
-		[championLevel],
-	)
-
-	const updateEachStatOnItemChange = useCallback(
-		(championStats: ChampionStatsType) => {
-			if (items && chosenItems.length > 0) {
-				chosenItems.forEach((itemId) => {
-					const itemStats = toLegacyItemStats(items[itemId].stats)
-
-					Object.keys(itemStats).map((statName) => {
-						const stat = itemStats[statName]
-
-						let correctLabel
-						if (championStats[statName] !== undefined) {
-							correctLabel = statName
-						} else if (
-							championStats[statsInfo.alternativeLabels[statName]?.label] !==
-							undefined
-						) {
-							correctLabel = statsInfo.alternativeLabels[statName].label
-						} else if (statName === "magicPenetration") {
-							const oldFlatMagicPenValue = championStats["flatMagicPenetration"]
-							const oldPercentMagicPenValue =
-								championStats["percentageMagicPenetration"]
-
-							championStats["flatMagicPenetration"] =
-								oldFlatMagicPenValue + stat.flat
-							championStats["percentageMagicPenetration"] =
-								oldPercentMagicPenValue + 1 * stat.percent
-						}
-
-						if (correctLabel !== undefined) {
-							const oldStatValue = championStats[correctLabel]
-
-							if (correctLabel === "attackSpeed") {
-								const newSpeedvalue = oldStatValue * (1 + stat.flat / 100)
-								championStats[correctLabel] = Number(newSpeedvalue.toFixed(2))
-							} else {
-								championStats[correctLabel] =
-									oldStatValue + stat.flat + 1 * stat.percent
-							}
-						}
-					})
-				})
-			}
-		},
-		[chosenItems],
-	)
-
-	const legacyChampionStats =
-		championInfo && toLegacyChampionStats(championInfo.stats)
-
-	function setBaseChampionStats() {
-		const championStats: ChampionStatsType = {}
-
-		legacyChampionStats &&
-			updateEachStatOnLeveLChange(legacyChampionStats, championStats)
-
-		return championStats
-	}
-
-	function setChampionStats() {
-		const championStats: ChampionStatsType = {}
-
-		legacyChampionStats &&
-			updateEachStatOnLeveLChange(legacyChampionStats, championStats)
-		championInfo && updateEachStatOnItemChange(championStats)
-
-		return championStats
-	}
-
-	const baseChampionstats = setBaseChampionStats()
-	const championStats = setChampionStats()
+	const computedStats =
+		championInfo &&
+		computeStats(
+			championInfo,
+			championLevel + 1,
+			items ? chosenItems.map((itemId) => items[itemId]) : [],
+		)
 
 	function handleItemClick(
 		e: React.MouseEvent<HTMLElement, MouseEvent>,
@@ -383,37 +284,26 @@ export function ChampionDetails() {
 		)
 	}
 
-	function createChampionStatsElement() {
-		// const statsElements = []
-
-		const statsElements = statsInfo.order.map((stat) => {
-			const totalStat = championStats[stat]
-			const baseStat = baseChampionstats[stat]
-			const additionalStat = Number((totalStat - baseStat).toFixed(2))
-
-			const statIcon =
-				statsInfo.labels[stat]?.icon && statsInfo.labels[stat]?.icon
-			const statLabel = statsInfo.labels[stat].label
-			const statSufix =
-				statsInfo.labels[stat].suffix && statsInfo.labels[stat].suffix
+	function createChampionStatsElement(stats: ComputedStats) {
+		const statsElements = statRows.map(({ stat, label, icon, format }) => {
+			const { base, bonus, total } = stats[stat]
 
 			return (
-				<li className="stats__stat">
-					<img src={statIcon} className="stats__stat-icon"></img>
+				<li className="stats__stat" key={stat}>
+					<img src={icon} alt="" className="stats__stat-icon" />
 					<div className="stats__stat-numbers">
-						{additionalStat ? (
+						{bonus !== 0 ? (
 							<>
-								{statLabel}: {totalStat}
-								{statSufix} ({baseStat} +{" "}
+								{label}: {formatStat(total, format)} ({formatStat(base, format)}{" "}
+								+{" "}
 								<span className="stats__stat--additional">
-									{additionalStat}
+									{formatStat(bonus, format)}
 								</span>
 								)
 							</>
 						) : (
 							<>
-								{statLabel}: {totalStat}
-								{statSufix}
+								{label}: {formatStat(total, format)}
 							</>
 						)}
 					</div>
@@ -468,7 +358,7 @@ export function ChampionDetails() {
               ></ChampionSkills> */}
 									{createChosenItemsElement()}
 									{createItemsElement()}
-									{createChampionStatsElement()}
+									{computedStats && createChampionStatsElement(computedStats)}
 								</div>
 							</main>
 						) : (
