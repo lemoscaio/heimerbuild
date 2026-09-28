@@ -38,6 +38,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
    Item stats must also match the `<stats>` block of each Data Dragon item description; known differences go in `ITEM_STAT_ALLOWLIST` (`scripts/sync-data/validate-item-stats.ts`), each with a reason.
 3. It writes `public/data/<patch>/{champions.json, champions/<key>.json, items.json}` and `public/data/manifest.json`.
 4. The app reads the manifest for the current patch, then fetches that patch's files and parses them with the same schemas. Files are immutable per patch.
+5. `.github/workflows/sync-data.yml` runs the sync daily and opens a PR (`chore/sync-game-data`) when a new patch ships; it never pushes to `main`.
 
 ## Conventions
 
