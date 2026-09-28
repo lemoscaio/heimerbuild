@@ -15,7 +15,7 @@ https://github.com/lemoscaio/heimerbuild/assets/74937642/0db701dd-f5d7-47ce-bb57
 ## Features
 
 - All champions with updated stats
-- Choose a champion and see all base stats of it
+- Choose a champion and see all base stats of it, its roles, attack type and lore
 - Change the champion level and see the stats update to the chosen level
 - Chose up to 6 items and see the additional stats given by them
 - Filter the items by champion role and by stats, and sort them by a stat

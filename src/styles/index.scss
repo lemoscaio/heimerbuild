@@ -240,6 +240,37 @@ body {
       font-size: em(16);
     }
 
+    &__traits {
+      margin-top: 4px;
+
+      color: $adobe-5-hex;
+      font-family: $main-font;
+      font-size: em(13);
+    }
+
+    &__lore {
+      padding: 10px 15px 0;
+
+      background-color: $color-primary-3;
+      color: white;
+      font-size: em(13);
+    }
+
+    &__lore-toggle {
+      width: max-content;
+
+      color: $adobe-5-hex;
+
+      cursor: pointer;
+    }
+
+    &__lore-text {
+      margin-top: 6px;
+
+      color: #d6d4e0;
+      line-height: 1.5;
+    }
+
     &__header-actions {
       margin-left: auto;
       align-self: flex-start;
@@ -530,6 +561,10 @@ body {
 .copy-build-link {
   @include flex(column, flex-start, flex-end);
   gap: 4px;
+
+  &__button {
+    white-space: nowrap;
+  }
 
   &__status {
     min-height: 1em;
