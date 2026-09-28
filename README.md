@@ -75,7 +75,7 @@ src/
 ├── main.tsx      Vite entry
 ├── app/          App, providers, query client, router
 ├── routes/       TanStack Router routes: loaders, search schemas, thin pages
-├── features/     champions, build-calculator (a feature never imports another)
+├── features/     champions, build-calculator, item-shop (a feature never imports another)
 ├── data/         game data loading: services (fetch + Zod) and hooks
 ├── components/   common/ shared app UI (ui/ for primitives, when they exist)
 ├── lib/          pure code, including the stats engine in lib/stats
