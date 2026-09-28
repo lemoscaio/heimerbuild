@@ -103,7 +103,10 @@ export function computeStats(
 	)
 
 	const critChance = statAtLevel(stats.critChance, level)
-	computed.critChance = breakdown(critChance, critChance + critChancePercent)
+	computed.critChance = breakdown(
+		critChance,
+		Math.min(1, critChance + critChancePercent),
+	)
 
 	const movementSpeed = statAtLevel(stats.movementSpeed, level)
 	computed.movementSpeed = breakdown(
