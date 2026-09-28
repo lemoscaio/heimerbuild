@@ -1,0 +1,230 @@
+{
+	"type": "item",
+	"version": "16.19.1",
+	"data": {
+		"1036": {
+			"name": "Long Sword",
+			"description": "<mainText><stats><attention>10</attention> Attack Damage</stats><br><br></mainText>",
+			"colloq": ";",
+			"plaintext": "Slightly increases Attack Damage",
+			"into": [
+				"1053",
+				"4003",
+				"6701",
+				"2015",
+				"2019",
+				"2021",
+				"3077",
+				"6670",
+				"3133",
+				"2517",
+				"323004",
+				"3142",
+				"3004",
+				"2523",
+				"3032",
+				"3035",
+				"3044",
+				"3051",
+				"3155",
+				"6690",
+				"3123",
+				"3134",
+				"6699",
+				"6671",
+				"6692"
+			],
+			"image": {
+				"full": "1036.png",
+				"sprite": "item0.png",
+				"group": "item",
+				"x": 96,
+				"y": 48,
+				"w": 48,
+				"h": 48
+			},
+			"gold": {
+				"base": 350,
+				"purchasable": true,
+				"total": 350,
+				"sell": 245
+			},
+			"tags": ["Damage", "Lane"],
+			"maps": {
+				"11": true,
+				"12": true,
+				"22": false,
+				"30": false,
+				"453": true
+			},
+			"stats": {
+				"FlatPhysicalDamageMod": 10
+			}
+		},
+		"1042": {
+			"name": "Dagger",
+			"description": "<mainText><stats><attention>10%</attention> Attack Speed</stats><br><br></mainText>",
+			"colloq": ";",
+			"plaintext": "Slightly increases Attack Speed",
+			"into": [
+				"1043",
+				"3086",
+				"2510",
+				"3006",
+				"3046",
+				"3051",
+				"3073",
+				"3131",
+				"3144",
+				"6631",
+				"6675",
+				"6677"
+			],
+			"image": {
+				"full": "1042.png",
+				"sprite": "item0.png",
+				"group": "item",
+				"x": 336,
+				"y": 48,
+				"w": 48,
+				"h": 48
+			},
+			"gold": {
+				"base": 250,
+				"purchasable": true,
+				"total": 250,
+				"sell": 175
+			},
+			"tags": ["AttackSpeed"],
+			"maps": {
+				"11": true,
+				"12": true,
+				"22": false,
+				"30": false,
+				"453": true
+			},
+			"stats": {
+				"PercentAttackSpeedMod": 0.1
+			}
+		},
+		"3134": {
+			"name": "Serrated Dirk",
+			"description": "<mainText><stats><attention>20</attention> Attack Damage<br><attention>10</attention> Lethality</stats><br><br></mainText>",
+			"colloq": ";lethality",
+			"plaintext": "Increases Attack Damage and Lethality",
+			"stacks": 0,
+			"from": ["1036", "1036"],
+			"into": [
+				"3142",
+				"667666",
+				"126697",
+				"6697",
+				"6701",
+				"6693",
+				"2520",
+				"4004",
+				"6695",
+				"3814",
+				"3131",
+				"3179",
+				"6691",
+				"6676"
+			],
+			"image": {
+				"full": "3134.png",
+				"sprite": "item3.png",
+				"group": "item",
+				"x": 96,
+				"y": 432,
+				"w": 48,
+				"h": 48
+			},
+			"gold": {
+				"base": 300,
+				"purchasable": true,
+				"total": 1000,
+				"sell": 700
+			},
+			"tags": ["Damage", "ArmorPenetration"],
+			"maps": {
+				"11": true,
+				"12": true,
+				"22": false,
+				"30": false,
+				"453": true
+			},
+			"stats": {
+				"FlatPhysicalDamageMod": 20
+			},
+			"depth": 2
+		},
+		"3135": {
+			"name": "Void Staff",
+			"description": "<mainText><stats><attention>95</attention> Ability Power<br><attention>40%</attention> Magic Penetration</stats><br><br></mainText>",
+			"colloq": ";",
+			"plaintext": "Increases magic damage",
+			"from": ["4630", "1026"],
+			"image": {
+				"full": "3135.png",
+				"sprite": "item3.png",
+				"group": "item",
+				"x": 144,
+				"y": 432,
+				"w": 48,
+				"h": 48
+			},
+			"gold": {
+				"base": 1050,
+				"purchasable": true,
+				"total": 3000,
+				"sell": 2100
+			},
+			"tags": ["MagicPenetration", "SpellDamage"],
+			"maps": {
+				"11": true,
+				"12": true,
+				"22": false,
+				"30": false,
+				"453": true
+			},
+			"stats": {
+				"FlatMagicDamageMod": 95
+			},
+			"depth": 3
+		},
+		"4645": {
+			"name": "Shadowflame",
+			"description": "<mainText><stats><attention>110</attention> Ability Power<br><attention>15</attention> Magic Penetration</stats><br><br><passive>Cinderbloom</passive><br><magicDamage>Magic</magicDamage> and <trueDamage>true damage</trueDamage> <attention>Critically Strike</attention> enemies below 40% Health, dealing 20% increased damage. </mainText>",
+			"colloq": "",
+			"plaintext": "",
+			"from": ["3145", "1058"],
+			"image": {
+				"full": "4645.png",
+				"sprite": "item5.png",
+				"group": "item",
+				"x": 240,
+				"y": 336,
+				"w": 48,
+				"h": 48
+			},
+			"gold": {
+				"base": 900,
+				"purchasable": true,
+				"total": 3200,
+				"sell": 2240
+			},
+			"tags": ["SpellDamage", "MagicPenetration"],
+			"maps": {
+				"11": true,
+				"12": true,
+				"22": false,
+				"30": false,
+				"453": true
+			},
+			"stats": {
+				"FlatMagicDamageMod": 110
+			},
+			"depth": 3
+		}
+	}
+}

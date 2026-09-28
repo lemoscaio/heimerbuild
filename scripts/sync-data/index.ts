@@ -7,6 +7,7 @@ import {
 	MANIFEST_FILE,
 	type RawDataManifest,
 } from "./download"
+import { syncItems } from "./normalize-items"
 import {
 	assertValidVersion,
 	compareVersions,
@@ -14,6 +15,7 @@ import {
 } from "./version"
 
 const CACHE_ROOT = resolve(import.meta.dir, "../../.cache")
+const OUTPUT_ROOT = resolve(import.meta.dir, "../../public/data")
 
 const USAGE = `Usage: bun run sync-data [--version <x.y.z>] [--offline]
 
@@ -67,6 +69,16 @@ async function resolveVersion(options: {
 	return resolveLatestVersion()
 }
 
+async function writeOutputs(version: string): Promise<void> {
+	const items = await syncItems({
+		cacheDir: join(CACHE_ROOT, version),
+		outDir: join(OUTPUT_ROOT, version),
+	})
+	console.log(
+		`Wrote public/data/${version}/items.json (${items.count} items, ${formatBytes(items.bytes)})`,
+	)
+}
+
 async function main(): Promise<void> {
 	const { values } = parseArgs({
 		options: {
@@ -89,6 +101,7 @@ async function main(): Promise<void> {
 		console.log(
 			`Cache hit: .cache/${version} (${summarize(cached)}), no download needed`,
 		)
+		await writeOutputs(version)
 		return
 	}
 	if (values.offline) {
@@ -116,6 +129,7 @@ async function main(): Promise<void> {
 	} finally {
 		await rm(tmp, { recursive: true, force: true })
 	}
+	await writeOutputs(version)
 }
 
 main().catch((error: unknown) => {

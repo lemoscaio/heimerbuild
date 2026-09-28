@@ -1,0 +1,293 @@
+{
+	"Items/1036": {
+		"mDisplayName": "Item_1036_Name",
+		"itemID": 1036,
+		"maxStack": 1,
+		"mItemGroups": ["Items/ItemGroups/Default"],
+		"price": 350,
+		"mCanBeSold": true,
+		"mFlatPhysicalDamageMod": 10,
+		"mCategories": ["Damage", "Lane"],
+		"mItemDataAvailability": {
+			"mInStore": true,
+			"__type": "ItemDataAvailability"
+		},
+		"mItemAttributes": [1, 2, 4],
+		"mItemDataClient": {
+			"mTooltipData": {
+				"mObjectName": "1036",
+				"mFormat": "{32559c50}",
+				"mLocKeys": {
+					"keyName": "Item_1036_Name",
+					"keyColloquialism": "Item_1036_Colloquialism"
+				},
+				"mLists": {
+					"Stats": {
+						"Elements": [
+							{
+								"type": "AttackDamage",
+								"__type": "TooltipInstanceListElement"
+							}
+						],
+						"__type": "TooltipInstanceList"
+					}
+				},
+				"__type": "TooltipInstanceItem"
+			},
+			"mDescription": "GeneratedTip_Item_1036_Description",
+			"mDynamicTooltip": "GeneratedTip_Item_1036_TooltipInventory",
+			"mShopTooltip": "GeneratedTip_Item_1036_TooltipShop",
+			"inventoryIcon": "assets/items/icons2d/1036_class_t1_longsword.dds",
+			"InventoryIconSmall": "ASSETS/Items/Icons2D/AutoAtlas/SmallIcons/1036_Class_T1_LongSword.png",
+			"__type": "ItemDataClient"
+		},
+		"__type": "ItemData"
+	},
+	"Items/1042": {
+		"mDisplayName": "Item_1042_Name",
+		"itemID": 1042,
+		"maxStack": 1,
+		"mItemGroups": ["Items/ItemGroups/Default"],
+		"price": 250,
+		"mCanBeSold": true,
+		"mPercentAttackSpeedMod": 0.10000000149011612,
+		"mCategories": ["AttackSpeed"],
+		"mItemDataAvailability": {
+			"mInStore": true,
+			"__type": "ItemDataAvailability"
+		},
+		"mItemAttributes": [2, 1, 4],
+		"mItemDataClient": {
+			"mTooltipData": {
+				"mObjectName": "1042",
+				"mFormat": "{32559c50}",
+				"mLocKeys": {
+					"keyName": "Item_1042_Name",
+					"keyColloquialism": "Item_1042_Colloquialism"
+				},
+				"mLists": {
+					"Stats": {
+						"Elements": [
+							{
+								"type": "AttackSpeed",
+								"__type": "TooltipInstanceListElement"
+							}
+						],
+						"__type": "TooltipInstanceList"
+					}
+				},
+				"__type": "TooltipInstanceItem"
+			},
+			"mDescription": "GeneratedTip_Item_1042_Description",
+			"mDynamicTooltip": "GeneratedTip_Item_1042_TooltipInventory",
+			"mShopTooltip": "GeneratedTip_Item_1042_TooltipShop",
+			"inventoryIcon": "assets/items/icons2d/1042_base_t1_dagger.dds",
+			"InventoryIconSmall": "ASSETS/Items/Icons2D/AutoAtlas/SmallIcons/1042_Base_T1_Dagger.png",
+			"__type": "ItemDataClient"
+		},
+		"__type": "ItemData"
+	},
+	"Items/3134": {
+		"mDisplayName": "Item_3134_Name",
+		"itemID": 3134,
+		"mItemGroups": ["Items/ItemGroups/Default", "{1c3fcb8a}"],
+		"price": 300,
+		"mCanBeSold": true,
+		"epicness": 4,
+		"recipeItemLinks": ["Items/1036", "Items/1036"],
+		"mDataValues": [
+			{
+				"mName": "LethalityAmount",
+				"mValue": 10,
+				"__type": "ItemDataValue"
+			}
+		],
+		"mFlatPhysicalDamageMod": 20,
+		"PhysicalLethality": 10,
+		"mItemDataBuild": {
+			"itemLinks": ["Items/3142"],
+			"__type": "ItemDataBuild"
+		},
+		"mCategories": ["Damage", "ArmorPenetration"],
+		"mItemDataAvailability": {
+			"mInStore": true,
+			"__type": "ItemDataAvailability"
+		},
+		"mItemAttributes": [4, 2],
+		"mItemDataClient": {
+			"mTooltipData": {
+				"mObjectName": "3134",
+				"mFormat": "{32559c50}",
+				"mLocKeys": {
+					"keyName": "Item_3134_Name",
+					"keyColloquialism": "Item_3134_Colloquialism",
+					"keySecondaryBrief": "Item_3134_SecondaryBrief"
+				},
+				"mLists": {
+					"Stats": {
+						"Elements": [
+							{
+								"type": "AttackDamage",
+								"__type": "TooltipInstanceListElement"
+							},
+							{
+								"type": "Lethality",
+								"__type": "TooltipInstanceListElement"
+							}
+						],
+						"__type": "TooltipInstanceList"
+					}
+				},
+				"__type": "TooltipInstanceItem"
+			},
+			"mDescription": "GeneratedTip_Item_3134_Description",
+			"mDynamicTooltip": "GeneratedTip_Item_3134_TooltipInventory",
+			"mShopTooltip": "GeneratedTip_Item_3134_TooltipShop",
+			"inventoryIcon": "assets/items/icons2d/3134_assassin_t2_serrateddirk.dds",
+			"InventoryIconSmall": "ASSETS/Items/Icons2D/AutoAtlas/SmallIcons/3134_Assassin_T2_SerratedDirk.png",
+			"InventoryIconLarge": "ASSETS/Items/Icons2D/AutoAtlas/LargeIcons/3134_Assassin_T2_SerratedDirk.png",
+			"epicness": 4,
+			"__type": "ItemDataClient"
+		},
+		"__type": "ItemData"
+	},
+	"Items/3135": {
+		"mDisplayName": "Item_3135_Name",
+		"itemID": 3135,
+		"maxStack": 1,
+		"mItemGroups": ["Items/ItemGroups/Default", "Items/ItemGroups/VoidPen"],
+		"mItemAdviceAttributes": ["{6b46d6ab}"],
+		"price": 1050,
+		"mItemCalloutSpectator": true,
+		"mCanBeSold": true,
+		"epicness": 5,
+		"recipeItemLinks": ["Items/4630", "Items/1026"],
+		"mEffectAmount": [0],
+		"mPercentMagicPenetrationMod": 0.4000000059604645,
+		"mFlatMagicDamageMod": 95,
+		"mCategories": ["MagicPenetration", "SpellDamage"],
+		"mItemDataAvailability": {
+			"mInStore": true,
+			"__type": "ItemDataAvailability"
+		},
+		"mItemAttributes": [16],
+		"mItemDataClient": {
+			"mTooltipData": {
+				"mObjectName": "3135",
+				"mFormat": "{32559c50}",
+				"mLocKeys": {
+					"keyName": "Item_3135_Name",
+					"keyBrief": "Item_3135_Brief",
+					"keyColloquialism": "Item_3135_Colloquialism",
+					"keySecondaryBrief": "Item_Unique_Blight"
+				},
+				"mLists": {
+					"Stats": {
+						"Elements": [
+							{
+								"type": "AbilityPower",
+								"__type": "TooltipInstanceListElement"
+							},
+							{
+								"type": "MagicPenPercent",
+								"__type": "TooltipInstanceListElement"
+							}
+						],
+						"__type": "TooltipInstanceList"
+					}
+				},
+				"__type": "TooltipInstanceItem"
+			},
+			"mDescription": "GeneratedTip_Item_3135_Description",
+			"mDynamicTooltip": "GeneratedTip_Item_3135_TooltipInventory",
+			"mShopTooltip": "GeneratedTip_Item_3135_TooltipShop",
+			"inventoryIcon": "assets/items/icons2d/3135_mage_t3_voidstaff.dds",
+			"InventoryIconSmall": "ASSETS/Items/Icons2D/AutoAtlas/SmallIcons/3135_Mage_T3_VoidStaff.png",
+			"InventoryIconLarge": "ASSETS/Items/Icons2D/AutoAtlas/LargeIcons/3135_Mage_T3_VoidStaff.png",
+			"epicness": 5,
+			"__type": "ItemDataClient"
+		},
+		"__type": "ItemData"
+	},
+	"Items/4645": {
+		"mDisplayName": "Item_4645_Name",
+		"itemID": 4645,
+		"maxStack": 1,
+		"mItemGroups": ["Items/ItemGroups/Default", "{bd7d02c0}"],
+		"mItemAdviceAttributes": ["{8fd6c485}"],
+		"price": 900,
+		"mItemCalloutSpectator": true,
+		"mCanBeSold": true,
+		"epicness": 5,
+		"recipeItemLinks": ["Items/3145", "Items/1058"],
+		"mDataValues": [
+			{
+				"mName": "HealthThreshold",
+				"mValue": 0.4000000059604645,
+				"__type": "ItemDataValue"
+			},
+			{
+				"mName": "SpellItemDamageAmp",
+				"mValue": 0.20000000298023224,
+				"__type": "ItemDataValue"
+			},
+			{
+				"mName": "DamageOverTimeAmp",
+				"mValue": 0.20000000298023224,
+				"__type": "ItemDataValue"
+			}
+		],
+		"mFlatMagicPenetrationMod": 15,
+		"mFlatMagicDamageMod": 110,
+		"mCategories": ["SpellDamage", "MagicPenetration"],
+		"mItemDataAvailability": {
+			"mInStore": true,
+			"__type": "ItemDataAvailability"
+		},
+		"mItemAttributes": [16],
+		"mItemDataClient": {
+			"mTooltipData": {
+				"mObjectName": "4645",
+				"mFormat": "{32559c50}",
+				"mLocKeys": {
+					"keyName": "Item_4645_Name",
+					"keyBrief": "Item_4645_Brief",
+					"keyTooltip": "Item_4645_Tooltip",
+					"keyTooltipExtended": "Item_4645_TooltipExtended",
+					"keyTooltipExtendedRules": "Item_4645_TooltipExtendedRules"
+				},
+				"mLists": {
+					"Stats": {
+						"Elements": [
+							{
+								"type": "AbilityPower",
+								"__type": "TooltipInstanceListElement"
+							},
+							{
+								"type": "MagicPen",
+								"__type": "TooltipInstanceListElement"
+							}
+						],
+						"__type": "TooltipInstanceList"
+					}
+				},
+				"__type": "TooltipInstanceItem"
+			},
+			"mDescription": "GeneratedTip_Item_4645_Description",
+			"mDynamicTooltip": "GeneratedTip_Item_4645_TooltipInventory",
+			"mShopTooltip": "GeneratedTip_Item_4645_TooltipShop",
+			"inventoryIcon": "assets/items/icons2d/4645_shadowflame.dds",
+			"InventoryIconSmall": "ASSETS/Items/Icons2D/AutoAtlas/SmallIcons/4645_Shadowflame.png",
+			"InventoryIconLarge": "ASSETS/Items/Icons2D/AutoAtlas/LargeIcons/4645_Shadowflame_Large.png",
+			"epicness": 5,
+			"__type": "ItemDataClient"
+		},
+		"mVFXResourceResolver": {
+			"resourceMap": {
+				"{90290f36}": "Items/4645/Particles/8007_Shadowflame_Rotation_Mis_Tar"
+			},
+			"__type": "ResourceResolver"
+		},
+		"__type": "ItemData"
+	}
+}
