@@ -1,0 +1,21 @@
+import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
+import type { StatKey } from "../../../scripts/sync-data/schemas/item"
+
+/** Every custom PostHog event and its properties. Add an event here before tracking it. */
+export type AnalyticsEvents = {
+	/** A champion card was clicked on the home page. `champion` is the champion key. */
+	champion_selected: { champion: string }
+	/** The level select changed, or the slider was released on a new level. */
+	level_changed: { level: number }
+	item_added: { itemId: string }
+	item_removed: { itemId: string }
+	/** The shop filters after a change; an empty list means no filter of that kind. */
+	shop_filtered: { roles: ChampionRole[]; stats: StatKey[] }
+	/** `null` stat and direction: back to the shop's own order. */
+	shop_sorted: { stat: StatKey | null; direction: "asc" | "desc" | null }
+	build_link_copied: { champion: string; level: number; itemsCount: number }
+	/** The "Not possible in-game" warning appeared or changed; `rules` are the broken item groups. */
+	impossible_build_warning_shown: { rules: string[] }
+}
+
+export type AnalyticsEvent = keyof AnalyticsEvents
