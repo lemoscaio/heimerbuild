@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { buildSearchSchema } from "./build-search"
+import { buildSearchSchema, toBuildSearch } from "./build-search"
 
 function parse(search: Record<string, unknown>) {
 	return buildSearchSchema.parse(search)
@@ -52,5 +52,30 @@ describe("buildSearchSchema", () => {
 			items: ["3089"],
 			patch: "16.19.1",
 		})
+	})
+})
+
+describe("toBuildSearch", () => {
+	test("writes level, items and patch", () => {
+		expect(
+			toBuildSearch({ level: 11, itemIds: ["3089", "3020"], patch: "16.19.1" }),
+		).toEqual({ lvl: 11, items: ["3089", "3020"], patch: "16.19.1" })
+	})
+
+	test("leaves the default level and an empty build out of the URL", () => {
+		expect(toBuildSearch({ level: 1, itemIds: [], patch: undefined })).toEqual({
+			lvl: undefined,
+			items: undefined,
+			patch: undefined,
+		})
+	})
+
+	test("reads back through the search schema", () => {
+		const search = toBuildSearch({
+			level: 18,
+			itemIds: ["3089"],
+			patch: "16.19.1",
+		})
+		expect(buildSearchSchema.parse(search)).toEqual(search)
 	})
 })
