@@ -1,6 +1,10 @@
 import { ItemButton } from "@/components/common/item-button"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { MAX_ITEMS } from "../lib/build-items"
+import {
+	type BuildViolation,
+	findBuildViolations,
+} from "../lib/build-violations"
 
 const slots = Array.from({ length: MAX_ITEMS }, (_, index) => index)
 
@@ -12,6 +16,7 @@ type ItemSlotsProps = {
 }
 
 export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
+	const violations = findBuildViolations(items)
 	return (
 		<div className="champion-info__chosen-items chosen-items">
 			<div className="chosen-items__slots">
@@ -42,9 +47,23 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 					)
 				})}
 			</div>
-			<p className="chosen-items__notice" role="status">
-				{notice}
-			</p>
+			<div className="chosen-items__notice" role="status" aria-live="polite">
+				{notice && <p>{notice}</p>}
+				{!!violations.length && <BuildWarning violations={violations} />}
+			</div>
+		</div>
+	)
+}
+
+function BuildWarning({ violations }: { violations: BuildViolation[] }) {
+	return (
+		<div className="chosen-items__warning">
+			<p>Not possible in-game:</p>
+			<ul className="chosen-items__violations">
+				{violations.map(({ group, message }) => (
+					<li key={group}>{message}</li>
+				))}
+			</ul>
 		</div>
 	)
 }

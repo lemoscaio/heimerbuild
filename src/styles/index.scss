@@ -343,6 +343,14 @@ body {
         text-align: center;
       }
 
+      &__warning {
+        color: $color-warning-message;
+      }
+
+      &__violations {
+        list-style: none;
+      }
+
       &__item {
         background-color: $color-primary-1;
         width: 40px;
