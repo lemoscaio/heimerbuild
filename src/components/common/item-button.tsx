@@ -30,7 +30,11 @@ export function ItemButton({
 				// Clicking adds or removes the item; the details stay open while hovered.
 				closeOnClick={false}
 				aria-describedby={open ? tooltipId : undefined}
-				className={cn("block p-0 focus-visible:-outline-offset-2", className)}
+				// The ring is drawn on an overlay: the icon tile is positioned and would cover an outline.
+				className={cn(
+					"relative block p-0 after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-ring focus-visible:after:-outline-offset-2",
+					className,
+				)}
 				onPointerUp={(event) => {
 					// Base UI tooltips ignore touch; a tap shows the details (and still clicks).
 					if (event.pointerType !== "mouse") setOpen(true)
