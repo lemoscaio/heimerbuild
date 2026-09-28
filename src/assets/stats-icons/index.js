@@ -5,15 +5,19 @@ import adIcon from "./attack-damage-icon.png"
 import atkSpeedIcon from "./attack-speed-icon.png"
 import abilityHasteIcon from "./cooldown-reduction-icon.png"
 import critIcon from "./critical-strike-chance-icon.png"
+import critDamageIcon from "./critical-strike-damage-icon.png"
+import healAndShieldPowerIcon from "./heal-and-shield-power-icon.png"
 import hpIcon from "./heal-power.png"
 import onHitIcon from "./life-steal-icon.png"
 import lifeStealIcon from "./life-steal-icon.png"
 import magicPenIcon from "./magic-penetration-icon.png"
 import mrIcon from "./magic-resistance-icon.png"
 import mpIcon from "./mana-icon.png"
+import manaRegenIcon from "./mana-regeneration-icon.png"
 import moveSpeedIcon from "./movement-speed-icon.png"
 import omniVampIcon from "./omnivamp-icon.png"
 import attackRangeIcon from "./range-icon.png"
+import slowResistIcon from "./slow-immune-icon.png"
 import tenacityIcon from "./tenacity-icon.png"
 
 export const statsIcons = {
@@ -38,4 +42,8 @@ export const statsIcons = {
 	omniVamp: omniVampIcon,
 	tenacity: tenacityIcon,
 	onHit: onHitIcon,
+	criticalStrikeDamage: critDamageIcon,
+	healAndShieldPower: healAndShieldPowerIcon,
+	manaRegen: manaRegenIcon,
+	slowResist: slowResistIcon,
 }
