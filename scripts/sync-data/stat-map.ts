@@ -35,6 +35,15 @@ export const STAT_FIELDS = {
 	mPercentCooldownMod: "cooldownPercent",
 } as const satisfies Record<string, StatKey>
 
+/**
+ * Multipliers applied on top of the copy. Game files store flat regen per second
+ * (Doran's Shield 0.8 = "4 Health every 5 seconds"); champions use per 5 seconds.
+ */
+export const STAT_SCALE: Partial<Record<keyof typeof STAT_FIELDS, number>> = {
+	mFlatHPRegenMod: 5,
+	flatMPRegenMod: 5,
+}
+
 /** Numeric `ItemData` fields known not to be stats. */
 export const NON_STAT_FIELDS: ReadonlySet<string> = new Set([
 	"itemID",

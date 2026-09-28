@@ -13,10 +13,21 @@ import {
 	filterShopItems,
 	type RemovalRuleName,
 } from "./shop-filter"
-import { isStatField, NON_STAT_FIELDS, STAT_FIELDS } from "./stat-map"
+import {
+	isStatField,
+	NON_STAT_FIELDS,
+	STAT_FIELDS,
+	STAT_SCALE,
+} from "./stat-map"
+import {
+	type AllowlistEntry,
+	formatMismatches,
+	validateItemStats,
+} from "./validate-item-stats"
 
 const DataDragonItemSchema = z.object({
 	name: z.string(),
+	description: z.string(),
 	image: z.object({ full: z.string() }),
 	gold: z.object({
 		base: z.number(),
@@ -87,7 +98,9 @@ function extractStats(
 					`Item ${entry.itemID}: ${field} is ${typeof value}, expected a number`,
 				)
 			}
-			if (value !== 0) stats[STAT_FIELDS[field]] = roundStat(value)
+			if (value !== 0) {
+				stats[STAT_FIELDS[field]] = roundStat(value * (STAT_SCALE[field] ?? 1))
+			}
 		} else if (!NON_STAT_FIELDS.has(field) && isStatLike(field, value)) {
 			unmapped.set(field, [...(unmapped.get(field) ?? []), `${entry.itemID}`])
 		}
@@ -125,6 +138,8 @@ function formatUnmapped(unmapped: Map<string, string[]>): string {
 export type NormalizedItems = {
 	file: ItemsFile
 	removed: Record<RemovalRuleName, number>
+	/** Allowlist entries that matched no difference this patch; safe to delete. */
+	staleAllowlist: AllowlistEntry[]
 }
 
 /** Keeps only items buyable on Summoner's Rift; `removed` counts the items each rule dropped. */
@@ -165,8 +180,22 @@ export function normalizeItems(
 			}
 		})
 
-	if (unmapped.size > 0) throw new Error(formatUnmapped(unmapped))
-	return { file: ItemsFileSchema.parse({ version, items }), removed }
+	const { mismatches, stale } = validateItemStats(
+		items.map((item) => ({
+			...item,
+			description: data[item.id]?.description ?? "",
+		})),
+	)
+	const errors = [
+		...(unmapped.size > 0 ? [formatUnmapped(unmapped)] : []),
+		...(mismatches.length > 0 ? [formatMismatches(mismatches)] : []),
+	]
+	if (errors.length > 0) throw new Error(errors.join("\n\n"))
+	return {
+		file: ItemsFileSchema.parse({ version, items }),
+		removed,
+		staleAllowlist: stale,
+	}
 }
 
 export type SyncItemsPaths = { cacheDir: string; outDir: string }
@@ -177,10 +206,11 @@ export async function syncItems({ cacheDir, outDir }: SyncItemsPaths): Promise<{
 	count: number
 	bytes: number
 	removed: NormalizedItems["removed"]
+	staleAllowlist: NormalizedItems["staleAllowlist"]
 }> {
 	const readJson = async (path: string): Promise<unknown> =>
 		JSON.parse(await readFile(join(cacheDir, path), "utf8"))
-	const { file, removed } = normalizeItems(
+	const { file, removed, staleAllowlist } = normalizeItems(
 		await readJson("ddragon/item.json"),
 		await readJson("cdragon/items.cdtb.bin.json"),
 		await readJson("cdragon/map11.bin.json"),
@@ -194,5 +224,6 @@ export async function syncItems({ cacheDir, outDir }: SyncItemsPaths): Promise<{
 		count: file.items.length,
 		bytes: Buffer.byteLength(text),
 		removed,
+		staleAllowlist,
 	}
 }

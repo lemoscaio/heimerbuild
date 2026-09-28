@@ -289,5 +289,117 @@
 			"__type": "ResourceResolver"
 		},
 		"__type": "ItemData"
+	},
+	"Items/1054": {
+		"mDisplayName": "Item_1054_Name",
+		"itemID": 1054,
+		"maxStack": 1,
+		"mItemGroups": [
+			"Items/ItemGroups/Default",
+			"Items/ItemGroups/DoransItems",
+			"{5c63b904}"
+		],
+		"price": 450,
+		"mCanBeSold": true,
+		"epicness": 1,
+		"mEffectAmount": [8.0, 5.0, 45.0, 0.6600000262260437],
+		"mDataValues": [
+			{
+				"mName": "RegenDuration",
+				"mValue": 8.0,
+				"__type": "ItemDataValue"
+			},
+			{
+				"mName": "BonusDamageToMinions",
+				"mValue": 5.0,
+				"__type": "ItemDataValue"
+			},
+			{
+				"mName": "MaxRegenAmount",
+				"mValue": 40.0,
+				"__type": "ItemDataValue"
+			},
+			{
+				"mName": "RangeRegenMult",
+				"mValue": 0.6600000262260437,
+				"__type": "ItemDataValue"
+			},
+			{
+				"mName": "MaxRangeRegenAmount",
+				"mValue": 30.0,
+				"__type": "ItemDataValue"
+			}
+		],
+		"mItemCalculations": {
+			"{592c02e8}": {
+				"DamageType": 0,
+				"mFormulaParts": [
+					{
+						"mDataValue": "BonusDamageToMinions",
+						"__type": "NamedDataValueCalculationPart"
+					}
+				],
+				"__type": "GameCalculation"
+			}
+		},
+		"{fe87f21e}": [
+			{
+				"{6166b756}": "{592c02e8}",
+				"__type": "{fe87f21e}"
+			}
+		],
+		"StringCalculations": {
+			"MeleeRangeSplitRegen": {
+				"MeleeResult": "@MaxRegenAmount@",
+				"RangedResult": "@MaxRangeRegenAmount@",
+				"DefaultResult": "@MaxRegenAmount@",
+				"__type": "{4750ceb6}"
+			}
+		},
+		"mFlatHPPoolMod": 110.0,
+		"mFlatHPRegenMod": 0.800000011920929,
+		"sellBackModifier": 0.4000000059604645,
+		"mCategories": ["Health", "HealthRegen", "Lane"],
+		"mItemDataAvailability": {
+			"mInStore": true,
+			"__type": "ItemDataAvailability"
+		},
+		"mItemAttributes": [8, 1, 2, 4, 16],
+		"mItemDataClient": {
+			"mTooltipData": {
+				"mObjectName": "1054",
+				"mFormat": "{32559c50}",
+				"mLocKeys": {
+					"keyName": "Item_1054_Name",
+					"keyTooltip": "Item_1054_Tooltip",
+					"keyBrief": "Item_1054_Brief",
+					"keyColloquialism": "Item_1054_Colloquialism",
+					"keyTooltipExtendedRules": "Item_1054_TooltipExtendedRules",
+					"keySecondaryBrief": "Item_Unique_Doran",
+					"keyTooltipExternal": "Item_1054_TooltipExternal"
+				},
+				"mLists": {
+					"Stats": {
+						"Elements": [
+							{
+								"type": "Health",
+								"__type": "TooltipInstanceListElement"
+							}
+						],
+						"__type": "TooltipInstanceList"
+					}
+				},
+				"__type": "TooltipInstanceItem"
+			},
+			"mDescription": "GeneratedTip_Item_1054_Description",
+			"mDynamicTooltip": "GeneratedTip_Item_1054_TooltipInventory",
+			"mShopTooltip": "GeneratedTip_Item_1054_TooltipShop",
+			"inventoryIcon": "assets/items/icons2d/1054_dorans_shield.tex",
+			"InventoryIconSmall": "ASSETS/Items/Icons2D/AutoAtlas/SmallIcons/1054_Dorans_Shield_44.png",
+			"InventoryIconLarge": "ASSETS/Items/Icons2D/AutoAtlas/LargeIcons/1054_Dorans_Shield_88.png",
+			"epicness": 0,
+			"__type": "ItemDataClient"
+		},
+		"__type": "ItemData"
 	}
 }

@@ -4,8 +4,9 @@ import dataDragonItems from "./fixtures/ddragon-item.json"
 import map11Bin from "./fixtures/map11.bin.json"
 import { normalizeItems } from "./normalize-items"
 import { STAT_UNITS } from "./schemas/item"
+import { STAT_FIELDS } from "./stat-map"
 
-// Real 16.19.1 entries for Long Sword, Dagger, Serrated Dirk, Void Staff and Shadowflame.
+// Real 16.19.1 entries for Long Sword, Dagger, Doran's Shield, Serrated Dirk, Void Staff and Shadowflame.
 function itemsOf(
 	bin: unknown = communityDragonBin,
 	dataDragon: unknown = dataDragonItems,
@@ -56,6 +57,11 @@ describe("normalizeItems", () => {
 		expect(STAT_UNITS.attackSpeedPercent).toBe("percent")
 	})
 
+	test("stores flat regen per 5 seconds, like champion regen", () => {
+		// Game file 0.8 per second; the tooltip says "Restore 4 Health every 5 seconds".
+		expect(statsOf("1054")).toEqual({ health: 110, healthRegen: 4 })
+	})
+
 	test("carries Data Dragon metadata", () => {
 		expect(itemOf("3134")).toMatchObject({
 			name: "Serrated Dirk",
@@ -75,6 +81,28 @@ describe("normalizeItems", () => {
 		>
 		bin["Items/1042"].mFlatBogusMod = 5
 		expect(() => itemsOf(bin)).toThrow(/mFlatBogusMod \(items 1042\)/)
+	})
+
+	test("fails the sync when a stat differs from the Data Dragon <stats> block", () => {
+		const items = structuredClone(dataDragonItems) as DataDragonItems
+		items.data["1036"].description =
+			"<mainText><stats><attention>15</attention> Attack Damage</stats></mainText>"
+		expect(() => itemsOf(communityDragonBin, items)).toThrow(
+			"1036 Long Sword: attackDamage expected 15, actual 10",
+		)
+	})
+
+	test("fails the sync for Serrated Dirk without the PhysicalLethality mapping", () => {
+		const fields = STAT_FIELDS as Record<string, string>
+		const mapping = fields.PhysicalLethality
+		delete fields.PhysicalLethality
+		try {
+			expect(() => itemsOf()).toThrow(
+				"3134 Serrated Dirk: lethality expected 10, actual (missing)",
+			)
+		} finally {
+			fields.PhysicalLethality = mapping as string
+		}
 	})
 
 	test("fails when a Data Dragon item has no CommunityDragon entry", () => {
@@ -121,7 +149,7 @@ describe("normalizeItems shop filter", () => {
 		const ids = itemsOf(communityDragonBin, dataDragonWithEveryRule()).map(
 			(item) => item.id,
 		)
-		expect(ids).toEqual(["1036", "1042", "3134", "3135", "4645"])
+		expect(ids).toEqual(["1036", "1042", "1054", "3134", "3135", "4645"])
 	})
 
 	test("counts removed items per rule", () => {
