@@ -4,9 +4,8 @@ import { useItems } from "@/data/hooks/use-items"
 import { computeStats } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 import {
-	type AddItemResult,
 	addItemId,
-	allowedItemIds,
+	knownItemIds,
 	MAX_ITEMS,
 	removeItemAt,
 } from "../lib/build-items"
@@ -37,7 +36,7 @@ export function useBuild({
 	const level = search.lvl ?? MIN_LEVEL
 	// Until the items load, keep the ids from the link so a level change does not drop them.
 	const itemIds = itemsById
-		? allowedItemIds(search.items, itemsById)
+		? knownItemIds(search.items, itemsById)
 		: (search.items ?? [])
 	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
 	const stats = champion && computeStats(champion, level, items)
@@ -59,12 +58,12 @@ export function useBuild({
 
 	function addItem(itemId: string) {
 		if (!itemsById) return
-		const result = addItemId(itemIds, itemId, itemsById)
-		if (result.added) {
+		const nextItemIds = addItemId(itemIds, itemId)
+		if (nextItemIds) {
 			setNotice(undefined)
-			setItemIds(result.itemIds)
+			setItemIds(nextItemIds)
 		} else {
-			setNotice(rejectionNotice(result, itemId, itemsById))
+			setNotice(`All ${MAX_ITEMS} item slots are full. Remove an item first.`)
 		}
 	}
 
@@ -80,25 +79,10 @@ export function useBuild({
 		items,
 		addItem,
 		removeItem,
-		/** Why the last item could not be added, until the next change. */
+		/** Why the last item could not be added (full build), until the next change. */
 		notice,
 		stats,
 		/** The full build for sharing, pinned to the patch in use. */
 		shareSearch: toBuildSearch({ level, itemIds, patch }),
 	}
-}
-
-function rejectionNotice(
-	result: Exclude<AddItemResult, { added: true }>,
-	itemId: string,
-	itemsById: Record<string, { name: string }>,
-) {
-	if (result.reason === "full") {
-		return `All ${MAX_ITEMS} item slots are full. Remove an item first.`
-	}
-	const { name } = itemsById[itemId]
-	const conflict = itemsById[result.conflictId].name
-	return name === conflict
-		? `A build can hold only one ${name}.`
-		: `${name} cannot be combined with ${conflict}.`
 }
