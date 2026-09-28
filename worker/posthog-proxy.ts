@@ -26,7 +26,7 @@ function plainResponse(status: number, body: string, headers?: HeadersInit) {
 }
 
 /**
- * Forwards `/ingest/*` to PostHog's US cloud, as in PostHog's Cloudflare proxy guide:
+ * Forwards `/ingest/*` to our PostHog cloud region, as in PostHog's Cloudflare proxy guide:
  * `/ingest/static/*` and `/ingest/array/*` to the asset host, the rest to the API host.
  */
 export async function proxyPostHog(

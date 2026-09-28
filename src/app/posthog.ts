@@ -36,7 +36,7 @@ export function initPostHog() {
 			cookieless_mode: "always",
 			person_profiles: "never",
 			capture_pageview: "history_change",
-			capture_performance: { web_vitals: true, network_timing: false },
+			// Autocapture, heatmaps and web vitals follow the project settings.
 			// Sentry owns errors and replays.
 			disable_session_recording: true,
 			capture_exceptions: false,

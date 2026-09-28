@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { POSTHOG_API_HOST, POSTHOG_ASSET_HOST } from "../src/app/posthog-config"
 import { isPostHogProxyPath, proxyPostHog } from "./posthog-proxy"
 
 function upstreamReturning(response: Response) {
@@ -37,7 +38,9 @@ describe("proxyPostHog", () => {
 		expect(response.status).toBe(200)
 		expect(await response.text()).toBe('{"status":1}')
 		expect(calls).toHaveLength(1)
-		expect(calls[0]?.url).toBe("https://us.i.posthog.com/e/?ip=0&ver=1.434.17")
+		expect(calls[0]?.url).toBe(
+			`https://${POSTHOG_API_HOST}/e/?ip=0&ver=1.434.17`,
+		)
 		expect(calls[0]?.init?.method).toBe("POST")
 		expect(new TextDecoder().decode(calls[0]?.init?.body as ArrayBuffer)).toBe(
 			body,
@@ -52,7 +55,7 @@ describe("proxyPostHog", () => {
 
 		await proxyPostHog(new Request(`https://example.com${path}`), { fetchFn })
 
-		expect(calls[0]?.url).toBe(`https://us-assets.i.posthog.com${upstreamPath}`)
+		expect(calls[0]?.url).toBe(`https://${POSTHOG_ASSET_HOST}${upstreamPath}`)
 	})
 
 	test.each(["/ingest//evil.example.com/e/", "/ingest/@evil.example.com/e/"])(
@@ -62,7 +65,7 @@ describe("proxyPostHog", () => {
 
 			await proxyPostHog(new Request(`https://example.com${path}`), { fetchFn })
 
-			expect(new URL(calls[0]?.url ?? "").host).toBe("us.i.posthog.com")
+			expect(new URL(calls[0]?.url ?? "").host).toBe(POSTHOG_API_HOST)
 		},
 	)
 
