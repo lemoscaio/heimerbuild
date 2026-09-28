@@ -17,9 +17,15 @@ Rules marked **(after #N)** apply once that issue lands; until then, follow the 
 - Tests sit next to the file: `filter-champions.test.ts`.
 - Enforced by Biome `style/useFilenamingConvention` (kebab-case, `index` allowed) **(after #96)**. Until then, new files are kebab-case; existing files are renamed in #96, not piecemeal.
 
+## Imports
+
+- A feature never imports another feature (`src/features/a` → `src/features/b`), no exceptions. Features import only `components/`, `lib/`, `hooks/`, `types/` and `data/`. Details: [import boundaries](../../docs/frontend-architecture.md#import-boundaries).
+- Enforced by Biome in CI **(after #96)**.
+
 ## Exports and declarations
 
-- **Named exports** only: `export function ChampionCard()`. No `export default`.
+- **Named exports** only: `export function ChampionCard()`. No `export default` (`src/App.tsx` is the pending exception until #96/#42 move it).
+- No barrel files: import the file that defines the thing, never a folder `index.ts` re-export list.
 - **`function` declarations** for components, hooks and helpers. No top-level `const X = () => ...`.
 - Arrow functions are fine for inline callbacks (`onClick`, `map`, `useCallback`).
 
@@ -108,7 +114,7 @@ className={cn("item-slot", { "opacity-50": isEmpty })}
 - Hooks that query export their **query options** next to them, so keys and cache settings live in one place.
 
 ```ts
-// modules/game-data/hooks/use-champion.ts
+// src/data/hooks/use-champion.ts
 export const championQueries = {
 	all: () => ["champions"] as const,
 	detail: (patch: string, key: string) =>
@@ -146,7 +152,7 @@ const { data, isPending, isError } = useQuery(championQueries.detail(patch, key)
 ## Data validation: Zod at the boundary
 
 - Every external payload (game data JSON, URL search params, later Clerk metadata) is parsed with a Zod schema where it enters the app. Past that point, trust the types.
-- Game data is fetched only through `fetchGameData(path, schema)` in the game-data module.
+- Game data is fetched only through `fetchGameData(path, schema)` in `src/data/`.
 - Types come from `z.infer` on the schema; never hand-write a duplicate shape, never `as`-cast fetched data.
 - Game data schemas live in `scripts/sync-data/schemas/`, shared with the pipeline.
 
@@ -174,7 +180,7 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 
 ## Routing
 
-- Route components are thin: read params, compose module components, nothing else.
+- Route components are thin: read params, compose feature components, nothing else.
 - **(after #35)** TanStack Router. Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`.
 
 ## TypeScript
