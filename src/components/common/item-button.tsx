@@ -18,6 +18,7 @@ export function ItemButton({
 	children,
 	className,
 	onPointerUp,
+	"aria-describedby": describedBy,
 	...props
 }: ItemButtonProps) {
 	const tooltipId = useId()
@@ -29,7 +30,10 @@ export function ItemButton({
 				type="button"
 				// Clicking adds or removes the item; the details stay open while hovered.
 				closeOnClick={false}
-				aria-describedby={open ? tooltipId : undefined}
+				aria-describedby={
+					[describedBy, open && tooltipId].filter(Boolean).join(" ") ||
+					undefined
+				}
 				// The ring is drawn on an overlay: the icon tile is positioned and would cover an outline.
 				className={cn(
 					"relative block p-0 after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-ring focus-visible:after:-outline-offset-2",

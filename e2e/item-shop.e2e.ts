@@ -1,5 +1,11 @@
 import { expect } from "@playwright/test"
-import { currentItems, itemNames, shopItems, test } from "./fixtures"
+import {
+	chosenItems,
+	currentItems,
+	itemNames,
+	shopItems,
+	test,
+} from "./fixtures"
 
 test("the shop filters by a stat and sorts by it", async ({
 	page,
@@ -37,4 +43,23 @@ test("the shop filters by a stat and sorts by it", async ({
 			(await itemNames(shop)).map((name) => abilityPowerOf.get(name)),
 		)
 		.toEqual(highestFirst)
+})
+
+test("the shop is one Tab stop: arrow keys move between items and Enter adds one", async ({
+	page,
+}) => {
+	await page.goto("/champions/Heimerdinger")
+	const shop = shopItems(page)
+	await expect(shop.first()).toBeVisible()
+	const [, , third] = await itemNames(shop)
+
+	await page.getByRole("combobox", { name: "Sort by" }).focus()
+	await page.keyboard.press("Tab")
+	await expect(shop.first()).toBeFocused()
+	await page.keyboard.press("ArrowRight")
+	await page.keyboard.press("ArrowRight")
+	await expect(shop.nth(2)).toBeFocused()
+	await page.keyboard.press("Enter")
+
+	expect(await itemNames(chosenItems(page))).toEqual([`Remove ${third}`])
 })
