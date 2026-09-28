@@ -7,3 +7,14 @@ export function toggleItemId(itemIds: readonly string[], itemId: string) {
 	}
 	return itemIds.length < MAX_ITEMS ? [...itemIds, itemId] : [...itemIds]
 }
+
+/** Item ids from a link that exist in this patch, without duplicates or extra slots. */
+export function knownItemIds(
+	itemIds: readonly string[] | undefined,
+	itemsById: Readonly<Record<string, unknown>>,
+) {
+	const known = new Set(
+		(itemIds ?? []).filter((id) => Object.hasOwn(itemsById, id)),
+	)
+	return [...known].slice(0, MAX_ITEMS)
+}

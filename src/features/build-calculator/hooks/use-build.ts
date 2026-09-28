@@ -1,26 +1,63 @@
-import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { computeStats } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
-import { toggleItemId } from "../lib/build-items"
+import { knownItemIds, toggleItemId } from "../lib/build-items"
+import { type BuildSearch, toBuildSearch } from "../lib/build-search"
 
-/** Champion, level and chosen items of the build, plus the stats they add up to. */
-export function useBuild(patch: string, championKey: string) {
+type UseBuildOptions = {
+	patch: string
+	championKey: string
+	/** The build as read from the URL. */
+	search: BuildSearch
+	onSearchChange: (
+		search: BuildSearch,
+		navigation: { replace: boolean },
+	) => void
+}
+
+/** Build state kept in the URL search: champion, level and chosen items, plus their stats. */
+export function useBuild({
+	patch,
+	championKey,
+	search,
+	onSearchChange,
+}: UseBuildOptions) {
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
-	const [level, setLevel] = useState(MIN_LEVEL)
-	const [itemIds, setItemIds] = useState<string[]>([])
 
-	const items = itemsById
-		? itemIds.flatMap((id): Item[] => (itemsById[id] ? [itemsById[id]] : []))
-		: []
+	const level = search.lvl ?? MIN_LEVEL
+	// Until the items load, keep the ids from the link so a level change does not drop them.
+	const itemIds = itemsById
+		? knownItemIds(search.items, itemsById)
+		: (search.items ?? [])
+	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
 	const stats = champion && computeStats(champion, level, items)
 
-	function toggleItem(itemId: string) {
-		setItemIds((current) => toggleItemId(current, itemId))
+	// Edits keep the link's own patch: changing it would reload the route mid-edit.
+	function setLevel(nextLevel: number) {
+		onSearchChange(
+			toBuildSearch({ level: nextLevel, itemIds, patch: search.patch }),
+			{ replace: true },
+		)
 	}
 
-	return { champion, level, setLevel, items, toggleItem, stats }
+	function toggleItem(itemId: string) {
+		const nextItemIds = toggleItemId(itemIds, itemId)
+		onSearchChange(
+			toBuildSearch({ level, itemIds: nextItemIds, patch: search.patch }),
+			{ replace: false },
+		)
+	}
+
+	return {
+		champion,
+		level,
+		setLevel,
+		items,
+		toggleItem,
+		stats,
+		/** The full build for sharing, pinned to the patch in use. */
+		shareSearch: toBuildSearch({ level, itemIds, patch }),
+	}
 }

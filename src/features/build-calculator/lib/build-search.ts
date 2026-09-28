@@ -32,3 +32,22 @@ export const buildSearchSchema = z.object({
 })
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
+
+export type BuildState = {
+	level: number
+	itemIds: readonly string[]
+	patch: string | undefined
+}
+
+/** The URL search for a build. Defaults (level 1, no items) stay out of the URL. */
+export function toBuildSearch({
+	level,
+	itemIds,
+	patch,
+}: BuildState): BuildSearch {
+	return {
+		lvl: level === MIN_LEVEL ? undefined : level,
+		items: itemIds.length ? [...itemIds] : undefined,
+		patch,
+	}
+}

@@ -19,6 +19,7 @@ https://github.com/lemoscaio/heimerbuild/assets/74937642/0db701dd-f5d7-47ce-bb57
 - Change the champion level and see the stats update to the chosen level
 - Chose up to 6 items and see the additional stats given by them
 - Filter the items by champion role
+- Share a build as a link (`/champions/Heimerdinger?lvl=11&items=3089,3020&patch=16.19.1`)
 
 ## Motivation
 I love how complex League of Legends is, and how every patch the meta can change by simply modifying the AD ratio for a certain character.

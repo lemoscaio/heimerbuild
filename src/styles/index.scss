@@ -240,6 +240,18 @@ body {
       font-size: em(16);
     }
 
+    &__header-actions {
+      margin-left: auto;
+      align-self: flex-start;
+    }
+
+    &__patch-notice {
+      padding: 8px 15px 0;
+
+      color: $adobe-5-hex;
+      font-size: em(12);
+    }
+
     .level-container {
       @include flex(row, flex-start, center, nowrap);
       padding: 12px 15px;
@@ -441,6 +453,33 @@ body {
 }
 
 // Components
+
+.copy-build-link {
+  @include flex(column, flex-start, flex-end);
+  gap: 4px;
+
+  &__status {
+    min-height: 1em;
+
+    color: $color-success-message;
+    font-size: em(12);
+
+    &--failed {
+      color: white;
+    }
+  }
+
+  &__fallback {
+    width: 220px;
+    padding: 4px;
+
+    background-color: $color-primary-2;
+    border: none;
+    border-radius: $card-border-radius;
+
+    color: white;
+  }
+}
 
 .app-name-container {
   padding-bottom: 20px;
