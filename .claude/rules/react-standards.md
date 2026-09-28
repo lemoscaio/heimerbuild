@@ -112,24 +112,31 @@ className={cn("item-slot", { "opacity-50": isEmpty })}
 
 - A hook that has state, calls `useQuery`/`useMutation` or branches goes in a co-located `hooks/` folder as `use-*.ts`, even with a single consumer. Never a catch-all `hooks.ts`.
 - Trivial stateless wrappers may stay inline.
-- Hooks that query export their **query options** next to them, so keys and cache settings live in one place.
+- Query options live in one `queryOptions()` factory object per data source, so keys and cache settings live in one place. Hooks, route loaders and prefetches all use the factory; nobody writes a query key by hand. Game data uses `gameDataQueries` in `src/data/queries/`.
 
 ```ts
-// src/data/hooks/use-champion.ts
-export const championQueries = {
-	all: () => ["champions"] as const,
-	detail: (patch: string, key: string) =>
+// src/data/queries/game-data-queries.ts
+export const gameDataQueries = {
+	all: () => ["game-data"] as const,
+	patch: (patch: string) => [...gameDataQueries.all(), patch] as const,
+	champion: (patch: string, key: string) =>
 		queryOptions({
-			queryKey: [...championQueries.all(), patch, key],
+			queryKey: [...gameDataQueries.patch(patch), "champions", key],
 			queryFn: () => fetchChampion(patch, key),
 			staleTime: Number.POSITIVE_INFINITY, // files are immutable per patch
 		}),
 }
 
-export function useChampion(key: string) { ... }
+// src/data/hooks/use-champion.ts
+export function useChampion(patch: string | undefined, key: string | undefined) {
+	return useQuery({
+		...gameDataQueries.champion(patch ?? "", key ?? ""),
+		enabled: patch !== undefined && key !== undefined,
+	})
+}
 ```
 
-- `queryOptions()` needs TanStack Query v5 **(after #33)**. Until then, export a `queryKeys` object instead.
+- No wrapper hooks around `useQuery` that reshape its result (custom `isLoading`/`refetch` facades). Return the query result as is.
 
 ## Async data: React Query only
 

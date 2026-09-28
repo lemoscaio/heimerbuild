@@ -1,6 +1,9 @@
-import { fetchChampionIndex } from "../services/game-data"
-import { usePatchQuery } from "./use-patch-query"
+import { useQuery } from "@tanstack/react-query"
+import { gameDataQueries } from "../queries/game-data-queries"
 
-export function useChampions() {
-	return usePatchQuery(["champions"], fetchChampionIndex)
+export function useChampions(patch: string | undefined) {
+	return useQuery({
+		...gameDataQueries.champions(patch ?? ""),
+		enabled: patch !== undefined,
+	})
 }

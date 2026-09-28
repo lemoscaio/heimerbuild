@@ -17,7 +17,8 @@ src/
 │   └── item-shop/        item grid, role/stat filters, sorting, tooltips
 ├── data/                 game data loading: fetch + Zod parsing, data hooks, query options
 │   ├── services/         fetchGameData, fetchManifest, fetchChampion, fetchItems
-│   └── hooks/            use-champions.ts, use-champion.ts, use-items.ts
+│   ├── queries/          queryOptions() factories (gameDataQueries)
+│   └── hooks/            use-current-patch.ts, use-champions.ts, use-champion.ts, use-items.ts
 ├── components/
 │   ├── ui/               primitives with no domain knowledge: button, slider, tooltip
 │   └── common/           shared app UI: header, logo, app name
@@ -64,7 +65,7 @@ import { computeStats } from "@/lib/stats/compute-stats"
 
 ### Game data boundary
 
-- `src/data` is the only place that fetches and parses game data (`fetchGameData(path, schema)`) and exposes it through hooks and query options.
+- `src/data` is the only place that fetches and parses game data (`fetchGameData(path, schema)`) and exposes it through hooks and the `queryOptions()` factories in `src/data/queries/`. Every file under a patch is keyed by that patch and never goes stale (`staleTime: Infinity`).
 - Schemas stay in `scripts/sync-data/schemas/`, shared with the pipeline. Their inferred types (`Champion`, `Item`, ...) may be imported anywhere.
 
 ## Where does new code go
@@ -91,6 +92,5 @@ Moved in #96 and #42. Still pending:
 | `src/features/build-calculator/components/champion-details.tsx` (whole champion page, includes the item grid) | `LevelSlider`, `ItemSlots`, `StatsPanel` + `useBuild()` in `features/build-calculator`; `ItemShop` + `RoleFilter` in `features/item-shop`; `ChampionHeader` in `features/champions` | #41 |
 | `src/features/build-calculator/lib/roles-info.ts` | `features/item-shop/lib/` once `ItemShop` is extracted | #41 |
 | `src/app/router.tsx` + `src/routes/*-page.tsx` | TanStack Router route files | #35 |
-| `src/data/hooks/use-patch-query.ts` | query options | #33 |
 | `src/types/stats.ts` (empty) | deleted | #37 |
 | `src/styles/` | replaced by Tailwind | #40 |

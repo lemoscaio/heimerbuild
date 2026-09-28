@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { gameDataQueries } from "../queries/game-data-queries"
 
-export function useItems(patch: string | undefined) {
+export function useCurrentPatch() {
 	return useQuery({
-		...gameDataQueries.items(patch ?? ""),
-		enabled: patch !== undefined,
+		...gameDataQueries.manifest(),
+		select: (manifest) => manifest.currentPatch,
 	})
 }

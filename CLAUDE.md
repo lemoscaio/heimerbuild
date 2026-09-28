@@ -4,9 +4,9 @@ League of Legends build calculator: pick a champion, set its level (1-18), add u
 
 ## Stack
 
-Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query, Zod, Biome, SCSS, Cloudflare Workers static assets.
+Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, Zod, Biome, SCSS, Cloudflare Workers static assets.
 
-Planned (check the issue before assuming it landed): TanStack Query v5 (#33), TanStack Router (#35), Tailwind 4 (#40).
+Planned (check the issue before assuming it landed): TanStack Router (#35), Tailwind 4 (#40).
 
 ## Commands
 
