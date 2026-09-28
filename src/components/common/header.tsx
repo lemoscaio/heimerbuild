@@ -9,7 +9,11 @@ export function Header() {
 			</div>
 			<div className="header__logo-container">
 				<Link to="/">
-					<img className="header__logo" src={heimerLogo} alt="" />
+					<img
+						className="header__logo"
+						src={heimerLogo}
+						alt="Heimerbuild home"
+					/>
 				</Link>
 			</div>
 			{/* Third flex slot keeps the logo centred between the edges. */}

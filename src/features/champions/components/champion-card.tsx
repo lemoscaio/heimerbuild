@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 
 type ChampionCardProps = {
 	champion: {
@@ -8,24 +8,15 @@ type ChampionCardProps = {
 	}
 }
 
-export function ChampionCard(props: ChampionCardProps) {
-	const navigate = useNavigate()
-
-	function handleClick(championKey: string) {
-		navigate({ to: "/champions/$key", params: { key: championKey } })
-	}
-
+export function ChampionCard({ champion }: ChampionCardProps) {
 	return (
-		<article
+		<Link
+			to="/champions/$key"
+			params={{ key: champion.key }}
 			className="champion-card"
-			onClick={() => handleClick(props.champion.key)}
 		>
-			<img
-				src={`${props.champion.icon}`}
-				alt=""
-				className="champion-card__image"
-			/>
-			<h3 className="champion-card__name">{props.champion.name}</h3>
-		</article>
+			<img src={champion.icon} alt="" className="champion-card__image" />
+			<h3 className="champion-card__name">{champion.name}</h3>
+		</Link>
 	)
 }
