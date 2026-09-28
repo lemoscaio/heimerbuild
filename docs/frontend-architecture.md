@@ -9,8 +9,8 @@ Target structure for `src/`, grouped by feature instead of by file type. Compone
 ```
 src/
 ├── main.tsx              Vite entry: mounts <App /> and global styles, nothing else
-├── app/                  app shell: App, providers, query client, router, root layouts
-├── routes/               thin route components (TanStack Router route files after #35)
+├── app/                  app shell: App, providers, query client, router (route tree)
+├── routes/               TanStack Router code routes: one *-route.tsx per route
 ├── features/             feature slices, never import each other
 │   ├── champions/        champion grid, search, champion header and skills
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
@@ -91,6 +91,5 @@ Moved in #96 and #42. Still pending:
 | --- | --- | --- |
 | `src/features/build-calculator/components/champion-details.tsx` (whole champion page, includes the item grid) | `LevelSlider`, `ItemSlots`, `StatsPanel` + `useBuild()` in `features/build-calculator`; `ItemShop` + `RoleFilter` in `features/item-shop`; `ChampionHeader` in `features/champions` | #41 |
 | `src/features/build-calculator/lib/roles-info.ts` | `features/item-shop/lib/` once `ItemShop` is extracted | #41 |
-| `src/app/router.tsx` + `src/routes/*-page.tsx` | TanStack Router route files | #35 |
 | `src/types/stats.ts` (empty) | deleted | #37 |
 | `src/styles/` | replaced by Tailwind | #40 |

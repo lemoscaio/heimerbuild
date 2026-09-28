@@ -189,7 +189,10 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 ## Routing
 
 - Route components are thin: read params, compose feature components, nothing else.
-- **(after #35)** TanStack Router. Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`.
+- TanStack Router with code-based routes. Each route lives in `src/routes/<name>-route.tsx` (`createRoute` + its page component), and `src/app/router.tsx` assembles the tree.
+- Loaders load data through the `queryOptions()` factories (`queryClient.ensureQueryData(gameDataQueries...)`); components then read the same queries from the cache.
+- Every data route sets `pendingComponent` and `errorComponent`, and `notFoundComponent` when a param can point at nothing.
+- Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`. Invalid values are dropped with `.catch()`, so a bad link never shows an error page.
 
 ## TypeScript
 
