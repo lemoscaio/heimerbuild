@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 /**
- * Canonical champion stats (names match `src/utils/statsInfo.ts`).
+ * Canonical champion stats (shared with the item stats in `./item.ts`).
  *
  * | Canonical         | Data Dragon source                  | Unit                    |
  * | ----------------- | ----------------------------------- | ----------------------- |
@@ -10,11 +10,11 @@ import { z } from "zod"
  * | mana              | mp, mpperlevel                      | resource points         |
  * | manaRegen         | mpregen, mpregenperlevel            | per 5 seconds           |
  * | armor             | armor, armorperlevel                | points                  |
- * | magicResistance   | spellblock, spellblockperlevel      | points                  |
+ * | magicResist       | spellblock, spellblockperlevel      | points                  |
  * | attackDamage      | attackdamage, CDragon perLevel      | points                  |
  * | attackSpeed       | attackspeed, attackspeedperlevel    | attacks/s, % per level  |
- * | criticalStrike    | crit, critperlevel                  | fraction                |
- * | movespeed         | movespeed                           | units/s                 |
+ * | critChance        | crit, critperlevel                  | fraction                |
+ * | movementSpeed     | movespeed                           | units/s                 |
  * | attackRange       | attackrange                         | units                   |
  *
  * `attackDamage.perLevel` comes from CommunityDragon: Data Dragon ships 0 for every champion.
@@ -31,15 +31,15 @@ export const championStatsSchema = z.strictObject({
 	mana: growthStat,
 	manaRegen: growthStat,
 	armor: growthStat,
-	magicResistance: growthStat,
+	magicResist: growthStat,
 	attackDamage: growthStat,
 	attackSpeed: z.strictObject({
 		base: z.number().positive(),
 		perLevelPercent: z.number(),
 		ratio: z.number().nonnegative(),
 	}),
-	criticalStrike: growthStat,
-	movespeed: growthStat,
+	critChance: growthStat,
+	movementSpeed: growthStat,
 	attackRange: growthStat,
 })
 

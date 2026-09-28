@@ -157,7 +157,7 @@ export function normalizeChampion(
 			mana: { base: stats.mp, perLevel: stats.mpperlevel },
 			manaRegen: { base: stats.mpregen, perLevel: stats.mpregenperlevel },
 			armor: { base: stats.armor, perLevel: stats.armorperlevel },
-			magicResistance: {
+			magicResist: {
 				base: stats.spellblock,
 				perLevel: stats.spellblockperlevel,
 			},
@@ -175,8 +175,8 @@ export function normalizeChampion(
 					record.attackSpeedRatioModifiable?.baseValue ?? stats.attackspeed,
 				),
 			},
-			criticalStrike: { base: stats.crit, perLevel: stats.critperlevel },
-			movespeed: { base: stats.movespeed, perLevel: 0 },
+			critChance: { base: stats.crit, perLevel: stats.critperlevel },
+			movementSpeed: { base: stats.movespeed, perLevel: 0 },
 			attackRange: { base: stats.attackrange, perLevel: 0 },
 		},
 	})
