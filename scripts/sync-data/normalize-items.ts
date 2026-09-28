@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
+import { itemMarkupToText } from "./item-text"
 import { type ChampionRole, championRoleSchema } from "./schemas/champion"
 import {
 	type Item,
@@ -27,7 +28,8 @@ import {
 
 const DataDragonItemSchema = z.object({
 	name: z.string(),
-	description: z.string(),
+	description: z.string().default(""),
+	plaintext: z.string().default(""),
 	image: z.object({ full: z.string() }),
 	gold: z.object({
 		base: z.number(),
@@ -165,6 +167,8 @@ export function normalizeItems(
 			return {
 				id,
 				name: item.name,
+				description: itemMarkupToText(item.description),
+				plaintext: itemMarkupToText(item.plaintext),
 				icon: item.image.full,
 				gold: item.gold,
 				tags: item.tags,

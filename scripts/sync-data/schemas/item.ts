@@ -52,6 +52,11 @@ export const ItemStatsSchema = z.strictObject(statsShape)
 export const ItemSchema = z.strictObject({
 	id: z.string().regex(/^\d+$/),
 	name: z.string(),
+	/** Plain text from Data Dragon (`<stats>` block removed); empty when the item has only stats. */
+	description: z.string(),
+	/** Short plain-text summary; empty for some items. */
+	plaintext: z.string(),
+	/** File name only; the app builds the Data Dragon URL from the patch. */
 	icon: z.string().min(1),
 	gold: z.strictObject({
 		base: z.number(),
