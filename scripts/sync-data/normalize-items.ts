@@ -125,6 +125,29 @@ function extractRoles(entry: CommunityDragonItem): ChampionRole[] {
 	return championRoleSchema.options.filter((role) => roles.has(role))
 }
 
+const ItemGroupSchema = z.object({
+	mItemGroupID: z.string(),
+	mMaxGroupOwnable: z.number().int().positive().optional(),
+})
+
+/** Item groups that cap how many of their items a build may hold; the others (Default, ...) are skipped. */
+function extractGroupLimits(
+	entry: CommunityDragonItem,
+	bin: Record<string, unknown>,
+): Item["groupLimits"] {
+	const groupPaths = z.array(z.string()).optional().parse(entry.mItemGroups)
+	return (groupPaths ?? []).flatMap((path) => {
+		const group = ItemGroupSchema.safeParse(bin[path])
+		if (!group.success) {
+			throw new Error(`Item ${entry.itemID}: item group ${path} is missing`)
+		}
+		const { mItemGroupID, mMaxGroupOwnable } = group.data
+		return mMaxGroupOwnable === undefined
+			? []
+			: [{ group: mItemGroupID, max: mMaxGroupOwnable }]
+	})
+}
+
 function formatUnmapped(unmapped: Map<string, string[]>): string {
 	const lines = [...unmapped].map(
 		([field, ids]) =>
@@ -152,6 +175,7 @@ export function normalizeItems(
 ): NormalizedItems {
 	const { version, data } = DataDragonItemsSchema.parse(dataDragonItems)
 	const binItems = indexCommunityDragonItems(communityDragonBin)
+	const bin = z.record(z.string(), z.unknown()).parse(communityDragonBin)
 	const { kept, removed } = filterShopItems(data, classicItemIds(map11Bin))
 	const unmapped = new Map<string, string[]>()
 
@@ -180,6 +204,7 @@ export function normalizeItems(
 				inStore: item.inStore ?? true,
 				requiredChampion: item.requiredChampion,
 				roles: extractRoles(entry),
+				groupLimits: extractGroupLimits(entry, bin),
 				stats: extractStats(entry, unmapped),
 			}
 		})

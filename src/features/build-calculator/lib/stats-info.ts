@@ -8,6 +8,8 @@ export type StatRowInfo = {
 	label: string
 	icon: string
 	format?: StatFormat
+	/** Unit shown after the total, such as "/5s" for regen. */
+	suffix?: string
 }
 
 export const statRows: readonly StatRowInfo[] = [
@@ -50,9 +52,19 @@ export const statRows: readonly StatRowInfo[] = [
 		icon: statsIcons.moveSpeed,
 	},
 	{ stat: "health", label: "Health", icon: statsIcons.health },
-	{ stat: "healthRegen", label: "Health Regen", icon: statsIcons.health },
+	{
+		stat: "healthRegen",
+		label: "Health Regen",
+		icon: statsIcons.health,
+		suffix: "/5s",
+	},
 	{ stat: "mana", label: "Mana", icon: statsIcons.mana },
-	{ stat: "manaRegen", label: "Mana Regen", icon: statsIcons.mana },
+	{
+		stat: "manaRegen",
+		label: "Mana Regen",
+		icon: statsIcons.mana,
+		suffix: "/5s",
+	},
 	{ stat: "lethality", label: "Lethality", icon: statsIcons.lethality },
 	{
 		stat: "armorPenetrationPercent",
@@ -96,6 +108,7 @@ export const statRows: readonly StatRowInfo[] = [
 	},
 ]
 
+/** Attack speed is attacks per second (no unit); percent stats are stored as fractions. */
 export function formatStat(value: number, format: StatFormat = "flat") {
 	if (format === "percent") return `${Number((value * 100).toFixed(1))}%`
 	if (format === "attackSpeed") return value.toFixed(3)

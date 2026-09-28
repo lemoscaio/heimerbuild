@@ -73,6 +73,15 @@ export const ItemSchema = z.strictObject({
 	requiredChampion: z.string().optional(),
 	/** In-game shop class filters (CommunityDragon `mItemAttributes`); empty means "All Items" only. */
 	roles: z.array(championRoleSchema),
+	/** A build holds at most `max` items that share `group` (CommunityDragon item groups: boots, lifeline, ...). */
+	groupLimits: z
+		.array(
+			z.strictObject({
+				group: z.string().min(1),
+				max: z.number().int().positive(),
+			}),
+		)
+		.default([]),
 	stats: ItemStatsSchema,
 })
 

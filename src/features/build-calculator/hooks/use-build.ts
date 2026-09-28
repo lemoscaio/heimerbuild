@@ -1,8 +1,14 @@
+import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { computeStats } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
-import { knownItemIds, toggleItemId } from "../lib/build-items"
+import {
+	addItemId,
+	knownItemIds,
+	MAX_ITEMS,
+	removeItemAt,
+} from "../lib/build-items"
 import { type BuildSearch, toBuildSearch } from "../lib/build-search"
 
 type UseBuildOptions = {
@@ -25,6 +31,7 @@ export function useBuild({
 }: UseBuildOptions) {
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
+	const [notice, setNotice] = useState<string>()
 
 	const level = search.lvl ?? MIN_LEVEL
 	// Until the items load, keep the ids from the link so a level change does not drop them.
@@ -42,12 +49,27 @@ export function useBuild({
 		)
 	}
 
-	function toggleItem(itemId: string) {
-		const nextItemIds = toggleItemId(itemIds, itemId)
+	function setItemIds(nextItemIds: readonly string[]) {
 		onSearchChange(
 			toBuildSearch({ level, itemIds: nextItemIds, patch: search.patch }),
 			{ replace: false },
 		)
+	}
+
+	function addItem(itemId: string) {
+		if (!itemsById) return
+		const nextItemIds = addItemId(itemIds, itemId)
+		if (nextItemIds) {
+			setNotice(undefined)
+			setItemIds(nextItemIds)
+		} else {
+			setNotice(`All ${MAX_ITEMS} item slots are full. Remove an item first.`)
+		}
+	}
+
+	function removeItem(slot: number) {
+		setNotice(undefined)
+		setItemIds(removeItemAt(itemIds, slot))
 	}
 
 	return {
@@ -55,7 +77,10 @@ export function useBuild({
 		level,
 		setLevel,
 		items,
-		toggleItem,
+		addItem,
+		removeItem,
+		/** Why the last item could not be added (full build), until the next change. */
+		notice,
 		stats,
 		/** The full build for sharing, pinned to the patch in use. */
 		shareSearch: toBuildSearch({ level, itemIds, patch }),

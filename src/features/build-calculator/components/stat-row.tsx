@@ -12,7 +12,7 @@ export function StatRow({
 	className,
 	...props
 }: StatRowProps) {
-	const { label, icon, format } = info
+	const { label, icon, format, suffix } = info
 	const { base, bonus, total } = breakdown
 
 	return (
@@ -23,6 +23,7 @@ export function StatRow({
 			<img src={icon} alt="" className="stats__stat-icon" />
 			<div className="stats__stat-numbers">
 				{label}: {formatStat(total, format)}
+				{suffix}
 				{bonus !== 0 && (
 					<>
 						{" "}

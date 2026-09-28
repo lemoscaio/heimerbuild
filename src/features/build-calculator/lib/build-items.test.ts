@@ -1,43 +1,52 @@
 import { describe, expect, test } from "bun:test"
-import { knownItemIds, MAX_ITEMS, toggleItemId } from "./build-items"
+import { addItemId, knownItemIds, MAX_ITEMS, removeItemAt } from "./build-items"
 
-describe("toggleItemId", () => {
-	test("adds an item that is not in the build", () => {
-		expect(toggleItemId(["3089"], "3020")).toEqual(["3089", "3020"])
+const itemsById = { "1036": {}, "3089": {}, "3020": {}, "3006": {} }
+
+describe("addItemId", () => {
+	test.each([
+		{ case: "a new item", build: ["3089"], add: "3020" },
+		{ case: "a second copy of an item", build: ["3089"], add: "3089" },
+		{ case: "an item over a group limit", build: ["3020"], add: "3006" },
+	])("adds $case to the first free slot", ({ build, add }) => {
+		expect(addItemId(build, add)).toEqual([...build, add])
 	})
 
-	test("removes an item that is already in the build, keeping the order", () => {
-		expect(toggleItemId(["3089", "3020", "4645"], "3020")).toEqual([
-			"3089",
-			"4645",
-		])
-	})
-
-	test("ignores a new item when every slot is taken", () => {
-		const full = ["1", "2", "3", "4", "5", "6"]
-		expect(full).toHaveLength(MAX_ITEMS)
-		expect(toggleItemId(full, "7")).toEqual(full)
+	test("adds nothing when every slot is taken", () => {
+		const full = Array.from({ length: MAX_ITEMS }, () => "1036")
+		expect(addItemId(full, "3089")).toBeUndefined()
 	})
 
 	test("never mutates the given list", () => {
-		const itemIds = Object.freeze(["3089"])
-		expect(() => toggleItemId(itemIds, "3020")).not.toThrow()
-		expect(() => toggleItemId(itemIds, "3089")).not.toThrow()
-		expect(itemIds).toEqual(["3089"])
+		const build = Object.freeze(["1036"])
+		expect(() => addItemId(build, "1036")).not.toThrow()
+		expect(build).toEqual(["1036"])
+	})
+})
+
+describe("removeItemAt", () => {
+	test("removes only the given slot, keeping the other copies", () => {
+		expect(removeItemAt(["1036", "3089", "1036"], 0)).toEqual(["3089", "1036"])
+	})
+
+	test("keeps the build when the slot is empty", () => {
+		expect(removeItemAt(["1036"], 4)).toEqual(["1036"])
 	})
 })
 
 describe("knownItemIds", () => {
-	const itemsById = { "3089": {}, "3020": {}, "4645": {} }
-
-	test("keeps ids that exist in the patch, in link order", () => {
-		expect(knownItemIds(["4645", "3089"], itemsById)).toEqual(["4645", "3089"])
+	test("keeps known ids in link order, copies and group limits included", () => {
+		expect(knownItemIds(["3020", "3089", "3006", "3089"], itemsById)).toEqual([
+			"3020",
+			"3089",
+			"3006",
+			"3089",
+		])
 	})
 
-	test("drops unknown ids and duplicates", () => {
-		expect(knownItemIds(["3089", "9999", "3089", "3020"], itemsById)).toEqual([
-			"3089",
-			"3020",
+	test("drops ids that are not in this patch", () => {
+		expect(knownItemIds(["9999", "1036", "toString"], itemsById)).toEqual([
+			"1036",
 		])
 	})
 
@@ -46,9 +55,7 @@ describe("knownItemIds", () => {
 	})
 
 	test("never returns more than the item slots", () => {
-		const many = Object.fromEntries(
-			["1", "2", "3", "4", "5", "6", "7"].map((id) => [id, {}]),
-		)
-		expect(knownItemIds(Object.keys(many), many)).toHaveLength(MAX_ITEMS)
+		const many = Array.from({ length: MAX_ITEMS + 1 }, () => "1036")
+		expect(knownItemIds(many, itemsById)).toHaveLength(MAX_ITEMS)
 	})
 })

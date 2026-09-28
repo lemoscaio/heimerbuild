@@ -1,8 +1,8 @@
 import { createRoute, Link, notFound, useRouter } from "@tanstack/react-router"
 import { RouteError } from "@/components/common/route-error"
-import { RoutePending } from "@/components/common/route-pending"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { GameDataUnavailableError } from "@/data/services/game-data"
+import { BuildSkeleton } from "@/features/build-calculator/components/build-skeleton"
 import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
@@ -12,6 +12,8 @@ import { useBuild } from "@/features/build-calculator/hooks/use-build"
 import { resolveBuildPatch } from "@/features/build-calculator/lib/build-patch"
 import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
+import { ChampionHeaderSkeleton } from "@/features/champions/components/champion-header-skeleton"
+import { ItemGridSkeleton } from "@/features/item-shop/components/item-grid-skeleton"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { pageWithHeaderRoute } from "./page-with-header-route"
 
@@ -45,7 +47,7 @@ export const championRoute = createRoute({
 		return { patch, unavailablePatch }
 	},
 	component: ChampionPage,
-	pendingComponent: RoutePending,
+	pendingComponent: ChampionPagePending,
 	errorComponent: RouteError,
 	notFoundComponent: ChampionNotFound,
 })
@@ -89,13 +91,38 @@ function ChampionPage() {
 									level={build.level}
 									onLevelChange={build.setLevel}
 								/>
-								<ItemSlots items={build.items} onItemClick={build.toggleItem} />
-								<ItemShop patch={patch} onItemClick={build.toggleItem} />
+								<ItemSlots
+									items={build.items}
+									onRemoveItem={build.removeItem}
+									notice={build.notice}
+								/>
+								<ItemShop patch={patch} onItemClick={build.addItem} />
 								{build.stats && <StatsPanel stats={build.stats} />}
 							</div>
 						</main>
 					)}
 				</div>
+			</div>
+		</div>
+	)
+}
+
+function ChampionPagePending() {
+	return (
+		<div className="width-container">
+			<div className="page-container page-container--champion-page">
+				<main className="champion-page" role="status">
+					<span className="visually-hidden">Loading champion</span>
+					<div className="champion-page__champion-info champion-info">
+						<ChampionHeaderSkeleton />
+						<BuildSkeleton />
+						<div className="champion-info__items items">
+							<div className="items__list">
+								<ItemGridSkeleton />
+							</div>
+						</div>
+					</div>
+				</main>
 			</div>
 		</div>
 	)

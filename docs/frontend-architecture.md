@@ -48,7 +48,7 @@ features/<feature>/
 ### Import boundaries
 
 - **A feature never imports another feature. No exceptions.** Routes compose features; anything two features need is promoted to a shared layer.
-- When two features interact, the route wires them with props and callbacks. Example: the champion route calls `useBuild()` (build-calculator) and passes `build.toggleItem` to `ItemShop` (item-shop) as `onItemClick`; the shop never knows about the build.
+- When two features interact, the route wires them with props and callbacks. Example: the champion route calls `useBuild()` (build-calculator) and passes `build.addItem` to `ItemShop` (item-shop) as `onItemClick`; the shop never knows about the build.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`.
 - Shared layers never import from `features/` or `routes/`.
 - CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override per feature lists the other features, one covers the shared layers. **Adding a feature means adding its override and its name to the other features' lists.**

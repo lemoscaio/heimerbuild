@@ -1,5 +1,4 @@
 import { useState } from "react"
-import DotLoader from "react-spinners/esm/DotLoader"
 import { useItems } from "@/data/hooks/use-items"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import {
@@ -9,6 +8,7 @@ import {
 import { filterItemsByStats } from "../lib/filter-items-by-stats"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
 import { ItemGrid } from "./item-grid"
+import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { RoleFilter } from "./role-filter"
 import { StatFilter } from "./stat-filter"
 import { StatSort } from "./stat-sort"
@@ -52,17 +52,25 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 						<p className="items__empty">No items match these filters.</p>
 					)}
 					{itemsQuery.isPending && (
-						<DotLoader color="white" className="items__loader" />
+						<>
+							<span className="visually-hidden" role="status">
+								Loading items
+							</span>
+							<ItemGridSkeleton />
+						</>
 					)}
 					{itemsQuery.isError && (
-						<div className="items__load-error-container load-error-container">
-							<p>Something went wrong!</p>
+						<div
+							className="items__load-error-container load-error-container"
+							role="alert"
+						>
+							<p>Could not load the items. Check your connection.</p>
 							<button
 								type="button"
 								className="items__load-button load-button"
 								onClick={() => itemsQuery.refetch()}
 							>
-								Click here to try again
+								Try again
 							</button>
 						</div>
 					)}

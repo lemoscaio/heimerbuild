@@ -192,6 +192,27 @@ describe("normalizeItems shop filter", () => {
 	})
 })
 
+describe("normalizeItems group limits", () => {
+	type Bin = Record<string, Record<string, unknown>>
+
+	test("keeps the item groups that cap how many a build may hold", () => {
+		expect(itemOf("3135").groupLimits).toEqual([{ group: "VoidPen", max: 1 }])
+		expect(itemOf("4645").groupLimits).toEqual([{ group: "4645", max: 1 }])
+	})
+
+	test("skips groups without a cap", () => {
+		expect(itemOf("1036").groupLimits).toEqual([])
+	})
+
+	test("fails the sync when an item group is missing", () => {
+		const bin = structuredClone(communityDragonBin) as Bin
+		delete bin["Items/ItemGroups/VoidPen"]
+		expect(() => itemsOf(bin)).toThrow(
+			"Item 3135: item group Items/ItemGroups/VoidPen is missing",
+		)
+	})
+})
+
 describe("normalizeItems roles", () => {
 	type Bin = Record<string, Record<string, unknown>>
 
