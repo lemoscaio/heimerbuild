@@ -89,8 +89,12 @@ function ChampionPage() {
 									level={build.level}
 									onLevelChange={build.setLevel}
 								/>
-								<ItemSlots items={build.items} onItemClick={build.toggleItem} />
-								<ItemShop patch={patch} onItemClick={build.toggleItem} />
+								<ItemSlots
+									items={build.items}
+									onRemoveItem={build.removeItem}
+									notice={build.notice}
+								/>
+								<ItemShop patch={patch} onItemClick={build.addItem} />
 								{build.stats && <StatsPanel stats={build.stats} />}
 							</div>
 						</main>

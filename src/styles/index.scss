@@ -323,13 +323,25 @@ body {
     }
 
     .chosen-items {
-      @include flex(row, center, center, nowrap);
-      gap: 5px;
-      padding: 12px 0 12px;
+      padding: 12px 0 4px;
 
       background-color: $color-primary-3;
 
       box-shadow: inset 0px 0px 8px rgba(0, 0, 0, 0.7);
+
+      &__slots {
+        @include flex(row, center, center, nowrap);
+        gap: 5px;
+      }
+
+      &__notice {
+        min-height: 1.4em;
+        padding: 4px 10px 0;
+
+        color: $adobe-5-hex;
+        font-size: em(12);
+        text-align: center;
+      }
 
       &__item {
         background-color: $color-primary-1;
