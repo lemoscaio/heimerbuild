@@ -4,9 +4,9 @@ League of Legends build calculator: pick a champion, set its level (1-18), add u
 
 ## Stack
 
-Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, TanStack Router, Zod, Biome, SCSS, Cloudflare Workers static assets.
+Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, TanStack Router, Zod, Biome, Tailwind 4 with shadcn/ui (Base UI primitives), Cloudflare Workers static assets.
 
-Planned (check the issue before assuming it landed): Tailwind 4 (#40).
+In progress: the SCSS in `src/styles/index.scss` is being migrated to Tailwind (#40).
 
 ## Commands
 
@@ -20,6 +20,8 @@ bun run test          # bun test
 bun run e2e           # Playwright flows (e2e/) against a local build, or BASE_URL=<url>
 bun run build         # typecheck + production build to dist/
 bun run preview:local # serve dist/ locally
+bun scripts/visual/capture.ts capture --url <url> --out <dir>             # screenshots of the main screens
+bun scripts/visual/capture.ts compare --before <dir> --after <dir> [--diff <dir>]  # per-screen pixel diff %
 ```
 
 CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on every PR. Run them locally before pushing. `.github/workflows/e2e.yml` runs the Playwright flows against the PR's Cloudflare preview (local build fallback).

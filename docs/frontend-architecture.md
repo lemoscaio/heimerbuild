@@ -26,7 +26,7 @@ src/
 ├── hooks/                hooks used by 2+ features
 ├── types/                types used by 2+ features (not derivable from a schema)
 ├── assets/               images imported by code
-└── styles/               global SCSS (one CSS entry after #40, Tailwind)
+└── styles/               app.css: Tailwind entry, theme tokens (legacy SCSS until #40 ends)
 ```
 
 ### Feature anatomy
@@ -90,4 +90,4 @@ Moved in #96, #42 and #41. Still pending:
 
 | Current | Target | Issue |
 | --- | --- | --- |
-| `src/styles/` | replaced by Tailwind | #40 |
+| `src/styles/index.scss` | Tailwind utilities and `components/ui` (shadcn/ui) | #40 |

@@ -67,7 +67,7 @@ export function ItemShop() {
 
 - Props are a `type` (not `interface`), intersected with `React.ComponentProps<...>` when the component wraps an element. Never redeclare `className`, `onClick` and other native props.
 - Destructure custom props before spreading `...props` onto the element, so they never leak to the DOM.
-- Forward `className` through `cn()` **(after #40, Tailwind)**.
+- Forward `className` through `cn()` (`@/lib/cn`).
 
 ```tsx
 type StatRowProps = {
@@ -88,8 +88,10 @@ export function StatRow({ stat, value, className, ...props }: StatRowProps) {
 
 ## Styling
 
-- Today: SCSS in `src/styles/`, BEM-like class names.
-- **(after #40)** Tailwind 4. Merge classes with `cn()` only; conditional classes use object syntax, never template strings.
+- Tailwind 4 utilities; theme tokens (palette, fonts, header height) live in `@theme` in `src/styles/app.css`. Prefer the Tailwind spacing, font-size and radius scales over arbitrary values.
+- Merge classes with `cn()` only; conditional classes use object syntax, never template strings. Biome sorts classes (`useSortedClasses`).
+- UI primitives are shadcn/ui components (Base UI) in `src/components/ui/`, added with `bunx shadcn@latest add <name>` and then adapted to the rules here (named exports, `@/lib/cn`).
+- Until #40 ends, unmigrated BEM classes live in `src/styles/index.scss` inside `@layer legacy`, below Tailwind utilities.
 
 ```tsx
 // Wrong

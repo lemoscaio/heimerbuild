@@ -16,6 +16,16 @@
 		"enabled": true,
 		"rules": {
 			"preset": "recommended",
+			"nursery": {
+				"useSortedClasses": {
+					"level": "error",
+					"fix": "safe",
+					"options": {
+						"attributes": ["className"],
+						"functions": ["cn", "clsx", "cva"]
+					}
+				}
+			},
 			"style": {
 				"noDefaultExport": "error",
 				"useFilenamingConvention": {
@@ -30,6 +40,11 @@
 				"noBarrelFile": "error",
 				"noReExportAll": "error"
 			}
+		}
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
 		}
 	},
 	"javascript": {
