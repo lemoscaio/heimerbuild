@@ -1,11 +1,11 @@
 import { useState } from "react"
 
-import { AppName } from "../../components/AppName/"
-import { MainPageLogo } from "../../components/MainPageLogo"
-import { SearchContainer } from "../../components/SearchContainer"
-import { useGetChampions } from "../../hooks/api/useGetChampions"
-import { ChampionList } from "./components/ChampionList"
-import { filterChampions } from "./filterChampions"
+import { AppName } from "../../components/app-name"
+import { MainPageLogo } from "../../components/main-page-logo"
+import { SearchContainer } from "../../components/search-container"
+import { useGetChampions } from "../../hooks/api/use-get-champions"
+import { ChampionList } from "./components/champion-list"
+import { filterChampions } from "./filter-champions"
 
 export function ChampionChoose() {
 	const [search, setSearch] = useState("")

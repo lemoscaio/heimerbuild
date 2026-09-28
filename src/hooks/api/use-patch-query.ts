@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import {
 	fetchManifest,
 	GameDataUnavailableError,
-} from "../../services/gameData"
+} from "../../services/game-data"
 
 export type PatchQuery<T> = {
 	data: T | undefined

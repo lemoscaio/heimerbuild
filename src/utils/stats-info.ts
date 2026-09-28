@@ -1,5 +1,5 @@
-import itemStatsIcons from "../assets/stats-icons"
-import type { StatName } from "../lib/stats/computeStats"
+import { statsIcons } from "../assets/stats-icons"
+import type { StatName } from "../lib/stats/compute-stats"
 
 type StatFormat = "flat" | "percent" | "attackSpeed"
 
@@ -14,84 +14,84 @@ export const statRows: readonly StatRow[] = [
 	{
 		stat: "attackDamage",
 		label: "Attack Damage",
-		icon: itemStatsIcons.attackDamage,
+		icon: statsIcons.attackDamage,
 	},
 	{
 		stat: "abilityPower",
 		label: "Ability Power",
-		icon: itemStatsIcons.abilityPower,
+		icon: statsIcons.abilityPower,
 	},
-	{ stat: "armor", label: "Armor", icon: itemStatsIcons.armor },
+	{ stat: "armor", label: "Armor", icon: statsIcons.armor },
 	{
 		stat: "magicResist",
 		label: "Magic Resistance",
-		icon: itemStatsIcons.magicResist,
+		icon: statsIcons.magicResist,
 	},
 	{
 		stat: "attackSpeed",
 		label: "Attack Speed",
-		icon: itemStatsIcons.attackSpeed,
+		icon: statsIcons.attackSpeed,
 		format: "attackSpeed",
 	},
 	{
 		stat: "abilityHaste",
 		label: "Ability Haste",
-		icon: itemStatsIcons.abilityHaste,
+		icon: statsIcons.abilityHaste,
 	},
 	{
 		stat: "critChance",
 		label: "Critical Strike",
-		icon: itemStatsIcons.criticalStrike,
+		icon: statsIcons.criticalStrike,
 		format: "percent",
 	},
 	{
 		stat: "movementSpeed",
 		label: "Movement Speed",
-		icon: itemStatsIcons.moveSpeed,
+		icon: statsIcons.moveSpeed,
 	},
-	{ stat: "health", label: "Health", icon: itemStatsIcons.health },
-	{ stat: "healthRegen", label: "Health Regen", icon: itemStatsIcons.health },
-	{ stat: "mana", label: "Mana", icon: itemStatsIcons.mana },
-	{ stat: "manaRegen", label: "Mana Regen", icon: itemStatsIcons.mana },
-	{ stat: "lethality", label: "Lethality", icon: itemStatsIcons.lethality },
+	{ stat: "health", label: "Health", icon: statsIcons.health },
+	{ stat: "healthRegen", label: "Health Regen", icon: statsIcons.health },
+	{ stat: "mana", label: "Mana", icon: statsIcons.mana },
+	{ stat: "manaRegen", label: "Mana Regen", icon: statsIcons.mana },
+	{ stat: "lethality", label: "Lethality", icon: statsIcons.lethality },
 	{
 		stat: "armorPenetrationPercent",
 		label: "Armor Penetration",
-		icon: itemStatsIcons.armorPenetration,
+		icon: statsIcons.armorPenetration,
 		format: "percent",
 	},
 	{
 		stat: "magicPenetrationFlat",
 		label: "Flat Magic Penetration",
-		icon: itemStatsIcons.flatMagicPenetration,
+		icon: statsIcons.flatMagicPenetration,
 	},
 	{
 		stat: "magicPenetrationPercent",
 		label: "Percent Magic Penetration",
-		icon: itemStatsIcons.percentageMagicPenetration,
+		icon: statsIcons.percentageMagicPenetration,
 		format: "percent",
 	},
 	{
 		stat: "lifeStealPercent",
 		label: "Life Steal",
-		icon: itemStatsIcons.lifeSteal,
+		icon: statsIcons.lifeSteal,
 		format: "percent",
 	},
 	{
 		stat: "omnivampPercent",
 		label: "Omnivamp",
-		icon: itemStatsIcons.omniVamp,
+		icon: statsIcons.omniVamp,
 		format: "percent",
 	},
 	{
 		stat: "attackRange",
 		label: "Attack Range",
-		icon: itemStatsIcons.attackRange,
+		icon: statsIcons.attackRange,
 	},
 	{
 		stat: "tenacityPercent",
 		label: "Tenacity",
-		icon: itemStatsIcons.tenacity,
+		icon: statsIcons.tenacity,
 		format: "percent",
 	},
 ]

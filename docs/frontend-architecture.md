@@ -49,7 +49,7 @@ features/<feature>/
 - **A feature never imports another feature. No exceptions.** Routes compose features; anything two features need is promoted to a shared layer.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`.
 - Shared layers never import from `features/` or `routes/`.
-- CI enforces this and the kebab-case filename rule with Biome (#96).
+- CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override per feature lists the other features, one covers the shared layers. **Adding a feature means adding its override and its name to the other features' lists.**
 
 ```ts
 // src/features/build-calculator/components/stats-panel.tsx
@@ -58,8 +58,8 @@ features/<feature>/
 import { ChampionCard } from "../../champions/components/champion-card"
 
 // Allowed: shared layers
-import { useChampion } from "../../../data/hooks/use-champion"
-import { computeStats } from "../../../lib/stats/compute-stats"
+import { useChampion } from "@/data/hooks/use-champion"
+import { computeStats } from "@/lib/stats/compute-stats"
 ```
 
 ### Game data boundary

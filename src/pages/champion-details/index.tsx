@@ -2,12 +2,12 @@ import { type ChangeEvent, useState } from "react"
 import { useParams } from "react-router-dom"
 import { DotLoader } from "react-spinners"
 import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
-import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
-import { useGetItems } from "../../hooks/api/useGetItems"
-import { type ComputedStats, computeStats } from "../../lib/stats/computeStats"
+import { useGetChampionDetails } from "../../hooks/api/use-get-champion-details"
+import { useGetItems } from "../../hooks/api/use-get-items"
+import { type ComputedStats, computeStats } from "../../lib/stats/compute-stats"
 import { MAX_LEVEL, MIN_LEVEL } from "../../lib/stats/growth"
-import { type ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
-import { formatStat, statRows } from "../../utils/statsInfo"
+import { type ChampionRoles, rolesInfo } from "../../utils/roles-info"
+import { formatStat, statRows } from "../../utils/stats-info"
 
 const levelOptions = Array.from(
 	{ length: MAX_LEVEL - MIN_LEVEL + 1 },

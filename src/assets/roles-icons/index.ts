@@ -6,7 +6,7 @@ import marksmanIcon from "./marksman.png"
 import supportIcon from "./support.png"
 import tankIcon from "./tank.png"
 
-export default {
+export const rolesIcons = {
 	ALL: allIcon,
 	FIGHTER: fighterIcon,
 	MARKSMAN: marksmanIcon,

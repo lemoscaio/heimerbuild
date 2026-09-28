@@ -1,4 +1,4 @@
-import rolesIcons from "../assets/roles-icons"
+import { rolesIcons } from "../assets/roles-icons"
 
 export const rolesInfo = {
 	ALL: { label: "All Items", icon: rolesIcons.ALL },

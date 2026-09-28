@@ -30,6 +30,20 @@
 			"suspicious": {
 				"noImplicitAnyLet": "warn",
 				"useIterableCallbackReturn": "warn"
+			},
+			"style": {
+				"noDefaultExport": "error",
+				"useFilenamingConvention": {
+					"level": "error",
+					"options": {
+						"filenameCases": ["kebab-case"],
+						"requireAscii": true
+					}
+				}
+			},
+			"performance": {
+				"noBarrelFile": "error",
+				"noReExportAll": "error"
 			}
 		}
 	},
@@ -46,5 +60,131 @@
 				"organizeImports": "on"
 			}
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["vite.config.ts", "worker/index.ts"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noDefaultExport": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"src/components/**",
+				"src/data/**",
+				"src/hooks/**",
+				"src/lib/**",
+				"src/types/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/features",
+											"@/features/**",
+											"@/routes",
+											"@/routes/**",
+											"**/features/**",
+											"**/routes/**"
+										],
+										"message": "Shared layers never import from features/ or routes/ (docs/frontend-architecture.md#import-boundaries)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/features/build-calculator/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/features/*/**",
+											"!@/features/build-calculator/**",
+											"**/champions",
+											"**/champions/**",
+											"**/item-shop",
+											"**/item-shop/**"
+										],
+										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/features/champions/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/features/*/**",
+											"!@/features/champions/**",
+											"**/build-calculator",
+											"**/build-calculator/**",
+											"**/item-shop",
+											"**/item-shop/**"
+										],
+										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/features/item-shop/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/features/*/**",
+											"!@/features/item-shop/**",
+											"**/build-calculator",
+											"**/build-calculator/**",
+											"**/champions",
+											"**/champions/**"
+										],
+										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	]
 }

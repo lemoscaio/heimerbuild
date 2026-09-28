@@ -15,16 +15,17 @@ Rules marked **(after #N)** apply once that issue lands; until then, follow the 
 - Files and folders are **kebab-case**: `champion-choose/`, `filter-champions.ts`, `champion-card.tsx`, `use-build.ts`.
 - Component and type names inside the file stay PascalCase: `export function ChampionCard()`.
 - Tests sit next to the file: `filter-champions.test.ts`.
-- Enforced by Biome `style/useFilenamingConvention` (kebab-case, `index` allowed) **(after #96)**. Until then, new files are kebab-case; existing files are renamed in #96, not piecemeal.
+- Enforced by Biome `style/useFilenamingConvention` (kebab-case). Biome checks file names only; folder names are kebab-case by review.
 
 ## Imports
 
 - A feature never imports another feature (`src/features/a` → `src/features/b`), no exceptions. Features import only `components/`, `lib/`, `hooks/`, `types/` and `data/`. Details: [import boundaries](../../docs/frontend-architecture.md#import-boundaries).
-- Enforced by Biome in CI **(after #96)**.
+- `@/` resolves to `src/`: import other layers as `@/data/hooks/use-champions`, not with long `../../..` chains.
+- Enforced by Biome `noRestrictedImports` overrides in `biome.json`. A new feature folder needs its own override there (see [import boundaries](../../docs/frontend-architecture.md#import-boundaries)).
 
 ## Exports and declarations
 
-- **Named exports** only: `export function ChampionCard()`. No `export default` (`src/App.tsx` is the pending exception until #96/#42 move it).
+- **Named exports** only: `export function ChampionCard()`. No `export default` (Biome `style/noDefaultExport`); only tool entry points that require one (`vite.config.ts`, `worker/index.ts`) are exempt.
 - No barrel files: import the file that defines the thing, never a folder `index.ts` re-export list.
 - **`function` declarations** for components, hooks and helpers. No top-level `const X = () => ...`.
 - Arrow functions are fine for inline callbacks (`onClick`, `map`, `useCallback`).
