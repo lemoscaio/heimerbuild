@@ -11,9 +11,11 @@ type CopyStatus = "idle" | "copied" | "failed"
 type CopyBuildLinkProps = {
 	/** Path and search of the build, resolved against the current origin on click. */
 	href: string
+	/** Called after the link reached the clipboard. */
+	onCopied?: () => void
 }
 
-export function CopyBuildLink({ href }: CopyBuildLinkProps) {
+export function CopyBuildLink({ href, onCopied }: CopyBuildLinkProps) {
 	const [status, setStatus] = useState<CopyStatus>("idle")
 	const [copiedUrl, setCopiedUrl] = useState("")
 
@@ -23,6 +25,7 @@ export function CopyBuildLink({ href }: CopyBuildLinkProps) {
 		const copied = await copyToClipboard(url)
 		setStatus(copied ? "copied" : "failed")
 		if (copied) {
+			onCopied?.()
 			setTimeout(() => setStatus("idle"), FEEDBACK_MS)
 		}
 	}

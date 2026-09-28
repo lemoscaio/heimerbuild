@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { LoadError } from "@/components/common/load-error"
 import { useItems } from "@/data/hooks/use-items"
+import { track } from "@/lib/analytics/analytics"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import {
 	filterItemsByRole,
@@ -34,11 +35,29 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 		: []
 	const items = sort ? sortItemsByStat(filteredItems, sort) : filteredItems
 
+	function handleRoleChange(nextRole: Role) {
+		setRole(nextRole)
+		trackFilters(nextRole, stats)
+	}
+
+	function handleStatsChange(nextStats: StatKey[]) {
+		setStats(nextStats)
+		trackFilters(role, nextStats)
+	}
+
+	function handleSortChange(nextSort: ItemSort | undefined) {
+		setSort(nextSort)
+		track("shop_sorted", {
+			stat: nextSort?.stat ?? null,
+			direction: nextSort?.direction ?? null,
+		})
+	}
+
 	return (
 		<div className="bg-primary-4">
-			<RoleFilter role={role} onRoleChange={setRole} />
-			<StatFilter stats={stats} onStatsChange={setStats} />
-			<StatSort sort={sort} onSortChange={setSort} />
+			<RoleFilter role={role} onRoleChange={handleRoleChange} />
+			<StatFilter stats={stats} onStatsChange={handleStatsChange} />
+			<StatSort sort={sort} onSortChange={handleSortChange} />
 			<ItemList aria-label="Item shop">
 				<ItemGrid items={items} onItemClick={onItemClick} />
 				{itemsQuery.isSuccess && !items.length && (
@@ -62,4 +81,8 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 			</ItemList>
 		</div>
 	)
+}
+
+function trackFilters(role: Role, stats: StatKey[]) {
+	track("shop_filtered", { roles: role === "ALL" ? [] : [role], stats })
 }
