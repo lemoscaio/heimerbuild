@@ -1,0 +1,103 @@
+name: Sync game data
+
+# Opens (or updates) a PR with public/data/<patch>/ when Data Dragon ships a new patch.
+# main requires CI checks, so this never pushes to main; merging the PR deploys.
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-data
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: sync-data
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    defaults:
+      run:
+        # Explicit bash adds pipefail, so a failing sync is not hidden by tee.
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare the latest Data Dragon patch with the manifest
+        id: patch
+        run: |
+          latest=$(curl --fail --silent --show-error --retry 3 https://ddragon.leagueoflegends.com/api/versions.json | jq -r '.[0]')
+          current=$(jq -r '.currentPatch' public/data/manifest.json)
+          if ! [[ "$latest" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Unexpected Data Dragon version: $latest"
+            exit 1
+          fi
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          if [[ "$latest" == "$current" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Data Dragon $latest is already the current patch; nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "New patch: $current -> $latest" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - if: steps.patch.outputs.changed == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - if: steps.patch.outputs.changed == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Sync data
+        if: steps.patch.outputs.changed == 'true'
+        run: bun run sync-data --version "${{ steps.patch.outputs.latest }}" | tee "$RUNNER_TEMP/sync.log"
+
+      # PRs opened with GITHUB_TOKEN do not trigger ci.yml, so run the same checks here.
+      - name: Check the synced data
+        if: steps.patch.outputs.changed == 'true'
+        run: |
+          bunx biome ci
+          bun run typecheck
+          bun run test
+          bun run build
+
+      - name: Write the PR body
+        if: steps.patch.outputs.changed == 'true'
+        env:
+          CURRENT: ${{ steps.patch.outputs.current }}
+          LATEST: ${{ steps.patch.outputs.latest }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "Automated sync of Data Dragon $LATEST (previous: $CURRENT) by the [Sync game data]($RUN_URL) workflow."
+            echo
+            echo "The sync already passed \`biome ci\`, typecheck, tests and build in that run. CI (\`ci.yml\`) does not start on its own for this PR because it was opened with \`GITHUB_TOKEN\`: close and reopen the PR to run it before merging."
+            echo
+            bun scripts/sync-data/diff-patches.ts --from "$CURRENT" --to "$LATEST"
+            echo
+            echo "<details><summary>sync-data log</summary>"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/sync.log"
+            echo '```'
+            echo
+            echo "</details>"
+          } > "$RUNNER_TEMP/pr-body.md"
+
+      - name: Open or update the pull request
+        if: steps.patch.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/sync-game-data
+          add-paths: public/data
+          commit-message: "chore: sync game data for patch ${{ steps.patch.outputs.latest }}"
+          title: "chore: sync game data for patch ${{ steps.patch.outputs.latest }}"
+          body-path: ${{ runner.temp }}/pr-body.md
+          draft: true
