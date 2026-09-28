@@ -68,7 +68,7 @@ describe("toItemsById", () => {
 		>[0]["items"][number]
 		expect(toItemsById({ version: "16.19.1", items: [item] })).toEqual({
 			"1036": {
-				id: "1036",
+				...item,
 				icon: "https://ddragon.leagueoflegends.com/cdn/16.19.1/img/item/1036.png",
 			},
 		})
