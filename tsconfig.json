@@ -16,7 +16,7 @@
 		"noEmit": true,
 		"jsx": "react-jsx"
 	},
-	"include": ["src"],
-	"exclude": ["src/**/*.test.ts"],
+	"include": ["src", "worker"],
+	"exclude": ["src/**/*.test.ts", "worker/**/*.test.ts"],
 	"references": [{ "path": "./tsconfig.node.json" }]
 }
