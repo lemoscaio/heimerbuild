@@ -75,7 +75,7 @@ scripts/wt destroy <name> [--force]  # stop, remove, delete the branch once merg
 ```
 src/
 ├── main.tsx      Vite entry
-├── app/          App, providers, query client, router
+├── app/          App, providers, query client, router, Sentry
 ├── routes/       TanStack Router routes: loaders, search schemas, thin pages
 ├── features/     champions, build-calculator, item-shop (a feature never imports another)
 ├── data/         game data loading: services (fetch + Zod) and hooks
@@ -89,7 +89,11 @@ Files and folders are kebab-case, `@/` resolves to `src/`, and Biome enforces th
 
 ### Deployment
 
-The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. A small Worker (`worker/index.ts`) runs first for `/data/*` and `/assets/*` so missing files there return an uncached 404 instead of `index.html`. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).
+The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. A small Worker (`worker/index.ts`) runs first for `/data/*` and `/assets/*` so missing files there return an uncached 404 instead of `index.html`, and for `/monitoring` to forward Sentry events. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).
+
+### Error monitoring
+
+Sentry (`@sentry/react`, set up in `src/app/sentry.ts`) reports errors, sampled traces and on-error session replays from preview and production deploys, sent through the Worker's `/monitoring` tunnel so ad-blockers do not drop them. Local builds send nothing unless `VITE_SENTRY_ENABLED=true`. When the `SENTRY_AUTH_TOKEN` build secret is set, Workers Builds uploads hidden source maps for the commit SHA release and deletes them from `dist/`.
 
 ### Game data
 

@@ -4,7 +4,7 @@ League of Legends build calculator: pick a champion, set its level (1-18), add u
 
 ## Stack
 
-Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, TanStack Router, Zod, Biome, Tailwind 4 with shadcn/ui (Base UI primitives), Cloudflare Workers static assets.
+Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, TanStack Router, Zod, Biome, Tailwind 4 with shadcn/ui (Base UI primitives), Cloudflare Workers static assets, Sentry (`@sentry/react`).
 
 ## Commands
 
@@ -29,7 +29,8 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 - `src/`: the app. Structure and placement rules: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
 - `scripts/sync-data/`: data pipeline. `schemas/` holds the Zod schemas shared by the pipeline and the app.
 - `public/data/`: generated game data, committed. Never edit by hand.
-- `worker/`: tiny Worker that turns SPA fallbacks for missing `/data/*` and `/assets/*` into real 404s.
+- `worker/`: tiny Worker that turns SPA fallbacks for missing `/data/*` and `/assets/*` into real 404s and tunnels Sentry envelopes posted to `/monitoring` (our project only).
+- Sentry: `src/app/sentry.ts` (DSN in `sentry-config.ts`); on in preview and production builds, off locally unless `VITE_SENTRY_ENABLED=true`; source maps upload only when the `SENTRY_AUTH_TOKEN` build secret exists.
 - `wrangler.jsonc`, `public/_headers`: hosting and cache rules.
 
 ## Game data pipeline
