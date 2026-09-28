@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom"
+import { useNavigate } from "@tanstack/react-router"
 
 type ChampionCardProps = {
 	champion: {
@@ -11,8 +11,8 @@ type ChampionCardProps = {
 export function ChampionCard(props: ChampionCardProps) {
 	const navigate = useNavigate()
 
-	function handleClick(championName: string) {
-		navigate(`/champions/${championName}`)
+	function handleClick(championKey: string) {
+		navigate({ to: "/champions/$key", params: { key: championKey } })
 	}
 
 	return (
