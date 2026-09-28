@@ -42,11 +42,12 @@ bun run build         # typecheck and build to dist/
 bun run preview:local # serve the production build locally
 bun run typecheck     # type-check the app and the tests, scripts and worker
 bun run test          # run tests with bun test
+bun run e2e           # Playwright flows in e2e/ against a local build (BASE_URL=<url> targets a deployed site)
 bun run check         # lint and format check with Biome
 bun run check:write   # apply Biome formatting and safe fixes
 ```
 
-CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and the build on every pull request and push to `main`.
+CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and the build on every pull request and push to `main`. The E2E workflow (`.github/workflows/e2e.yml`) runs the Playwright flows on every pull request against its Cloudflare preview, or against a local build when the preview is not available, and uploads the Playwright trace when a flow fails.
 
 `bun install` also installs a [lefthook](https://lefthook.dev) pre-commit hook (`lefthook.yml`) that formats staged files with `biome check --write` and re-stages them; errors Biome cannot fix do not block the commit (CI catches them). Skip it once with `LEFTHOOK=0 git commit ...`.
 
