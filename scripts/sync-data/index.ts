@@ -3,10 +3,12 @@ import { mkdir, readdir, readFile, rename, rm } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import {
+	CACHE_LAYOUT,
 	downloadRawData,
 	MANIFEST_FILE,
 	type RawDataManifest,
 } from "./download"
+import { writeChampions } from "./normalize-champions"
 import { syncItems } from "./normalize-items"
 import {
 	assertValidVersion,
@@ -38,7 +40,8 @@ async function readCachedManifest(
 ): Promise<RawDataManifest | undefined> {
 	const path = join(CACHE_ROOT, version, MANIFEST_FILE)
 	if (!existsSync(path)) return undefined
-	return JSON.parse(await readFile(path, "utf8")) as RawDataManifest
+	const manifest = JSON.parse(await readFile(path, "utf8")) as RawDataManifest
+	return manifest.layout === CACHE_LAYOUT ? manifest : undefined
 }
 
 async function newestCachedVersion(): Promise<string | undefined> {
@@ -69,11 +72,61 @@ async function resolveVersion(options: {
 	return resolveLatestVersion()
 }
 
+/** Ensures `.cache/<version>` holds every raw input, downloading it when missing or stale. */
+async function ensureRawData(
+	version: string,
+	{ offline = false }: { offline?: boolean } = {},
+): Promise<void> {
+	const startedAt = performance.now()
+	const cached = await readCachedManifest(version)
+	if (cached) {
+		console.log(
+			`Cache hit: .cache/${version} (${summarize(cached)}), no download needed`,
+		)
+		return
+	}
+	if (offline) {
+		throw new Error(
+			`--offline: version ${version} is not cached (or cached in an older layout)`,
+		)
+	}
+
+	const target = join(CACHE_ROOT, version)
+	const tmp = join(CACHE_ROOT, `.tmp-${version}-${process.pid}`)
+	await rm(tmp, { recursive: true, force: true })
+	await mkdir(tmp, { recursive: true })
+
+	try {
+		let count = 0
+		const manifest = await downloadRawData(version, tmp, {
+			onFile: () => {
+				count++
+				if (count % 25 === 0) console.log(`  downloaded ${count} files`)
+			},
+		})
+		// A cache from an older layout is replaced whole.
+		await rm(target, { recursive: true, force: true })
+		await rename(tmp, target)
+		const seconds = ((performance.now() - startedAt) / 1000).toFixed(1)
+		console.log(
+			`Downloaded .cache/${version} (${summarize(manifest)}) in ${seconds}s`,
+		)
+	} finally {
+		await rm(tmp, { recursive: true, force: true })
+	}
+}
+
 async function writeOutputs(version: string): Promise<void> {
-	const items = await syncItems({
-		cacheDir: join(CACHE_ROOT, version),
-		outDir: join(OUTPUT_ROOT, version),
-	})
+	const cacheDir = join(CACHE_ROOT, version)
+	const outDir = join(OUTPUT_ROOT, version)
+
+	const startedAt = performance.now()
+	const champions = await writeChampions(cacheDir, outDir, version)
+	console.log(
+		`Wrote public/data/${version}: ${champions.champions} champions, index ${(champions.indexBytes / 1024).toFixed(1)} KB, ${formatBytes(champions.totalBytes)} total in ${Math.round(performance.now() - startedAt)}ms`,
+	)
+
+	const items = await syncItems({ cacheDir, outDir })
 	console.log(
 		`Wrote public/data/${version}/items.json (${items.count} items, ${formatBytes(items.bytes)})`,
 	)
@@ -92,43 +145,9 @@ async function main(): Promise<void> {
 		return
 	}
 
-	const startedAt = performance.now()
 	const version = await resolveVersion(values)
 	console.log(`Data Dragon version: ${version}`)
-
-	const cached = await readCachedManifest(version)
-	if (cached) {
-		console.log(
-			`Cache hit: .cache/${version} (${summarize(cached)}), no download needed`,
-		)
-		await writeOutputs(version)
-		return
-	}
-	if (values.offline) {
-		throw new Error(`--offline: version ${version} is not cached`)
-	}
-
-	const target = join(CACHE_ROOT, version)
-	const tmp = join(CACHE_ROOT, `.tmp-${version}-${process.pid}`)
-	await rm(tmp, { recursive: true, force: true })
-	await mkdir(tmp, { recursive: true })
-
-	try {
-		let count = 0
-		const manifest = await downloadRawData(version, tmp, {
-			onFile: () => {
-				count++
-				if (count % 25 === 0) console.log(`  downloaded ${count} files`)
-			},
-		})
-		await rename(tmp, target)
-		const seconds = ((performance.now() - startedAt) / 1000).toFixed(1)
-		console.log(
-			`Downloaded .cache/${version} (${summarize(manifest)}) in ${seconds}s`,
-		)
-	} finally {
-		await rm(tmp, { recursive: true, force: true })
-	}
+	await ensureRawData(version, { offline: values.offline })
 	await writeOutputs(version)
 }
 
