@@ -564,53 +564,25 @@
 
 // Components
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+// Sizes for the Skeleton component (components/ui/skeleton.tsx), until its callers migrate.
+.skeleton--heading {
+  width: 200px;
+  height: 28px;
 }
 
-.skeleton {
-  border-radius: 4px;
-  background-color: $color-primary-2;
-
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-
-  &--heading {
-    width: 200px;
-    height: 28px;
-  }
-
-  &--text {
-    width: 140px;
-    height: 14px;
-  }
-
-  &--text-short {
-    width: 90px;
-    height: 12px;
-  }
-
-  &--slider {
-    width: min(300px, 100%);
-    height: 10px;
-  }
+.skeleton--text {
+  width: 140px;
+  height: 14px;
 }
 
-@keyframes skeleton-pulse {
-  50% {
-    opacity: 0.5;
-  }
+.skeleton--text-short {
+  width: 90px;
+  height: 12px;
+}
+
+.skeleton--slider {
+  width: min(300px, 100%);
+  height: 10px;
 }
 
 .champion-card--skeleton {
@@ -638,7 +610,7 @@
   height: 40px;
 }
 
-.champion-info__name-title .skeleton + .skeleton {
+.champion-info__name-title [data-slot="skeleton"] + [data-slot="skeleton"] {
   margin-top: 8px;
 }
 

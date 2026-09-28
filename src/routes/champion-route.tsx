@@ -112,7 +112,7 @@ function ChampionPagePending() {
 		<div className="width-container">
 			<div className="page-container page-container--champion-page">
 				<main className="champion-page" role="status">
-					<span className="visually-hidden">Loading champion</span>
+					<span className="sr-only">Loading champion</span>
 					<div className="champion-page__champion-info champion-info">
 						<ChampionHeaderSkeleton />
 						<BuildSkeleton />

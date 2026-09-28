@@ -9,7 +9,7 @@ type StatFilterProps = {
 export function StatFilter({ stats, onToggleStat }: StatFilterProps) {
 	return (
 		<fieldset className="items__stat-filter">
-			<legend className="visually-hidden">Filter by stat</legend>
+			<legend className="sr-only">Filter by stat</legend>
 			{shopStats.map(({ stat, label, icon }) => (
 				<button
 					type="button"

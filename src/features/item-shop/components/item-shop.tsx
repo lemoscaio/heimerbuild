@@ -53,7 +53,7 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 					)}
 					{itemsQuery.isPending && (
 						<>
-							<span className="visually-hidden" role="status">
+							<span className="sr-only" role="status">
 								Loading items
 							</span>
 							<ItemGridSkeleton />

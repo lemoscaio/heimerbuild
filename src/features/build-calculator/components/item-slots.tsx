@@ -42,7 +42,7 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 	return (
 		<div className="champion-info__chosen-items chosen-items">
 			<fieldset ref={slotsRef} className="chosen-items__slots" tabIndex={-1}>
-				<legend className="visually-hidden">Chosen items</legend>
+				<legend className="sr-only">Chosen items</legend>
 				{slots.map((slot) => {
 					const item = items[slot]
 					if (!item) {
