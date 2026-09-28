@@ -127,6 +127,15 @@ describe("validateItemStats", () => {
 		expect(stale).toEqual([allowlist[1]])
 	})
 
+	test("an entry without a stat covers every stat of the item", () => {
+		const { mismatches, stale } = validateItemStats(
+			[item("3865", { health: 30, baseManaRegenPercent: 0.25 }, "")],
+			[{ itemId: "3865", reason: "test" }],
+		)
+		expect(mismatches).toEqual([])
+		expect(stale).toEqual([])
+	})
+
 	test("prefixes parse errors with the item", () => {
 		expect(() =>
 			validateItemStats(
@@ -139,7 +148,7 @@ describe("validateItemStats", () => {
 
 describe("ITEM_STAT_ALLOWLIST", () => {
 	test("every entry is unique and explains why it is allowed", () => {
-		const keys = ITEM_STAT_ALLOWLIST.map((e) => `${e.itemId}:${e.stat}`)
+		const keys = ITEM_STAT_ALLOWLIST.map((e) => `${e.itemId}:${e.stat ?? "*"}`)
 		expect(new Set(keys).size).toBe(keys.length)
 		for (const entry of ITEM_STAT_ALLOWLIST) {
 			expect(entry.reason.trim().length).toBeGreaterThan(10)

@@ -42,7 +42,8 @@ const UNMODELED_LABELS: ReadonlySet<string> = new Set([
 
 export type AllowlistEntry = {
 	itemId: string
-	stat: StatKey
+	/** Omitted: every stat of the item (only for items Data Dragon ships without a description). */
+	stat?: StatKey
 	/** Required: why the normalized value may differ from the `<stats>` block. */
 	reason: string
 }
@@ -75,13 +76,8 @@ export const ITEM_STAT_ALLOWLIST: readonly AllowlistEntry[] = [
 	},
 	{
 		itemId: "3865",
-		stat: "baseHealthRegenPercent",
-		reason: "Data Dragon ships World Atlas with an empty description.",
-	},
-	{
-		itemId: "3865",
-		stat: "baseManaRegenPercent",
-		reason: "Data Dragon ships World Atlas with an empty description.",
+		reason:
+			"Data Dragon ships World Atlas with an empty description, so there is no <stats> block to check.",
 	},
 ]
 
@@ -133,7 +129,7 @@ export function parseStatsBlock(description: string): ItemStats {
 	return stats
 }
 
-function allowlistKey(itemId: string, stat: string): string {
+function allowlistKey(itemId: string, stat = "*"): string {
 	return `${itemId}:${stat}`
 }
 
@@ -169,8 +165,10 @@ export function validateItemStats(
 			const got = item.stats[stat]
 			// Normalized stats omit zeros; <stats> can show them (Yun Tal "0% Critical Strike Chance").
 			if (Math.abs((want ?? 0) - (got ?? 0)) < TOLERANCE) continue
-			const key = allowlistKey(item.id, stat)
-			if (allowed.has(key)) {
+			const key = [allowlistKey(item.id, stat), allowlistKey(item.id)].find(
+				(candidate) => allowed.has(candidate),
+			)
+			if (key) {
 				used.add(key)
 				continue
 			}
