@@ -15,7 +15,14 @@ export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 			aria-label={item.name}
 			onClick={() => onItemClick(item.id)}
 		>
-			<img src={item.icon} alt="" className="items__item-image" />
+			<img
+				src={item.icon}
+				alt=""
+				width={40}
+				height={40}
+				loading="lazy"
+				className="items__item-image"
+			/>
 		</ItemButton>
 	))
 }
