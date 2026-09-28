@@ -4,6 +4,7 @@ import dataDragonItems from "./fixtures/ddragon-item.json"
 import map11Bin from "./fixtures/map11.bin.json"
 import { normalizeItems } from "./normalize-items"
 import { STAT_UNITS } from "./schemas/item"
+import { STAT_FIELDS } from "./stat-map"
 
 // Real 16.19.1 entries for Long Sword, Dagger, Doran's Shield, Serrated Dirk, Void Staff and Shadowflame.
 function itemsOf(
@@ -80,6 +81,28 @@ describe("normalizeItems", () => {
 		>
 		bin["Items/1042"].mFlatBogusMod = 5
 		expect(() => itemsOf(bin)).toThrow(/mFlatBogusMod \(items 1042\)/)
+	})
+
+	test("fails the sync when a stat differs from the Data Dragon <stats> block", () => {
+		const items = structuredClone(dataDragonItems) as DataDragonItems
+		items.data["1036"].description =
+			"<mainText><stats><attention>15</attention> Attack Damage</stats></mainText>"
+		expect(() => itemsOf(communityDragonBin, items)).toThrow(
+			"1036 Long Sword: attackDamage expected 15, actual 10",
+		)
+	})
+
+	test("fails the sync for Serrated Dirk without the PhysicalLethality mapping", () => {
+		const fields = STAT_FIELDS as Record<string, string>
+		const mapping = fields.PhysicalLethality
+		delete fields.PhysicalLethality
+		try {
+			expect(() => itemsOf()).toThrow(
+				"3134 Serrated Dirk: lethality expected 10, actual (missing)",
+			)
+		} finally {
+			fields.PhysicalLethality = mapping as string
+		}
 	})
 
 	test("fails when a Data Dragon item has no CommunityDragon entry", () => {

@@ -134,8 +134,13 @@ async function writeOutputs(version: string): Promise<void> {
 	console.log(
 		`Items removed from the Summoner's Rift shop, per rule:\n${removed}`,
 	)
+	for (const entry of items.staleAllowlist) {
+		console.warn(
+			`  Stale ITEM_STAT_ALLOWLIST entry (no difference found): ${entry.itemId} ${entry.stat}`,
+		)
+	}
 	console.log(
-		`Wrote public/data/${version}/items.json (${items.count} items, ${formatBytes(items.bytes)})`,
+		`Wrote public/data/${version}/items.json (${items.count} items, ${formatBytes(items.bytes)}, stats match Data Dragon)`,
 	)
 
 	const manifest = await writeManifest(OUTPUT_ROOT)
