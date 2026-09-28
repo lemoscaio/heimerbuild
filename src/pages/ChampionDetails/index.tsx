@@ -5,17 +5,25 @@ import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
 import { useGetChampionDetails } from "../../hooks/api/useGetChampionDetails"
 import { useGetItems } from "../../hooks/api/useGetItems"
 import { type ComputedStats, computeStats } from "../../lib/stats/computeStats"
+import { MAX_LEVEL, MIN_LEVEL } from "../../lib/stats/growth"
 import { type ChampionRoles, rolesInfo } from "../../utils/rolesInfo"
 import { formatStat, statRows } from "../../utils/statsInfo"
 
-export function ChampionDetails() {
-	const MAX_LEVEL = 18
+const levelOptions = Array.from(
+	{ length: MAX_LEVEL - MIN_LEVEL + 1 },
+	(_, index) => MIN_LEVEL + index,
+).map((level) => (
+	<option value={level} key={level} className="level-container__level-option">
+		{level}
+	</option>
+))
 
+export function ChampionDetails() {
 	const { championKey } = useParams()
 
 	const { data: championInfo } = useGetChampionDetails(championKey)
 
-	const [championLevel, setChampionLevel] = useState(0)
+	const [championLevel, setChampionLevel] = useState(MIN_LEVEL)
 
 	const {
 		data: items,
@@ -75,7 +83,7 @@ export function ChampionDetails() {
 		championInfo &&
 		computeStats(
 			championInfo,
-			championLevel + 1,
+			championLevel,
 			items ? chosenItems.map((itemId) => items[itemId]) : [],
 		)
 
@@ -119,15 +127,6 @@ export function ChampionDetails() {
 	}
 
 	function createLevelSelectElement() {
-		const levelOptions = []
-
-		for (let i = 0; i < MAX_LEVEL; i++) {
-			levelOptions.push(
-				<option value={i} key={i} className="level-container__level-option">
-					{i + 1}
-				</option>,
-			)
-		}
 		return (
 			<div className="champion-info__level-container level-container">
 				<label htmlFor="championLevel" className="level-container__label">
@@ -145,8 +144,8 @@ export function ChampionDetails() {
 				<input
 					className="level-container__level-slider level-slider"
 					type="range"
-					min="0"
-					max="17"
+					min={MIN_LEVEL}
+					max={MAX_LEVEL}
 					step="1"
 					value={championLevel}
 					onChange={handleLevelChange}
