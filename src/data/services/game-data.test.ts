@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { dataManifestSchema } from "../../../scripts/sync-data/schemas/manifest"
 import {
+	dataFileUrl,
 	fetchGameData,
 	GameDataUnavailableError,
 	toItemsById,
@@ -9,6 +10,7 @@ import {
 const MANIFEST = {
 	currentPatch: "16.19.1",
 	patches: ["16.19.1"],
+	files: {},
 	generatedAt: "2026-09-28T00:00:00.000Z",
 }
 
@@ -58,6 +60,40 @@ describe("fetchGameData", () => {
 		await expect(
 			fetchGameData("/data/manifest.json", dataManifestSchema, { fetchFn }),
 		).rejects.toThrow()
+	})
+})
+
+describe("dataFileUrl", () => {
+	const files = {
+		"16.19.1/items.json": "a1b2c3d4e5",
+		"16.19.1/champions/Ahri.json": "0f1e2d3c4b",
+	}
+
+	test("versions a file with its content hash, so a data fix changes the URL", () => {
+		expect(dataFileUrl(["16.19.1", "items.json"], files)).toBe(
+			"/data/16.19.1/items.json?v=a1b2c3d4e5",
+		)
+		expect(
+			dataFileUrl(["16.19.1", "items.json"], {
+				...files,
+				"16.19.1/items.json": "ffffffffff",
+			}),
+		).toBe("/data/16.19.1/items.json?v=ffffffffff")
+		expect(dataFileUrl(["16.19.1", "champions", "Ahri.json"], files)).toBe(
+			"/data/16.19.1/champions/Ahri.json?v=0f1e2d3c4b",
+		)
+	})
+
+	test("keeps a plain URL for a file the manifest does not list", () => {
+		expect(dataFileUrl(["16.10.1", "items.json"], files)).toBe(
+			"/data/16.10.1/items.json",
+		)
+	})
+
+	test("encodes a champion key from the URL so it cannot leave its folder", () => {
+		expect(
+			dataFileUrl(["16.19.1", "champions", "../../manifest.json"], files),
+		).toBe("/data/16.19.1/champions/..%2F..%2Fmanifest.json")
 	})
 })
 

@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, spyOn, test } from "bun:test"
+import { QueryClient } from "@tanstack/react-query"
 import { GameDataUnavailableError } from "../services/game-data"
 import { gameDataQueries } from "./game-data-queries"
 
@@ -29,5 +30,32 @@ describe("gameDataQueries", () => {
 		expect(retry(0, network)).toBe(true)
 		expect(retry(2, network)).toBe(true)
 		expect(retry(3, network)).toBe(false)
+	})
+})
+
+describe("patch file queries", () => {
+	test("request each file with the content hash the manifest lists for it", async () => {
+		const requested: string[] = []
+		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation((async (
+			input: string | URL | Request,
+		) => {
+			requested.push(String(input))
+			return Response.json({ version: "16.19.1", items: [] })
+		}) as typeof fetch)
+		const client = new QueryClient()
+		client.setQueryData(gameDataQueries.manifest().queryKey, {
+			currentPatch: "16.19.1",
+			patches: ["16.19.1"],
+			files: { "16.19.1/items.json": "a1b2c3d4e5" },
+			generatedAt: "2026-09-28T00:00:00.000Z",
+		})
+
+		try {
+			await client.fetchQuery(gameDataQueries.items("16.19.1"))
+		} finally {
+			fetchSpy.mockRestore()
+		}
+
+		expect(requested).toEqual(["/data/16.19.1/items.json?v=a1b2c3d4e5"])
 	})
 })
