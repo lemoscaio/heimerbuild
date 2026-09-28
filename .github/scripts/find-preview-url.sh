@@ -6,6 +6,7 @@
 set -uo pipefail
 
 deadline=$((SECONDS + ${PREVIEW_TIMEOUT:-600}))
+short=${SHA:0:7}
 url=""
 
 workers_build() {
@@ -13,25 +14,26 @@ workers_build() {
 		--jq '[.check_runs[] | select(.name | startswith("Workers Builds"))] | first // empty'
 }
 
-first_preview_url() {
-	grep -oE 'https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev' | head -n 1
+# The Cloudflare PR comment has one table row per deployed commit (URL cell, then commit
+# cell) and a header with the branch alias URL, used only when it names this commit.
+comment_preview_url() {
+	local body
+	body=$(gh api "repos/$REPO/issues/$PR/comments?per_page=100" \
+		--jq '[.[] | select(.user.login | startswith("cloudflare"))] | last | .body // ""' | tr -d '\n')
+	{
+		grep -oE "https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev</a></td>[[:space:]]*<td>$short</td>" <<<"$body"
+		grep -oE "https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev \(commit $short\)" <<<"$body"
+	} | grep -oE 'https://[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev' | head -n 1
 }
 
 while ((SECONDS < deadline)); do
 	run=$(workers_build 2>/dev/null || true)
 	if [[ -n "$run" && $(jq -r .status <<<"$run") == "completed" ]]; then
 		conclusion=$(jq -r .conclusion <<<"$run")
-		echo "Workers Builds finished: $conclusion"
-		if [[ "$conclusion" == "success" ]]; then
-			url=$(jq -r '[.output.summary, .output.text] | map(. // "") | join("\n")' <<<"$run" | first_preview_url)
-			if [[ -z "$url" ]]; then
-				# The Cloudflare comment lists the preview of the latest commit it deployed.
-				url=$(gh api "repos/$REPO/issues/$PR/comments?per_page=100" \
-					--jq "[.[] | select(.body | contains(\"${SHA:0:7}\"))] | last | .body // \"\"" |
-					first_preview_url)
-			fi
-		fi
-		break
+		[[ "$conclusion" != "success" ]] && echo "Workers Builds finished: $conclusion" && break
+		# The comment can be updated a moment after the check run completes.
+		url=$(comment_preview_url 2>/dev/null || true)
+		[[ -n "$url" ]] && break
 	fi
 	sleep 15
 done
@@ -42,8 +44,8 @@ if [[ -n "$url" ]] && ! curl -fsS -o /dev/null --retry 3 --retry-all-errors "$ur
 fi
 
 if [[ -n "$url" ]]; then
-	echo "Running against the Cloudflare preview: $url"
+	echo "Running against the Cloudflare preview of $short: $url"
 else
-	echo "No Cloudflare preview; running against a local build"
+	echo "No Cloudflare preview for $short; running against a local build"
 fi
 echo "url=$url" >>"$GITHUB_OUTPUT"
