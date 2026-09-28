@@ -57,7 +57,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 ## Workflow
 
 - Planning lives in GitHub Issues and [Project 3](https://github.com/users/lemoscaio/projects/3). Reference the issue in every PR.
-- Branches: `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`. Agent worktrees are `claude-`-prefixed.
+- Branches: `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`. Agent worktrees are `claude-`-prefixed; `scripts/wt create` does that and writes `.claude-worktree` (see README, Worktrees).
 - Everything in English: code, commits, PRs, docs.
 - Commits and PR titles: lowercase conventional commits (`feat: add item tooltip`).
 - PR body: Problem / Solution / Changes (+ Verification), ending with `Closes #N`.

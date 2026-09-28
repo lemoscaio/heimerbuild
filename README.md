@@ -46,6 +46,24 @@ bun run check:write   # apply Biome formatting and safe fixes
 
 CI (`.github/workflows/ci.yml`) runs `biome ci`, the typecheck, the tests and the build on every pull request and push to `main`.
 
+### Worktrees
+
+`scripts/wt` runs several git worktrees side by side, each with its own Vite port:
+
+```bash
+scripts/wt create <name> --branch <branch> [--deps] [--purpose <text>]  # ../heimerbuild-<name> from origin/main
+scripts/wt start [name]              # bun run dev --port <port> --strictPort, in the background
+scripts/wt stop [name]
+scripts/wt status                    # name, branch, port, URL, state for every worktree
+scripts/wt destroy <name> [--force]  # stop, remove, delete the branch once merged
+```
+
+- `[name]` defaults to the worktree you run it from; the main checkout is `main`.
+- Ports are stable per worktree and stored in `~/.heimerbuild-wt.json`: `main` always uses 5173, the others get the lowest free port from 5174. `start` refuses a port another process is using.
+- The dev server logs to `.wt/dev.log` inside the worktree (gitignored).
+- `destroy` refuses when the worktree has uncommitted changes unless `--force`. It deletes the branch only when it is merged (a merged PR, including squash merges, or no commits beyond `origin/main`).
+- When run by Claude Code (`CLAUDECODE=1`), `create` prefixes the name with `claude-` and writes a `.claude-worktree` file (created, branch, purpose), which git ignores through `.git/info/exclude`.
+
 ### Deployment
 
 The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. A small Worker (`worker/index.ts`) runs first for `/data/*` and `/assets/*` so missing files there return an uncached 404 instead of `index.html`. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).

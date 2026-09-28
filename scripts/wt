@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Worktree runner: create/start/stop/status/destroy. See README "Worktrees".
+set -euo pipefail
+exec bun "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/worktree/cli.ts" "$@"

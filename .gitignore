@@ -30,3 +30,6 @@ dist-ssr
 
 # sync-data raw downloads
 .cache/
+
+# scripts/wt dev server logs
+.wt/
