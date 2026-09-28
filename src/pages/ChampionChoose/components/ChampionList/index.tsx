@@ -1,21 +1,25 @@
 import DotLoader from "react-spinners/DotLoader"
 
-import { Champion } from "../../../../types/champion"
-import { Champions } from "../../../../types/champions"
+import type { Champion } from "../../../../types/champion"
+import type { Champions } from "../../../../types/champions"
 import { ChampionCard } from "../ChampionCard"
 
 type ChampionListProps = {
-	search: string
 	champions: Champions | undefined
-	filteredChampions: string[]
+	filteredChampions: Champion[]
 	isLoadingChampions: boolean
 	failedChampionsLoad: boolean
 	loadChampions: () => void
 }
 
 export function ChampionList(props: ChampionListProps) {
-	const { champions, isLoadingChampions, failedChampionsLoad, loadChampions } =
-		props
+	const {
+		champions,
+		filteredChampions,
+		isLoadingChampions,
+		failedChampionsLoad,
+		loadChampions,
+	} = props
 
 	function handleLoadChampionsClick() {
 		loadChampions()
@@ -25,15 +29,16 @@ export function ChampionList(props: ChampionListProps) {
 		<>
 			{champions && (
 				<div className="champions-list">
-					{Object.keys(champions).map((championName) => {
-						const champion = champions[championName]
-						return (
+					{filteredChampions.length > 0 ? (
+						filteredChampions.map((champion) => (
 							<ChampionCard
 								key={champion.id}
 								champion={champion}
 							></ChampionCard>
-						)
-					})}
+						))
+					) : (
+						<p>No champions found.</p>
+					)}
 				</div>
 			)}
 			{isLoadingChampions && (
