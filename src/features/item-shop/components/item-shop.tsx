@@ -46,7 +46,7 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 			<StatFilter stats={stats} onToggleStat={toggleStat} />
 			<StatSort sort={sort} onSortChange={setSort} />
 			<div className="items__second-row">
-				<div className="items__list">
+				<section className="items__list" aria-label="Item shop">
 					<ItemGrid items={items} onItemClick={onItemClick} />
 					{itemsQuery.isSuccess && !items.length && (
 						<p className="items__empty">No items match these filters.</p>
@@ -74,7 +74,7 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 							</button>
 						</div>
 					)}
-				</div>
+				</section>
 			</div>
 		</div>
 	)

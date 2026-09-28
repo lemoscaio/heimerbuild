@@ -48,7 +48,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["vite.config.ts", "worker/index.ts"],
+			"includes": ["vite.config.ts", "playwright.config.ts", "worker/index.ts"],
 			"linter": {
 				"rules": {
 					"style": {

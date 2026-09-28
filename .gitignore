@@ -28,6 +28,10 @@ dist-ssr
 # Cloudflare
 .wrangler
 
+# Playwright
+/test-results/
+/playwright-report/
+
 # sync-data raw downloads
 .cache/
 

@@ -9,6 +9,7 @@
 		"preview:local": "bun --bun vite preview",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
 		"test": "bun test --pass-with-no-tests",
+		"e2e": "playwright test",
 		"check": "biome check",
 		"check:write": "biome check --write",
 		"deploy": "bun run build && wrangler deploy",
@@ -27,6 +28,7 @@
 	"devDependencies": {
 		"@babel/core": "^8.0.6",
 		"@biomejs/biome": "2.5.14",
+		"@playwright/test": "1.63.0",
 		"@rolldown/plugin-babel": "^0.2.4",
 		"@types/bun": "^1.4.2",
 		"@types/react": "^19.3.0",

@@ -17,11 +17,12 @@ bun run sync-data     # regenerate public/data/<patch>/ (--version x.y.z, --offl
 bun run check         # Biome lint + format check (check:write to fix)
 bun run typecheck     # tsc on the app (tsconfig.json) and on tests, scripts and worker (tsconfig.test.json)
 bun run test          # bun test
+bun run e2e           # Playwright flows (e2e/) against a local build, or BASE_URL=<url>
 bun run build         # typecheck + production build to dist/
 bun run preview:local # serve dist/ locally
 ```
 
-CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on every PR. Run them locally before pushing.
+CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on every PR. Run them locally before pushing. `.github/workflows/e2e.yml` runs the Playwright flows against the PR's Cloudflare preview (local build fallback).
 
 ## Repository layout
 
@@ -53,7 +54,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 - Behavior tests only, with `bun test`, co-located as `*.test.ts`.
 - Tests, `scripts/`, `worker/` and `vite.config.ts` are type-checked by `tsconfig.test.json` (Bun types). The app config `tsconfig.json` has no Bun or Node types, so browser code cannot use their globals.
 - Test pure logic where mistakes are costly: stats engine, data pipeline, Worker, filters.
-- A few Playwright end-to-end flows for the main user journeys (#76).
+- A few Playwright end-to-end flows for the main user journeys, in `e2e/*.e2e.ts` (the suffix keeps them out of `bun test`). Chromium only, Data Dragon blocked (never depend on icons), locators by role and accessible name only: no CSS selectors, no copy or snapshot assertions. Add a flow only for a real regression.
 - No snapshot tests (UI or data) and no tests that assert static text or markup.
 
 ## Workflow

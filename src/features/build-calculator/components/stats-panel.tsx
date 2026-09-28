@@ -15,7 +15,7 @@ type StatsPanelProps = {
 
 export function StatsPanel({ stats }: StatsPanelProps) {
 	return (
-		<div className="champion-info__stats stats">
+		<section className="champion-info__stats stats" aria-label="Champion stats">
 			{statGroups.map(({ className, rows }) => (
 				<ul key={className} className={`stats__group ${className}`}>
 					{rows.map((info) => (
@@ -23,6 +23,6 @@ export function StatsPanel({ stats }: StatsPanelProps) {
 					))}
 				</ul>
 			))}
-		</div>
+		</section>
 	)
 }
