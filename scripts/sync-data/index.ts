@@ -8,6 +8,7 @@ import {
 	MANIFEST_FILE,
 	type RawDataManifest,
 } from "./download"
+import { writeManifest } from "./manifest"
 import { writeChampions } from "./normalize-champions"
 import { syncItems } from "./normalize-items"
 import {
@@ -135,6 +136,11 @@ async function writeOutputs(version: string): Promise<void> {
 	)
 	console.log(
 		`Wrote public/data/${version}/items.json (${items.count} items, ${formatBytes(items.bytes)})`,
+	)
+
+	const manifest = await writeManifest(OUTPUT_ROOT)
+	console.log(
+		`Wrote public/data/manifest.json (current ${manifest.currentPatch}, ${manifest.patches.length} patches)`,
 	)
 }
 
