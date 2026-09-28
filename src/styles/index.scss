@@ -74,81 +74,6 @@
   }
 
   .champion-info {
-    &__header {
-      position: relative;
-
-      @include flex(row, flex-start, center);
-      gap: 20px;
-      padding: 15px 15px 0;
-
-      background-color: $color-primary-3;
-      color: white;
-
-      @include desktop-only() {
-        border-radius: 10px 10px 0 0;
-      }
-    }
-
-    &__header-image {
-      height: 70px;
-      object-fit: "cover";
-
-      border: solid 1px $color-primary-1;
-      border-radius: 5px;
-    }
-
-    &__name-title {
-      @include flex(column);
-      gap: 6 px;
-
-      font-family: $display-font;
-    }
-
-    &__name {
-      font-size: em(30);
-      font-weight: 800;
-    }
-
-    &__title {
-      font-size: em(16);
-    }
-
-    &__traits {
-      margin-top: 4px;
-
-      color: $adobe-5-hex;
-      font-family: $main-font;
-      font-size: em(13);
-    }
-
-    &__lore {
-      padding: 10px 15px 0;
-
-      background-color: $color-primary-3;
-      color: white;
-      font-size: em(13);
-    }
-
-    &__lore-toggle {
-      width: max-content;
-
-      color: $adobe-5-hex;
-
-      cursor: pointer;
-    }
-
-    &__lore-text {
-      margin-top: 6px;
-
-      color: #d6d4e0;
-      line-height: 1.5;
-    }
-
-    &__header-actions {
-      margin-left: auto;
-      align-self: flex-start;
-    }
-
     &__patch-notice {
       padding: 8px 15px 0;
 
@@ -421,20 +346,9 @@
 
 // Components
 
-// Sizes for the Skeleton component (components/ui/skeleton.tsx), until its callers migrate.
-.skeleton--heading {
-  width: 200px;
-  height: 28px;
-}
-
 .skeleton--text {
   width: 140px;
   height: 14px;
-}
-
-.skeleton--text-short {
-  width: 90px;
-  height: 12px;
 }
 
 .skeleton--slider {
@@ -445,10 +359,6 @@
 .items__item-skeleton {
   width: 40px;
   height: 40px;
-}
-
-.champion-info__name-title [data-slot="skeleton"] + [data-slot="skeleton"] {
-  margin-top: 8px;
 }
 
 .copy-build-link {
