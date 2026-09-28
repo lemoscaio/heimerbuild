@@ -1,5 +1,5 @@
 import itemStatsIcons from "../assets/stats-icons"
-import type { StatName } from "../lib/stats/computeStats"
+import type { StatName } from "../lib/stats/compute-stats"
 
 type StatFormat = "flat" | "percent" | "attackSpeed"
 

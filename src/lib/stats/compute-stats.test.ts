@@ -4,7 +4,7 @@ import {
 	type ItemStats,
 	STAT_UNITS,
 } from "../../../scripts/sync-data/schemas/item"
-import { computeStats } from "./computeStats"
+import { computeStats } from "./compute-stats"
 
 // Heimerdinger, patch 16.19.1 (public/data/16.19.1/champions/Heimerdinger.json).
 const heimerdinger: { stats: ChampionStats } = {

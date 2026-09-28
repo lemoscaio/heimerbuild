@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom"
 
-import { PageWithHeader } from "../layouts/PageWithHeader"
+import { PageWithHeader } from "../layouts/page-with-header"
 
-import { ChampionChoose } from "../pages/ChampionChoose/"
-import { ChampionDetails } from "../pages/ChampionDetails"
+import { ChampionChoose } from "../pages/champion-choose"
+import { ChampionDetails } from "../pages/champion-details"
 
 export function Router() {
 	return (

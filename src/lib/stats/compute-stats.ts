@@ -7,7 +7,7 @@ import {
 	STAT_UNITS,
 	type StatKey,
 } from "../../../scripts/sync-data/schemas/item"
-import { attackSpeedAtLevel } from "./attackSpeed"
+import { attackSpeedAtLevel } from "./attack-speed"
 import { assertChampionLevel, statAtLevel } from "./growth"
 
 /** Item stats that modify a champion stat instead of being reported on their own. */

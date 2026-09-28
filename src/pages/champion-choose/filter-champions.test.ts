@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import type { ChampionSummary } from "../../../scripts/sync-data/schemas/champion"
-import { filterChampions } from "./filterChampions"
+import { filterChampions } from "./filter-champions"
 
 function championsNamed(...names: string[]): ChampionSummary[] {
 	return names.map((name, id) => ({ id, name }) as ChampionSummary)

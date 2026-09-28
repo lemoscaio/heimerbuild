@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import heimerLogo from "../../assets/images/heimerdinger.png"
+import heimerLogo from "../assets/images/heimerdinger.png"
 
 export default function Header() {
 	return (

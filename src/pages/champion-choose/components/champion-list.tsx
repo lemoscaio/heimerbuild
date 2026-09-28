@@ -1,7 +1,7 @@
 import DotLoader from "react-spinners/DotLoader"
 
-import type { ChampionSummary } from "../../../../../scripts/sync-data/schemas/champion"
-import { ChampionCard } from "../ChampionCard"
+import type { ChampionSummary } from "../../../../scripts/sync-data/schemas/champion"
+import { ChampionCard } from "./champion-card"
 
 type ChampionListProps = {
 	champions: ChampionSummary[] | undefined

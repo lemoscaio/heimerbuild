@@ -1,5 +1,5 @@
-import { fetchChampion } from "../../../services/gameData"
-import { usePatchQuery } from "../usePatchQuery"
+import { fetchChampion } from "../../services/game-data"
+import { usePatchQuery } from "./use-patch-query"
 
 export function useGetChampionDetails(championKey: string | undefined) {
 	return usePatchQuery(

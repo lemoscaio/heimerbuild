@@ -4,7 +4,7 @@ import {
 	fetchGameData,
 	GameDataUnavailableError,
 	toItemsById,
-} from "./gameData"
+} from "./game-data"
 
 const MANIFEST = {
 	currentPatch: "16.19.1",
