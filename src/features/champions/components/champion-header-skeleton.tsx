@@ -1,14 +1,15 @@
 import { Skeleton } from "@/components/ui/skeleton"
+import { ChampionHeaderLayout } from "./champion-header-layout"
 
 export function ChampionHeaderSkeleton() {
 	return (
-		<div className="champion-info__header">
-			<Skeleton className="champion-info__header-image-skeleton" />
-			<div className="champion-info__name-title">
-				<Skeleton className="skeleton--heading" />
-				<Skeleton className="skeleton--text" />
-				<Skeleton className="skeleton--text-short" />
+		<ChampionHeaderLayout>
+			<Skeleton className="size-18 shrink-0" />
+			<div className="flex flex-col gap-2">
+				<Skeleton className="h-7 w-50" />
+				<Skeleton className="h-3.5 w-35" />
+				<Skeleton className="h-3 w-22" />
 			</div>
-		</div>
+		</ChampionHeaderLayout>
 	)
 }
