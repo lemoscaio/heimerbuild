@@ -16,21 +16,6 @@
 		"enabled": true,
 		"rules": {
 			"preset": "recommended",
-			"a11y": {
-				"noAutofocus": "warn",
-				"noStaticElementInteractions": "warn",
-				"useAltText": "warn",
-				"useButtonType": "warn",
-				"useKeyWithClickEvents": "warn"
-			},
-			"correctness": {
-				"useExhaustiveDependencies": "warn",
-				"useJsxKeyInIterable": "warn"
-			},
-			"suspicious": {
-				"noImplicitAnyLet": "warn",
-				"useIterableCallbackReturn": "warn"
-			},
 			"style": {
 				"noDefaultExport": "error",
 				"useFilenamingConvention": {
