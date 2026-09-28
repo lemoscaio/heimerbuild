@@ -4,7 +4,7 @@ League of Legends build calculator: pick a champion, set its level (1-18), add u
 
 ## Stack
 
-Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, TanStack Router, Zod, Biome, Tailwind 4 with shadcn/ui (Base UI primitives), Cloudflare Workers static assets, Sentry (`@sentry/react`).
+Bun, Vite 8, React 19 with the React Compiler, TypeScript 7, TanStack Query 5, TanStack Router, Zod, Biome, Tailwind 4 with shadcn/ui (Base UI primitives), Cloudflare Workers static assets, Sentry (`@sentry/react`), PostHog (`posthog-js`).
 
 ## Commands
 
@@ -29,8 +29,9 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 - `src/`: the app. Structure and placement rules: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
 - `scripts/sync-data/`: data pipeline. `schemas/` holds the Zod schemas shared by the pipeline and the app.
 - `public/data/`: generated game data, committed. Never edit by hand.
-- `worker/`: tiny Worker that turns SPA fallbacks for missing `/data/*` and `/assets/*` into real 404s and tunnels Sentry envelopes posted to `/monitoring` (our project only).
+- `worker/`: tiny Worker that turns SPA fallbacks for missing `/data/*` and `/assets/*` into real 404s, tunnels Sentry envelopes posted to `/monitoring` (our project only) and proxies `/ingest/*` to PostHog (its US hosts only).
 - Sentry: `src/app/sentry.ts` (DSN in `sentry-config.ts`); on in preview and production builds, off locally unless `VITE_SENTRY_ENABLED=true` and never started in Playwright flows (`window.__HB_E2E__`, set in `e2e/fixtures.ts`); source maps upload only when the `SENTRY_AUTH_TOKEN` build secret exists.
+- PostHog: `src/app/posthog.ts` (key in `posthog-config.ts`), lazy-loaded after the first render, cookieless (no cookies or storage until the consent banner, #59), same on/off rules as Sentry (`should-init-telemetry.ts`, local flag `VITE_POSTHOG_ENABLED=true`). Track events only through `track()` from `src/lib/analytics/analytics.ts`, declaring them in `analytics-events.ts`; read flags with `useFeatureFlag()` (`src/hooks/`).
 - `wrangler.jsonc`, `public/_headers`: hosting and cache rules.
 
 ## Game data pipeline
