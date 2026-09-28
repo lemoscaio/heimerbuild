@@ -1,3 +1,4 @@
+import { ItemButton } from "@/components/common/item-button"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 
 type ItemGridProps = {
@@ -7,14 +8,14 @@ type ItemGridProps = {
 
 export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 	return items.map((item) => (
-		<button
-			type="button"
+		<ItemButton
 			key={item.id}
+			item={item}
 			className="items__item-card icon-button"
 			aria-label={item.name}
 			onClick={() => onItemClick(item.id)}
 		>
 			<img src={item.icon} alt="" className="items__item-image" />
-		</button>
+		</ItemButton>
 	))
 }
