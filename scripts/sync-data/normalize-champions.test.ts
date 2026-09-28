@@ -3,8 +3,12 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import championList from "./fixtures/champions/champion.json"
+import garenBin from "./fixtures/champions/Garen.bin.json"
+import garenDetail from "./fixtures/champions/Garen.json"
 import heimerdingerBin from "./fixtures/champions/Heimerdinger.bin.json"
 import heimerdingerDetail from "./fixtures/champions/Heimerdinger.json"
+import kennenBin from "./fixtures/champions/Kennen.bin.json"
+import kennenDetail from "./fixtures/champions/Kennen.json"
 import {
 	buildChampionIndex,
 	normalizeChampion,
@@ -55,10 +59,98 @@ describe("buildChampionIndex", () => {
 })
 
 describe("normalizeChampion", () => {
-	test("Heimerdinger matches the snapshot", () => {
-		const champion = heimerdinger()
-		expect(champion.stats.health).toEqual({ base: 558, perLevel: 105 })
-		expect(champion).toMatchSnapshot()
+	const cases = [
+		{
+			name: "Heimerdinger (ranged, mana)",
+			detail: heimerdingerDetail,
+			bin: heimerdingerBin,
+			identity: {
+				key: "Heimerdinger",
+				id: 74,
+				roles: ["MAGE", "SUPPORT"],
+				attackType: "ranged",
+				resource: "MANA",
+			},
+			stats: {
+				health: { base: 558, perLevel: 105 },
+				healthRegen: { base: 7, perLevel: 0.55 },
+				mana: { base: 385, perLevel: 20 },
+				manaRegen: { base: 8, perLevel: 0.8 },
+				armor: { base: 19, perLevel: 4.2 },
+				magicResist: { base: 30, perLevel: 1.3 },
+				attackDamage: { base: 56, perLevel: 2.7 },
+				attackSpeed: { base: 0.658, perLevelPercent: 1.36, ratio: 0.625 },
+				critChance: { base: 0, perLevel: 0 },
+				movementSpeed: { base: 340, perLevel: 0 },
+				attackRange: { base: 550, perLevel: 0 },
+			},
+		},
+		{
+			name: "Garen (melee, no resource)",
+			detail: garenDetail,
+			bin: garenBin,
+			identity: {
+				key: "Garen",
+				id: 86,
+				roles: ["FIGHTER", "TANK"],
+				attackType: "melee",
+				resource: "NONE",
+			},
+			stats: {
+				health: { base: 690, perLevel: 98 },
+				healthRegen: { base: 8, perLevel: 0.5 },
+				mana: { base: 0, perLevel: 0 },
+				manaRegen: { base: 0, perLevel: 0 },
+				armor: { base: 38, perLevel: 4.2 },
+				magicResist: { base: 32, perLevel: 1.55 },
+				attackDamage: { base: 69, perLevel: 4.5 },
+				attackSpeed: { base: 0.625, perLevelPercent: 3.65, ratio: 0.625 },
+				critChance: { base: 0, perLevel: 0 },
+				movementSpeed: { base: 340, perLevel: 0 },
+				attackRange: { base: 175, perLevel: 0 },
+			},
+		},
+		{
+			name: "Kennen (ranged, energy)",
+			detail: kennenDetail,
+			bin: kennenBin,
+			identity: {
+				key: "Kennen",
+				id: 85,
+				roles: ["MAGE"],
+				attackType: "ranged",
+				resource: "ENERGY",
+			},
+			stats: {
+				health: { base: 580, perLevel: 98 },
+				healthRegen: { base: 5.5, perLevel: 0.65 },
+				mana: { base: 200, perLevel: 0 },
+				manaRegen: { base: 50, perLevel: 0 },
+				armor: { base: 29, perLevel: 4.95 },
+				magicResist: { base: 30, perLevel: 1.3 },
+				attackDamage: { base: 48, perLevel: 3.75 },
+				attackSpeed: { base: 0.625, perLevelPercent: 3.4, ratio: 0.69 },
+				critChance: { base: 0, perLevel: 0 },
+				movementSpeed: { base: 335, perLevel: 0 },
+				attackRange: { base: 550, perLevel: 0 },
+			},
+		},
+	]
+
+	test.each(cases)("$name: identity fields", ({ detail, bin, identity }) => {
+		const champion = normalizeChampion(detail, bin, VERSION)
+		const [source] = Object.values(detail.data)
+		expect(champion).toMatchObject(identity)
+		expect(champion.name).toBe(source.name)
+		expect(champion.title).toBe(source.title)
+		expect(champion.lore).toBe(source.lore)
+		expect(champion.icon).toBe(
+			`https://ddragon.leagueoflegends.com/cdn/${VERSION}/img/champion/${identity.key}.png`,
+		)
+	})
+
+	test.each(cases)("$name: stats", ({ detail, bin, stats }) => {
+		expect(normalizeChampion(detail, bin, VERSION).stats).toEqual(stats)
 	})
 
 	test("takes attack damage growth and attack speed ratio from CommunityDragon", () => {
