@@ -1,19 +1,27 @@
-import { Navigate, Route, Routes } from "react-router-dom"
-import { ChampionChoosePage } from "@/routes/champion-choose-page"
-import { ChampionDetailsPage } from "@/routes/champion-details-page"
-import { PageWithHeader } from "./layouts/page-with-header"
+import { createRouter } from "@tanstack/react-router"
+import { championRoute } from "@/routes/champion-route"
+import { homeRoute } from "@/routes/home-route"
+import { pageWithHeaderRoute } from "@/routes/page-with-header-route"
+import { rootRoute, unknownRoute } from "@/routes/root-route"
+import { queryClient } from "./query-client"
+import { stringifySearch } from "./search-params"
 
-export function Router() {
-	return (
-		<Routes>
-			<Route path="/champions" element={<ChampionChoosePage />} />
-			<Route element={<PageWithHeader />}>
-				<Route
-					path="/champions/:championKey"
-					element={<ChampionDetailsPage />}
-				/>
-			</Route>
-			<Route path="*" element={<Navigate to="/champions" replace />} />
-		</Routes>
-	)
+const routeTree = rootRoute.addChildren([
+	homeRoute,
+	pageWithHeaderRoute.addChildren([championRoute]),
+	unknownRoute,
+])
+
+export const router = createRouter({
+	routeTree,
+	context: { queryClient },
+	// React Query owns caching; the router always asks it on preload.
+	defaultPreloadStaleTime: 0,
+	stringifySearch,
+})
+
+declare module "@tanstack/react-router" {
+	interface Register {
+		router: typeof router
+	}
 }

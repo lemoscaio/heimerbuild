@@ -73,8 +73,8 @@ scripts/wt destroy <name> [--force]  # stop, remove, delete the branch once merg
 ```
 src/
 ├── main.tsx      Vite entry
-├── app/          App, providers, query client, router, layouts
-├── routes/       thin route components that compose features
+├── app/          App, providers, query client, router
+├── routes/       TanStack Router routes: loaders, search schemas, thin pages
 ├── features/     champions, build-calculator (a feature never imports another)
 ├── data/         game data loading: services (fetch + Zod) and hooks
 ├── components/   common/ shared app UI (ui/ for primitives, when they exist)

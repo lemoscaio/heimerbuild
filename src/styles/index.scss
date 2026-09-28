@@ -478,3 +478,8 @@ body {
     background-color: $color-primary-4;
   }
 }
+
+.route-status {
+  min-height: 100vh;
+  padding: calc(#{$header-height} + 40px) 20px 40px;
+}

@@ -1,14 +1,14 @@
-import { Link } from "react-router-dom"
+import { Link } from "@tanstack/react-router"
 import heimerLogo from "@/assets/images/heimerdinger.png"
 
 export function Header() {
 	return (
 		<header className="header">
 			<div className="header__link">
-				<Link to={"/"}>Back</Link>
+				<Link to="/">Back</Link>
 			</div>
 			<div className="header__logo-container">
-				<Link to={"/"}>
+				<Link to="/">
 					<img className="header__logo" src={heimerLogo} alt="" />
 				</Link>
 			</div>

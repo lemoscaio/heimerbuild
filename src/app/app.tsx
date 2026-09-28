@@ -1,16 +1,14 @@
 import { QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
-import { BrowserRouter } from "react-router-dom"
+import { RouterProvider } from "@tanstack/react-router"
 import { queryClient } from "./query-client"
-import { Router } from "./router"
+import { router } from "./router"
 
 export function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			{import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-			<BrowserRouter>
-				<Router />
-			</BrowserRouter>
+			<RouterProvider router={router} />
 		</QueryClientProvider>
 	)
 }
