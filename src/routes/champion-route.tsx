@@ -11,14 +11,20 @@ import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { ItemSlotsSkeleton } from "@/features/build-calculator/components/item-slots-skeleton"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
 import { LevelSelectorSkeleton } from "@/features/build-calculator/components/level-selector-skeleton"
+import { MobileChampionRow } from "@/features/build-calculator/components/mobile-champion-row"
+import { MobileLayout } from "@/features/build-calculator/components/mobile-layout"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
+import { ResetBuildButton } from "@/features/build-calculator/components/reset-build-button"
 import { RunesPlaceholder } from "@/features/build-calculator/components/runes-placeholder"
 import { ShopViewToggle } from "@/features/build-calculator/components/shop-view-toggle"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { StatsPanelSkeleton } from "@/features/build-calculator/components/stats-panel-skeleton"
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
 import { WorkbenchPanel } from "@/features/build-calculator/components/workbench-panel"
-import { useBuild } from "@/features/build-calculator/hooks/use-build"
+import {
+	type Build,
+	useBuild,
+} from "@/features/build-calculator/hooks/use-build"
 import { resolveBuildPatch } from "@/features/build-calculator/lib/build-patch"
 import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
@@ -28,6 +34,7 @@ import { ItemList } from "@/features/item-shop/components/item-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { track } from "@/lib/analytics/analytics"
+import type { Champion } from "../../scripts/sync-data/schemas/champion"
 import { pageWithHeaderRoute } from "./page-with-header-route"
 
 // Tailwind's `lg` breakpoint.
@@ -81,115 +88,202 @@ function ChampionPage() {
 		onSearchChange: (nextSearch, { replace }) =>
 			navigate({ search: nextSearch, replace, resetScroll: false }),
 	})
-	// The expanded shop is desktop-only: smaller screens keep the regular page.
-	const view = useMediaQuery(LG_QUERY) ? build.view : "overview"
-	const isShopView = view === "shop"
+	const isDesktop = useMediaQuery(LG_QUERY)
 	const buildHref = router.buildLocation({
 		to: championRoute.fullPath,
 		params: { key },
 		search: build.shareSearch,
 	}).href
 
+	// Desktop: in the action bar above the workbench. Mobile: in the bottom bar.
+	const copyLink = (
+		<CopyBuildLink
+			layout={isDesktop ? "inline" : "stacked"}
+			className="max-lg:flex-1"
+			href={buildHref}
+			onCopied={() =>
+				track("build_link_copied", {
+					champion: key,
+					level: build.level,
+					itemsCount: build.items.length,
+				})
+			}
+		/>
+	)
+	const patchNotice = unavailablePatch && (
+		<PatchNotice requestedPatch={unavailablePatch} patch={patch} />
+	)
+
+	if (!build.champion) return null
+	const props = {
+		build,
+		champion: build.champion,
+		patch,
+		copyLink,
+		patchNotice,
+	}
+	return isDesktop ? (
+		<DesktopChampionPage {...props} />
+	) : (
+		<MobileChampionPage {...props} />
+	)
+}
+
+type ChampionPageProps = {
+	build: Build
+	champion: Champion
+	patch: string
+	copyLink: React.ReactNode
+	patchNotice: React.ReactNode
+}
+
+function DesktopChampionPage({
+	build,
+	champion,
+	patch,
+	copyLink,
+	patchNotice,
+}: ChampionPageProps) {
+	const view = build.view
+	const isShopView = view === "shop"
+
 	return (
-		build.champion && (
-			<WorkbenchLayout
-				view={view}
-				actions={
-					<CopyBuildLink
-						layout="inline"
-						href={buildHref}
-						onCopied={() =>
-							track("build_link_copied", {
-								champion: key,
-								level: build.level,
-								itemsCount: build.items.length,
-							})
-						}
+		<WorkbenchLayout
+			view={view}
+			actions={copyLink}
+			build={
+				<>
+					<WorkbenchPanel className="flex flex-col gap-3">
+						<ChampionHeader champion={champion} />
+						{patchNotice}
+						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
+					</WorkbenchPanel>
+					<WorkbenchPanel>
+						<ItemSlots
+							items={build.items}
+							onRemoveItem={build.removeItem}
+							notice={build.notice}
+						/>
+					</WorkbenchPanel>
+					<RunesPlaceholder />
+				</>
+			}
+			shop={
+				<ItemShop
+					patch={patch}
+					layout={isShopView ? "expanded" : "compact"}
+					actions={
+						<ShopViewToggle
+							className="max-lg:hidden"
+							view={view}
+							onViewChange={build.setView}
+						/>
+					}
+					selectedItemId={build.selectedItem?.id}
+					onItemSelect={build.selectItem}
+					onItemAdd={build.addItem}
+				/>
+			}
+			side={
+				isShopView ? (
+					<ItemDetailsPanel
+						item={build.selectedItem}
+						stats={build.stats}
+						next={build.preview?.stats}
+						isBuildFull={build.isFull}
+						onAdd={build.addItem}
+						onClose={build.clearSelection}
 					/>
-				}
-				build={
+				) : (
 					<>
-						<WorkbenchPanel className="flex flex-col gap-3">
-							<ChampionHeader champion={build.champion} />
-							{unavailablePatch && (
-								<PatchNotice requestedPatch={unavailablePatch} patch={patch} />
-							)}
-							<LevelSelector
-								level={build.level}
-								onLevelChange={build.setLevel}
+						{build.selectedItem && (
+							<ItemDetailsCard
+								item={build.selectedItem}
+								isBuildFull={build.isFull}
+								onAdd={build.addItem}
+								onClose={build.clearSelection}
 							/>
-						</WorkbenchPanel>
+						)}
 						<WorkbenchPanel>
-							<ItemSlots
-								items={build.items}
-								onRemoveItem={build.removeItem}
-								notice={build.notice}
-							/>
+							{build.stats && (
+								<StatsPanel stats={build.stats} preview={build.preview} />
+							)}
 						</WorkbenchPanel>
-						<RunesPlaceholder />
 					</>
-				}
-				shop={
-					<ItemShop
-						patch={patch}
-						layout={isShopView ? "expanded" : "compact"}
-						actions={
-							<ShopViewToggle
-								className="max-lg:hidden"
-								view={view}
-								onViewChange={build.setView}
-							/>
-						}
-						selectedItemId={build.selectedItem?.id}
-						onItemSelect={build.selectItem}
-						onItemAdd={build.addItem}
+				)
+			}
+			bar={
+				build.stats && (
+					<BuildBar
+						champion={champion}
+						level={build.level}
+						onLevelChange={build.setLevel}
+						items={build.items}
+						onRemoveItem={build.removeItem}
+						notice={build.notice}
+						stats={build.stats}
+					>
+						<ShopViewToggle view={view} onViewChange={build.setView} />
+					</BuildBar>
+				)
+			}
+		/>
+	)
+}
+
+/** Below `lg`: the build on top, Stats | Shop tabs, and the page actions pinned below. */
+function MobileChampionPage({
+	build,
+	champion,
+	patch,
+	copyLink,
+	patchNotice,
+}: ChampionPageProps) {
+	return (
+		<MobileLayout
+			top={
+				<>
+					<MobileChampionRow champion={champion}>
+						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
+					</MobileChampionRow>
+					{patchNotice}
+					<ItemSlots
+						items={build.items}
+						onRemoveItem={build.removeItem}
+						notice={build.notice}
 					/>
-				}
-				side={
-					isShopView ? (
-						<ItemDetailsPanel
+				</>
+			}
+			stats={
+				build.stats && (
+					<StatsPanel stats={build.stats} preview={build.preview} />
+				)
+			}
+			shop={
+				<ItemShop
+					patch={patch}
+					selectedItemId={build.selectedItem?.id}
+					onItemSelect={build.selectItem}
+					onItemAdd={build.addItem}
+				/>
+			}
+			bottom={
+				<>
+					{build.selectedItem && (
+						<ItemDetailsCard
 							item={build.selectedItem}
-							stats={build.stats}
-							next={build.preview?.stats}
 							isBuildFull={build.isFull}
 							onAdd={build.addItem}
 							onClose={build.clearSelection}
 						/>
-					) : (
-						<>
-							{build.selectedItem && (
-								<ItemDetailsCard
-									item={build.selectedItem}
-									isBuildFull={build.isFull}
-									onAdd={build.addItem}
-									onClose={build.clearSelection}
-								/>
-							)}
-							<WorkbenchPanel>
-								{build.stats && (
-									<StatsPanel stats={build.stats} preview={build.preview} />
-								)}
-							</WorkbenchPanel>
-						</>
-					)
-				}
-				bar={
-					build.stats && (
-						<BuildBar
-							champion={build.champion}
-							level={build.level}
-							onLevelChange={build.setLevel}
-							items={build.items}
-							onRemoveItem={build.removeItem}
-							notice={build.notice}
-							stats={build.stats}
-						>
-							<ShopViewToggle view={view} onViewChange={build.setView} />
-						</BuildBar>
-					)
-				}
-			/>
-		)
+					)}
+					<div className="flex items-start gap-2.5">
+						{copyLink}
+						<ResetBuildButton onReset={build.resetBuild} />
+					</div>
+				</>
+			}
+		/>
 	)
 }
 
