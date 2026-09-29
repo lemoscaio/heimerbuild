@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { moveRovingIndex } from "./move-roving-index"
 
 // 10 items in rows of 4:  0 1 2 3 / 4 5 6 7 / 8 9
-const grid = { count: 10, columns: 4 }
+const grid = { rows: [4, 4, 2] }
 
 describe("moveRovingIndex", () => {
 	test("left and right move by one item and stop at the ends", () => {
@@ -36,9 +36,19 @@ describe("moveRovingIndex", () => {
 	})
 
 	test("a single column moves up and down one item at a time", () => {
-		const column = { count: 3, columns: 1 }
+		const column = { rows: [1, 1, 1] }
 		expect(moveRovingIndex(1, "ArrowDown", column)).toBe(2)
 		expect(moveRovingIndex(1, "ArrowUp", column)).toBe(0)
+	})
+
+	test("up and down cross into the next section, whose rows start a new column count", () => {
+		// Two sections: 0 1 2 3 / 4 5 | 6 7 8 9
+		const sections = { rows: [4, 2, 4] }
+		expect(moveRovingIndex(3, "ArrowDown", sections)).toBe(5)
+		expect(moveRovingIndex(5, "ArrowDown", sections)).toBe(7)
+		expect(moveRovingIndex(9, "ArrowUp", sections)).toBe(5)
+		expect(moveRovingIndex(6, "ArrowUp", sections)).toBe(4)
+		expect(moveRovingIndex(5, "ArrowRight", sections)).toBe(6)
 	})
 
 	test("ignores keys the grid does not handle", () => {
