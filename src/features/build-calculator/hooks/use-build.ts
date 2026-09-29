@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { track } from "@/lib/analytics/analytics"
@@ -11,6 +11,7 @@ import {
 	removeItemAt,
 } from "../lib/build-items"
 import { type BuildSearch, toBuildSearch } from "../lib/build-search"
+import { recordRecentBuild } from "../services/recent-builds"
 
 type UseBuildOptions = {
 	patch: string
@@ -41,6 +42,19 @@ export function useBuild({
 		: (search.items ?? [])
 	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
 	const stats = champion && computeStats(champion, level, items)
+
+	// Opening or editing a build lists it in the home page's recent builds (this browser only).
+	const hasChampion = !!champion
+	const itemIdsKey = itemIds.join(",")
+	useEffect(() => {
+		if (!hasChampion) return
+		recordRecentBuild({
+			championKey,
+			level,
+			itemIds: itemIdsKey ? itemIdsKey.split(",") : [],
+			patch: search.patch,
+		})
+	}, [hasChampion, championKey, level, itemIdsKey, search.patch])
 
 	// Edits keep the link's own patch: changing it would reload the route mid-edit.
 	function setLevel(nextLevel: number) {
