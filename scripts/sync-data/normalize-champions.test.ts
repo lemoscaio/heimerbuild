@@ -14,6 +14,7 @@ import {
 	normalizeChampion,
 	writeChampions,
 } from "./normalize-champions"
+import { defineChampionOverride } from "./overrides/champion-overrides"
 import { championSchema } from "./schemas/champion"
 
 // Fixtures are trimmed copies of the Data Dragon 16.19.1 / CommunityDragon 16.19 cache.
@@ -273,6 +274,49 @@ describe("writeChampions", () => {
 				await readFile(join(outDir, "champions/Heimerdinger.json"), "utf8"),
 			)
 			expect(written).toEqual(heimerdinger())
+		}))
+
+	test("writes the overridden champion and reports the override", () =>
+		withDirs(async (cacheDir, outDir) => {
+			await writeList(cacheDir, ["Heimerdinger"])
+			const override = defineChampionOverride({
+				id: "heimerdinger-ranged",
+				championKey: "Heimerdinger",
+				field: "attackType",
+				since: "16.19",
+				reason: "test",
+				apply: () => "melee",
+			})
+
+			const result = await writeChampions(cacheDir, outDir, VERSION, {
+				overrides: [override],
+			})
+
+			const written = JSON.parse(
+				await readFile(join(outDir, "champions/Heimerdinger.json"), "utf8"),
+			)
+			expect(written).toEqual({ ...heimerdinger(), attackType: "melee" })
+			expect(result.overrides.applied).toEqual([
+				{ id: "heimerdinger-ranged", entity: "champion Heimerdinger" },
+			])
+		}))
+
+	test("writes nothing when an override breaks the champion schema", () =>
+		withDirs(async (cacheDir, outDir) => {
+			await writeList(cacheDir, ["Heimerdinger"])
+			const override = defineChampionOverride({
+				id: "bad-resource",
+				championKey: "Heimerdinger",
+				field: "resource",
+				since: "16.19",
+				reason: "test",
+				apply: () => "not valid",
+			})
+
+			await expect(
+				writeChampions(cacheDir, outDir, VERSION, { overrides: [override] }),
+			).rejects.toThrow("Heimerdinger:")
+			expect(await readdir(outDir)).toEqual([])
 		}))
 
 	test("writes nothing when one champion fails", () =>
