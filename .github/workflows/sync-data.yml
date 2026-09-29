@@ -57,7 +57,8 @@ jobs:
 
       - name: Sync data
         if: steps.patch.outputs.changed == 'true'
-        run: bun run sync-data --version "${{ steps.patch.outputs.latest }}" | tee "$RUNNER_TEMP/sync.log"
+        # 2>&1 keeps the warnings (stale overrides and allowlist entries) in the log the PR shows.
+        run: bun run sync-data --version "${{ steps.patch.outputs.latest }}" --override-report "$RUNNER_TEMP/overrides.md" 2>&1 | tee "$RUNNER_TEMP/sync.log"
 
       # PRs opened with GITHUB_TOKEN do not trigger ci.yml, so run the same checks here.
       - name: Check the synced data
@@ -80,6 +81,10 @@ jobs:
             echo
             echo "The sync already passed \`biome ci\`, typecheck, tests and build in that run. CI (\`ci.yml\`) does not start on its own for this PR because it was opened with \`GITHUB_TOKEN\`: close and reopen the PR to run it before merging."
             echo
+            if [[ -s "$RUNNER_TEMP/overrides.md" ]]; then
+              cat "$RUNNER_TEMP/overrides.md"
+              echo
+            fi
             bun scripts/sync-data/diff-patches.ts --from "$CURRENT" --to "$LATEST"
             echo
             echo "<details><summary>sync-data log</summary>"
