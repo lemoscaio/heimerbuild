@@ -9,6 +9,7 @@ import { ItemSlotsSkeleton } from "@/features/build-calculator/components/item-s
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
 import { LevelSelectorSkeleton } from "@/features/build-calculator/components/level-selector-skeleton"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
+import { RunesPlaceholder } from "@/features/build-calculator/components/runes-placeholder"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { StatsPanelSkeleton } from "@/features/build-calculator/components/stats-panel-skeleton"
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
@@ -110,6 +111,7 @@ function ChampionPage() {
 								notice={build.notice}
 							/>
 						</WorkbenchPanel>
+						<RunesPlaceholder />
 					</>
 				}
 				shop={<ItemShop patch={patch} onItemClick={build.addItem} />}
