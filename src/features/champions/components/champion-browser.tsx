@@ -1,22 +1,22 @@
-import { useState } from "react"
 import { useChampions } from "@/data/hooks/use-champions"
 import { useCurrentPatch } from "@/data/hooks/use-current-patch"
 import { filterChampions } from "@/lib/filter-champions"
-import type { ChampionRole } from "../../../../scripts/sync-data/schemas/champion"
+import type { ChampionFilters } from "../hooks/use-champion-filters"
 import { ChampionBrowserTitle } from "./champion-browser-title"
 import { ChampionList } from "./champion-list"
 import { ChampionRoleFilter } from "./champion-role-filter"
 import { SearchContainer } from "./search-container"
 
 type ChampionBrowserProps = {
+	filters: ChampionFilters
 	/** Beside the grid on large screens, above it on small ones. */
 	aside?: React.ReactNode
 }
 
-export function ChampionBrowser({ aside }: ChampionBrowserProps) {
-	const [search, setSearch] = useState("")
-	const [role, setRole] = useState<ChampionRole>()
-
+export function ChampionBrowser({
+	filters: { search, setSearch, role, setRole },
+	aside,
+}: ChampionBrowserProps) {
 	const patch = useCurrentPatch()
 	const championsQuery = useChampions(patch.data)
 	const champions = championsQuery.data

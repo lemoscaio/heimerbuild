@@ -4,6 +4,8 @@ import { GameIcon } from "@/components/common/game-icon"
 import { useChampions } from "@/data/hooks/use-champions"
 import { useCurrentPatch } from "@/data/hooks/use-current-patch"
 import { cn } from "@/lib/cn"
+import { filterChampions } from "@/lib/filter-champions"
+import type { ChampionRole } from "../../../../scripts/sync-data/schemas/champion"
 import { useRecentBuilds } from "../hooks/use-recent-builds"
 import { toBuildSearch } from "../lib/build-search"
 import type { RecentBuild } from "../services/recent-builds"
@@ -48,11 +50,20 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 	)
 }
 
-/** The builds last opened in this browser, each linking back to its build. */
+type RecentBuildsProps = {
+	/** The home page's search text: only builds of matching champions are listed. */
+	search: string
+	/** The home page's role chip; every role when `undefined`. */
+	role: ChampionRole | undefined
+} & React.ComponentProps<"section">
+
+/** The builds last edited in this browser, each linking back to its build. */
 export function RecentBuilds({
+	search,
+	role,
 	className,
 	...props
-}: React.ComponentProps<"section">) {
+}: RecentBuildsProps) {
 	const titleId = useId()
 	const builds = useRecentBuilds()
 	const patch = useCurrentPatch()
@@ -60,6 +71,13 @@ export function RecentBuilds({
 	const championsByKey = new Map(
 		champions?.map((champion) => [champion.key, champion]),
 	)
+	const matchingKeys = new Set(
+		filterChampions(champions ?? [], search, { role }).map(({ key }) => key),
+	)
+	// Until the champions load, every build is listed.
+	const shownBuilds = champions
+		? builds.filter(({ championKey }) => matchingKeys.has(championKey))
+		: builds
 
 	return (
 		<section
@@ -78,9 +96,15 @@ export function RecentBuilds({
 				Your recent builds
 			</h2>
 			<p className="text-subtle text-xs">Kept in this browser, no login.</p>
-			{builds.length ? (
+			{!builds.length && (
+				<p className="text-prose text-sm">Builds you edit will show up here.</p>
+			)}
+			{!!builds.length && !shownBuilds.length && (
+				<p className="text-prose text-sm">No recent builds match</p>
+			)}
+			{!!shownBuilds.length && (
 				<ul className="flex flex-col gap-2">
-					{builds.map((build) => (
+					{shownBuilds.map((build) => (
 						<li key={build.championKey}>
 							<RecentBuildLink
 								build={build}
@@ -89,8 +113,6 @@ export function RecentBuilds({
 						</li>
 					))}
 				</ul>
-			) : (
-				<p className="text-prose text-sm">Builds you open will show up here.</p>
 			)}
 		</section>
 	)

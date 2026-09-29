@@ -63,3 +63,43 @@ test("opening a champion and changing its level changes its stats", async ({
 	await expect(levelSlider(page)).toHaveValue("18")
 	await expect(stats).not.toHaveText(levelOneStats ?? "")
 })
+
+test("a build shows in recent builds only after an edit, filtered by the home search and roles", async ({
+	page,
+}) => {
+	const recent = page.getByRole("region", { name: "Your recent builds" })
+	const recentLinks = recent.getByRole("link")
+
+	await page.goto("/champions/Heimerdinger")
+	await expect(levelSlider(page)).toBeVisible()
+	await page.goto("/")
+	await expect(recent).toBeVisible()
+	await expect(recentLinks).toHaveCount(0)
+
+	await page.goto("/champions/Heimerdinger")
+	await levelSlider(page).fill("5")
+	await expect(page).toHaveURL(/lvl=5/)
+	await page.goto("/")
+	await expect(recentLinks).toHaveCount(1)
+	await expect(recentLinks).toContainText("Heimerdinger")
+
+	const search = page.getByRole("searchbox", { name: "Search a champion" })
+	await search.fill("ahri")
+	await expect(recentLinks).toHaveCount(0)
+	await expect(recent).toContainText("No recent builds match")
+
+	await search.fill("heim")
+	await expect(recentLinks).toHaveCount(1)
+	await page
+		.getByRole("group", { name: "Filter by role" })
+		.getByRole("button", { name: "Marksman" })
+		.click()
+	await expect(recentLinks).toHaveCount(0)
+
+	await page
+		.getByRole("group", { name: "Filter by role" })
+		.getByRole("button", { name: "Mage" })
+		.click()
+	await recentLinks.click()
+	await expect(page).toHaveURL(/\/champions\/Heimerdinger\?lvl=5/)
+})

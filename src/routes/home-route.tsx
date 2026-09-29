@@ -6,6 +6,7 @@ import { RecentBuilds } from "@/features/build-calculator/components/recent-buil
 import { ChampionBrowser } from "@/features/champions/components/champion-browser"
 import { ChampionBrowserTitle } from "@/features/champions/components/champion-browser-title"
 import { ChampionGridSkeleton } from "@/features/champions/components/champion-grid-skeleton"
+import { useChampionFilters } from "@/features/champions/hooks/use-champion-filters"
 import { rootRoute } from "./root-route"
 
 export const homeRoute = createRoute({
@@ -23,9 +24,14 @@ export const homeRoute = createRoute({
 })
 
 function HomePage() {
+	const filters = useChampionFilters()
+
 	return (
 		<HomeLayout>
-			<ChampionBrowser aside={<RecentBuilds />} />
+			<ChampionBrowser
+				filters={filters}
+				aside={<RecentBuilds search={filters.search} role={filters.role} />}
+			/>
 		</HomeLayout>
 	)
 }
