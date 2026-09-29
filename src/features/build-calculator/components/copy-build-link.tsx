@@ -31,13 +31,13 @@ export function CopyBuildLink({ href, onCopied }: CopyBuildLinkProps) {
 	}
 
 	return (
-		<div className="flex flex-col items-end gap-1">
-			<Button type="button" size="lg" onClick={handleClick}>
+		<div className="flex flex-col gap-1">
+			<Button type="button" size="lg" className="w-full" onClick={handleClick}>
 				Copy link
 			</Button>
 			<span
 				role="status"
-				className={cn("min-h-4 text-right text-success text-xs", {
+				className={cn("text-center text-success text-xs empty:hidden", {
 					"text-white": status === "failed",
 				})}
 			>
@@ -46,7 +46,7 @@ export function CopyBuildLink({ href, onCopied }: CopyBuildLinkProps) {
 			</span>
 			{status === "failed" && (
 				<Input
-					className="h-7 w-full max-w-55 border-none bg-primary-2 text-xs md:text-xs"
+					className="h-7 w-full border-none bg-primary-2 text-xs md:text-xs"
 					aria-label="Build link"
 					readOnly
 					value={copiedUrl}

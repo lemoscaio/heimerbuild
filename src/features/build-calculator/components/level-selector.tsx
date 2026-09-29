@@ -51,9 +51,9 @@ export function LevelSelector({ level, onLevelChange }: LevelSelectorProps) {
 				value={level}
 				onValueChange={(value) => value !== null && handleSelect(value)}
 			>
-				<div className="flex shrink-0 items-center gap-2">
-					<SelectLabel className="text-sm">Current Level:</SelectLabel>
-					<SelectTrigger className="min-w-15 font-bold">
+				<div className="flex items-center justify-between gap-2">
+					<SelectLabel className="text-prose">Level</SelectLabel>
+					<SelectTrigger className="h-auto bg-transparent py-0 pr-1 pl-2 font-bold font-display text-3xl hover:bg-primary-2 data-popup-open:bg-primary-2">
 						<SelectValue />
 					</SelectTrigger>
 				</div>
@@ -66,7 +66,6 @@ export function LevelSelector({ level, onLevelChange }: LevelSelectorProps) {
 				</SelectContent>
 			</Select>
 			<Slider
-				className="max-w-75"
 				aria-label="Champion level"
 				min={MIN_LEVEL}
 				max={MAX_LEVEL}

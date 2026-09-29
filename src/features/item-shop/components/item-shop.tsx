@@ -90,7 +90,7 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 	}
 
 	return (
-		<div className="bg-primary-4">
+		<div className="flex min-h-0 flex-1 flex-col">
 			<div className="flex justify-center px-2.5 pt-2">
 				<ItemSearch
 					query={query}
