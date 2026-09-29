@@ -13,10 +13,15 @@ test("the expanded shop adds an item, survives a reload and hands the build back
 	await bar.getByRole("button", { name: "Level up" }).click()
 	await expect(bar).not.toHaveText(levelOne ?? "")
 
-	await page
-		.getByRole("region", { name: "Item shop" })
-		.getByRole("button", { name: "Void Staff", exact: true })
-		.click()
+	// Search and the AND/OR switch live in the expanded toolbar and rail.
+	await expect(
+		page.getByRole("group", { name: "Match selected stats" }),
+	).toBeVisible()
+	await page.keyboard.press("/")
+	await page.keyboard.type("void")
+	const shop = page.getByRole("region", { name: "Item shop" })
+	await expect(shop.getByRole("button")).toHaveCount(1)
+	await shop.getByRole("button", { name: "Void Staff", exact: true }).click()
 	await page.getByRole("button", { name: "Add to build" }).click()
 	await expect(chosenItems(page)).toHaveCount(1)
 

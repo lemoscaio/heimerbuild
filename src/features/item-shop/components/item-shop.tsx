@@ -105,7 +105,6 @@ export function ItemShop({
 		<ItemSearch
 			className={cn("min-w-40 max-w-none flex-1", {
 				"max-xl:basis-full": !isExpanded,
-				"basis-56": isExpanded,
 			})}
 			query={query}
 			onQueryChange={handleQueryChange}
@@ -163,8 +162,8 @@ export function ItemShop({
 					</StatChecklist>
 				</div>
 				<div className="flex min-h-0 flex-col gap-4 p-4 lg:p-5">
-					<div className="flex flex-wrap items-center gap-3">
-						<ShopTitle className="text-lg" />
+					<div className="flex flex-wrap items-center gap-3 xl:flex-nowrap">
+						<ShopTitle className="shrink-0 text-lg" />
 						{search}
 						<StatSort
 							className="p-0"
