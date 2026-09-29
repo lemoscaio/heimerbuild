@@ -2,7 +2,7 @@ import { normalizeSearchText } from "@/lib/normalize-search-text"
 import type {
 	ChampionRole,
 	ChampionSummary,
-} from "../../../../scripts/sync-data/schemas/champion"
+} from "../../scripts/sync-data/schemas/champion"
 
 type FilterChampionsOptions = {
 	/** Keeps only champions with this role among theirs; every role when omitted. */

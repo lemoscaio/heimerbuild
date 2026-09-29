@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test"
 import type {
 	ChampionRole,
 	ChampionSummary,
-} from "../../../../scripts/sync-data/schemas/champion"
+} from "../../scripts/sync-data/schemas/champion"
 import { filterChampions } from "./filter-champions"
 
 function championsNamed(...names: string[]): ChampionSummary[] {
