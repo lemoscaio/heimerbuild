@@ -9,8 +9,15 @@ export type AnalyticsEvents = {
 	level_changed: { level: number }
 	item_added: { itemId: string }
 	item_removed: { itemId: string }
-	/** The shop filters after a change; an empty list means no filter of that kind. */
-	shop_filtered: { roles: ChampionRole[]; stats: StatKey[] }
+	/**
+	 * The shop filters after a change; an empty list means no filter of that kind.
+	 * `match`: items need every selected stat (`all`, AND) or at least one (`any`, OR).
+	 */
+	shop_filtered: {
+		roles: ChampionRole[]
+		stats: StatKey[]
+		match: "all" | "any"
+	}
 	/** `null` stat and direction: back to the shop's own order. */
 	shop_sorted: { stat: StatKey | null; direction: "asc" | "desc" | null }
 	build_link_copied: { champion: string; level: number; itemsCount: number }
