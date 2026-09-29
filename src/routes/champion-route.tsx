@@ -31,6 +31,7 @@ import { ChampionHeaderSkeleton } from "@/features/champions/components/champion
 import { ItemGridSkeleton } from "@/features/item-shop/components/item-grid-skeleton"
 import { ItemList } from "@/features/item-shop/components/item-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
+import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { track } from "@/lib/analytics/analytics"
 import type { Champion } from "../../scripts/sync-data/schemas/champion"
@@ -144,6 +145,7 @@ function DesktopChampionPage({
 }: ChampionPageProps) {
 	const view = build.view
 	const isShopView = view === "shop"
+	useAnalyticsContext({ shop_mode: isShopView ? "expanded" : "overview" })
 
 	return (
 		<WorkbenchLayout
@@ -237,6 +239,8 @@ function MobileChampionPage({
 	copyLink,
 	patchNotice,
 }: ChampionPageProps) {
+	useAnalyticsContext({ shop_mode: "mobile" })
+
 	return (
 		<MobileLayout
 			top={

@@ -2,11 +2,13 @@ import { useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { LoadError } from "@/components/common/load-error"
 import { useItems } from "@/data/hooks/use-items"
+import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { useDebouncedCallback } from "../hooks/use-debounced-callback"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
+import { useShopGrouping } from "../hooks/use-shop-grouping"
 import { filterItemsByName } from "../lib/filter-items-by-name"
 import {
 	filterItemsByRole,
@@ -23,6 +25,7 @@ import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
 import { ItemSearch } from "./item-search"
 import { RoleFilter } from "./role-filter"
+import { ShopGroupingSelect } from "./shop-grouping-select"
 import { StatChecklist } from "./stat-checklist"
 import { StatFilter } from "./stat-filter"
 import { StatMatchToggle } from "./stat-match-toggle"
@@ -48,7 +51,9 @@ export function ItemShop({
 	const [match, setMatch] = useState<StatMatch>("all")
 	const [sort, setSort] = useState<ItemSort>()
 	const [query, setQuery] = useState("")
+	const [grouping, setGrouping] = useShopGrouping()
 	const listRef = useRef<HTMLElement>(null)
+	useAnalyticsContext({ shop_grouping: grouping, shop_stat_match: match })
 	const trackSearch = useDebouncedCallback(
 		(queryLength: number) => track("shop_searched", { queryLength }),
 		SEARCH_TRACK_DELAY_MS,
@@ -101,6 +106,9 @@ export function ItemShop({
 	}
 
 	const isExpanded = layout === "expanded"
+	const groupingSelect = (
+		<ShopGroupingSelect grouping={grouping} onGroupingChange={setGrouping} />
+	)
 	const search = (
 		<ItemSearch
 			className={cn("min-w-40 max-w-none flex-1", {
@@ -119,6 +127,7 @@ export function ItemShop({
 		>
 			<ItemGrid
 				items={items}
+				grouping={grouping}
 				tileSize={isExpanded ? "lg" : "md"}
 				{...pickProps}
 			/>
@@ -162,15 +171,20 @@ export function ItemShop({
 					</StatChecklist>
 				</div>
 				<div className="flex min-h-0 flex-col gap-4 p-4 lg:p-5">
-					<div className="flex flex-wrap items-center gap-3 xl:flex-nowrap">
-						<ShopTitle className="shrink-0 text-lg" />
-						{search}
-						<StatSort
-							className="p-0"
-							sort={sort}
-							onSortChange={handleSortChange}
-						/>
-						{actions}
+					<div className="flex flex-col gap-2.5">
+						<div className="flex items-center gap-3">
+							<ShopTitle className="shrink-0 text-lg" />
+							{search}
+							{actions}
+						</div>
+						<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+							<StatSort
+								className="p-0"
+								sort={sort}
+								onSortChange={handleSortChange}
+							/>
+							{groupingSelect}
+						</div>
 					</div>
 					{results}
 				</div>
@@ -199,6 +213,7 @@ export function ItemShop({
 					sort={sort}
 					onSortChange={handleSortChange}
 				/>
+				{groupingSelect}
 			</div>
 			{results}
 		</div>

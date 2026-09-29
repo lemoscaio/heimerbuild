@@ -1,3 +1,4 @@
+import type { ShopGrouping } from "@/types/shop-view"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { useRovingFocus } from "../hooks/use-roving-focus"
 import { groupShopItems } from "../lib/group-shop-items"
@@ -6,16 +7,18 @@ import { ItemSection, type TileSize } from "./item-section"
 
 type ItemGridProps = {
 	items: readonly Item[]
+	grouping: ShopGrouping
 	tileSize?: TileSize
 } & ItemPickProps
 
 /** The items split into shop sections; arrow keys move across them in visual order. */
 export function ItemGrid({
 	items,
+	grouping,
 	tileSize = "md",
 	...pickProps
 }: ItemGridProps) {
-	const sections = groupShopItems(items)
+	const sections = groupShopItems(items, { grouping })
 	const { containerRef, handleKeyDown, getItemProps } = useRovingFocus(
 		sections.flatMap((section) => section.items.map((item) => item.id)),
 	)
