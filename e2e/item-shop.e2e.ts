@@ -75,3 +75,28 @@ test("the shop is one Tab stop: arrow keys move between items and Enter adds one
 
 	expect(await itemNames(chosenItems(page))).toEqual([`Remove ${third}`])
 })
+
+test("/ focuses the shop search, which filters by name, and Escape clears it", async ({
+	page,
+	request,
+}) => {
+	const items = await currentItems(request)
+	const withZhon = items
+		.filter((item) => item.name.toLowerCase().includes("zhon"))
+		.map((item) => item.name)
+
+	await page.goto("/champions/Heimerdinger")
+	const shop = shopItems(page)
+	await expect(shop).toHaveCount(items.length)
+
+	const search = page.getByRole("searchbox", { name: "Search items" })
+	await page.keyboard.press("/")
+	await expect(search).toBeFocused()
+	await page.keyboard.type("zhon")
+	await expect(shop).toHaveCount(withZhon.length)
+	expect((await itemNames(shop)).sort()).toEqual(withZhon.sort())
+
+	await page.keyboard.press("Escape")
+	await expect(shop).toHaveCount(items.length)
+	await expect(shop.first()).toBeFocused()
+})
