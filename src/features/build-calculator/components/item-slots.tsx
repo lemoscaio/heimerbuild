@@ -4,6 +4,7 @@ import { GameIcon } from "@/components/common/game-icon"
 import { ItemButton } from "@/components/common/item-button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { track } from "@/lib/analytics/analytics"
+import { cn } from "@/lib/cn"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { MAX_ITEMS } from "../lib/build-items"
 import {
@@ -19,9 +20,17 @@ type ItemSlotsProps = {
 	onRemoveItem: (slot: number) => void
 	/** Why the last item could not be added, announced to screen readers. */
 	notice: string | undefined
+	/** `bar`: one row of slots with one-line messages, for the expanded shop's build bar. */
+	layout?: "panel" | "bar"
 }
 
-export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
+export function ItemSlots({
+	items,
+	onRemoveItem,
+	notice,
+	layout = "panel",
+}: ItemSlotsProps) {
+	const isBar = layout === "bar"
 	const violations = findBuildViolations(items)
 	const brokenRules = violations.map(({ group }) => group).join(",")
 	const slotsRef = useRef<HTMLFieldSetElement>(null)
@@ -52,9 +61,16 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 	}
 
 	return (
-		<ItemSlotsPanel>
-			<BuildHeading gold={totalGold(items)} />
-			<fieldset ref={slotsRef} className={slotGridClassName} tabIndex={-1}>
+		<ItemSlotsPanel className={cn({ "gap-1": isBar })}>
+			{!isBar && <BuildHeading gold={totalGold(items)} />}
+			<fieldset
+				ref={slotsRef}
+				className={cn(slotGridClassName, {
+					"grid-cols-[repeat(6,3rem)] justify-start gap-2 lg:grid-cols-[repeat(6,3rem)]":
+						isBar,
+				})}
+				tabIndex={-1}
+			>
 				<legend className="sr-only">Chosen items</legend>
 				{slots.map((slot) => {
 					const item = items[slot]
@@ -84,12 +100,23 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 				})}
 			</fieldset>
 			<div
-				className="flex flex-col items-center gap-2 text-center text-lilac text-xs empty:-mt-2.5"
+				className={cn(
+					"flex flex-col items-center gap-2 text-center text-lilac text-xs empty:-mt-2.5",
+					{ "items-start gap-0 text-left empty:-mt-1": isBar },
+				)}
 				role="status"
 				aria-live="polite"
 			>
 				{notice && <p>{notice}</p>}
-				{!!violations.length && <BuildWarning violations={violations} />}
+				{!!violations.length &&
+					(isBar ? (
+						<p className="text-warning">
+							Not possible in-game:{" "}
+							{violations.map(({ message }) => message).join(" ")}
+						</p>
+					) : (
+						<BuildWarning violations={violations} />
+					))}
 			</div>
 		</ItemSlotsPanel>
 	)
