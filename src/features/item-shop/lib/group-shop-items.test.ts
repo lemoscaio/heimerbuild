@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test"
+import type { ShopGrouping } from "@/types/shop-view"
 import { ItemsFileSchema } from "../../../../scripts/sync-data/schemas/item"
 import {
 	groupShopItems,
 	type ShopSectionKey,
-	shopSectionOf,
+	type ShopTier,
+	shopTierOf,
 } from "./group-shop-items"
 
 type Case = {
@@ -18,8 +20,8 @@ function item({ tags = [], from = [], into = [], groupLimits = [] }: Case) {
 	return { tags, from, into, groupLimits }
 }
 
-describe("shopSectionOf", () => {
-	test.each<Case & { section: ShopSectionKey }>([
+describe("shopTierOf", () => {
+	test.each<Case & { section: ShopTier }>([
 		{ name: "a starter", tags: ["Lane", "Health"], section: "starter" },
 		{ name: "a jungle pet", tags: ["Jungle"], section: "starter" },
 		{ name: "a potion", tags: ["Consumable"], section: "starter" },
@@ -61,7 +63,7 @@ describe("shopSectionOf", () => {
 		},
 		{ name: "a finished item", tags: ["SpellDamage"], section: "legendary" },
 	])("$name goes to $section", (testCase) => {
-		expect(shopSectionOf(item(testCase))).toBe(testCase.section)
+		expect(shopTierOf(item(testCase))).toBe(testCase.section)
 	})
 })
 
@@ -80,6 +82,33 @@ describe("groupShopItems", () => {
 			["epic", ["e"]],
 			["legendary", ["l"]],
 		])
+	})
+
+	test.each<{ grouping: ShopGrouping; sections: [ShopSectionKey, string[]][] }>(
+		[
+			{
+				grouping: "tiers",
+				sections: [
+					["basic", ["c2", "c"]],
+					["epic", ["e"]],
+					["legendary", ["l"]],
+				],
+			},
+			{
+				grouping: "compact",
+				sections: [
+					["components", ["e", "c2", "c"]],
+					["legendary", ["l"]],
+				],
+			},
+			{ grouping: "none", sections: [["all", ["l", "e", "c2", "c"]]] },
+		],
+	)("$grouping grouping", ({ grouping, sections }) => {
+		expect(
+			groupShopItems([legendary, epic, component2, component], {
+				grouping,
+			}).map(({ key, items }) => [key, items.map(({ id }) => id)]),
+		).toEqual(sections)
 	})
 
 	test("leaves out empty sections", () => {
