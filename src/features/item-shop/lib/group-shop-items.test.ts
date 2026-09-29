@@ -9,21 +9,45 @@ import {
 type Case = {
 	name: string
 	tags?: string[]
+	from?: string[]
 	into?: string[]
 	groupLimits?: { group: string; max: number }[]
 }
 
-function item({ tags = [], into = [], groupLimits = [] }: Case) {
-	return { tags, into, groupLimits }
+function item({ tags = [], from = [], into = [], groupLimits = [] }: Case) {
+	return { tags, from, into, groupLimits }
 }
 
 describe("shopSectionOf", () => {
 	test.each<Case & { section: ShopSectionKey }>([
-		{ name: "a component", into: ["3089"], section: "starter" },
 		{ name: "a starter", tags: ["Lane", "Health"], section: "starter" },
 		{ name: "a jungle pet", tags: ["Jungle"], section: "starter" },
 		{ name: "a potion", tags: ["Consumable"], section: "starter" },
+		{
+			name: "a potion that upgrades",
+			tags: ["Consumable", "Lane"],
+			into: ["3000"],
+			section: "starter",
+		},
 		{ name: "a trinket", tags: ["Trinket", "Vision"], section: "starter" },
+		{
+			name: "a support item upgrade",
+			tags: ["Lane", "GoldPer"],
+			from: ["3865"],
+			section: "starter",
+		},
+		{
+			name: "a basic component",
+			tags: ["Damage", "Lane"],
+			into: ["3071"],
+			section: "basic",
+		},
+		{
+			name: "an epic component",
+			from: ["1052"],
+			into: ["3089"],
+			section: "epic",
+		},
 		{
 			name: "tier 1 boots that build into more",
 			tags: ["Boots"],
@@ -45,13 +69,15 @@ describe("groupShopItems", () => {
 	const legendary = { id: "l", ...item({ name: "l" }) }
 	const component = { id: "c", ...item({ name: "c", into: ["l"] }) }
 	const component2 = { id: "c2", ...item({ name: "c2", into: ["l"] }) }
+	const epic = { id: "e", ...item({ name: "e", from: ["c"], into: ["l"] }) }
 
 	test("orders sections as the shop does and keeps the item order inside each", () => {
-		const sections = groupShopItems([legendary, component2, component])
+		const sections = groupShopItems([legendary, epic, component2, component])
 		expect(
 			sections.map(({ key, items }) => [key, items.map(({ id }) => id)]),
 		).toEqual([
-			["starter", ["c2", "c"]],
+			["basic", ["c2", "c"]],
+			["epic", ["e"]],
 			["legendary", ["l"]],
 		])
 	})
@@ -83,6 +109,10 @@ describe("groupShopItems", () => {
 			sections.reduce((total, section) => total + section.items.length, 0),
 		).toBe(items.length)
 		expect(sectionOf("Doran's Ring")).toBe("starter")
+		expect(sectionOf("Amplifying Tome")).toBe("basic")
+		expect(sectionOf("Blasting Wand")).toBe("basic")
+		expect(sectionOf("Fiendish Codex")).toBe("epic")
+		expect(sectionOf("Gunmetal Greaves")).toBe("boots")
 		expect(sectionOf("Sorcerer's Shoes")).toBe("boots")
 		expect(sectionOf("Rabadon's Deathcap")).toBe("legendary")
 	})

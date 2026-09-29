@@ -1,8 +1,13 @@
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 
-export type ShopSectionKey = "starter" | "boots" | "legendary"
+export type ShopSectionKey =
+	| "starter"
+	| "basic"
+	| "epic"
+	| "boots"
+	| "legendary"
 
-type ShopItem = Pick<Item, "tags" | "into" | "groupLimits">
+type ShopItem = Pick<Item, "tags" | "from" | "into" | "groupLimits">
 
 export type ShopSection<T extends ShopItem> = {
 	key: ShopSectionKey
@@ -11,19 +16,25 @@ export type ShopSection<T extends ShopItem> = {
 }
 
 const sectionTitles: Record<ShopSectionKey, string> = {
-	starter: "Starter & basic",
+	starter: "Starter",
+	basic: "Basic",
+	epic: "Epic",
 	boots: "Boots",
 	legendary: "Legendary",
 }
 
 const sectionOrder: readonly ShopSectionKey[] = [
 	"starter",
+	"basic",
+	"epic",
 	"boots",
 	"legendary",
 ]
 
-// Starters (Doran's, support and jungle items), potions, wards and trinkets build into nothing.
-const STARTER_TAGS = new Set(["Lane", "Jungle", "Consumable", "Trinket"])
+// Potions, elixirs, wards and trinkets are starters even when they upgrade.
+const CONSUMABLE_TAGS = new Set(["Consumable", "Trinket"])
+// Doran's, support and jungle starters: lane items that build into nothing.
+const STARTER_TAGS = new Set(["Lane", "Jungle"])
 
 /** Gunmetal Greaves lacks the Boots tag but shares the boots group limit. */
 function isBoots({ tags, groupLimits }: ShopItem) {
@@ -32,11 +43,12 @@ function isBoots({ tags, groupLimits }: ShopItem) {
 	)
 }
 
+/** The in-game shop tier of an item. */
 export function shopSectionOf(item: ShopItem): ShopSectionKey {
 	if (isBoots(item)) return "boots"
-	if (item.into.length || item.tags.some((tag) => STARTER_TAGS.has(tag))) {
-		return "starter"
-	}
+	if (item.tags.some((tag) => CONSUMABLE_TAGS.has(tag))) return "starter"
+	if (item.into.length) return item.from.length ? "epic" : "basic"
+	if (item.tags.some((tag) => STARTER_TAGS.has(tag))) return "starter"
 	return "legendary"
 }
 
