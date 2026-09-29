@@ -5,8 +5,36 @@ function championLinks(page: Page) {
 	return page.getByRole("region", { name: "Champions" }).getByRole("link")
 }
 
+async function openChampionList(page: Page) {
+	await page.getByRole("button", { name: /^Browse all/ }).click()
+}
+
+test("the champion list opens with the toggle or by typing a search, and the state is remembered", async ({
+	page,
+}) => {
+	await page.goto("/")
+	const toggle = page.getByRole("button", {
+		name: /^Browse all|^Hide champions/,
+	})
+	await expect(toggle).toHaveAttribute("aria-expanded", "false")
+	await expect(page.getByRole("region", { name: "Champions" })).toBeHidden()
+
+	await toggle.click()
+	await expect(toggle).toHaveAttribute("aria-expanded", "true")
+	await expect(championLinks(page).first()).toBeVisible()
+	await page.reload()
+	await expect(toggle).toHaveAttribute("aria-expanded", "true")
+
+	await toggle.click()
+	await expect(championLinks(page)).toHaveCount(0)
+	await page.getByRole("searchbox", { name: "Search a champion" }).fill("ahri")
+	await expect(toggle).toHaveAttribute("aria-expanded", "true")
+	await expect(championLinks(page)).toHaveCount(1)
+})
+
 test("search filters the champion grid", async ({ page }) => {
 	await page.goto("/")
+	await openChampionList(page)
 	const search = page.getByRole("searchbox", { name: "Search a champion" })
 	const champions = championLinks(page)
 	await expect(champions.first()).toBeVisible()
@@ -23,6 +51,7 @@ test("search filters the champion grid", async ({ page }) => {
 
 test("role chips combine with the search", async ({ page }) => {
 	await page.goto("/")
+	await openChampionList(page)
 	const champions = championLinks(page)
 	await expect(champions.first()).toBeVisible()
 	const total = await champions.count()
@@ -73,8 +102,11 @@ test("a build shows in recent builds only after an edit, filtered by the home se
 	await page.goto("/champions/Heimerdinger")
 	await expect(levelSlider(page)).toBeVisible()
 	await page.goto("/")
-	await expect(recent).toBeVisible()
-	await expect(recentLinks).toHaveCount(0)
+	// No edit yet: the panel is not there at all.
+	await expect(
+		page.getByRole("searchbox", { name: "Search a champion" }),
+	).toBeVisible()
+	await expect(recent).toHaveCount(0)
 
 	await page.goto("/champions/Heimerdinger")
 	await levelSlider(page).fill("5")

@@ -1,11 +1,11 @@
 import { createRoute } from "@tanstack/react-router"
 import { AppName } from "@/components/common/app-name"
+import { MainPageLogo } from "@/components/common/main-page-logo"
 import { RouteError } from "@/components/common/route-error"
+import { Skeleton } from "@/components/ui/skeleton"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { RecentBuilds } from "@/features/build-calculator/components/recent-builds"
 import { ChampionBrowser } from "@/features/champions/components/champion-browser"
-import { ChampionBrowserTitle } from "@/features/champions/components/champion-browser-title"
-import { ChampionGridSkeleton } from "@/features/champions/components/champion-grid-skeleton"
 import { useChampionFilters } from "@/features/champions/hooks/use-champion-filters"
 import { rootRoute } from "./root-route"
 
@@ -30,7 +30,9 @@ function HomePage() {
 		<HomeLayout>
 			<ChampionBrowser
 				filters={filters}
-				aside={<RecentBuilds search={filters.search} role={filters.role} />}
+				recentBuilds={
+					<RecentBuilds search={filters.search} role={filters.role} />
+				}
 			/>
 		</HomeLayout>
 	)
@@ -39,19 +41,18 @@ function HomePage() {
 function HomePending() {
 	return (
 		<HomeLayout>
-			<ChampionBrowserTitle />
-			{/* Same columns as the loaded page, with the recent builds column left empty. */}
-			<div className="grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-7">
-				<ChampionGridSkeleton />
-			</div>
+			<Skeleton className="h-12 w-full max-w-140 rounded-xl" />
+			<Skeleton className="h-11 w-60 rounded-full" />
 		</HomeLayout>
 	)
 }
 
+/** Brand, mascot and the page content, in one centred column. */
 function HomeLayout({ children }: React.PropsWithChildren) {
 	return (
-		<main className="mx-auto flex min-h-screen w-full max-w-360 flex-col gap-6 px-4 py-6 sm:px-8 lg:px-14 lg:py-9">
+		<main className="mx-auto flex min-h-screen w-full max-w-360 flex-col items-center gap-5 px-4 py-6 sm:gap-7 sm:px-8 lg:px-24 lg:py-12">
 			<AppName />
+			<MainPageLogo />
 			{children}
 		</main>
 	)

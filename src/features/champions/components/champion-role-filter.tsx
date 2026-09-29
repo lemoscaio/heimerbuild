@@ -25,7 +25,7 @@ export function ChampionRoleFilter({
 	return (
 		<ToggleGroup
 			aria-label="Filter by role"
-			className="flex-wrap gap-2"
+			className="flex-wrap justify-center gap-2"
 			value={[role ?? ALL_ROLES]}
 			// Pressing the selected chip again would leave none: one option is always selected.
 			onValueChange={([next]) =>

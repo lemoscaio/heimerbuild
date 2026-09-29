@@ -8,7 +8,7 @@ export function ChampionGrid({
 	return (
 		<div
 			className={cn(
-				"grid grid-cols-4 content-start gap-x-2 gap-y-3 text-white sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-7 lg:gap-x-3 xl:grid-cols-10",
+				"grid grid-cols-4 content-start gap-x-2 gap-y-3 text-white sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 lg:gap-x-3 xl:grid-cols-12",
 				className,
 			)}
 			{...props}

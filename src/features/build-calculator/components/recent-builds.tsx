@@ -28,7 +28,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				itemIds: build.itemIds,
 				patch: build.patch,
 			})}
-			className="flex items-center gap-2.5 rounded-lg bg-primary-2/60 p-2 transition-colors hover:bg-primary-2"
+			className="flex items-center gap-2.5 rounded-xl border border-primary-2 bg-primary-0 px-3.5 py-2.5 transition-colors hover:bg-primary-2"
 		>
 			<GameIcon
 				src={champion?.icon}
@@ -57,7 +57,7 @@ type RecentBuildsProps = {
 	role: ChampionRole | undefined
 } & React.ComponentProps<"section">
 
-/** The builds last edited in this browser, each linking back to its build. */
+/** The builds last edited in this browser, each linking back to its build; nothing until there is one. */
 export function RecentBuilds({
 	search,
 	role,
@@ -79,14 +79,12 @@ export function RecentBuilds({
 		? builds.filter(({ championKey }) => matchingKeys.has(championKey))
 		: builds
 
+	if (!builds.length) return null
+
 	return (
 		<section
 			aria-labelledby={titleId}
-			className={cn(
-				"flex flex-col gap-2.5 rounded-xl bg-primary-3 p-4.5 ring-1 ring-primary-2",
-				{ "max-lg:hidden": !builds.length },
-				className,
-			)}
+			className={cn("flex flex-col items-center gap-2.5", className)}
 			{...props}
 		>
 			<h2
@@ -95,15 +93,11 @@ export function RecentBuilds({
 			>
 				Your recent builds
 			</h2>
-			<p className="text-subtle text-xs">Kept in this browser, no login.</p>
-			{!builds.length && (
-				<p className="text-prose text-sm">Builds you edit will show up here.</p>
-			)}
-			{!!builds.length && !shownBuilds.length && (
+			{!shownBuilds.length && (
 				<p className="text-prose text-sm">No recent builds match</p>
 			)}
 			{!!shownBuilds.length && (
-				<ul className="flex flex-col gap-2">
+				<ul className="flex flex-wrap justify-center gap-3">
 					{shownBuilds.map((build) => (
 						<li key={build.championKey}>
 							<RecentBuildLink
@@ -114,6 +108,7 @@ export function RecentBuilds({
 					))}
 				</ul>
 			)}
+			<p className="text-subtle text-xs">Kept in this browser, no login.</p>
 		</section>
 	)
 }
