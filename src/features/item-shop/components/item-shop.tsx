@@ -3,6 +3,7 @@ import { flushSync } from "react-dom"
 import { LoadError } from "@/components/common/load-error"
 import { useItems } from "@/data/hooks/use-items"
 import { track } from "@/lib/analytics/analytics"
+import { cn } from "@/lib/cn"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { useDebouncedCallback } from "../hooks/use-debounced-callback"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
@@ -22,15 +23,25 @@ import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
 import { ItemSearch } from "./item-search"
 import { RoleFilter } from "./role-filter"
+import { StatChecklist } from "./stat-checklist"
 import { StatFilter } from "./stat-filter"
 import { StatMatchToggle } from "./stat-match-toggle"
 import { StatSort } from "./stat-sort"
 
 type ItemShopProps = {
 	patch: string
+	/** `expanded`: filters in a side rail and bigger tiles. */
+	layout?: "compact" | "expanded"
+	/** Shown at the end of the title row, such as the switch to the expanded shop. */
+	actions?: React.ReactNode
 } & ItemPickProps
 
-export function ItemShop({ patch, ...pickProps }: ItemShopProps) {
+export function ItemShop({
+	patch,
+	layout = "compact",
+	actions,
+	...pickProps
+}: ItemShopProps) {
 	const itemsQuery = useItems(patch)
 	const [role, setRole] = useState<Role>("ALL")
 	const [stats, setStats] = useState<StatKey[]>([])
@@ -89,8 +100,91 @@ export function ItemShop({ patch, ...pickProps }: ItemShopProps) {
 		})
 	}
 
+	const isExpanded = layout === "expanded"
+	const search = (
+		<ItemSearch
+			className={cn("min-w-40 max-w-none flex-1", {
+				"max-xl:basis-full": !isExpanded,
+				"basis-56": isExpanded,
+			})}
+			query={query}
+			onQueryChange={handleQueryChange}
+			onEscape={handleSearchEscape}
+		/>
+	)
+	const results = (
+		<ItemList
+			ref={listRef}
+			aria-label="Item shop"
+			className={cn({ "lg:bg-transparent lg:p-0": isExpanded })}
+		>
+			<ItemGrid
+				items={items}
+				tileSize={isExpanded ? "lg" : "md"}
+				{...pickProps}
+			/>
+			{itemsQuery.isSuccess && !items.length && (
+				<p className="w-full p-5 text-center text-white">
+					No items match these filters.
+				</p>
+			)}
+			{itemsQuery.isPending && (
+				<>
+					<span className="sr-only" role="status">
+						Loading items
+					</span>
+					<ItemGridSkeleton />
+				</>
+			)}
+			{itemsQuery.isError && (
+				<LoadError className="pb-8" onRetry={() => itemsQuery.refetch()}>
+					Could not load the items. Check your connection.
+				</LoadError>
+			)}
+		</ItemList>
+	)
+
+	if (isExpanded) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
+				<div className="scrollbar-purple flex flex-col gap-5 border-primary-2 bg-primary-3 p-4 lg:overflow-y-auto lg:border-r lg:p-5">
+					<div className="flex flex-col gap-1.5">
+						<h3 className="font-semibold text-gold text-xs uppercase tracking-widest">
+							Role
+						</h3>
+						<RoleFilter
+							orientation="vertical"
+							role={role}
+							onRoleChange={handleRoleChange}
+						/>
+					</div>
+					<StatChecklist stats={stats} onStatsChange={handleStatsChange}>
+						<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
+					</StatChecklist>
+				</div>
+				<div className="flex min-h-0 flex-col gap-4 p-4 lg:p-5">
+					<div className="flex flex-wrap items-center gap-3">
+						<ShopTitle className="text-lg" />
+						{search}
+						<StatSort
+							className="p-0"
+							sort={sort}
+							onSortChange={handleSortChange}
+						/>
+						{actions}
+					</div>
+					{results}
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
+			<div className="flex items-center justify-between gap-3 pb-1">
+				<ShopTitle />
+				{actions}
+			</div>
 			<RoleFilter role={role} onRoleChange={handleRoleChange} />
 			<div className="flex items-center justify-center gap-2 px-2.5 pb-2">
 				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
@@ -100,40 +194,23 @@ export function ItemShop({ patch, ...pickProps }: ItemShopProps) {
 				</div>
 			</div>
 			<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2.5 pb-2 xl:flex-nowrap">
-				<ItemSearch
-					className="min-w-40 max-w-none flex-1 max-xl:basis-full"
-					query={query}
-					onQueryChange={handleQueryChange}
-					onEscape={handleSearchEscape}
-				/>
+				{search}
 				<StatSort
 					className="shrink-0 flex-nowrap p-0"
 					sort={sort}
 					onSortChange={handleSortChange}
 				/>
 			</div>
-			<ItemList ref={listRef} aria-label="Item shop">
-				<ItemGrid items={items} {...pickProps} />
-				{itemsQuery.isSuccess && !items.length && (
-					<p className="w-full p-5 text-center text-white">
-						No items match these filters.
-					</p>
-				)}
-				{itemsQuery.isPending && (
-					<>
-						<span className="sr-only" role="status">
-							Loading items
-						</span>
-						<ItemGridSkeleton />
-					</>
-				)}
-				{itemsQuery.isError && (
-					<LoadError className="pb-8" onRetry={() => itemsQuery.refetch()}>
-						Could not load the items. Check your connection.
-					</LoadError>
-				)}
-			</ItemList>
+			{results}
 		</div>
+	)
+}
+
+function ShopTitle({ className }: { className?: string }) {
+	return (
+		<h2 className={cn("font-bold font-display text-base", className)}>
+			Item shop
+		</h2>
 	)
 }
 
