@@ -49,6 +49,9 @@ export function initPostHog() {
 			capture: (event, properties) => {
 				posthog.capture(event, properties)
 			},
+			register: (properties) => {
+				posthog.register(properties)
+			},
 			getFeatureFlag: (name) => posthog.getFeatureFlag(name),
 			onFeatureFlags: (callback) => posthog.onFeatureFlags(() => callback()),
 		}
