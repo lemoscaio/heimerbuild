@@ -18,6 +18,8 @@ export type AnalyticsEvents = {
 		stats: StatKey[]
 		match: "all" | "any"
 	}
+	/** Debounced shop search; only the query length is sent, never the text. */
+	shop_searched: { queryLength: number }
 	/** `null` stat and direction: back to the shop's own order. */
 	shop_sorted: { stat: StatKey | null; direction: "asc" | "desc" | null }
 	build_link_copied: { champion: string; level: number; itemsCount: number }
