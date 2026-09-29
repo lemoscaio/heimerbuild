@@ -1,10 +1,12 @@
 export function AppName() {
 	return (
-		<div className="flex select-none flex-wrap items-baseline gap-x-3 gap-y-1 text-white">
-			<span className="font-logo text-4xl leading-none">Heimerbuild</span>
-			<span className="font-display text-sm text-subtle">
+		<div className="select-none text-center text-white">
+			<h1 className="font-logo text-6xl leading-none sm:text-8xl">
+				Heimerbuild
+			</h1>
+			<p className="mt-2 font-display text-lg text-subtle sm:text-xl">
 				League of Legends build calculator
-			</span>
+			</p>
 		</div>
 	)
 }
