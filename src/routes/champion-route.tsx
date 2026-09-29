@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { GameDataUnavailableError } from "@/data/services/game-data"
 import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
+import { ItemDetailsCard } from "@/features/build-calculator/components/item-details-card"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { ItemSlotsSkeleton } from "@/features/build-calculator/components/item-slots-skeleton"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
@@ -117,11 +118,30 @@ function ChampionPage() {
 						<RunesPlaceholder />
 					</>
 				}
-				shop={<ItemShop patch={patch} onItemClick={build.addItem} />}
+				shop={
+					<ItemShop
+						patch={patch}
+						selectedItemId={build.selectedItem?.id}
+						onItemSelect={build.selectItem}
+						onItemAdd={build.addItem}
+					/>
+				}
 				stats={
-					<WorkbenchPanel>
-						{build.stats && <StatsPanel stats={build.stats} />}
-					</WorkbenchPanel>
+					<>
+						{build.selectedItem && (
+							<ItemDetailsCard
+								item={build.selectedItem}
+								isBuildFull={build.isFull}
+								onAdd={build.addItem}
+								onClose={build.clearSelection}
+							/>
+						)}
+						<WorkbenchPanel>
+							{build.stats && (
+								<StatsPanel stats={build.stats} preview={build.preview} />
+							)}
+						</WorkbenchPanel>
+					</>
 				}
 			/>
 		)

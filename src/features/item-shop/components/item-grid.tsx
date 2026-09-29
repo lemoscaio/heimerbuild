@@ -1,15 +1,15 @@
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { useRovingFocus } from "../hooks/use-roving-focus"
 import { groupShopItems } from "../lib/group-shop-items"
+import type { ItemPickProps } from "../types/item-pick"
 import { ItemSection } from "./item-section"
 
 type ItemGridProps = {
 	items: readonly Item[]
-	onItemClick: (itemId: string) => void
-}
+} & ItemPickProps
 
 /** The items split into shop sections; arrow keys move across them in visual order. */
-export function ItemGrid({ items, onItemClick }: ItemGridProps) {
+export function ItemGrid({ items, ...pickProps }: ItemGridProps) {
 	const sections = groupShopItems(items)
 	const { containerRef, handleKeyDown, getItemProps } = useRovingFocus(
 		sections.flatMap((section) => section.items.map((item) => item.id)),
@@ -28,7 +28,7 @@ export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 				<ItemSection
 					key={section.key}
 					section={section}
-					onItemClick={onItemClick}
+					{...pickProps}
 					getItemProps={getItemProps}
 				/>
 			))}

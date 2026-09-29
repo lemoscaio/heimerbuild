@@ -67,7 +67,7 @@ test("the shop filters by a stat and sorts by it", async ({
 	await expect(shop).toHaveCount(withAbilityPowerOrMagicResist.length)
 })
 
-test("the shop is one Tab stop: arrow keys move between items and Enter adds one", async ({
+test("the shop is one Tab stop: arrow keys move between items, Enter selects one and Enter again adds it", async ({
 	page,
 }) => {
 	await page.goto("/champions/Heimerdinger")
@@ -82,6 +82,10 @@ test("the shop is one Tab stop: arrow keys move between items and Enter adds one
 	await page.keyboard.press("ArrowRight")
 	await expect(shop.nth(2)).toBeFocused()
 	await page.keyboard.press("Enter")
+	await expect(shop.nth(2)).toHaveAttribute("aria-pressed", "true")
+	await expect(chosenItems(page)).toHaveCount(0)
+	await page.keyboard.press("Enter")
+	await expect(chosenItems(page)).toHaveCount(1)
 
 	expect(await itemNames(chosenItems(page))).toEqual([`Remove ${third}`])
 })
