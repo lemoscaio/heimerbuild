@@ -82,6 +82,19 @@ function ChampionPage() {
 	return (
 		build.champion && (
 			<WorkbenchLayout
+				actions={
+					<CopyBuildLink
+						layout="inline"
+						href={buildHref}
+						onCopied={() =>
+							track("build_link_copied", {
+								champion: key,
+								level: build.level,
+								itemsCount: build.items.length,
+							})
+						}
+					/>
+				}
 				build={
 					<>
 						<WorkbenchPanel className="flex flex-col gap-3">
@@ -92,16 +105,6 @@ function ChampionPage() {
 							<LevelSelector
 								level={build.level}
 								onLevelChange={build.setLevel}
-							/>
-							<CopyBuildLink
-								href={buildHref}
-								onCopied={() =>
-									track("build_link_copied", {
-										champion: key,
-										level: build.level,
-										itemsCount: build.items.length,
-									})
-								}
 							/>
 						</WorkbenchPanel>
 						<WorkbenchPanel>

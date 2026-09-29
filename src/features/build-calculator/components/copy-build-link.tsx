@@ -13,9 +13,16 @@ type CopyBuildLinkProps = {
 	href: string
 	/** Called after the link reached the clipboard. */
 	onCopied?: () => void
+	/** `inline`: a compact button with its messages beside it, for the page's action bar. */
+	layout?: "stacked" | "inline"
 }
 
-export function CopyBuildLink({ href, onCopied }: CopyBuildLinkProps) {
+export function CopyBuildLink({
+	href,
+	onCopied,
+	layout = "stacked",
+}: CopyBuildLinkProps) {
+	const isInline = layout === "inline"
 	const [status, setStatus] = useState<CopyStatus>("idle")
 	const [copiedUrl, setCopiedUrl] = useState("")
 
@@ -31,8 +38,17 @@ export function CopyBuildLink({ href, onCopied }: CopyBuildLinkProps) {
 	}
 
 	return (
-		<div className="flex flex-col gap-1">
-			<Button type="button" size="lg" className="w-full" onClick={handleClick}>
+		<div
+			className={cn("flex flex-col gap-1", {
+				"flex-row-reverse items-center gap-2.5": isInline,
+			})}
+		>
+			<Button
+				type="button"
+				size="lg"
+				className={cn("w-full", { "w-auto px-4": isInline })}
+				onClick={handleClick}
+			>
 				Copy link
 			</Button>
 			<span
@@ -42,11 +58,11 @@ export function CopyBuildLink({ href, onCopied }: CopyBuildLinkProps) {
 				})}
 			>
 				{status === "copied" && "Link copied"}
-				{status === "failed" && "Could not copy. Select the link below."}
+				{status === "failed" && "Could not copy. Select the link."}
 			</span>
 			{status === "failed" && (
 				<Input
-					className="h-7 w-full border-none bg-primary-2 text-xs md:text-xs"
+					className="h-7 w-full min-w-56 border-none bg-primary-2 text-xs md:text-xs"
 					aria-label="Build link"
 					readOnly
 					value={copiedUrl}
