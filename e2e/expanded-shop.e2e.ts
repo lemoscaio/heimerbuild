@@ -1,0 +1,33 @@
+import { expect } from "@playwright/test"
+import { chosenItems, itemNames, test } from "./fixtures"
+
+test("the expanded shop adds an item, survives a reload and hands the build back to the overview", async ({
+	page,
+}) => {
+	await page.goto("/champions/Heimerdinger")
+	await page.getByRole("button", { name: "Expand shop" }).click()
+	await expect(page).toHaveURL(/view=shop/)
+
+	const bar = page.getByRole("region", { name: "Build" })
+	const levelOne = await bar.textContent()
+	await bar.getByRole("button", { name: "Level up" }).click()
+	await expect(bar).not.toHaveText(levelOne ?? "")
+
+	await page
+		.getByRole("region", { name: "Item shop" })
+		.getByRole("button", { name: "Void Staff", exact: true })
+		.click()
+	await page.getByRole("button", { name: "Add to build" }).click()
+	await expect(chosenItems(page)).toHaveCount(1)
+
+	await page.reload()
+	await expect(
+		page.getByRole("button", { name: "Back to overview" }).first(),
+	).toBeVisible()
+	await expect(chosenItems(page)).toHaveCount(1)
+
+	await page.getByRole("button", { name: "Back to overview" }).first().click()
+	await expect(page).not.toHaveURL(/view=/)
+	await expect(page.getByRole("button", { name: "Expand shop" })).toBeVisible()
+	expect(await itemNames(chosenItems(page))).toEqual(["Remove Void Staff"])
+})
