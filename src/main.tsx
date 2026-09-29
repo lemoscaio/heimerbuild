@@ -15,3 +15,8 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 )
 
 initPostHog()
+
+// TEMP diagnostic, revert before merge.
+declare const __HB_BUILD_ENV_KEYS__: string
+;(window as unknown as Record<string, string>).__HB_BUILD_ENV_KEYS__ =
+	__HB_BUILD_ENV_KEYS__
