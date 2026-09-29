@@ -99,21 +99,6 @@ export function useBuild({
 		}
 	}
 
-	/** Back to level 1 with no items; the browser's Back button restores the build. */
-	function resetBuild() {
-		setNotice(undefined)
-		setSelectedItemId(undefined)
-		onSearchChange(
-			toBuildSearch({
-				level: MIN_LEVEL,
-				itemIds: [],
-				patch: search.patch,
-				view,
-			}),
-			{ replace: false },
-		)
-	}
-
 	function setView(nextView: BuildView) {
 		onSearchChange(
 			toBuildSearch({ level, itemIds, patch: search.patch, view: nextView }),
@@ -146,7 +131,6 @@ export function useBuild({
 		items,
 		addItem,
 		removeItem,
-		resetBuild,
 		/** Why the last item could not be added (full build), until the next change. */
 		notice,
 		isFull,

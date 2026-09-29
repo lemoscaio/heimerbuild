@@ -14,7 +14,6 @@ import { LevelSelectorSkeleton } from "@/features/build-calculator/components/le
 import { MobileChampionRow } from "@/features/build-calculator/components/mobile-champion-row"
 import { MobileLayout } from "@/features/build-calculator/components/mobile-layout"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
-import { ResetBuildButton } from "@/features/build-calculator/components/reset-build-button"
 import { RunesPlaceholder } from "@/features/build-calculator/components/runes-placeholder"
 import { ShopViewToggle } from "@/features/build-calculator/components/shop-view-toggle"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
@@ -99,7 +98,6 @@ function ChampionPage() {
 	const copyLink = (
 		<CopyBuildLink
 			layout={isDesktop ? "inline" : "stacked"}
-			className="max-lg:flex-1"
 			href={buildHref}
 			onCopied={() =>
 				track("build_link_copied", {
@@ -277,10 +275,7 @@ function MobileChampionPage({
 							onClose={build.clearSelection}
 						/>
 					)}
-					<div className="flex items-start gap-2.5">
-						{copyLink}
-						<ResetBuildButton onReset={build.resetBuild} />
-					</div>
+					{copyLink}
 				</>
 			}
 		/>
