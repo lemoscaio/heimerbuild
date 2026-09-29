@@ -91,19 +91,20 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
-			<div className="flex justify-center px-2.5 pt-2">
-				<ItemSearch
-					query={query}
-					onQueryChange={handleQueryChange}
-					onEscape={handleSearchEscape}
-				/>
-			</div>
 			<RoleFilter role={role} onRoleChange={handleRoleChange} />
 			<div className="flex items-center justify-center gap-2 px-2.5 pb-1.5">
 				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
 				<StatFilter stats={stats} onStatsChange={handleStatsChange} />
 			</div>
-			<StatSort sort={sort} onSortChange={handleSortChange} />
+			<div className="flex flex-wrap items-center justify-center gap-x-3 px-2.5">
+				<ItemSearch
+					className="mb-2 w-56"
+					query={query}
+					onQueryChange={handleQueryChange}
+					onEscape={handleSearchEscape}
+				/>
+				<StatSort sort={sort} onSortChange={handleSortChange} />
+			</div>
 			<ItemList ref={listRef} aria-label="Item shop">
 				<ItemGrid items={items} onItemClick={onItemClick} />
 				{itemsQuery.isSuccess && !items.length && (
