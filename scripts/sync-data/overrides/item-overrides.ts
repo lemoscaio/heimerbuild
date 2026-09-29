@@ -20,8 +20,9 @@ export const ITEM_OVERRIDES: readonly ItemOverride[] = [
 		field: "tags",
 		since: "16.19",
 		reason:
-			"Riot data has no Boots tag (it has NonbootsMovement), but it is the Berserker's Greaves upgrade and shares the Boots group limit",
+			"Riot tags it NonbootsMovement (move speed from a non-boots item, as on Phantom Dancer or Zeal) instead of Boots, but it is the Berserker's Greaves upgrade and shares the Boots group limit",
 		source: "https://github.com/lemoscaio/heimerbuild/issues/159",
-		apply: (tags) => [...tags, "Boots"],
+		apply: (tags) =>
+			tags.map((tag) => (tag === "NonbootsMovement" ? "Boots" : tag)),
 	}),
 ]
