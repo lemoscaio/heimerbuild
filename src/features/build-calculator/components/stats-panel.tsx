@@ -1,14 +1,11 @@
 import type { ComputedStats } from "@/lib/stats/compute-stats"
-import { statRows } from "../lib/stats-info"
+import { statGroups, statRows } from "../lib/stats-info"
 import { StatRow } from "./stat-row"
 
-// Grid order: core stats next to penetration, then resources next to tenacity.
-const statGroups = [
-	{ key: "core", rows: statRows.slice(0, 8) },
-	{ key: "penetration", rows: statRows.slice(12, 19) },
-	{ key: "resources", rows: statRows.slice(8, 12) },
-	{ key: "tenacity", rows: statRows.slice(19) },
-]
+const groups = statGroups.map((group) => ({
+	...group,
+	rows: statRows.filter((info) => info.group === group.group),
+}))
 
 type StatsPanelProps = {
 	stats: ComputedStats
@@ -16,17 +13,26 @@ type StatsPanelProps = {
 
 export function StatsPanel({ stats }: StatsPanelProps) {
 	return (
-		<section
-			className="grid grid-cols-2 gap-x-2.5 gap-y-4 bg-primary-3 px-2.5 py-4 text-white lg:mx-auto lg:w-125"
-			aria-label="Champion stats"
-		>
-			{statGroups.map(({ key, rows }) => (
-				<ul key={key}>
-					{rows.map((info) => (
-						<StatRow key={info.stat} info={info} breakdown={stats[info.stat]} />
-					))}
-				</ul>
-			))}
+		<section className="flex flex-col gap-3" aria-label="Champion stats">
+			<h2 className="font-bold font-display text-base">Stats</h2>
+			<div className="grid gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-1">
+				{groups.map(({ group, label, rows }) => (
+					<div key={group}>
+						<h3 className="pb-1 font-semibold text-gold text-xs uppercase tracking-widest">
+							{label}
+						</h3>
+						<ul className="flex flex-col gap-0.5">
+							{rows.map((info) => (
+								<StatRow
+									key={info.stat}
+									info={info}
+									breakdown={stats[info.stat]}
+								/>
+							))}
+						</ul>
+					</div>
+				))}
+			</div>
 		</section>
 	)
 }
