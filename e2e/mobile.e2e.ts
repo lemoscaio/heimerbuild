@@ -13,10 +13,13 @@ test("on a phone, an item added from the Shop tab changes the Stats tab", async 
 
 	await page.getByRole("tab", { name: "Shop" }).click()
 	await expect(stats).toBeHidden()
-	await page
-		.getByRole("region", { name: "Item shop" })
-		.getByRole("button", { name: "Long Sword", exact: true })
-		.click()
+	await expect(
+		page.getByRole("group", { name: "Match selected stats" }),
+	).toBeVisible()
+	await page.getByRole("searchbox", { name: "Search items" }).fill("long sword")
+	const shop = page.getByRole("region", { name: "Item shop" })
+	await expect(shop.getByRole("button")).toHaveCount(1)
+	await shop.getByRole("button", { name: "Long Sword", exact: true }).click()
 	await page.getByRole("button", { name: "Add to build" }).click()
 	await expect(chosenItems(page)).toHaveCount(1)
 

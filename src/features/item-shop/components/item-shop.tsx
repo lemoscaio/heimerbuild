@@ -180,7 +180,7 @@ export function ItemShop({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col">
-			<div className="flex items-center justify-between gap-3 pb-1">
+			<div className="flex items-center justify-between gap-3 pb-1 max-lg:hidden">
 				<ShopTitle />
 				{actions}
 			</div>
@@ -192,7 +192,7 @@ export function ItemShop({
 					<StatFilter stats={stats} onStatsChange={handleStatsChange} />
 				</div>
 			</div>
-			<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2.5 pb-2 xl:flex-nowrap">
+			<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2.5 pb-2 max-lg:order-first xl:flex-nowrap">
 				{search}
 				<StatSort
 					className="shrink-0 flex-nowrap p-0"
