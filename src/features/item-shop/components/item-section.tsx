@@ -37,9 +37,13 @@ export function ItemSection({
 				</span>
 			</h3>
 			<div
-				className={cn("grid grid-cols-[repeat(auto-fill,2.5rem)] gap-1.5", {
-					"grid-cols-[repeat(auto-fill,3.5rem)] gap-x-2 gap-y-3": isLarge,
-				})}
+				className={cn(
+					"grid grid-cols-[repeat(auto-fill,2.75rem)] gap-1.5 lg:grid-cols-[repeat(auto-fill,2.5rem)]",
+					{
+						"grid-cols-[repeat(auto-fill,3.5rem)] gap-x-2 gap-y-3 lg:grid-cols-[repeat(auto-fill,3.5rem)]":
+							isLarge,
+					},
+				)}
 			>
 				{items.map((item, index) => (
 					<ItemButton
@@ -71,7 +75,9 @@ export function ItemSection({
 							width={isLarge ? 56 : 40}
 							height={isLarge ? 56 : 40}
 							loading="lazy"
-							className={cn("size-10", { "size-14 rounded-md": isLarge })}
+							className={cn("size-11 lg:size-10", {
+								"size-14 rounded-md lg:size-14": isLarge,
+							})}
 						/>
 						{isLarge && (
 							<span className="text-[0.625rem] text-gold tabular-nums">

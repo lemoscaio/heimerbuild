@@ -21,6 +21,7 @@ export function StatFilter({ stats, onStatsChange }: StatFilterProps) {
 					key={stat}
 					value={stat}
 					size="icon-sm"
+					className="max-lg:size-11 max-lg:p-2.5"
 					title={label}
 					aria-label={label}
 				>

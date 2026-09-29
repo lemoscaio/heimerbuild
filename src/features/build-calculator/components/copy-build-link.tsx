@@ -15,12 +15,14 @@ type CopyBuildLinkProps = {
 	onCopied?: () => void
 	/** `inline`: a compact button with its messages beside it, for the page's action bar. */
 	layout?: "stacked" | "inline"
+	className?: string
 }
 
 export function CopyBuildLink({
 	href,
 	onCopied,
 	layout = "stacked",
+	className,
 }: CopyBuildLinkProps) {
 	const isInline = layout === "inline"
 	const [status, setStatus] = useState<CopyStatus>("idle")
@@ -39,14 +41,16 @@ export function CopyBuildLink({
 
 	return (
 		<div
-			className={cn("flex flex-col gap-1", {
-				"flex-row-reverse items-center gap-2.5": isInline,
-			})}
+			className={cn(
+				"flex flex-col gap-1",
+				{ "flex-row-reverse items-center gap-2.5": isInline },
+				className,
+			)}
 		>
 			<Button
 				type="button"
 				size="lg"
-				className={cn("w-full", { "w-auto px-4": isInline })}
+				className={cn("w-full max-lg:h-11", { "w-auto px-4": isInline })}
 				onClick={handleClick}
 			>
 				Copy link

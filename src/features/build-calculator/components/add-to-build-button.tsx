@@ -24,7 +24,7 @@ export function AddToBuildButton({
 			<Button
 				type="button"
 				size="lg"
-				className="w-full bg-lilac text-primary-4 hover:bg-lilac/85"
+				className="w-full bg-lilac text-primary-4 hover:bg-lilac/85 max-lg:h-11"
 				disabled={isBuildFull}
 				aria-describedby={isBuildFull ? reasonId : undefined}
 				onClick={() => onAdd(itemId)}
