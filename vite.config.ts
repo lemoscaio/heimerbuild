@@ -33,13 +33,6 @@ export default defineConfig({
 			}),
 	],
 	define: {
-		// TEMP diagnostic: names only, never values. Revert before merge.
-		__HB_BUILD_ENV_KEYS__: JSON.stringify(
-			Object.keys(process.env)
-				.filter((key) => /^(VITE_|SENTRY|WORKERS_|CF_|CI$|NODE_ENV)/.test(key))
-				.sort()
-				.join(","),
-		),
 		"import.meta.env.APP_ENVIRONMENT": JSON.stringify(appEnvironment),
 		"import.meta.env.APP_RELEASE": appRelease
 			? JSON.stringify(appRelease)
