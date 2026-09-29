@@ -46,6 +46,12 @@ describe("buildSearchSchema", () => {
 		expect(parse({ patch: "latest" }).patch).toBeUndefined()
 	})
 
+	test("accepts the expanded shop view and drops any other view", () => {
+		expect(parse({ view: "shop" }).view).toBe("shop")
+		expect(parse({ view: "overview" }).view).toBeUndefined()
+		expect(parse({ view: 1 }).view).toBeUndefined()
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
@@ -70,11 +76,18 @@ describe("toBuildSearch", () => {
 		})
 	})
 
+	test("writes the shop view and leaves the overview out", () => {
+		const build = { level: 1, itemIds: [], patch: undefined }
+		expect(toBuildSearch({ ...build, view: "shop" }).view).toBe("shop")
+		expect(toBuildSearch({ ...build, view: "overview" }).view).toBeUndefined()
+	})
+
 	test("reads back through the search schema", () => {
 		const search = toBuildSearch({
 			level: 18,
 			itemIds: ["3089"],
 			patch: "16.19.1",
+			view: "shop",
 		})
 		expect(buildSearchSchema.parse(search)).toEqual(search)
 	})
