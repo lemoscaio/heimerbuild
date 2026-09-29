@@ -7,6 +7,7 @@ test("the expanded shop adds an item, survives a reload and hands the build back
 	await page.goto("/champions/Heimerdinger")
 	await page.getByRole("button", { name: "Expand shop" }).click()
 	await expect(page).toHaveURL(/view=shop/)
+	await expect(page.getByRole("button", { name: "Copy link" })).toBeVisible()
 
 	const bar = page.getByRole("region", { name: "Build" })
 	const levelOne = await bar.textContent()
