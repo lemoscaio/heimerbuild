@@ -17,6 +17,7 @@ import { ChampionHeaderSkeleton } from "@/features/champions/components/champion
 import { ItemGridSkeleton } from "@/features/item-shop/components/item-grid-skeleton"
 import { ItemList } from "@/features/item-shop/components/item-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
+import { track } from "@/lib/analytics/analytics"
 import { pageWithHeaderRoute } from "./page-with-header-route"
 
 export const championRoute = createRoute({
@@ -78,7 +79,16 @@ function ChampionPage() {
 			{build.champion && (
 				<main className="min-h-screen pt-header text-sm lg:pt-0">
 					<ChampionHeader champion={build.champion}>
-						<CopyBuildLink href={buildHref} />
+						<CopyBuildLink
+							href={buildHref}
+							onCopied={() =>
+								track("build_link_copied", {
+									champion: key,
+									level: build.level,
+									itemsCount: build.items.length,
+								})
+							}
+						/>
 					</ChampionHeader>
 					{unavailablePatch && (
 						<PatchNotice requestedPatch={unavailablePatch} patch={patch} />

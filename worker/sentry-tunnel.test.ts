@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test"
-import { SENTRY_DSN } from "../src/app/sentry-config"
+import { SENTRY_INGEST_HOST, SENTRY_PROJECT_ID } from "../src/app/sentry-config"
 import { forwardEnvelope } from "./sentry-tunnel"
+
+// Any public key: the tunnel checks only the host and project.
+const SENTRY_DSN = `https://publickey@${SENTRY_INGEST_HOST}/${SENTRY_PROJECT_ID}`
 
 const INGEST_URL =
 	"https://o4510932658159616.ingest.us.sentry.io/api/4512166096535553/envelope/"
@@ -79,13 +82,10 @@ describe("forwardEnvelope", () => {
 	})
 
 	test.each([
-		[
-			"another host",
-			"https://0e35843974ded2f4eb5778740e640d05@evil.example.com/4512166096535553",
-		],
+		["another host", "https://publickey@evil.example.com/4512166096535553"],
 		[
 			"another project",
-			"https://0e35843974ded2f4eb5778740e640d05@o4510932658159616.ingest.us.sentry.io/1",
+			"https://publickey@o4510932658159616.ingest.us.sentry.io/1",
 		],
 		[
 			"a host that only starts like ours",
@@ -93,7 +93,7 @@ describe("forwardEnvelope", () => {
 		],
 		[
 			"plain http",
-			"http://0e35843974ded2f4eb5778740e640d05@o4510932658159616.ingest.us.sentry.io/4512166096535553",
+			"http://publickey@o4510932658159616.ingest.us.sentry.io/4512166096535553",
 		],
 	])("rejects an envelope for %s without calling Sentry", async (_, dsn) => {
 		const { fetchFn, calls } = upstreamReturning(new Response("{}"))

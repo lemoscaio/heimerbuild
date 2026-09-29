@@ -4,24 +4,24 @@ import {
 	tanstackRouterBrowserTracingIntegration,
 } from "@sentry/react"
 import { router } from "./router"
-import { SENTRY_DSN, SENTRY_TUNNEL_PATH } from "./sentry-config"
-import { shouldInitSentry } from "./should-init-sentry"
+import { SENTRY_TUNNEL_PATH } from "./sentry-config"
+import { shouldInitTelemetry } from "./should-init-telemetry"
 
 declare global {
 	interface Window {
 		/** Non-production builds only: throws an uncaught error to test reporting end to end. */
 		__HB_SENTRY_TEST__?: () => void
-		/** Set by the Playwright flows before any script runs (e2e/fixtures.ts). */
-		__HB_E2E__?: boolean
 	}
 }
 
-const environment = import.meta.env.SENTRY_ENVIRONMENT
+const environment = import.meta.env.APP_ENVIRONMENT
+const dsn = import.meta.env.VITE_SENTRY_DSN
 
 export function initSentry() {
 	if (
-		!shouldInitSentry({
+		!shouldInitTelemetry({
 			environment,
+			projectKey: dsn,
 			enabledLocally: import.meta.env.VITE_SENTRY_ENABLED === "true",
 			isE2e: window.__HB_E2E__ === true,
 		})
@@ -30,11 +30,11 @@ export function initSentry() {
 	}
 
 	init({
-		dsn: SENTRY_DSN,
+		dsn,
 		// Local servers have no Worker to tunnel through, so they send to Sentry directly.
 		tunnel: environment === "development" ? undefined : SENTRY_TUNNEL_PATH,
 		environment,
-		release: import.meta.env.SENTRY_RELEASE,
+		release: import.meta.env.APP_RELEASE,
 		integrations: [tanstackRouterBrowserTracingIntegration(router)],
 		tracesSampleRate: environment === "production" ? 0.2 : 1,
 		// Matched against the path of same-origin requests only, so no other origin gets trace headers.

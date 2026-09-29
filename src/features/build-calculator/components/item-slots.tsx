@@ -1,8 +1,9 @@
 import { TriangleAlert } from "lucide-react"
-import { useLayoutEffect, useRef } from "react"
+import { useEffect, useLayoutEffect, useRef } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { ItemButton } from "@/components/common/item-button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { track } from "@/lib/analytics/analytics"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { MAX_ITEMS } from "../lib/build-items"
 import {
@@ -22,6 +23,7 @@ type ItemSlotsProps = {
 
 export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 	const violations = findBuildViolations(items)
+	const brokenRules = violations.map(({ group }) => group).join(",")
 	const slotsRef = useRef<HTMLFieldSetElement>(null)
 	const removedSlot = useRef<number | undefined>(undefined)
 
@@ -35,6 +37,12 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 			container.querySelectorAll("button")[Math.min(slot, items.length - 1)]
 		;(next ?? container).focus()
 	}, [items])
+
+	useEffect(() => {
+		if (brokenRules) {
+			track("impossible_build_warning_shown", { rules: brokenRules.split(",") })
+		}
+	}, [brokenRules])
 
 	function handleRemove(slot: number, event: React.MouseEvent<HTMLElement>) {
 		if (event.currentTarget === document.activeElement) {

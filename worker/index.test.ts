@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test"
-import { SENTRY_DSN } from "../src/app/sentry-config"
+import { SENTRY_INGEST_HOST, SENTRY_PROJECT_ID } from "../src/app/sentry-config"
 import worker from "./index"
+
+// Any public key: the tunnel checks only the host and project.
+const SENTRY_DSN = `https://publickey@${SENTRY_INGEST_HOST}/${SENTRY_PROJECT_ID}`
 
 function envReturning(response: Response) {
 	const requests: Request[] = []
@@ -107,6 +110,31 @@ describe("worker", () => {
 				new Request("https://example.com/monitoring", {
 					method: "POST",
 					body: `${JSON.stringify({ dsn: SENTRY_DSN })}\n{}`,
+				}),
+				env,
+			)
+
+			expect(response.status).toBe(200)
+			expect(upstream).toHaveBeenCalledTimes(1)
+			expect(requests).toEqual([])
+		})
+	})
+
+	describe("PostHog proxy", () => {
+		afterEach(() => {
+			mock.restore()
+		})
+
+		test("forwards /ingest/* to PostHog without touching the assets", async () => {
+			const upstream = spyOn(globalThis, "fetch").mockResolvedValue(
+				new Response('{"status":1}'),
+			)
+			const { env, requests } = envReturning(new Response("asset"))
+
+			const response = await worker.fetch(
+				new Request("https://example.com/ingest/e/", {
+					method: "POST",
+					body: "{}",
 				}),
 				env,
 			)

@@ -75,12 +75,13 @@ scripts/wt destroy <name> [--force]  # stop, remove, delete the branch once merg
 ```
 src/
 ├── main.tsx      Vite entry
-├── app/          App, providers, query client, router, Sentry
+├── app/          App, providers, query client, router, Sentry and PostHog setup
 ├── routes/       TanStack Router routes: loaders, search schemas, thin pages
 ├── features/     champions, build-calculator, item-shop (a feature never imports another)
 ├── data/         game data loading: services (fetch + Zod) and hooks
 ├── components/   ui/ shadcn/ui primitives, common/ shared app UI
-├── lib/          pure code, including the stats engine in lib/stats
+├── lib/          pure code, including the stats engine in lib/stats and the analytics client in lib/analytics
+├── hooks/        hooks shared by features (useFeatureFlag)
 ├── assets/       images imported by code
 └── styles/       Tailwind entry and theme (app.css)
 ```
@@ -89,11 +90,19 @@ Files and folders are kebab-case, `@/` resolves to `src/`, and Biome enforces th
 
 ### Deployment
 
-The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. A small Worker (`worker/index.ts`) runs first for `/data/*` and `/assets/*` so missing files there return an uncached 404 instead of `index.html`, and for `/monitoring` to forward Sentry events. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).
+The app is served by Cloudflare Workers static assets (`wrangler.jsonc`), with SPA fallback for deep links and cache rules in `public/_headers`. A small Worker (`worker/index.ts`) runs first for `/data/*` and `/assets/*` so missing files there return an uncached 404 instead of `index.html`, for `/monitoring` to forward Sentry events, and for `/ingest/*` to proxy PostHog. Cloudflare Workers Builds deploys `main` to production (`wrangler deploy`) and creates a Worker Preview for every other branch (`wrangler preview`), commenting the preview URLs on the pull request. Manual equivalents: `bun run deploy` and `bun run preview` (both build first and require `wrangler login`).
+
+### Telemetry keys
+
+The Sentry DSN and the PostHog project key are not in the repository: builds read them from the `VITE_SENTRY_DSN` and `VITE_POSTHOG_KEY` build variables (set in Cloudflare Workers Builds for preview and production). A build without them, such as a fork or GitHub CI, never starts Sentry or PostHog. To send from your machine, copy `.env.example` to `.env.local`, fill in the key and set `VITE_SENTRY_ENABLED=true` or `VITE_POSTHOG_ENABLED=true`; local events go straight to Sentry and PostHog tagged `environment = development`.
 
 ### Error monitoring
 
-Sentry (`@sentry/react`, set up in `src/app/sentry.ts`) reports errors, sampled traces and on-error session replays from preview and production deploys, sent through the Worker's `/monitoring` tunnel so ad-blockers do not drop them. Local builds send nothing unless `VITE_SENTRY_ENABLED=true`, and the Playwright flows mark their pages (`window.__HB_E2E__`) so Sentry never starts during E2E runs. When the `SENTRY_AUTH_TOKEN` build secret is set, Workers Builds uploads hidden source maps for the commit SHA release and deletes them from `dist/`.
+Sentry (`@sentry/react`, set up in `src/app/sentry.ts`) reports errors, sampled traces and on-error session replays from preview and production deploys, sent through the Worker's `/monitoring` tunnel so ad-blockers do not drop them. Builds without `VITE_SENTRY_DSN` send nothing, local builds send nothing unless `VITE_SENTRY_ENABLED=true`, and the Playwright flows mark their pages (`window.__HB_E2E__`) so Sentry never starts during E2E runs. When the `SENTRY_AUTH_TOKEN` build secret is set, Workers Builds uploads hidden source maps for the commit SHA release and deletes them from `dist/`.
+
+### Product analytics
+
+PostHog (`posthog-js`, set up in `src/app/posthog.ts`; cloud region in `posthog-config.ts`, key in `VITE_POSTHOG_KEY`) records pageviews, the autocapture and web vitals enabled in the project settings, and the custom events declared in `src/lib/analytics/analytics-events.ts` (sent with `track()`), plus feature flags through `useFeatureFlag()`. It runs in cookieless mode, so it sets no cookies and writes nothing to local or session storage until the consent banner exists. The SDK loads in its own chunk after the first render and talks to PostHog through the Worker's `/ingest/*` proxy, so ad-blockers do not drop events. Session replay and exception capture stay off (Sentry owns both). Every event carries `environment` (`production`, `preview`, `development`) and `release` (commit SHA). It follows Sentry's rules: nothing without `VITE_POSTHOG_KEY`, nothing locally unless `VITE_POSTHOG_ENABLED=true`, and never during the Playwright flows.
 
 ### Game data
 

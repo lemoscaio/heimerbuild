@@ -2,14 +2,15 @@
 	"$schema": "./node_modules/wrangler/config-schema.json",
 	"name": "heimerbuild",
 	"compatibility_date": "2026-09-27",
-	// worker/index.ts turns the SPA fallback for missing /data and /assets files into a 404
-	// and forwards Sentry envelopes posted to /monitoring (src/app/sentry-config.ts).
+	// worker/index.ts turns the SPA fallback for missing /data and /assets files into a 404,
+	// forwards Sentry envelopes posted to /monitoring (src/app/sentry-config.ts)
+	// and proxies /ingest/* to PostHog (src/app/posthog-config.ts).
 	"main": "./worker/index.ts",
 	"assets": {
 		"directory": "./dist",
 		"binding": "ASSETS",
 		"not_found_handling": "single-page-application",
-		"run_worker_first": ["/data/*", "/assets/*", "/monitoring"]
+		"run_worker_first": ["/data/*", "/assets/*", "/monitoring", "/ingest/*"]
 	},
 	// preview_urls gates workers.dev Preview URLs (incl. `wrangler preview`) and is off unless set;
 	// workers_dev serves production on workers.dev and seeds preview_urls' default.

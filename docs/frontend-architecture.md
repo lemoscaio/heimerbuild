@@ -8,8 +8,8 @@ Target structure for `src/`, grouped by feature instead of by file type. Compone
 
 ```
 src/
-├── main.tsx              Vite entry: starts Sentry, mounts <App /> and global styles, nothing else
-├── app/                  app shell: App, providers, query client, router (route tree), Sentry setup
+├── main.tsx              Vite entry: starts Sentry, mounts <App /> and global styles, then starts PostHog; nothing else
+├── app/                  app shell: App, providers, query client, router (route tree), Sentry and PostHog setup
 ├── routes/               TanStack Router code routes: one *-route.tsx per route
 ├── features/             feature slices, never import each other
 │   ├── champions/        champion grid, search, champion header and skills
@@ -22,8 +22,8 @@ src/
 ├── components/
 │   ├── ui/               primitives with no domain knowledge: button, slider, tooltip
 │   └── common/           shared app UI: header, logo, app name
-├── lib/                  pure, React-free code: stats engine, cn(), formatters
-├── hooks/                hooks used by 2+ features
+├── lib/                  pure, React-free code: stats engine, cn(), formatters, analytics (track, flags)
+├── hooks/                hooks used by 2+ features, and generic ones (use-feature-flag.ts)
 ├── types/                types used by 2+ features (not derivable from a schema)
 ├── assets/               images imported by code
 └── styles/               app.css: Tailwind entry, theme tokens, base styles

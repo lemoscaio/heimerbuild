@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
+import { track } from "@/lib/analytics/analytics"
 import { computeStats } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 import {
@@ -62,14 +63,19 @@ export function useBuild({
 		if (nextItemIds) {
 			setNotice(undefined)
 			setItemIds(nextItemIds)
+			track("item_added", { itemId })
 		} else {
 			setNotice(`All ${MAX_ITEMS} item slots are full. Remove an item first.`)
 		}
 	}
 
 	function removeItem(slot: number) {
+		const itemId = itemIds[slot]
 		setNotice(undefined)
 		setItemIds(removeItemAt(itemIds, slot))
+		if (itemId) {
+			track("item_removed", { itemId })
+		}
 	}
 
 	return {
