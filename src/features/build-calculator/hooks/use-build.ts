@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { track } from "@/lib/analytics/analytics"
@@ -43,32 +43,27 @@ export function useBuild({
 	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
 	const stats = champion && computeStats(champion, level, items)
 
-	// Opening or editing a build lists it in the home page's recent builds (this browser only).
-	const hasChampion = !!champion
-	const itemIdsKey = itemIds.join(",")
-	useEffect(() => {
-		if (!hasChampion) return
+	// Edits keep the link's own patch: changing it would reload the route mid-edit.
+	// Each edit also lists the build in the home page's recent builds (this browser only).
+	function saveBuild(
+		next: { level: number; itemIds: readonly string[] },
+		navigation: { replace: boolean },
+	) {
+		onSearchChange(toBuildSearch({ ...next, patch: search.patch }), navigation)
 		recordRecentBuild({
 			championKey,
-			level,
-			itemIds: itemIdsKey ? itemIdsKey.split(",") : [],
+			level: next.level,
+			itemIds: [...next.itemIds],
 			patch: search.patch,
 		})
-	}, [hasChampion, championKey, level, itemIdsKey, search.patch])
+	}
 
-	// Edits keep the link's own patch: changing it would reload the route mid-edit.
 	function setLevel(nextLevel: number) {
-		onSearchChange(
-			toBuildSearch({ level: nextLevel, itemIds, patch: search.patch }),
-			{ replace: true },
-		)
+		saveBuild({ level: nextLevel, itemIds }, { replace: true })
 	}
 
 	function setItemIds(nextItemIds: readonly string[]) {
-		onSearchChange(
-			toBuildSearch({ level, itemIds: nextItemIds, patch: search.patch }),
-			{ replace: false },
-		)
+		saveBuild({ level, itemIds: nextItemIds }, { replace: false })
 	}
 
 	function addItem(itemId: string) {

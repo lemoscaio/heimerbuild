@@ -32,7 +32,7 @@ function browserStorage() {
 	}
 }
 
-/** This browser's last opened or edited builds, newest first; empty when storage is unavailable. */
+/** This browser's last edited builds, newest first; empty when storage is unavailable. */
 export function readRecentBuilds({
 	storage = browserStorage(),
 }: RecentBuildsOptions = {}): RecentBuild[] {
