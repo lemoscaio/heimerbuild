@@ -37,14 +37,19 @@ export function ChampionList(props: ChampionListProps) {
 							></ChampionCard>
 						))
 					) : (
-						<p>No champions found.</p>
+						<p className="col-span-full py-8 text-center text-prose">
+							No champions found.
+						</p>
 					)}
 				</ChampionGrid>
 			)}
 			{isLoadingChampions && <ChampionGridSkeleton />}
 			{failedChampionsLoad && (
 				<ChampionGrid>
-					<LoadError onRetry={handleLoadChampionsClick}>
+					<LoadError
+						className="col-span-full py-8"
+						onRetry={handleLoadChampionsClick}
+					>
 						Could not load the champions. Check your connection.
 					</LoadError>
 				</ChampionGrid>

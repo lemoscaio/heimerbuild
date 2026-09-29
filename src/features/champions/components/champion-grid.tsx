@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn"
 
-/** The wrapping grid of champion cards, its placeholders and its messages. */
+/** The grid of champion cards, its placeholders and its messages. */
 export function ChampionGrid({
 	className,
 	...props
@@ -8,7 +8,7 @@ export function ChampionGrid({
 	return (
 		<div
 			className={cn(
-				"flex flex-wrap items-start justify-center gap-2 px-4 py-2.5 text-white sm:gap-4",
+				"grid grid-cols-4 content-start gap-x-2 gap-y-3 text-white sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-7 lg:gap-x-3 xl:grid-cols-10",
 				className,
 			)}
 			{...props}

@@ -1,9 +1,10 @@
 import { createRoute } from "@tanstack/react-router"
 import { AppName } from "@/components/common/app-name"
-import { MainPageLogo } from "@/components/common/main-page-logo"
 import { RouteError } from "@/components/common/route-error"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
+import { RecentBuilds } from "@/features/build-calculator/components/recent-builds"
 import { ChampionBrowser } from "@/features/champions/components/champion-browser"
+import { ChampionBrowserTitle } from "@/features/champions/components/champion-browser-title"
 import { ChampionGridSkeleton } from "@/features/champions/components/champion-grid-skeleton"
 import { rootRoute } from "./root-route"
 
@@ -23,20 +24,29 @@ export const homeRoute = createRoute({
 
 function HomePage() {
 	return (
-		<main className="min-h-screen pt-15 pb-10">
-			<AppName />
-			<MainPageLogo />
-			<ChampionBrowser />
-		</main>
+		<HomeLayout>
+			<ChampionBrowser aside={<RecentBuilds />} />
+		</HomeLayout>
 	)
 }
 
 function HomePending() {
 	return (
-		<main className="min-h-screen pt-15 pb-10">
+		<HomeLayout>
+			<ChampionBrowserTitle />
+			{/* Same columns as the loaded page, with the recent builds column left empty. */}
+			<div className="grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-7">
+				<ChampionGridSkeleton />
+			</div>
+		</HomeLayout>
+	)
+}
+
+function HomeLayout({ children }: React.PropsWithChildren) {
+	return (
+		<main className="mx-auto flex min-h-screen w-full max-w-360 flex-col gap-6 px-4 py-6 sm:px-8 lg:px-14 lg:py-9">
 			<AppName />
-			<MainPageLogo />
-			<ChampionGridSkeleton />
+			{children}
 		</main>
 	)
 }
