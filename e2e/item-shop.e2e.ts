@@ -43,6 +43,18 @@ test("the shop filters by a stat and sorts by it", async ({
 			(await itemNames(shop)).map((name) => abilityPowerOf.get(name)),
 		)
 		.toEqual(highestFirst)
+
+	const withAbilityPowerOrMagicResist = items.filter(
+		(item) =>
+			(item.stats.abilityPower ?? 0) !== 0 ||
+			(item.stats.magicResist ?? 0) !== 0,
+	)
+	await statFilter.getByRole("button", { name: "Magic Resistance" }).click()
+	await page
+		.getByRole("group", { name: "Match selected stats" })
+		.getByRole("button", { name: "OR" })
+		.click()
+	await expect(shop).toHaveCount(withAbilityPowerOrMagicResist.length)
 })
 
 test("the shop is one Tab stop: arrow keys move between items and Enter adds one", async ({
