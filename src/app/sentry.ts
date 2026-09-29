@@ -4,7 +4,7 @@ import {
 	tanstackRouterBrowserTracingIntegration,
 } from "@sentry/react"
 import { router } from "./router"
-import { SENTRY_DSN, SENTRY_TUNNEL_PATH } from "./sentry-config"
+import { SENTRY_TUNNEL_PATH } from "./sentry-config"
 import { shouldInitTelemetry } from "./should-init-telemetry"
 
 declare global {
@@ -15,11 +15,13 @@ declare global {
 }
 
 const environment = import.meta.env.APP_ENVIRONMENT
+const dsn = import.meta.env.VITE_SENTRY_DSN
 
 export function initSentry() {
 	if (
 		!shouldInitTelemetry({
 			environment,
+			projectKey: dsn,
 			enabledLocally: import.meta.env.VITE_SENTRY_ENABLED === "true",
 			isE2e: window.__HB_E2E__ === true,
 		})
@@ -28,7 +30,7 @@ export function initSentry() {
 	}
 
 	init({
-		dsn: SENTRY_DSN,
+		dsn,
 		// Local servers have no Worker to tunnel through, so they send to Sentry directly.
 		tunnel: environment === "development" ? undefined : SENTRY_TUNNEL_PATH,
 		environment,

@@ -1,9 +1,9 @@
 import { z } from "zod"
-import { SENTRY_DSN } from "../src/app/sentry-config"
+import { SENTRY_INGEST_HOST, SENTRY_PROJECT_ID } from "../src/app/sentry-config"
 
-const dsn = new URL(SENTRY_DSN)
-const projectId = dsn.pathname.slice(1)
-const ingestUrl = `https://${dsn.host}/api/${projectId}/envelope/`
+// Checked against committed routing constants: wrangler bundles the Worker without the
+// VITE_SENTRY_DSN build variable, and the DSN's public key never mattered for the check.
+const ingestUrl = `https://${SENTRY_INGEST_HOST}/api/${SENTRY_PROJECT_ID}/envelope/`
 
 // Content-Type plus the rate-limit headers the SDK reads to back off.
 const FORWARDED_HEADERS = [
@@ -29,8 +29,8 @@ function isOwnProject(envelope: Uint8Array): boolean {
 		)
 		return (
 			target.protocol === "https:" &&
-			target.host === dsn.host &&
-			target.pathname.replace(/\/$/, "") === `/${projectId}`
+			target.host === SENTRY_INGEST_HOST &&
+			target.pathname.replace(/\/$/, "") === `/${SENTRY_PROJECT_ID}`
 		)
 	} catch {
 		return false

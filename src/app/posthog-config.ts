@@ -1,8 +1,5 @@
-/** PostHog cloud region of the project; every host below derives from it. */
+/** PostHog cloud region of the project; every host below derives from it. The key comes from VITE_POSTHOG_KEY. */
 const POSTHOG_REGION: "us" | "eu" = "us"
-
-/** Public project key of the heimerbuild PostHog project; safe to ship in the bundle. */
-export const POSTHOG_KEY = "phc_AyCFJutTYzJmLKUNYVhwMm5PXJWspWBYiqGjMsFxay4H"
 
 /** Same-origin path the Worker forwards to PostHog, so ad-blockers do not drop events. */
 export const POSTHOG_PROXY_PATH = "/ingest"

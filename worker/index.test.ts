@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, mock, spyOn, test } from "bun:test"
-import { SENTRY_DSN } from "../src/app/sentry-config"
+import { SENTRY_INGEST_HOST, SENTRY_PROJECT_ID } from "../src/app/sentry-config"
 import worker from "./index"
+
+// Any public key: the tunnel checks only the host and project.
+const SENTRY_DSN = `https://publickey@${SENTRY_INGEST_HOST}/${SENTRY_PROJECT_ID}`
 
 function envReturning(response: Response) {
 	const requests: Request[] = []
