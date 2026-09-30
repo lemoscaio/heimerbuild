@@ -1,6 +1,7 @@
 import { cn } from "@/lib/cn"
+import { formatStat } from "@/lib/stat-display"
 import type { StatBreakdown } from "@/lib/stats/compute-stats"
-import { formatStat, type StatRowInfo } from "../lib/stats-info"
+import type { StatRowInfo } from "../lib/stats-info"
 
 type StatRowProps = {
 	info: StatRowInfo
