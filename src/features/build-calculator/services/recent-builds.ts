@@ -1,4 +1,4 @@
-import { z } from "zod"
+import * as z from "zod/mini"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { MAX_ITEMS } from "../lib/build-items"
 
@@ -7,14 +7,13 @@ export const MAX_RECENT_BUILDS = 5
 const STORAGE_KEY = "heimerbuild:recent-builds:v1"
 
 const recentBuildSchema = z.object({
-	championKey: z.string().regex(/^\w+$/),
-	level: z.number().int().min(MIN_LEVEL).max(MAX_LEVEL),
-	itemIds: z.array(z.string().regex(/^\d+$/)).max(MAX_ITEMS),
+	championKey: z.string().check(z.regex(/^\w+$/)),
+	level: z.int().check(z.gte(MIN_LEVEL), z.lte(MAX_LEVEL)),
+	itemIds: z
+		.array(z.string().check(z.regex(/^\d+$/)))
+		.check(z.maxLength(MAX_ITEMS)),
 	/** The patch pinned in the build's link, if any. */
-	patch: z
-		.string()
-		.regex(/^\d+\.\d+\.\d+$/)
-		.optional(),
+	patch: z.optional(z.string().check(z.regex(/^\d+\.\d+\.\d+$/))),
 })
 
 export type RecentBuild = z.infer<typeof recentBuildSchema>
