@@ -1,21 +1,23 @@
 import type { ComputedStats } from "@/lib/stats/compute-stats"
 import { diffStats } from "../lib/diff-stats"
-import { statGroups, statRows } from "../lib/stats-info"
+import { championStatRows, statGroups } from "../lib/stats-info"
 import { StatRow } from "./stat-row"
-
-const groups = statGroups.map((group) => ({
-	...group,
-	rows: statRows.filter((info) => info.group === group.group),
-}))
 
 type StatsPanelProps = {
 	stats: ComputedStats
+	/** The champion's `resource`: names the mana rows, or hides them. */
+	resource: string
 	/** Stats with a candidate item added: changed rows show `current → next`. */
 	preview?: { itemName: string; stats: ComputedStats }
 }
 
-export function StatsPanel({ stats, preview }: StatsPanelProps) {
+export function StatsPanel({ stats, resource, preview }: StatsPanelProps) {
 	const nextTotals = preview ? diffStats(stats, preview.stats) : {}
+	const rows = championStatRows(resource, stats)
+	const groups = statGroups.map((group) => ({
+		...group,
+		rows: rows.filter((info) => info.group === group.group),
+	}))
 
 	return (
 		<section className="flex flex-col gap-3" aria-label="Champion stats">

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import { formatStat } from "./stats-info"
+import { computeStats } from "@/lib/stats/compute-stats"
+import type { ChampionStats } from "../../../../scripts/sync-data/schemas/champion"
+import { championStatRows, formatStat, resourceLabel } from "./stats-info"
 
 describe("formatStat", () => {
 	test.each([
@@ -25,5 +27,92 @@ describe("formatStat", () => {
 		},
 	] as const)("$case", ({ value, format, shown }) => {
 		expect(formatStat(value, format)).toBe(shown)
+	})
+})
+
+describe("resourceLabel", () => {
+	test.each([
+		["MANA", "Mana"],
+		["ENERGY", "Energy"],
+		["FURY", "Fury"],
+		["BLOOD_WELL", "Blood Well"],
+		["CRIMSON_RUSH", "Crimson Rush"],
+	])("%s is %s", (resource, label) => {
+		expect(resourceLabel(resource)).toBe(label)
+	})
+
+	test("a resource from a later patch still reads as words", () => {
+		expect(resourceLabel("SOUL_FLAME")).toBe("Soul Flame")
+	})
+})
+
+describe("championStatRows", () => {
+	function statsOf(
+		resource: string,
+		{ mana, manaRegen }: { mana: number; manaRegen: number },
+	) {
+		const flat = { base: 0, perLevel: 0 }
+		const stats: ChampionStats = {
+			health: flat,
+			healthRegen: flat,
+			mana: { base: mana, perLevel: 0 },
+			manaRegen: { base: manaRegen, perLevel: 0 },
+			armor: flat,
+			magicResist: flat,
+			attackDamage: flat,
+			attackSpeed: { base: 0.625, perLevelPercent: 0, ratio: 0.625 },
+			critChance: flat,
+			movementSpeed: flat,
+			attackRange: flat,
+		}
+		return computeStats({ resource, stats }, 1, [])
+	}
+
+	function resourceRows(
+		resource: string,
+		values = { mana: 200, manaRegen: 50 },
+	) {
+		return championStatRows(resource, statsOf(resource, values))
+			.filter(({ stat }) => stat === "mana" || stat === "manaRegen")
+			.map(({ stat, label }) => [stat, label])
+	}
+
+	test("mana champions keep the mana rows", () => {
+		expect(resourceRows("MANA")).toEqual([
+			["mana", "Mana"],
+			["manaRegen", "Mana Regen"],
+		])
+	})
+
+	test("other resources rename the rows", () => {
+		expect(resourceRows("ENERGY")).toEqual([
+			["mana", "Energy"],
+			["manaRegen", "Energy Regen"],
+		])
+	})
+
+	test("a resource without regen drops only the regen row", () => {
+		expect(resourceRows("FURY", { mana: 100, manaRegen: 0 })).toEqual([
+			["mana", "Fury"],
+		])
+	})
+
+	test("a resource with no value drops both rows", () => {
+		expect(resourceRows("GRIT", { mana: 0, manaRegen: 0 })).toEqual([])
+	})
+
+	// Viego's data ships a 10000 mana placeholder with resource NONE.
+	test("champions without a resource have no resource rows", () => {
+		expect(resourceRows("NONE", { mana: 10000, manaRegen: 0 })).toEqual([])
+	})
+
+	test("every other stat row stays", () => {
+		const rows = championStatRows(
+			"NONE",
+			statsOf("NONE", { mana: 0, manaRegen: 0 }),
+		)
+
+		expect(rows.map(({ stat }) => stat)).toContain("health")
+		expect(rows.map(({ stat }) => stat)).toContain("abilityHaste")
 	})
 })

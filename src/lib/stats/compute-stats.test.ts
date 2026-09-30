@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { ChampionStats } from "../../../scripts/sync-data/schemas/champion"
+import type { Champion } from "../../../scripts/sync-data/schemas/champion"
 import {
 	type ItemStats,
 	STAT_UNITS,
@@ -7,7 +7,8 @@ import {
 import { computeStats } from "./compute-stats"
 
 // Heimerdinger, patch 16.19.1 (public/data/16.19.1/champions/Heimerdinger.json).
-const heimerdinger: { stats: ChampionStats } = {
+const heimerdinger: Pick<Champion, "resource" | "stats"> = {
+	resource: "MANA",
 	stats: {
 		health: { base: 558, perLevel: 105 },
 		healthRegen: { base: 7, perLevel: 0.55 },
@@ -92,6 +93,7 @@ describe("computeStats", () => {
 			["ratio 0 never scales", 0, 0.658],
 		])("%s", (_, ratio, expected) => {
 			const champion = {
+				...heimerdinger,
 				stats: {
 					...heimerdinger.stats,
 					attackSpeed: { base: 0.658, perLevelPercent: 1.36, ratio },
@@ -156,5 +158,58 @@ describe("computeStats", () => {
 		])
 
 		expect(stats.healthRegen).toEqual({ base: 7, bonus: 9, total: 16 })
+	})
+
+	describe("mana from items applies only to mana champions", () => {
+		const tear = { stats: { mana: 240 } }
+		const manaRegenItems = [
+			{ stats: { manaRegen: 1 } },
+			{ stats: { baseManaRegenPercent: 0.5 } },
+		]
+		// Zed, patch 16.19.1: 200 energy and 50 energy regen per 5 s, no growth.
+		const zed = {
+			resource: "ENERGY",
+			stats: {
+				...heimerdinger.stats,
+				mana: { base: 200, perLevel: 0 },
+				manaRegen: { base: 50, perLevel: 0 },
+			},
+		}
+
+		test("a mana champion gets mana and mana regen from items", () => {
+			const stats = computeStats(heimerdinger, 1, [tear, ...manaRegenItems])
+
+			expect(stats.mana).toEqual({ base: 385, bonus: 240, total: 625 })
+			expect(stats.manaRegen).toEqual({ base: 8, bonus: 5, total: 13 })
+		})
+
+		test("another resource keeps the champion's own value and ignores items", () => {
+			const stats = computeStats(zed, 9, [tear, ...manaRegenItems])
+
+			expect(stats.mana).toEqual({ base: 200, bonus: 0, total: 200 })
+			expect(stats.manaRegen).toEqual({ base: 50, bonus: 0, total: 50 })
+		})
+
+		// Viego's data ships a 10000 mana placeholder with resource NONE.
+		test("a champion without a resource gets no mana from items", () => {
+			const viego = {
+				resource: "NONE",
+				stats: { ...heimerdinger.stats, mana: { base: 10000, perLevel: 0 } },
+			}
+
+			const stats = computeStats(viego, 1, [tear, ...manaRegenItems])
+
+			expect(stats.mana.bonus).toBe(0)
+			expect(stats.manaRegen.bonus).toBe(0)
+		})
+
+		test("other item stats still apply to champions without mana", () => {
+			const stats = computeStats(zed, 1, [
+				{ stats: { mana: 240, abilityHaste: 15, health: 300 } },
+			])
+
+			expect(stats.abilityHaste.total).toBe(15)
+			expect(stats.health.bonus).toBe(300)
+		})
 	})
 })

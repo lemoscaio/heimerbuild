@@ -206,7 +206,11 @@ function DesktopChampionPage({
 						)}
 						<WorkbenchPanel>
 							{build.stats && (
-								<StatsPanel stats={build.stats} preview={build.preview} />
+								<StatsPanel
+									stats={build.stats}
+									resource={champion.resource}
+									preview={build.preview}
+								/>
 							)}
 						</WorkbenchPanel>
 					</>
@@ -258,7 +262,11 @@ function MobileChampionPage({
 			}
 			stats={
 				build.stats && (
-					<StatsPanel stats={build.stats} preview={build.preview} />
+					<StatsPanel
+						stats={build.stats}
+						resource={champion.resource}
+						preview={build.preview}
+					/>
 				)
 			}
 			shop={
