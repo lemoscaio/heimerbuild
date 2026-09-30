@@ -1,7 +1,19 @@
+import { useId, useState } from "react"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import {
+	createTooltipHandle,
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/cn"
+import { useTapTooltip } from "../hooks/use-tap-tooltip"
 import type { RoleFilter as Role } from "../lib/filter-items-by-role"
 import { rolesInfo } from "../lib/roles-info"
+
+// Tailwind's `lg` breakpoint: from there on, each role shows its label.
+const LG_QUERY = "(min-width: 64rem)"
 
 type RoleFilterProps = {
 	role: Role
@@ -9,8 +21,13 @@ type RoleFilterProps = {
 	className?: string
 }
 
-/** Role tabs with icon and label; phones show icons only, the label stays the accessible name. */
+/** Role tabs with icon and label; phones show icons only, named by a tooltip on focus or tap. */
 export function RoleFilter({ role, onRoleChange, className }: RoleFilterProps) {
+	const [tooltip] = useState(createTooltipHandle<string>)
+	const showTooltipOnTap = useTapTooltip(tooltip)
+	const idPrefix = useId()
+	const showsLabels = useMediaQuery(LG_QUERY)
+
 	return (
 		<ToggleGroup
 			aria-label="Filter by role"
@@ -20,16 +37,27 @@ export function RoleFilter({ role, onRoleChange, className }: RoleFilterProps) {
 			onValueChange={([next]) => next && onRoleChange(next)}
 		>
 			{rolesInfo.map(({ role: option, label, icon }) => (
-				<ToggleGroupItem
+				<TooltipTrigger
 					key={option}
-					value={option}
-					title={label}
-					className="h-9 gap-1.5 px-3 text-prose text-xs data-pressed:text-white max-lg:size-11 max-lg:px-0"
+					id={`${idPrefix}-${option}`}
+					handle={tooltip}
+					payload={label}
+					closeOnClick={false}
+					onPointerUp={showTooltipOnTap}
+					render={
+						<ToggleGroupItem
+							value={option}
+							className="h-9 gap-1.5 px-3 text-prose text-xs data-pressed:text-white max-lg:size-11 max-lg:px-0"
+						/>
+					}
 				>
 					<img src={icon} alt="" className="size-5 max-lg:size-7" />
 					<span className="max-lg:sr-only">{label}</span>
-				</ToggleGroupItem>
+				</TooltipTrigger>
 			))}
+			<Tooltip handle={tooltip} disabled={showsLabels}>
+				{({ payload }) => <TooltipContent>{payload}</TooltipContent>}
+			</Tooltip>
 		</ToggleGroup>
 	)
 }
