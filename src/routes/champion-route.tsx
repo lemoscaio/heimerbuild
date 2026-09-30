@@ -174,7 +174,11 @@ function DesktopChampionPage({
 					patch={patch}
 					layout={isShopView ? "expanded" : "compact"}
 					actions={
-						<ShopViewIconToggle view={view} onViewChange={build.setView} />
+						isShopView ? (
+							<ShopViewToggle view={view} onViewChange={build.setView} />
+						) : (
+							<ShopViewIconToggle view={view} onViewChange={build.setView} />
+						)
 					}
 					selectedItemId={build.selectedItem?.id}
 					onItemSelect={build.selectItem}
@@ -223,9 +227,7 @@ function DesktopChampionPage({
 						onRemoveItem={build.removeItem}
 						notice={build.notice}
 						stats={build.stats}
-					>
-						<ShopViewToggle view={view} onViewChange={build.setView} />
-					</BuildBar>
+					/>
 				)
 			}
 		/>

@@ -20,7 +20,7 @@ export function ShopViewIconToggle({
 
 	return (
 		<IconButton
-			label={isShop ? "Back to overview" : "Expand shop"}
+			label={isShop ? "Collapse shop" : "Expand shop"}
 			onClick={() => onViewChange(isShop ? "overview" : "shop")}
 			{...props}
 		>

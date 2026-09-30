@@ -30,7 +30,7 @@ export function ShopViewToggle({
 			) : (
 				<Maximize2 aria-hidden="true" />
 			)}
-			{isShop ? "Back to overview" : "Expand shop"}
+			{isShop ? "Collapse shop" : "Expand shop"}
 		</Button>
 	)
 }
