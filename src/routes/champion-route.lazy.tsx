@@ -1,4 +1,5 @@
 import { createLazyRoute, useRouter } from "@tanstack/react-router"
+import { useState } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { BuildBar } from "@/features/build-calculator/components/build-bar"
 import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
@@ -9,21 +10,29 @@ import { LevelSelector } from "@/features/build-calculator/components/level-sele
 import { MobileChampionRow } from "@/features/build-calculator/components/mobile-champion-row"
 import { MobileLayout } from "@/features/build-calculator/components/mobile-layout"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
-import { RunesPlaceholder } from "@/features/build-calculator/components/runes-placeholder"
+import { RunesStatsNote } from "@/features/build-calculator/components/runes-stats-note"
 import { ShopViewIconToggle } from "@/features/build-calculator/components/shop-view-icon-toggle"
 import { ShopViewToggle } from "@/features/build-calculator/components/shop-view-toggle"
+import { StatChangeList } from "@/features/build-calculator/components/stat-change-list"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
 import { WorkbenchPanel } from "@/features/build-calculator/components/workbench-panel"
+import {
+	type WorkbenchTab,
+	WorkbenchTabs,
+} from "@/features/build-calculator/components/workbench-tabs"
 import {
 	type Build,
 	useBuild,
 } from "@/features/build-calculator/hooks/use-build"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
+import { RunePage } from "@/features/runes/components/rune-page"
+import { RuneSummary } from "@/features/runes/components/rune-summary"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { track } from "@/lib/analytics/analytics"
+import { isRuneSelectionEmpty } from "@/lib/rune-selection"
 import type { Champion } from "../../scripts/sync-data/schemas/champion"
 
 // Tailwind's `lg` breakpoint.
@@ -70,6 +79,7 @@ function ChampionPage() {
 					champion: key,
 					level: build.level,
 					itemsCount: build.items.length,
+					hasRunes: !isRuneSelectionEmpty(build.runeSelection),
 				})
 			}
 		/>
@@ -114,7 +124,26 @@ function DesktopChampionPage({
 }: ChampionPageProps) {
 	const view = build.view
 	const isShopView = view === "shop"
+	const [tab, setTab] = useState<WorkbenchTab>("items")
+	const isRunesTab = !isShopView && tab === "runes"
 	useAnalyticsContext({ shop_mode: isShopView ? "expanded" : "overview" })
+
+	const itemShop = (
+		<ItemShop
+			patch={patch}
+			layout={isShopView ? "expanded" : "compact"}
+			actions={
+				isShopView ? (
+					<ShopViewToggle view={view} onViewChange={build.setView} />
+				) : (
+					<ShopViewIconToggle view={view} onViewChange={build.setView} />
+				)
+			}
+			selectedItemId={build.selectedItem?.id}
+			onItemSelect={build.selectItem}
+			onItemAdd={build.addItem}
+		/>
+	)
 
 	return (
 		<WorkbenchLayout
@@ -135,24 +164,31 @@ function DesktopChampionPage({
 							announcement={build.announcement}
 						/>
 					</WorkbenchPanel>
-					<RunesPlaceholder />
+					<RuneSummary
+						patch={patch}
+						selection={build.runeSelection}
+						isEditing={isRunesTab}
+						onEdit={() => setTab("runes")}
+					/>
 				</>
 			}
 			shop={
-				<ItemShop
-					patch={patch}
-					layout={isShopView ? "expanded" : "compact"}
-					actions={
-						isShopView ? (
-							<ShopViewToggle view={view} onViewChange={build.setView} />
-						) : (
-							<ShopViewIconToggle view={view} onViewChange={build.setView} />
-						)
-					}
-					selectedItemId={build.selectedItem?.id}
-					onItemSelect={build.selectItem}
-					onItemAdd={build.addItem}
-				/>
+				isShopView ? (
+					itemShop
+				) : (
+					<WorkbenchTabs
+						tab={tab}
+						onTabChange={setTab}
+						items={itemShop}
+						runes={
+							<RunePage
+								patch={patch}
+								selection={build.runeSelection}
+								onSelectionChange={build.setRunes}
+							/>
+						}
+					/>
+				)
 			}
 			side={
 				isShopView ? (
@@ -175,13 +211,23 @@ function DesktopChampionPage({
 							/>
 						)}
 						<WorkbenchPanel>
-							{build.stats && (
-								<StatsPanel
-									stats={build.stats}
-									resource={champion.resource}
-									preview={build.preview}
-								/>
-							)}
+							{build.stats &&
+								build.statsWithoutRunes &&
+								(isRunesTab ? (
+									<StatsPanel
+										stats={build.statsWithoutRunes}
+										resource={champion.resource}
+										preview={build.runesPreview}
+									>
+										<RunesStatsNote />
+									</StatsPanel>
+								) : (
+									<StatsPanel
+										stats={build.stats}
+										resource={champion.resource}
+										preview={build.preview}
+									/>
+								))}
 						</WorkbenchPanel>
 					</>
 				)
@@ -204,7 +250,7 @@ function DesktopChampionPage({
 	)
 }
 
-/** Below `lg`: the build on top, Stats | Shop tabs, and the page actions pinned below. */
+/** Below `lg`: the build on top, Stats | Shop | Runes tabs, and the page actions pinned below. */
 function MobileChampionPage({
 	build,
 	champion,
@@ -246,6 +292,29 @@ function MobileChampionPage({
 					onItemSelect={build.selectItem}
 					onItemAdd={build.addItem}
 				/>
+			}
+			runes={
+				<RunePage
+					patch={patch}
+					selection={build.runeSelection}
+					onSelectionChange={build.setRunes}
+				>
+					{build.stats && build.statsWithoutRunes && (
+						<section
+							aria-label="Stat shard effect"
+							className="flex flex-col gap-2 rounded-xl bg-primary-4 p-3"
+						>
+							<h3 className="font-bold font-display text-sm">
+								Stats with shards
+							</h3>
+							<StatChangeList
+								stats={build.statsWithoutRunes}
+								next={build.stats}
+							/>
+							<RunesStatsNote />
+						</section>
+					)}
+				</RunePage>
 			}
 			bottom={
 				<>

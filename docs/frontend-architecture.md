@@ -14,7 +14,8 @@ src/
 ├── features/             feature slices, never import each other
 │   ├── champions/        champion grid, search, champion header and skills
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
-│   └── item-shop/        item grid, role/stat filters, sorting, tooltips
+│   ├── item-shop/        item grid, role/stat filters, sorting, tooltips
+│   └── runes/            rune page editor (trees, runes, stat shards) and its summary card
 ├── data/                 game data loading: fetch + Zod parsing, data hooks, query options
 │   ├── services/         fetchGameData, fetchManifest, fetchChampion, fetchItems
 │   ├── queries/          queryOptions() factories (gameDataQueries)
