@@ -34,7 +34,7 @@ export function ShopGroupingSelect({
 		>
 			<div
 				className={cn(
-					"flex items-center gap-1.5 text-white text-xs",
+					"flex shrink-0 items-center gap-1.5 whitespace-nowrap text-white text-xs",
 					className,
 				)}
 			>
