@@ -41,7 +41,7 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 		source: "https://wiki.leagueoflegends.com/en-us/Gnar",
 		apply: (stats) => ({
 			...stats,
-			attackRange: { ...stats.attackRange, perLevel: 5.882 },
+			attackRange: { ...stats.attackRange, perLevel: 100 / 17 },
 		}),
 	}),
 	defineChampionOverride({
@@ -70,8 +70,11 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 		field: "stats",
 		since: "16.19",
 		reason:
-			"Riot's health is dismounted Kled alone (410); he starts mounted, with Kled and Skaarl's 810 total health. Interim choice until his forms are modeled",
+			"Riot's health is dismounted Kled alone (410); he starts mounted, and the wiki gives Kled and Skaarl 810 health growing to 3238. Interim choice until his forms are modeled",
 		source: "https://github.com/lemoscaio/heimerbuild/issues/177",
-		apply: (stats) => ({ ...stats, health: { base: 810, perLevel: 142.82 } }),
+		apply: (stats) => ({
+			...stats,
+			health: { base: 810, perLevel: 84 + 1000 / 17 },
+		}),
 	}),
 ]
