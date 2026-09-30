@@ -1,7 +1,4 @@
-import type {
-	Champion,
-	ChampionRole,
-} from "../../../../scripts/sync-data/schemas/champion"
+import type { Champion, ChampionRole } from "@schemas/champion"
 
 export const roleLabels: Record<ChampionRole, string> = {
 	ASSASSIN: "Assassin",

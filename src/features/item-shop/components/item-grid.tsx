@@ -1,5 +1,5 @@
+import type { Item } from "@schemas/item"
 import type { ShopGrouping } from "@/types/shop-view"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { useRovingFocus } from "../hooks/use-roving-focus"
 import { groupShopItems } from "../lib/group-shop-items"
 import type { ItemPickProps } from "../types/item-pick"

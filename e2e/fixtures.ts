@@ -5,8 +5,8 @@ import {
 	type Locator,
 	type Page,
 } from "@playwright/test"
-import { type Item, ItemsFileSchema } from "../scripts/sync-data/schemas/item"
-import { dataManifestSchema } from "../scripts/sync-data/schemas/manifest"
+import { type Item, ItemsFileSchema } from "@schemas/item"
+import { dataManifestSchema } from "@schemas/manifest"
 
 /**
  * Every flow runs with Data Dragon blocked (behavior must never depend on icons loading)

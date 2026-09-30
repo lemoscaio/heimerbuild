@@ -1,5 +1,5 @@
+import type { StatKey } from "@schemas/item"
 import { type StatGroup, statDisplay, statGroups } from "@/lib/stat-display"
-import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 
 type ShopStat = {
 	stat: StatKey

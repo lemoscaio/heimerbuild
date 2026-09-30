@@ -1,4 +1,4 @@
-import type { ChampionStats } from "../../../scripts/sync-data/schemas/champion"
+import type { ChampionStats } from "@schemas/champion"
 
 export const MIN_LEVEL = 1
 export const MAX_LEVEL = 18

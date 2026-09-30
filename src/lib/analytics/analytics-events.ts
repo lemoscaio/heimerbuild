@@ -1,6 +1,6 @@
+import type { ChampionRole } from "@schemas/champion"
+import type { StatKey } from "@schemas/item"
 import type { ShopGrouping, ShopMode } from "@/types/shop-view"
-import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
-import type { StatKey } from "../../../scripts/sync-data/schemas/item"
 
 /** A shop search token: `value` is the stat key, the role id or the match mode (`all` / `any`). */
 export type ShopSearchToken = {

@@ -1,7 +1,7 @@
+import type { RuneTree } from "@schemas/rune"
 import { GameIcon } from "@/components/common/game-icon"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/cn"
-import type { RuneTree } from "../../../../scripts/sync-data/schemas/rune"
 import { treeAccentClass } from "../lib/tree-accent"
 
 type TreePickerProps = {

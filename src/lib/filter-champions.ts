@@ -1,8 +1,5 @@
+import type { ChampionRole, ChampionSummary } from "@schemas/champion"
 import { normalizeSearchText } from "@/lib/normalize-search-text"
-import type {
-	ChampionRole,
-	ChampionSummary,
-} from "../../scripts/sync-data/schemas/champion"
 
 type FilterChampionsOptions = {
 	/** Keeps only champions with this role among theirs; every role when omitted. */

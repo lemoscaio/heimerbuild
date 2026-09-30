@@ -1,5 +1,5 @@
+import type { ChampionRole } from "@schemas/champion"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import type { ChampionRole } from "../../../../scripts/sync-data/schemas/champion"
 import { roleLabels } from "../lib/champion-labels"
 
 const ALL_ROLES = "ALL"

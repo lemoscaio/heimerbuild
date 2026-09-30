@@ -1,8 +1,4 @@
-import type {
-	RunesFile,
-	RuneTree,
-	Shard,
-} from "../../scripts/sync-data/schemas/rune"
+import type { RunesFile, RuneTree, Shard } from "@schemas/rune"
 
 /** A rune page, possibly incomplete. Ids are Data Dragon / CommunityDragon perk ids. */
 export type RuneSelection = {

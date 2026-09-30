@@ -1,3 +1,4 @@
+import type { StatKey } from "@schemas/item"
 import apIcon from "@/assets/stats-icons/ability-power-icon.png"
 import armorIcon from "@/assets/stats-icons/armor-icon.png"
 import armorPenIcon from "@/assets/stats-icons/armor-penetration-icon.png"
@@ -18,7 +19,6 @@ import omnivampIcon from "@/assets/stats-icons/omnivamp-icon.png"
 import rangeIcon from "@/assets/stats-icons/range-icon.png"
 import slowResistIcon from "@/assets/stats-icons/slow-immune-icon.png"
 import tenacityIcon from "@/assets/stats-icons/tenacity-icon.png"
-import type { StatKey } from "../../scripts/sync-data/schemas/item"
 import type { StatName } from "./stats/compute-stats"
 
 export type StatGroup = "offense" | "defense" | "utility"

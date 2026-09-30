@@ -1,6 +1,6 @@
+import type { Item } from "@schemas/item"
 import { GameIcon } from "@/components/common/game-icon"
 import { cn } from "@/lib/cn"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
 
 type ItemSummaryProps = {
 	item: Item

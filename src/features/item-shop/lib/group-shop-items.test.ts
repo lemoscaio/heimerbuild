@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
+import { ItemsFileSchema } from "@schemas/item"
 import type { ShopGrouping } from "@/types/shop-view"
-import { ItemsFileSchema } from "../../../../scripts/sync-data/schemas/item"
 import {
 	groupShopItems,
 	type ShopSectionKey,

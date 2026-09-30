@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
+import type { Item } from "@schemas/item"
 import { filterItemsByRole } from "./filter-items-by-role"
 
 function item(

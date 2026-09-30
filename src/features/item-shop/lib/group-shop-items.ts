@@ -1,5 +1,5 @@
+import type { Item } from "@schemas/item"
 import type { ShopGrouping } from "@/types/shop-view"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { isBoots } from "./is-boots"
 
 export type ShopTier = "starter" | "basic" | "epic" | "boots" | "legendary"

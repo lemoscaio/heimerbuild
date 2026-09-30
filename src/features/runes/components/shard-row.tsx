@@ -1,7 +1,7 @@
+import type { Shard } from "@schemas/rune"
 import { useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import type { Shard } from "../../../../scripts/sync-data/schemas/rune"
 import type { DescribedPerk } from "./rune-row"
 
 type ShardRowProps = {

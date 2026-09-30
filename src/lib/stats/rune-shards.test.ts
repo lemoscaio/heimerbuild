@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { ShardStat } from "../../../scripts/sync-data/schemas/rune"
+import type { ShardStat } from "@schemas/rune"
 import {
 	resolveAdaptiveType,
 	shardStatAtLevel,

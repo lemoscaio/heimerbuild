@@ -1,4 +1,4 @@
-import type { DataManifest } from "../../../../scripts/sync-data/schemas/manifest"
+import type { DataManifest } from "@schemas/manifest"
 
 type PatchList = Pick<DataManifest, "currentPatch" | "patches">
 

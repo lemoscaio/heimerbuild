@@ -1,6 +1,6 @@
-import type { Champion } from "../../../scripts/sync-data/schemas/champion"
-import type { StatKey } from "../../../scripts/sync-data/schemas/item"
-import type { ShardStat } from "../../../scripts/sync-data/schemas/rune"
+import type { Champion } from "@schemas/champion"
+import type { StatKey } from "@schemas/item"
+import type { ShardStat } from "@schemas/rune"
 import type { ItemInput } from "./compute-stats"
 import { MAX_LEVEL, MIN_LEVEL } from "./growth"
 

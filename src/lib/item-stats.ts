@@ -1,8 +1,4 @@
-import {
-	type ItemStats,
-	STAT_UNITS,
-	type StatKey,
-} from "../../scripts/sync-data/schemas/item"
+import { type ItemStats, STAT_UNITS, type StatKey } from "@schemas/item"
 import { formatStat, statDisplay } from "./stat-display"
 
 export type ItemStatLine = { stat: StatKey; value: string; label: string }

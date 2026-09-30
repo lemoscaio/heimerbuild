@@ -1,3 +1,4 @@
+import type { StatKey } from "@schemas/item"
 import { useId, useState } from "react"
 import { Toggle } from "@/components/ui/toggle"
 import {
@@ -7,7 +8,6 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
-import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { useRovingFocus } from "../hooks/use-roving-focus"
 import { useTapTooltip } from "../hooks/use-tap-tooltip"
 import { shopStatGroups } from "../lib/shop-stats"
