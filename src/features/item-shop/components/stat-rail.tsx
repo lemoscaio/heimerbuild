@@ -15,6 +15,8 @@ const railStats = shopStatGroups.flatMap(({ stats }) =>
 	stats.map(({ stat }) => stat),
 )
 
+type StatTip = { label: string; alias: string }
+
 type StatRailProps = {
 	stats: readonly StatKey[]
 	onStatsChange: (stats: StatKey[]) => void
@@ -30,8 +32,8 @@ export function StatRail({
 	className,
 	...props
 }: StatRailProps) {
-	// One tooltip for all 23 icons; each trigger passes its stat name.
-	const [tooltip] = useState(createTooltipHandle<string>)
+	// One tooltip for all 23 icons; each trigger passes its stat name and search alias.
+	const [tooltip] = useState(createTooltipHandle<StatTip>)
 	// One Tab stop; arrows move across the two columns and rows, as in the item grid.
 	const { containerRef, handleKeyDown, getItemProps } =
 		useRovingFocus(railStats)
@@ -57,11 +59,11 @@ export function StatRail({
 						aria-label={label}
 						className="grid min-w-0 grid-cols-1 gap-0.5 border-primary-2 border-t pt-1.5 lg:grid-cols-2"
 					>
-						{groupStats.map(({ stat, label: statLabel, icon }) => (
+						{groupStats.map(({ stat, label: statLabel, icon, aliases }) => (
 							<TooltipTrigger
 								key={stat}
 								handle={tooltip}
-								payload={statLabel}
+								payload={{ label: statLabel, alias: aliases[0] }}
 								render={
 									<Toggle
 										aria-label={statLabel}
@@ -84,7 +86,14 @@ export function StatRail({
 			</fieldset>
 			<Tooltip handle={tooltip}>
 				{({ payload }) => (
-					<TooltipContent side="right">{payload}</TooltipContent>
+					<TooltipContent side="right">
+						<span className="font-semibold">{payload?.label}</span>
+						<span className="text-subtle">
+							{" "}
+							· type{" "}
+							<kbd className="font-mono text-white">{payload?.alias}</kbd>
+						</span>
+					</TooltipContent>
 				)}
 			</Tooltip>
 		</div>

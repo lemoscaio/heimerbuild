@@ -20,6 +20,7 @@ test("the expanded shop adds an item, survives a reload and hands the build back
 	).toBeVisible()
 	await page.keyboard.press("/")
 	await page.keyboard.type("void")
+	await page.keyboard.press("Escape")
 	const shop = page.getByRole("region", { name: "Item shop" })
 	await expect(shop.getByRole("button")).toHaveCount(1)
 	await shop.getByRole("button", { name: "Void Staff", exact: true }).click()

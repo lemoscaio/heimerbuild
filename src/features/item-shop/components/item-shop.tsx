@@ -5,27 +5,19 @@ import { useItems } from "@/data/hooks/use-items"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
-import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { useDebouncedCallback } from "../hooks/use-debounced-callback"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
 import { useShopGrouping } from "../hooks/use-shop-grouping"
-import { filterItemsByName } from "../lib/filter-items-by-name"
-import {
-	filterItemsByRole,
-	type RoleFilter as Role,
-} from "../lib/filter-items-by-role"
-import {
-	filterItemsByStats,
-	type StatMatch,
-} from "../lib/filter-items-by-stats"
+import { filterShopItems } from "../lib/filter-shop-items"
+import { type ShopFilters, searchTokensForAnalytics } from "../lib/shop-query"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
 import type { ItemPickProps } from "../types/item-pick"
 import { GroupingMenu } from "./grouping-menu"
 import { ItemGrid } from "./item-grid"
 import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
-import { ItemSearch } from "./item-search"
 import { RoleFilter } from "./role-filter"
+import { ShopSearch, type ShopSearchChange } from "./shop-search"
 import { SortMenu } from "./sort-menu"
 import { StatMatchToggle } from "./stat-match-toggle"
 import { StatRail } from "./stat-rail"
@@ -45,55 +37,44 @@ export function ItemShop({
 	...pickProps
 }: ItemShopProps) {
 	const itemsQuery = useItems(patch)
-	const [role, setRole] = useState<Role>("ALL")
-	const [stats, setStats] = useState<StatKey[]>([])
-	const [match, setMatch] = useState<StatMatch>("all")
+	const [filters, setFilters] = useState<ShopFilters>(NO_FILTERS)
 	const [sort, setSort] = useState<ItemSort>()
 	const [query, setQuery] = useState("")
 	const [grouping, setGrouping] = useShopGrouping()
 	const listRef = useRef<HTMLElement>(null)
+	const { role, stats, match } = filters
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
 	useAnalyticsContext({ shop_stat_match: match })
-	const trackSearch = useDebouncedCallback(
-		(queryLength: number) => track("shop_searched", { queryLength }),
-		SEARCH_TRACK_DELAY_MS,
-	)
+	const allItems = itemsQuery.data ? Object.values(itemsQuery.data) : []
+	const trackSearch = useDebouncedCallback((search: ShopSearchChange) => {
+		const results = filterShopItems(allItems, search).length
+		track("shop_searched", {
+			query: search.query.trim().toLowerCase().slice(0, MAX_TRACKED_QUERY),
+			queryLength: search.query.length,
+			tokens: searchTokensForAnalytics(search.filters),
+			results,
+			zeroResults: !results,
+		})
+	}, SEARCH_TRACK_DELAY_MS)
 
-	const filteredItems = itemsQuery.data
-		? filterItemsByStats(
-				filterItemsByName(
-					filterItemsByRole(Object.values(itemsQuery.data), role),
-					query,
-				),
-				stats,
-				{ match },
-			)
-		: []
+	const filteredItems = filterShopItems(allItems, { filters, query })
 	const items = sort ? sortItemsByStat(filteredItems, sort) : filteredItems
 
-	function handleRoleChange(nextRole: Role) {
-		setRole(nextRole)
-		trackFilters({ role: nextRole, stats, match })
+	function handleFiltersChange(nextFilters: ShopFilters) {
+		if (sameFilters(filters, nextFilters)) return
+		setFilters(nextFilters)
+		trackFilters(nextFilters)
 	}
 
-	function handleStatsChange(nextStats: StatKey[]) {
-		setStats(nextStats)
-		trackFilters({ role, stats: nextStats, match })
-	}
-
-	function handleMatchChange(nextMatch: StatMatch) {
-		setMatch(nextMatch)
-		trackFilters({ role, stats, match: nextMatch })
-	}
-
-	function handleQueryChange(nextQuery: string) {
-		setQuery(nextQuery)
-		trackSearch(nextQuery.length)
+	function handleSearchChange(change: ShopSearchChange) {
+		setQuery(change.query)
+		handleFiltersChange(change.filters)
+		trackSearch(change)
 	}
 
 	function handleSearchEscape() {
 		// Render the cleared list first, so the Tab stop to focus is in the DOM.
-		flushSync(() => handleQueryChange(""))
+		flushSync(() => handleSearchChange({ query: "", filters }))
 		focusRovingTabStop(listRef.current)
 	}
 
@@ -116,7 +97,12 @@ export function ItemShop({
 		>
 			<div className="flex min-w-0 items-center gap-3 [grid-area:roles]">
 				<ShopTitle className="@max-4xl:sr-only shrink-0" />
-				<RoleFilter role={role} onRoleChange={handleRoleChange} />
+				<RoleFilter
+					role={role}
+					onRoleChange={(nextRole) =>
+						handleFiltersChange({ ...filters, role: nextRole })
+					}
+				/>
 			</div>
 			<div className="flex items-center gap-1.5 self-center [grid-area:actions]">
 				<SortMenu
@@ -137,15 +123,26 @@ export function ItemShop({
 					{ "lg:border-primary-2 lg:border-r lg:pr-3": isExpanded },
 				)}
 				stats={stats}
-				onStatsChange={handleStatsChange}
+				onStatsChange={(nextStats) =>
+					handleFiltersChange({ ...filters, stats: nextStats })
+				}
 			>
-				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
+				<StatMatchToggle
+					match={match}
+					onMatchChange={(nextMatch) =>
+						handleFiltersChange({ ...filters, match: nextMatch })
+					}
+				/>
 			</StatRail>
 			<div className="flex min-w-0 items-center gap-3 [grid-area:search]">
-				<ItemSearch
-					className="min-w-0 max-w-none flex-1"
+				<ShopSearch
+					className="min-w-0 flex-1"
 					query={query}
-					onQueryChange={handleQueryChange}
+					filters={filters}
+					items={items}
+					itemNames={allItems.map(({ name }) => name)}
+					onSearchChange={handleSearchChange}
+					onItemPick={pickProps.onItemSelect}
 					onEscape={handleSearchEscape}
 				/>
 				{itemsQuery.isSuccess && (
@@ -202,13 +199,22 @@ function ShopTitle({ className }: { className?: string }) {
 }
 
 const SEARCH_TRACK_DELAY_MS = 1000
+const MAX_TRACKED_QUERY = 50
 
-type ShopFilters = { role: Role; stats: StatKey[]; match: StatMatch }
+const NO_FILTERS: ShopFilters = { role: "ALL", stats: [], match: "all" }
+
+function sameFilters(a: ShopFilters, b: ShopFilters) {
+	return (
+		a.role === b.role &&
+		a.match === b.match &&
+		a.stats.join() === b.stats.join()
+	)
+}
 
 function trackFilters({ role, stats, match }: ShopFilters) {
 	track("shop_filtered", {
 		roles: role === "ALL" ? [] : [role],
-		stats,
+		stats: [...stats],
 		match,
 	})
 }

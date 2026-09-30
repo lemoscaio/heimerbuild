@@ -6,6 +6,7 @@
 	},
 	"include": [
 		"src/**/*.test.ts",
+		"src/vite-env.d.ts",
 		"scripts",
 		"worker",
 		"e2e",
