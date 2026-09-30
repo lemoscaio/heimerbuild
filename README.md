@@ -76,8 +76,9 @@ scripts/wt destroy <name> [--force]  # stop, remove, delete the branch once merg
 src/
 ├── main.tsx      Vite entry
 ├── app/          App, providers, query client, router, Sentry and PostHog setup
-├── routes/       TanStack Router routes: loaders, search schemas, thin pages
-├── features/     champions, build-calculator, item-shop (a feature never imports another)
+├── routes/       TanStack Router routes: path, search schemas, loaders, head, fallbacks
+├── pages/        home and champion-build: compose features into screens
+├── features/     champions, build-calculator, item-shop, runes (a feature never imports another)
 ├── data/         game data loading: services (fetch + Zod) and hooks
 ├── components/   ui/ shadcn/ui primitives, common/ shared app UI
 ├── lib/          pure code, including the stats engine in lib/stats and the analytics client in lib/analytics
