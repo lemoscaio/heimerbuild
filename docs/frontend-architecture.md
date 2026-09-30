@@ -21,6 +21,7 @@ src/
 │   └── hooks/            use-current-patch.ts, use-champions.ts, use-champion.ts, use-items.ts
 ├── components/
 │   ├── ui/               primitives with no domain knowledge: button, slider, tooltip
+│   ├── motion/           generic motion primitives (Collapse, Stagger) and motion tokens
 │   └── common/           shared app UI: header, logo, app name
 ├── lib/                  pure, React-free code: stats engine, cn(), formatters, analytics (track, flags)
 ├── hooks/                hooks used by 2+ features, and generic ones (use-feature-flag.ts)
@@ -74,6 +75,7 @@ import { computeStats } from "@/lib/stats/compute-stats"
 | What | One feature | 2+ features | Generic, no domain |
 | --- | --- | --- | --- |
 | Component | `features/<f>/components/` | `components/common/` | `components/ui/` |
+| Animation | `<name>.motion.tsx` next to the component | `<name>.motion.tsx` | `components/motion/` |
 | Hook | `features/<f>/hooks/` | `hooks/` | `hooks/` |
 | Pure logic | `features/<f>/lib/` | `lib/` | `lib/` |
 | Game data fetch / hook | `data/` | `data/` | `data/` |

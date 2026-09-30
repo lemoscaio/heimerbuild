@@ -201,6 +201,28 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 - Strict mode, zero errors. No `any`, no `@ts-ignore`; fix the types.
 - Behavior flags go in a typed options object, never positional booleans: `fetchGameData(path, schema, { fetchFn })`.
 
+## Motion
+
+Animations use Motion (`motion/react`) through `m` components; `MotionProvider` (`src/app/`) loads the features lazily and sets the default transition.
+
+- **Generic motion** lives in `src/components/motion/`: `Collapse` (height + fade open/close) and `Stagger` / `Stagger.Item`. Add a primitive only when a PR uses it.
+- **Component motion** lives next to its component in `<name>.motion.tsx`, exporting components named by role (`ChampionListReveal`, `ChampionCardReveal`). They may use `m.*` or compose the primitives; recreate something small rather than bend a generic one.
+- **Nowhere else imports Motion.** The `biome-plugins/motion-imports.grit` plugin enforces it; its allow-list lives in `biome.json`.
+- **No wrapper elements:** primitives take a Base UI style `render` prop (`<Collapse render={<section />}>` animates the `<section>` itself). A plain wrapper `div` is fine inside a `.motion.tsx` only when it is purely visual.
+- **Tokens only:** durations, easing and stagger come from `src/components/motion/tokens.ts` (`fast` 0.15 s, `base` 0.2 s, `slow` 0.3 s). Nothing lasts longer than 300 ms; tests fail on a longer token or a numeric `duration` / `delay` in a motion file. Most components pass no `transition` and get `base`.
+- Reduced motion makes every change instant: the provider's default becomes `transitions.instant`, and primitives drop their own timing.
+- Feature components keep markup and data; the motion lives in their `.motion.tsx`.
+
+```tsx
+// champion-list.motion.tsx
+export function ChampionListReveal(props: React.ComponentProps<typeof Collapse>) {
+	return <Collapse render={<section />} {...props} />
+}
+
+// champion-browser.tsx
+<ChampionListReveal open={expanded} aria-label="Champions">...</ChampionListReveal>
+```
+
 ## Performance
 
 - The React Compiler is on (`vite.config.ts`). Do not add `useMemo`, `useCallback` or `memo` for performance; the compiler handles it. Keep them only where referential identity is part of the contract.
