@@ -2,6 +2,7 @@ import { readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import * as z from "zod/mini"
 import { itemMarkupToText } from "./item-text"
+import { runeMarkupToRichText } from "./rune-text"
 import {
 	type Rune,
 	type RunesFile,
@@ -18,6 +19,7 @@ const ddragonRuneSchema = z.object({
 	icon: z.string(),
 	name: z.string(),
 	shortDesc: z.string(),
+	longDesc: z.string(),
 })
 
 const runesReforgedSchema = z.array(
@@ -105,6 +107,51 @@ export const SHARD_STAT_RULES: Readonly<Record<number, ShardStatRule>> = {
 	),
 }
 
+type PlaceholderValue = {
+	value: string
+	/** Where the number comes from. */
+	source: string
+}
+
+/**
+ * Numbers for the `@name@` placeholders Data Dragon leaves unresolved in long descriptions,
+ * by rune key. A placeholder missing here fails the sync, so the app never shows `@f3@`.
+ */
+export const RUNE_PLACEHOLDER_VALUES: Readonly<
+	Record<string, Readonly<Record<string, PlaceholderValue>>>
+> = {
+	AbsorbLife: {
+		HealAmount: {
+			value: "1 - 23 health (based on level)",
+			source: "CommunityDragon perks.json 16.19, Absorb Life longDesc",
+		},
+	},
+	FontOfLife: {
+		BaseHeal: {
+			value: "10 - 54.71",
+			source: "https://wiki.leagueoflegends.com/en-us/Font_of_Life",
+		},
+	},
+	UnsealedSpellbook: {
+		f3: {
+			value: "270",
+			source: "https://wiki.leagueoflegends.com/en-us/Unsealed_Spellbook",
+		},
+	},
+}
+
+export function fillPlaceholders(runeKey: string, markup: string): string {
+	return markup.replace(/@(\w+)@/g, (placeholder, name: string) => {
+		const filled = RUNE_PLACEHOLDER_VALUES[runeKey]?.[name]
+		if (!filled) {
+			throw new Error(
+				`rune ${runeKey}: unresolved ${placeholder} in its long description; add it to RUNE_PLACEHOLDER_VALUES`,
+			)
+		}
+		return filled.value
+	})
+}
+
 function round(value: number): number {
 	return Math.round(value * 10_000) / 10_000
 }
@@ -116,6 +163,9 @@ function toRune(rune: z.infer<typeof ddragonRuneSchema>): Rune {
 		name: rune.name,
 		icon: rune.icon,
 		description: itemMarkupToText(rune.shortDesc),
+		longDescription: runeMarkupToRichText(
+			fillPlaceholders(rune.key, rune.longDesc),
+		),
 	}
 }
 

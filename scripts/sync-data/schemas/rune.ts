@@ -8,13 +8,31 @@ const iconPath = z.string().check(z.regex(/^perk-images\/[\w/ .-]+\.png$/))
 
 const perkId = z.int().check(z.positive())
 
-/** `description` is Data Dragon's short description as plain text. */
+/** A run of text; bold and italic are the only formatting kept from Data Dragon's markup. */
+export const textSpanSchema = z.strictObject({
+	text: z.string().check(z.minLength(1)),
+	strong: z.optional(z.literal(true)),
+	italic: z.optional(z.literal(true)),
+})
+
+const textLineSchema = z.array(textSpanSchema).check(z.minLength(1))
+
+/** Paragraphs of lines of spans: formatted text as data, never markup to inject. */
+export const richTextSchema = z.array(
+	z.array(textLineSchema).check(z.minLength(1)),
+)
+
+/**
+ * `description` is Data Dragon's short description as plain text; `longDescription` its long
+ * one, with the numbers.
+ */
 export const runeSchema = z.strictObject({
 	id: perkId,
 	key: z.string().check(z.regex(/^\w+$/)),
 	name: z.string().check(z.minLength(1)),
 	icon: iconPath,
 	description: z.string(),
+	longDescription: richTextSchema.check(z.minLength(1)),
 })
 
 /** A tree: one keystone row, then three rows of regular runes (the secondary tree picks from these). */
@@ -59,6 +77,8 @@ export const runesFileSchema = z.strictObject({
 	shardRows: z.array(shardRowSchema).check(z.length(3)),
 })
 
+export type TextSpan = z.infer<typeof textSpanSchema>
+export type RichText = z.infer<typeof richTextSchema>
 export type Rune = z.infer<typeof runeSchema>
 export type RuneTree = z.infer<typeof runeTreeSchema>
 export type ShardStat = z.infer<typeof shardStatSchema>
