@@ -17,7 +17,7 @@ export function ComboboxChips({
 		<ComboboxPrimitive.Chips
 			data-slot="combobox-chips"
 			className={cn(
-				"flex min-h-8 cursor-text flex-wrap items-center gap-1 rounded-md border border-primary-1 bg-primary-3 px-2 py-1 text-sm transition-colors focus-within:border-lilac",
+				"flex min-h-8 cursor-text flex-wrap items-center gap-1 rounded-md border border-field-border bg-primary-3 px-2 py-1 text-sm transition-colors focus-within:border-lilac",
 				className,
 			)}
 			{...props}

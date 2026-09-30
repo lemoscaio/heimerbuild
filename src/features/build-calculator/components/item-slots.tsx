@@ -2,6 +2,7 @@ import { TriangleAlert } from "lucide-react"
 import { useEffect, useLayoutEffect, useRef } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { ItemButton } from "@/components/common/item-button"
+import { PoliteStatus } from "@/components/common/polite-status"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
@@ -20,6 +21,8 @@ type ItemSlotsProps = {
 	onRemoveItem: (slot: number) => void
 	/** Why the last item could not be added, announced to screen readers. */
 	notice: string | undefined
+	/** Screen-reader only: the item just added and how many slots are filled. */
+	announcement?: string
 	/** `bar`: one row of slots with one-line messages, for the expanded shop's build bar. */
 	layout?: "panel" | "bar"
 }
@@ -28,6 +31,7 @@ export function ItemSlots({
 	items,
 	onRemoveItem,
 	notice,
+	announcement,
 	layout = "panel",
 }: ItemSlotsProps) {
 	const isBar = layout === "bar"
@@ -118,6 +122,7 @@ export function ItemSlots({
 						<BuildWarning violations={violations} />
 					))}
 			</div>
+			<PoliteStatus message={announcement ?? ""} />
 		</ItemSlotsPanel>
 	)
 }

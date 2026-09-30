@@ -7,6 +7,9 @@ test("the expanded shop adds an item, survives a reload and hands the build back
 	await page.goto("/champions/Heimerdinger")
 	await page.getByRole("button", { name: "Expand shop" }).click()
 	await expect(page).toHaveURL(/view=shop/)
+	await expect(
+		page.getByRole("combobox", { name: "Search items" }),
+	).toBeFocused()
 	await expect(page.getByRole("button", { name: "Copy link" })).toBeVisible()
 
 	const bar = page.getByRole("region", { name: "Build" })
@@ -35,6 +38,6 @@ test("the expanded shop adds an item, survives a reload and hands the build back
 
 	await page.getByRole("button", { name: "Collapse shop" }).click()
 	await expect(page).not.toHaveURL(/view=/)
-	await expect(page.getByRole("button", { name: "Expand shop" })).toBeVisible()
+	await expect(page.getByRole("button", { name: "Expand shop" })).toBeFocused()
 	expect(await itemNames(chosenItems(page))).toEqual(["Remove Void Staff"])
 })

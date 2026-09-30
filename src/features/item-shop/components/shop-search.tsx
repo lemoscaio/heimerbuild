@@ -241,7 +241,7 @@ export function ShopSearch({
 				<ComboboxEmpty>
 					Type a stat (ap, mr), a role (role:tank), and / or, or an item name.
 				</ComboboxEmpty>
-				<ComboboxList>
+				<ComboboxList aria-label="Suggestions">
 					{(suggestion: Suggestion) => (
 						<SuggestionRow
 							key={suggestionKey(suggestion)}

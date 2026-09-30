@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useId, useState } from "react"
 import { Toggle } from "@/components/ui/toggle"
 import {
 	createTooltipHandle,
@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/cn"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { useRovingFocus } from "../hooks/use-roving-focus"
+import { useTapTooltip } from "../hooks/use-tap-tooltip"
 import { shopStatGroups } from "../lib/shop-stats"
 
 const railStats = shopStatGroups.flatMap(({ stats }) =>
@@ -34,6 +35,8 @@ export function StatRail({
 }: StatRailProps) {
 	// One tooltip for all 23 icons; each trigger passes its stat name and search alias.
 	const [tooltip] = useState(createTooltipHandle<StatTip>)
+	const showTooltipOnTap = useTapTooltip(tooltip)
+	const idPrefix = useId()
 	// One Tab stop; arrows move across the two columns and rows, as in the item grid.
 	const { containerRef, handleKeyDown, getItemProps } =
 		useRovingFocus(railStats)
@@ -62,8 +65,11 @@ export function StatRail({
 						{groupStats.map(({ stat, label: statLabel, icon, aliases }) => (
 							<TooltipTrigger
 								key={stat}
+								id={`${idPrefix}-${stat}`}
 								handle={tooltip}
 								payload={{ label: statLabel, alias: aliases[0] }}
+								closeOnClick={false}
+								onPointerUp={showTooltipOnTap}
 								render={
 									<Toggle
 										aria-label={statLabel}

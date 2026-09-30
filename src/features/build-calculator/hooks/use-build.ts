@@ -40,6 +40,7 @@ export function useBuild({
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
 	const [notice, setNotice] = useState<string>()
+	const [announcement, setAnnouncement] = useState<string>()
 	const [selectedItemId, setSelectedItemId] = useState<string>()
 
 	const level = search.lvl ?? MIN_LEVEL
@@ -91,6 +92,9 @@ export function useBuild({
 		const nextItemIds = addItemId(itemIds, itemId)
 		if (nextItemIds) {
 			setNotice(undefined)
+			setAnnouncement(
+				`Added ${itemsById[itemId]?.name}, ${nextItemIds.length} of ${MAX_ITEMS} item slots filled`,
+			)
 			setSelectedItemId(undefined)
 			setItemIds(nextItemIds)
 			track("item_added", { itemId })
@@ -115,6 +119,7 @@ export function useBuild({
 	function removeItem(slot: number) {
 		const itemId = itemIds[slot]
 		setNotice(undefined)
+		setAnnouncement(undefined)
 		setItemIds(removeItemAt(itemIds, slot))
 		if (itemId) {
 			track("item_removed", { itemId })
@@ -133,6 +138,8 @@ export function useBuild({
 		removeItem,
 		/** Why the last item could not be added (full build), until the next change. */
 		notice,
+		/** The last item added, for screen readers, until an item is removed. */
+		announcement,
 		isFull,
 		/** The shop item picked for a closer look, not in the build yet. */
 		selectedItem,

@@ -14,7 +14,10 @@
 	--color-primary-4: #100b25;
 	--color-backdrop: #2a2838;
 	--color-lilac: #8d7fd4;
-	--color-subtle: #7c7a87;
+	/* 4.5:1 on the page and on cards (WCAG 1.4.3). */
+	--color-subtle: #9491a0;
+	/* Text field borders, the field's only visible edge: 3:1 or more (WCAG 1.4.11). */
+	--color-field-border: #837e9c;
 	--color-prose: #d6d4e0;
 	--color-gold: #e6c65c;
 	--color-success: #9fbf00;
@@ -118,5 +121,10 @@
 	/* Keyboard focus is always visible (mouse clicks do not show it). */
 	:focus-visible {
 		@apply outline-2 outline-ring outline-offset-2;
+	}
+
+	/* The page start focused after a route change (RouteFocus) is not a control. */
+	[data-route-focus]:focus-visible {
+		@apply outline-none;
 	}
 }

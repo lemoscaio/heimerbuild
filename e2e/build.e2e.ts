@@ -35,6 +35,20 @@ test("a clicked item is previewed first and added with Add to build", async ({
 	await expect(stats).not.toHaveText(preview ?? "")
 })
 
+test("keyboard: Add to build hands focus back to the item in the shop", async ({
+	page,
+}) => {
+	await page.goto("/champions/Heimerdinger")
+	const voidStaff = shopItem(page, "Void Staff")
+	await voidStaff.focus()
+	await page.keyboard.press("Enter")
+	await page.getByRole("button", { name: "Add to build" }).focus()
+	await page.keyboard.press("Enter")
+
+	await expect(chosenItems(page)).toHaveCount(1)
+	await expect(voidStaff).toBeFocused()
+})
+
 test("adding and removing items changes the totals, and a build the game forbids is kept with a warning", async ({
 	page,
 }) => {

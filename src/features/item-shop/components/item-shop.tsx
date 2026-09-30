@@ -1,11 +1,14 @@
 import { useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { LoadError } from "@/components/common/load-error"
+import { PoliteStatus } from "@/components/common/polite-status"
 import { useItems } from "@/data/hooks/use-items"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
 import { useDebouncedCallback } from "../hooks/use-debounced-callback"
+import { useFocusOnLayoutChange } from "../hooks/use-focus-on-layout-change"
+import { useReturnFocusToItem } from "../hooks/use-return-focus-to-item"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
 import { useShopGrouping } from "../hooks/use-shop-grouping"
 import { filterShopItems } from "../lib/filter-shop-items"
@@ -42,6 +45,11 @@ export function ItemShop({
 	const [query, setQuery] = useState("")
 	const [grouping, setGrouping] = useShopGrouping()
 	const listRef = useRef<HTMLElement>(null)
+	const searchRef = useRef<HTMLDivElement>(null)
+	const actionsRef = useRef<HTMLSpanElement>(null)
+	// Expanding moves focus to the search; collapsing, back to the switch in `actions`.
+	useFocusOnLayoutChange(layout, { expanded: searchRef, compact: actionsRef })
+	useReturnFocusToItem(pickProps.selectedItemId, listRef)
 	const { role, stats, match } = filters
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
 	useAnalyticsContext({ shop_stat_match: match })
@@ -115,7 +123,9 @@ export function ItemShop({
 					grouping={grouping}
 					onGroupingChange={setGrouping}
 				/>
-				{actions}
+				<span ref={actionsRef} className="contents">
+					{actions}
+				</span>
 			</div>
 			<StatRail
 				className={cn(
@@ -134,7 +144,10 @@ export function ItemShop({
 					}
 				/>
 			</StatRail>
-			<div className="flex min-w-0 items-center gap-3 [grid-area:search]">
+			<div
+				ref={searchRef}
+				className="flex min-w-0 items-center gap-3 [grid-area:search]"
+			>
 				<ShopSearch
 					className="min-w-0 flex-1"
 					query={query}
@@ -146,12 +159,17 @@ export function ItemShop({
 					onEscape={handleSearchEscape}
 				/>
 				{itemsQuery.isSuccess && (
-					<p
-						aria-live="polite"
-						className="shrink-0 text-subtle text-xs max-lg:sr-only"
-					>
-						{items.length} {items.length === 1 ? "item" : "items"}
-					</p>
+					<>
+						<p
+							aria-hidden="true"
+							className="shrink-0 text-subtle text-xs max-lg:hidden"
+						>
+							{itemCount(items.length)}
+						</p>
+						<PoliteStatus
+							message={items.length ? itemCount(items.length) : NO_ITEMS}
+						/>
+					</>
 				)}
 			</div>
 			<ItemList
@@ -168,9 +186,7 @@ export function ItemShop({
 					{...pickProps}
 				/>
 				{itemsQuery.isSuccess && !items.length && (
-					<p className="w-full p-5 text-center text-white">
-						No items match these filters.
-					</p>
+					<p className="w-full p-5 text-center text-white">{NO_ITEMS}</p>
 				)}
 				{itemsQuery.isPending && (
 					<>
@@ -197,6 +213,12 @@ function ShopTitle({ className }: { className?: string }) {
 		</h2>
 	)
 }
+
+function itemCount(count: number) {
+	return `${count} ${count === 1 ? "item" : "items"}`
+}
+
+const NO_ITEMS = "No items match these filters."
 
 const SEARCH_TRACK_DELAY_MS = 1000
 const MAX_TRACKED_QUERY = 50
