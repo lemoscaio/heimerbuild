@@ -20,7 +20,7 @@
 		"16.19.1/champions/Aurora.json": "d780cf7e14",
 		"16.19.1/champions/Azir.json": "7c822a4a85",
 		"16.19.1/champions/Bard.json": "4cd18011b0",
-		"16.19.1/champions/Belveth.json": "39d299443d",
+		"16.19.1/champions/Belveth.json": "dee6ac80de",
 		"16.19.1/champions/Blitzcrank.json": "d5d6c06118",
 		"16.19.1/champions/Brand.json": "1477c78850",
 		"16.19.1/champions/Braum.json": "fe2763f413",
@@ -44,7 +44,7 @@
 		"16.19.1/champions/Galio.json": "1d939ae0b2",
 		"16.19.1/champions/Gangplank.json": "a05d0fa313",
 		"16.19.1/champions/Garen.json": "a278f197ef",
-		"16.19.1/champions/Gnar.json": "4c25d66478",
+		"16.19.1/champions/Gnar.json": "a2cc69fdd7",
 		"16.19.1/champions/Gragas.json": "ee379a3abc",
 		"16.19.1/champions/Graves.json": "3e0ae4ae1c",
 		"16.19.1/champions/Gwen.json": "932f62194c",
@@ -72,7 +72,7 @@
 		"16.19.1/champions/Kennen.json": "f23ee080a8",
 		"16.19.1/champions/Khazix.json": "6311f41855",
 		"16.19.1/champions/Kindred.json": "781e707ee1",
-		"16.19.1/champions/Kled.json": "a5ade57f95",
+		"16.19.1/champions/Kled.json": "b53bac77b9",
 		"16.19.1/champions/KogMaw.json": "115850a195",
 		"16.19.1/champions/Leblanc.json": "d62fbdadad",
 		"16.19.1/champions/LeeSin.json": "1959b2dec9",
@@ -157,7 +157,7 @@
 		"16.19.1/champions/Velkoz.json": "54ad1420d6",
 		"16.19.1/champions/Vex.json": "b48eb5ccaf",
 		"16.19.1/champions/Vi.json": "aae699cc85",
-		"16.19.1/champions/Viego.json": "73607f3bae",
+		"16.19.1/champions/Viego.json": "388049f6a6",
 		"16.19.1/champions/Viktor.json": "dbdf3f824c",
 		"16.19.1/champions/Vladimir.json": "0ba620f489",
 		"16.19.1/champions/Volibear.json": "a9efc313b3",
@@ -178,7 +178,7 @@
 		"16.19.1/champions/Zilean.json": "9d592bb446",
 		"16.19.1/champions/Zoe.json": "f521ad0396",
 		"16.19.1/champions/Zyra.json": "d586d05ab7",
-		"16.19.1/items.json": "57b5ca08a4"
+		"16.19.1/items.json": "d9792bc27c"
 	},
-	"generatedAt": "2026-09-29T23:53:39.964Z"
+	"generatedAt": "2026-09-30T16:46:29.576Z"
 }
