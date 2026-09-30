@@ -44,17 +44,7 @@ jobs:
         timeout-minutes: 10
         env:
           CACHE_HIT: ${{ steps.browsers.outputs.cache-hit }}
-        run: |
-          if [ "$CACHE_HIT" = "true" ]; then
-            install=(bunx playwright install-deps chromium)
-          else
-            install=(bunx playwright install --with-deps chromium)
-          fi
-          for attempt in 1 2; do
-            timeout --kill-after=15s 4m "${install[@]}" && exit 0
-            echo "::warning::Chromium install attempt $attempt failed (exit $?)"
-          done
-          exit 1
+        run: bash .github/scripts/install-chromium.sh
       - name: Wait for the Cloudflare preview
         if: github.event_name == 'pull_request'
         id: preview
