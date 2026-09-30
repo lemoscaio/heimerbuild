@@ -24,6 +24,13 @@
 	--color-warning: #e3b95f;
 	--color-error: #f2727f;
 
+	/* Rune tree accents, as in the game client. */
+	--color-precision: #c8aa6e;
+	--color-domination: #d44242;
+	--color-sorcery: #9faafc;
+	--color-resolve: #a1d586;
+	--color-inspiration: #49aab9;
+
 	--font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 	--font-display: "Oxanium", ui-sans-serif, system-ui, sans-serif;
 	--font-logo: "Road Rage", cursive;
