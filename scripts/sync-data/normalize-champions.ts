@@ -2,6 +2,14 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
 import {
+	applyOverrides,
+	type OverrideReport,
+} from "./overrides/apply-overrides"
+import {
+	CHAMPION_OVERRIDES,
+	type ChampionOverride,
+} from "./overrides/champion-overrides"
+import {
 	type Champion,
 	type ChampionSummary,
 	championIndexSchema,
@@ -186,26 +194,30 @@ export type ChampionOutputSummary = {
 	champions: number
 	indexBytes: number
 	totalBytes: number
+	overrides: OverrideReport
 }
+
+export type WriteChampionsOptions = { overrides?: readonly ChampionOverride[] }
 
 async function readJson(path: string): Promise<unknown> {
 	return JSON.parse(await readFile(path, "utf8"))
 }
 
 /**
- * Normalizes every cached champion, then writes `champions.json` and `champions/<key>.json`
- * into `outDir`. Nothing is written unless every champion validates.
+ * Normalizes every cached champion, applies the overrides, then writes `champions.json` and
+ * `champions/<key>.json` into `outDir`. Nothing is written unless every champion validates.
  */
 export async function writeChampions(
 	cacheDir: string,
 	outDir: string,
 	version: string,
+	{ overrides = CHAMPION_OVERRIDES }: WriteChampionsOptions = {},
 ): Promise<ChampionOutputSummary> {
 	const index = buildChampionIndex(
 		await readJson(join(cacheDir, "ddragon/champion.json")),
 		version,
 	)
-	const champions = await Promise.all(
+	const normalized = await Promise.all(
 		index.map(async ({ key }) => {
 			try {
 				return normalizeChampion(
@@ -220,6 +232,17 @@ export async function writeChampions(
 			}
 		}),
 	)
+	const applied = applyOverrides(normalized, overrides, {
+		version,
+		kind: "champion",
+		idOf: (champion) => champion.key,
+	})
+	const champions = applied.entities.map((champion) => {
+		const result = championSchema.safeParse(champion)
+		if (!result.success)
+			throw new Error(`${champion.key}: ${result.error.message}`)
+		return result.data
+	})
 
 	const championsDir = join(outDir, "champions")
 	await rm(championsDir, { recursive: true, force: true })
@@ -237,5 +260,6 @@ export async function writeChampions(
 		champions: champions.length,
 		indexBytes: Buffer.byteLength(indexText),
 		totalBytes,
+		overrides: applied.report,
 	}
 }

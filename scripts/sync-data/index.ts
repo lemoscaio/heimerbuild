@@ -1,5 +1,12 @@
 import { existsSync } from "node:fs"
-import { mkdir, readdir, readFile, rename, rm } from "node:fs/promises"
+import {
+	mkdir,
+	readdir,
+	readFile,
+	rename,
+	rm,
+	writeFile,
+} from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import {
@@ -12,6 +19,10 @@ import { writeManifest } from "./manifest"
 import { writeChampions } from "./normalize-champions"
 import { syncItems } from "./normalize-items"
 import {
+	type OverrideReport,
+	staleOverrideLines,
+} from "./overrides/apply-overrides"
+import {
 	assertValidVersion,
 	compareVersions,
 	resolveLatestVersion,
@@ -20,10 +31,12 @@ import {
 const CACHE_ROOT = resolve(import.meta.dir, "../../.cache")
 const OUTPUT_ROOT = resolve(import.meta.dir, "../../public/data")
 
-const USAGE = `Usage: bun run sync-data [--version <x.y.z>] [--offline]
+const USAGE = `Usage: bun run sync-data [--version <x.y.z>] [--offline] [--override-report <file>]
 
-  --version <x.y.z>  Use this Data Dragon version instead of the latest one
-  --offline          Use the newest fully cached version; never touch the network`
+  --version <x.y.z>          Use this Data Dragon version instead of the latest one
+  --offline                  Use the newest fully cached version; never touch the network
+  --override-report <file>   Write the overrides this patch no longer needs as Markdown
+                             (only when there are any; the sync workflow adds it to its PR)`
 
 function formatBytes(bytes: number): string {
 	return `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -117,7 +130,29 @@ async function ensureRawData(
 	}
 }
 
-async function writeOutputs(version: string): Promise<void> {
+/** Logs every applied override and warns about the stale ones, which it returns as Markdown lines. */
+function reportOverrides(reports: readonly OverrideReport[]): string[] {
+	for (const { id, entity } of reports.flatMap((report) => report.applied)) {
+		console.log(`Applied override ${id} to ${entity}`)
+	}
+	const stale = staleOverrideLines(reports)
+	for (const line of stale) console.warn(`  Override no longer needed: ${line}`)
+	return stale
+}
+
+function staleOverridesMarkdown(lines: readonly string[]): string {
+	return [
+		"### Overrides no longer needed",
+		"",
+		...lines.map((line) => `- ${line}`),
+		"",
+		"Set `until` to the last patch that needed each one, or delete it (`scripts/sync-data/overrides/`).",
+		"",
+	].join("\n")
+}
+
+/** Returns the Markdown lines of the overrides this patch no longer needs. */
+async function writeOutputs(version: string): Promise<string[]> {
 	const cacheDir = join(CACHE_ROOT, version)
 	const outDir = join(OUTPUT_ROOT, version)
 
@@ -143,10 +178,13 @@ async function writeOutputs(version: string): Promise<void> {
 		`Wrote public/data/${version}/items.json (${items.count} items, ${formatBytes(items.bytes)}, stats match Data Dragon)`,
 	)
 
+	const staleOverrides = reportOverrides([champions.overrides, items.overrides])
+
 	const manifest = await writeManifest(OUTPUT_ROOT)
 	console.log(
 		`Wrote public/data/manifest.json (current ${manifest.currentPatch}, ${manifest.patches.length} patches)`,
 	)
+	return staleOverrides
 }
 
 async function main(): Promise<void> {
@@ -154,6 +192,7 @@ async function main(): Promise<void> {
 		options: {
 			version: { type: "string" },
 			offline: { type: "boolean", default: false },
+			"override-report": { type: "string" },
 			help: { type: "boolean", default: false },
 		},
 	})
@@ -165,7 +204,11 @@ async function main(): Promise<void> {
 	const version = await resolveVersion(values)
 	console.log(`Data Dragon version: ${version}`)
 	await ensureRawData(version, { offline: values.offline })
-	await writeOutputs(version)
+	const staleOverrides = await writeOutputs(version)
+	const reportPath = values["override-report"]
+	if (reportPath && staleOverrides.length > 0) {
+		await writeFile(reportPath, staleOverridesMarkdown(staleOverrides))
+	}
 }
 
 main().catch((error: unknown) => {

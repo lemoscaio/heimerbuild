@@ -3,6 +3,10 @@ import communityDragonBin from "./fixtures/cdragon-items.json"
 import dataDragonItems from "./fixtures/ddragon-item.json"
 import map11Bin from "./fixtures/map11.bin.json"
 import { normalizeItems } from "./normalize-items"
+import {
+	defineItemOverride,
+	type ItemOverride,
+} from "./overrides/item-overrides"
 import { STAT_UNITS } from "./schemas/item"
 import { STAT_FIELDS } from "./stat-map"
 
@@ -123,6 +127,56 @@ describe("normalizeItems", () => {
 		expect(() => itemsOf(bin)).toThrow(
 			"Item 3134 (Serrated Dirk) has no CommunityDragon entry",
 		)
+	})
+})
+
+describe("normalizeItems overrides", () => {
+	const base = {
+		id: "long-sword-fix",
+		itemId: "1036",
+		since: "16.19",
+		reason: "test",
+	} as const
+	const normalizeWith = (override: ItemOverride) =>
+		normalizeItems(dataDragonItems, communityDragonBin, map11Bin, {
+			overrides: [override],
+		})
+
+	test("applies an override to the normalized item and reports it", () => {
+		const { file, overrides } = normalizeWith(
+			defineItemOverride({
+				...base,
+				field: "tags",
+				apply: (tags) => [...tags, "Boots"],
+			}),
+		)
+
+		expect(file.items.find((item) => item.id === "1036")?.tags).toEqual([
+			"Damage",
+			"Lane",
+			"Boots",
+		])
+		expect(overrides.applied).toEqual([
+			{ id: "long-sword-fix", entity: "item 1036" },
+		])
+	})
+
+	test("validates the overridden item, so a wrong fix fails the sync", () => {
+		const wrongStat = defineItemOverride({
+			...base,
+			field: "stats",
+			apply: (stats) => ({ ...stats, attackDamage: 99 }),
+		})
+		const invalidLimit = defineItemOverride({
+			...base,
+			field: "groupLimits",
+			apply: () => [{ group: "Boots", max: 0 }],
+		})
+
+		expect(() => normalizeWith(wrongStat)).toThrow(
+			"1036 Long Sword: attackDamage expected 10, actual 99",
+		)
+		expect(() => normalizeWith(invalidLimit)).toThrow("groupLimits")
 	})
 })
 

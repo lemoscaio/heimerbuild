@@ -2,6 +2,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
 import { itemMarkupToText } from "./item-text"
+import {
+	applyOverrides,
+	type OverrideReport,
+} from "./overrides/apply-overrides"
+import { ITEM_OVERRIDES, type ItemOverride } from "./overrides/item-overrides"
 import { type ChampionRole, championRoleSchema } from "./schemas/champion"
 import {
 	type Item,
@@ -165,13 +170,17 @@ export type NormalizedItems = {
 	removed: Record<RemovalRuleName, number>
 	/** Allowlist entries that matched no difference this patch; safe to delete. */
 	staleAllowlist: AllowlistEntry[]
+	overrides: OverrideReport
 }
+
+export type NormalizeItemsOptions = { overrides?: readonly ItemOverride[] }
 
 /** Keeps only items buyable on Summoner's Rift; `removed` counts the items each rule dropped. */
 export function normalizeItems(
 	dataDragonItems: unknown,
 	communityDragonBin: unknown,
 	map11Bin: unknown,
+	{ overrides = ITEM_OVERRIDES }: NormalizeItemsOptions = {},
 ): NormalizedItems {
 	const { version, data } = DataDragonItemsSchema.parse(dataDragonItems)
 	const binItems = indexCommunityDragonItems(communityDragonBin)
@@ -179,7 +188,7 @@ export function normalizeItems(
 	const { kept, removed } = filterShopItems(data, classicItemIds(map11Bin))
 	const unmapped = new Map<string, string[]>()
 
-	const items = kept
+	const normalized = kept
 		.sort(([a], [b]) => Number(a) - Number(b))
 		.map(([id, item]): Item => {
 			const entry = binItems.get(id)
@@ -208,6 +217,11 @@ export function normalizeItems(
 				stats: extractStats(entry, unmapped),
 			}
 		})
+	const { entities: items, report } = applyOverrides(normalized, overrides, {
+		version,
+		kind: "item",
+		idOf: (item) => item.id,
+	})
 
 	const { mismatches, stale } = validateItemStats(
 		items.map((item) => ({
@@ -224,6 +238,7 @@ export function normalizeItems(
 		file: ItemsFileSchema.parse({ version, items }),
 		removed,
 		staleAllowlist: stale,
+		overrides: report,
 	}
 }
 
@@ -236,10 +251,11 @@ export async function syncItems({ cacheDir, outDir }: SyncItemsPaths): Promise<{
 	bytes: number
 	removed: NormalizedItems["removed"]
 	staleAllowlist: NormalizedItems["staleAllowlist"]
+	overrides: NormalizedItems["overrides"]
 }> {
 	const readJson = async (path: string): Promise<unknown> =>
 		JSON.parse(await readFile(join(cacheDir, path), "utf8"))
-	const { file, removed, staleAllowlist } = normalizeItems(
+	const { file, removed, staleAllowlist, overrides } = normalizeItems(
 		await readJson("ddragon/item.json"),
 		await readJson("cdragon/items.cdtb.bin.json"),
 		await readJson("cdragon/map11.bin.json"),
@@ -254,5 +270,6 @@ export async function syncItems({ cacheDir, outDir }: SyncItemsPaths): Promise<{
 		bytes: Buffer.byteLength(text),
 		removed,
 		staleAllowlist,
+		overrides,
 	}
 }
