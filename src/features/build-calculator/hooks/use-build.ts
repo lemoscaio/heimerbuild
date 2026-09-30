@@ -34,6 +34,7 @@ export function useBuild({
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
 	const [notice, setNotice] = useState<string>()
+	const [selectedItemId, setSelectedItemId] = useState<string>()
 
 	const level = search.lvl ?? MIN_LEVEL
 	// Until the items load, keep the ids from the link so a level change does not drop them.
@@ -42,6 +43,15 @@ export function useBuild({
 		: (search.items ?? [])
 	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
 	const stats = champion && computeStats(champion, level, items)
+	const selectedItem = selectedItemId ? itemsById?.[selectedItemId] : undefined
+	const preview =
+		champion && selectedItem
+			? {
+					itemName: selectedItem.name,
+					stats: computeStats(champion, level, [...items, selectedItem]),
+				}
+			: undefined
+	const isFull = itemIds.length >= MAX_ITEMS
 
 	// Edits keep the link's own patch: changing it would reload the route mid-edit.
 	// Each edit also lists the build in the home page's recent builds (this browser only).
@@ -71,11 +81,18 @@ export function useBuild({
 		const nextItemIds = addItemId(itemIds, itemId)
 		if (nextItemIds) {
 			setNotice(undefined)
+			setSelectedItemId(undefined)
 			setItemIds(nextItemIds)
 			track("item_added", { itemId })
 		} else {
 			setNotice(`All ${MAX_ITEMS} item slots are full. Remove an item first.`)
 		}
+	}
+
+	function selectItem(itemId: string) {
+		if (itemId === selectedItemId) return
+		setSelectedItemId(itemId)
+		track("shop_item_selected", { itemId })
 	}
 
 	function removeItem(slot: number) {
@@ -96,7 +113,14 @@ export function useBuild({
 		removeItem,
 		/** Why the last item could not be added (full build), until the next change. */
 		notice,
+		isFull,
+		/** The shop item picked for a closer look, not in the build yet. */
+		selectedItem,
+		selectItem,
+		clearSelection: () => setSelectedItemId(undefined),
 		stats,
+		/** The stats with the selected item added, while one is selected. */
+		preview,
 		/** The full build for sharing, pinned to the patch in use. */
 		shareSearch: toBuildSearch({ level, itemIds, patch }),
 	}

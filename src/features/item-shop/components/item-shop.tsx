@@ -16,6 +16,7 @@ import {
 	type StatMatch,
 } from "../lib/filter-items-by-stats"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
+import type { ItemPickProps } from "../types/item-pick"
 import { ItemGrid } from "./item-grid"
 import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
@@ -27,10 +28,9 @@ import { StatSort } from "./stat-sort"
 
 type ItemShopProps = {
 	patch: string
-	onItemClick: (itemId: string) => void
-}
+} & ItemPickProps
 
-export function ItemShop({ patch, onItemClick }: ItemShopProps) {
+export function ItemShop({ patch, ...pickProps }: ItemShopProps) {
 	const itemsQuery = useItems(patch)
 	const [role, setRole] = useState<Role>("ALL")
 	const [stats, setStats] = useState<StatKey[]>([])
@@ -113,7 +113,7 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 				/>
 			</div>
 			<ItemList ref={listRef} aria-label="Item shop">
-				<ItemGrid items={items} onItemClick={onItemClick} />
+				<ItemGrid items={items} {...pickProps} />
 				{itemsQuery.isSuccess && !items.length && (
 					<p className="w-full p-5 text-center text-white">
 						No items match these filters.

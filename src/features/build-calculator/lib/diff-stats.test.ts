@@ -1,0 +1,35 @@
+import { describe, expect, test } from "bun:test"
+import type { ComputedStats } from "@/lib/stats/compute-stats"
+import { diffStats } from "./diff-stats"
+
+function stats(totals: Record<string, number>) {
+	return Object.fromEntries(
+		Object.entries(totals).map(([stat, total]) => [
+			stat,
+			{ base: 0, bonus: total, total },
+		]),
+	) as unknown as ComputedStats
+}
+
+describe("diffStats", () => {
+	test("lists only the stats whose total changes, with the new total", () => {
+		expect(
+			diffStats(
+				stats({ abilityPower: 240, armor: 55.9, magicPenetrationPercent: 0 }),
+				stats({ abilityPower: 335, armor: 55.9, magicPenetrationPercent: 0.4 }),
+			),
+		).toEqual({ abilityPower: 335, magicPenetrationPercent: 0.4 })
+	})
+
+	test("ignores float noise below display precision", () => {
+		expect(
+			diffStats(stats({ health: 0.1 + 0.2 }), stats({ health: 0.3 })),
+		).toEqual({})
+	})
+
+	test("keeps a decrease", () => {
+		expect(
+			diffStats(stats({ movementSpeed: 385 }), stats({ movementSpeed: 380 })),
+		).toEqual({ movementSpeed: 380 })
+	})
+})

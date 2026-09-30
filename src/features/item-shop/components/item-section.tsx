@@ -4,17 +4,19 @@ import { ItemButton } from "@/components/common/item-button"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import type { useRovingFocus } from "../hooks/use-roving-focus"
 import type { ShopSection } from "../lib/group-shop-items"
+import type { ItemPickProps } from "../types/item-pick"
 
 type ItemSectionProps = {
 	section: ShopSection<Item>
-	onItemClick: (itemId: string) => void
 	getItemProps: ReturnType<typeof useRovingFocus>["getItemProps"]
-}
+} & ItemPickProps
 
 /** One titled shop section: a labelled group of item tiles. */
 export function ItemSection({
 	section: { title, items },
-	onItemClick,
+	selectedItemId,
+	onItemSelect,
+	onItemAdd,
 	getItemProps,
 }: ItemSectionProps) {
 	const id = useId()
@@ -34,7 +36,17 @@ export function ItemSection({
 						item={item}
 						aria-label={item.name}
 						aria-describedby={`${id}-${index}`}
-						onClick={() => onItemClick(item.id)}
+						aria-pressed={item.id === selectedItemId}
+						className="rounded-sm aria-pressed:ring-2 aria-pressed:ring-gold"
+						onClick={(event) => {
+							// Enter or Space on the selected item adds it (a keyboard click has no detail).
+							if (event.detail === 0 && item.id === selectedItemId) {
+								onItemAdd(item.id)
+							} else {
+								onItemSelect(item.id)
+							}
+						}}
+						onDoubleClick={() => onItemAdd(item.id)}
 						{...getItemProps(item.id)}
 					>
 						<GameIcon

@@ -7,6 +7,8 @@ export type AnalyticsEvents = {
 	champion_selected: { champion: string }
 	/** The level select changed, or the slider was released on a new level. */
 	level_changed: { level: number }
+	/** A shop item was selected to see its details and a stats preview. */
+	shop_item_selected: { itemId: string }
 	item_added: { itemId: string }
 	item_removed: { itemId: string }
 	/**
