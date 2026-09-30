@@ -2,6 +2,9 @@ name: E2E
 
 on:
   pull_request:
+  # Runs on main only to save the browser cache, which PR runs can restore but not share.
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -23,9 +26,37 @@ jobs:
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
+      - name: Resolve the Playwright version
+        id: playwright
+        run: |
+          version=$(grep -oE '"@playwright/test@[^"]+"' bun.lock | head -n 1 | tr -d '"' | cut -d @ -f 3)
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Cache the Playwright browsers
+        id: browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # A stuck apt mirror once hung this step until the 25-minute job timeout (PR 168):
+      # each attempt now times out on its own and retries once.
       - name: Install Chromium
-        run: bunx playwright install --with-deps chromium
+        timeout-minutes: 10
+        env:
+          CACHE_HIT: ${{ steps.browsers.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            install=(bunx playwright install-deps chromium)
+          else
+            install=(bunx playwright install --with-deps chromium)
+          fi
+          for attempt in 1 2; do
+            timeout --kill-after=15s 4m "${install[@]}" && exit 0
+            echo "::warning::Chromium install attempt $attempt failed (exit $?)"
+          done
+          exit 1
       - name: Wait for the Cloudflare preview
+        if: github.event_name == 'pull_request'
         id: preview
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,11 +66,12 @@ jobs:
         run: bash .github/scripts/find-preview-url.sh
       # Without BASE_URL, playwright.config.ts runs `bun run build && bun run preview:local`.
       - name: Run the flows
+        if: github.event_name == 'pull_request'
         env:
           BASE_URL: ${{ steps.preview.outputs.url }}
         run: bun run e2e
       - name: Upload the Playwright trace
-        if: failure()
+        if: failure() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v7
         with:
           name: playwright-trace
