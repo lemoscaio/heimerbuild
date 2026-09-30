@@ -7,13 +7,17 @@ import {
 	filterItemsByRole,
 	type RoleFilter as Role,
 } from "../lib/filter-items-by-role"
-import { filterItemsByStats } from "../lib/filter-items-by-stats"
+import {
+	filterItemsByStats,
+	type StatMatch,
+} from "../lib/filter-items-by-stats"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
 import { ItemGrid } from "./item-grid"
 import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
 import { RoleFilter } from "./role-filter"
 import { StatFilter } from "./stat-filter"
+import { StatMatchToggle } from "./stat-match-toggle"
 import { StatSort } from "./stat-sort"
 
 type ItemShopProps = {
@@ -25,24 +29,31 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 	const itemsQuery = useItems(patch)
 	const [role, setRole] = useState<Role>("ALL")
 	const [stats, setStats] = useState<StatKey[]>([])
+	const [match, setMatch] = useState<StatMatch>("all")
 	const [sort, setSort] = useState<ItemSort>()
 
 	const filteredItems = itemsQuery.data
 		? filterItemsByStats(
 				filterItemsByRole(Object.values(itemsQuery.data), role),
 				stats,
+				{ match },
 			)
 		: []
 	const items = sort ? sortItemsByStat(filteredItems, sort) : filteredItems
 
 	function handleRoleChange(nextRole: Role) {
 		setRole(nextRole)
-		trackFilters(nextRole, stats)
+		trackFilters({ role: nextRole, stats, match })
 	}
 
 	function handleStatsChange(nextStats: StatKey[]) {
 		setStats(nextStats)
-		trackFilters(role, nextStats)
+		trackFilters({ role, stats: nextStats, match })
+	}
+
+	function handleMatchChange(nextMatch: StatMatch) {
+		setMatch(nextMatch)
+		trackFilters({ role, stats, match: nextMatch })
 	}
 
 	function handleSortChange(nextSort: ItemSort | undefined) {
@@ -56,7 +67,10 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 	return (
 		<div className="bg-primary-4">
 			<RoleFilter role={role} onRoleChange={handleRoleChange} />
-			<StatFilter stats={stats} onStatsChange={handleStatsChange} />
+			<div className="flex items-center justify-center gap-2 px-2.5 pb-1.5">
+				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
+				<StatFilter stats={stats} onStatsChange={handleStatsChange} />
+			</div>
 			<StatSort sort={sort} onSortChange={handleSortChange} />
 			<ItemList aria-label="Item shop">
 				<ItemGrid items={items} onItemClick={onItemClick} />
@@ -83,6 +97,12 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 	)
 }
 
-function trackFilters(role: Role, stats: StatKey[]) {
-	track("shop_filtered", { roles: role === "ALL" ? [] : [role], stats })
+type ShopFilters = { role: Role; stats: StatKey[]; match: StatMatch }
+
+function trackFilters({ role, stats, match }: ShopFilters) {
+	track("shop_filtered", {
+		roles: role === "ALL" ? [] : [role],
+		stats,
+		match,
+	})
 }

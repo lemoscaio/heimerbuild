@@ -12,7 +12,7 @@ export function StatFilter({ stats, onStatsChange }: StatFilterProps) {
 		<ToggleGroup
 			multiple
 			aria-label="Filter by stat"
-			className="flex-wrap justify-center px-2.5 pb-1.5"
+			className="flex-wrap justify-center"
 			value={stats}
 			onValueChange={onStatsChange}
 		>
