@@ -1,0 +1,104 @@
+{
+	"styles": [
+		{
+			"name": "Resolve",
+			"slots": [
+				{
+					"type": "kStatMod",
+					"slotLabel": "Offense",
+					"perks": [5008, 5005, 5007]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Flex",
+					"perks": [5008, 5010, 5001]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Defense",
+					"perks": [5011, 5013, 5001]
+				}
+			]
+		},
+		{
+			"name": "Domination",
+			"slots": [
+				{
+					"type": "kStatMod",
+					"slotLabel": "Offense",
+					"perks": [5008, 5005, 5007]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Flex",
+					"perks": [5008, 5010, 5001]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Defense",
+					"perks": [5011, 5013, 5001]
+				}
+			]
+		},
+		{
+			"name": "Precision",
+			"slots": [
+				{
+					"type": "kStatMod",
+					"slotLabel": "Offense",
+					"perks": [5008, 5005, 5007]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Flex",
+					"perks": [5008, 5010, 5001]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Defense",
+					"perks": [5011, 5013, 5001]
+				}
+			]
+		},
+		{
+			"name": "Sorcery",
+			"slots": [
+				{
+					"type": "kStatMod",
+					"slotLabel": "Offense",
+					"perks": [5008, 5005, 5007]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Flex",
+					"perks": [5008, 5010, 5001]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Defense",
+					"perks": [5011, 5013, 5001]
+				}
+			]
+		},
+		{
+			"name": "Inspiration",
+			"slots": [
+				{
+					"type": "kStatMod",
+					"slotLabel": "Offense",
+					"perks": [5008, 5005, 5007]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Flex",
+					"perks": [5008, 5010, 5001]
+				},
+				{
+					"type": "kStatMod",
+					"slotLabel": "Defense",
+					"perks": [5011, 5013, 5001]
+				}
+			]
+		}
+	]
+}

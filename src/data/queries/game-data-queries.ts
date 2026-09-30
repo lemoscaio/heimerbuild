@@ -4,6 +4,7 @@ import {
 	fetchChampionIndex,
 	fetchItems,
 	fetchManifest,
+	fetchRunes,
 	GameDataUnavailableError,
 } from "../services/game-data"
 
@@ -51,6 +52,13 @@ export const gameDataQueries = {
 			queryKey: [...gameDataQueries.patch(patch), "items"],
 			queryFn: async ({ client }) =>
 				fetchItems(patch, await dataFileHashes(client)),
+			...gameDataDefaults,
+		}),
+	runes: (patch: string) =>
+		queryOptions({
+			queryKey: [...gameDataQueries.patch(patch), "runes"],
+			queryFn: async ({ client }) =>
+				fetchRunes(patch, await dataFileHashes(client)),
 			...gameDataDefaults,
 		}),
 }

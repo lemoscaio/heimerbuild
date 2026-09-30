@@ -75,6 +75,8 @@ const characterRecordSchema = z.object({
 	damagePerLevelModifiable: modifiableFloat,
 	attackSpeedRatioModifiable: modifiableFloat,
 	purchaseIdentities: z.array(z.string()).optional(),
+	// 1 for champions whose Adaptive Force defaults to ability power, absent otherwise.
+	mAdaptiveForceToAbilityPowerWeight: z.number().optional(),
 })
 
 type CharacterRecord = z.infer<typeof characterRecordSchema>
@@ -159,6 +161,8 @@ export function normalizeChampion(
 		lore: champion.lore,
 		attackType: attackType(record, stats.attackrange),
 		resource: toResource(champion.partype),
+		adaptiveType:
+			(record.mAdaptiveForceToAbilityPowerWeight ?? 0) >= 0.5 ? "ap" : "ad",
 		stats: {
 			health: { base: stats.hp, perLevel: stats.hpperlevel },
 			healthRegen: { base: stats.hpregen, perLevel: stats.hpregenperlevel },
