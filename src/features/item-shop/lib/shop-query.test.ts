@@ -2,16 +2,14 @@ import { describe, expect, test } from "bun:test"
 import {
 	applyShopTokens,
 	commitShopQuery,
+	describeToken,
 	filtersFromTokens,
 	parseShopQuery,
 	type ShopFilters,
 	type ShopToken,
 	searchTokensForAnalytics,
-	serializeShopQuery,
 	suggestShopTokens,
-	tokenLabel,
 	tokensFromFilters,
-	tokenTerm,
 	typedWord,
 	withoutTypedWord,
 } from "./shop-query"
@@ -76,37 +74,51 @@ describe("parseShopQuery", () => {
 	})
 })
 
-describe("serializeShopQuery", () => {
-	test("writes each token's main term, then the free text", () => {
+describe("describeToken", () => {
+	test("describes each kind of token in one place", () => {
 		expect(
-			serializeShopQuery({
-				tokens: [
-					{ kind: "role", role: "TANK" },
-					{ kind: "stat", stat: "health" },
-					{ kind: "match", match: "any" },
-				],
-				freeText: "sunfire",
-			}),
-		).toBe("role:tank hp or sunfire")
+			describeToken({ kind: "stat", stat: "magicPenetrationFlat" }),
+		).toMatchObject({
+			key: "stat:magicPenetrationFlat",
+			term: "mpen",
+			label: "Flat Magic Penetration",
+			kindLabel: "Stat",
+			value: { kind: "stat", value: "magicPenetrationFlat" },
+		})
+		expect(describeToken({ kind: "role", role: "TANK" })).toMatchObject({
+			key: "role:TANK",
+			term: "role:tank",
+			kindLabel: "Role",
+			value: { kind: "role", value: "TANK" },
+		})
+		expect(describeToken({ kind: "match", match: "any" })).toMatchObject({
+			key: "match:any",
+			term: "or",
+			kindLabel: "Match",
+			value: { kind: "match", value: "any" },
+		})
 	})
 
-	test("parsing a serialized query gives the same tokens and text back", () => {
-		const query = {
-			tokens: [
-				{ kind: "stat", stat: "abilityPower" },
-				{ kind: "role", role: "MAGE" },
-			] satisfies ShopToken[],
-			freeText: "zhonya",
+	test("every role and match term parses back to its token", () => {
+		const tokens: ShopToken[] = [
+			{ kind: "role", role: "MAGE" },
+			{ kind: "role", role: "SUPPORT" },
+			{ kind: "match", match: "all" },
+			{ kind: "match", match: "any" },
+		]
+		for (const token of tokens) {
+			expect(parseShopQuery(describeToken(token).term).tokens).toEqual([token])
 		}
-		expect(parseShopQuery(serializeShopQuery(query))).toEqual(query)
 	})
+})
 
+describe("token terms", () => {
 	test("every stat's main term parses back to that stat, and no term types two tokens", () => {
 		const terms = shopStats.flatMap(({ aliases }) => aliases)
 		expect(new Set(terms).size).toBe(terms.length)
 		for (const { stat } of shopStats) {
 			const token: ShopToken = { kind: "stat", stat }
-			expect(parseShopQuery(tokenTerm(token)).tokens).toEqual([token])
+			expect(parseShopQuery(describeToken(token).term).tokens).toEqual([token])
 		}
 	})
 })
@@ -278,10 +290,10 @@ describe("the word being typed", () => {
 	})
 
 	test("tokens are named after what they filter", () => {
-		expect(tokenLabel({ kind: "stat", stat: "abilityPower" })).toBe(
+		expect(describeToken({ kind: "stat", stat: "abilityPower" }).label).toBe(
 			"Ability Power",
 		)
-		expect(tokenLabel({ kind: "role", role: "MAGE" })).toBe("Mage")
+		expect(describeToken({ kind: "role", role: "MAGE" }).label).toBe("Mage")
 	})
 })
 

@@ -18,26 +18,15 @@ import {
 	commitShopQuery,
 	filtersFromTokens,
 	type ShopFilters,
-	type ShopToken,
-	suggestShopTokens,
-	tokenKey,
-	tokenLabel,
-	tokensFromFilters,
-	tokenTerm,
-	tokenValue,
-	typedWord,
-	withoutTypedWord,
 } from "../lib/shop-query"
-
-type Suggestion =
-	| {
-			kind: "token"
-			token: ShopToken
-			term: string
-			label: string
-			icon?: string
-	  }
-	| { kind: "item"; item: Item }
+import {
+	pickSuggestions,
+	type Suggestion,
+	shopSuggestions,
+	suggestionKey,
+	suggestionKindLabel,
+	suggestionText,
+} from "../lib/shop-suggestions"
 
 export type ShopSearchChange = { query: string; filters: ShopFilters }
 
@@ -56,8 +45,6 @@ type ShopSearchProps = {
 	onEscape: () => void
 	className?: string
 }
-
-const ITEM_SUGGESTIONS = 4
 
 /**
  * The shop search: free text for item names, plus tokens (`ap`, `role:tank`, `or`) that drive
@@ -79,23 +66,7 @@ export function ShopSearch({
 	const isOpenRef = useRef(false)
 	useSearchShortcut(inputRef)
 
-	const chips = tokensFromFilters(filters).map(tokenSuggestion)
-	const matchToken: ShopToken = { kind: "match", match: filters.match }
-	const suggestions: Suggestion[] = [
-		...suggestShopTokens(typedWord(query), {
-			active: [...chips.map(({ token }) => token), matchToken],
-		}).map(({ token, term, label, icon }) => ({
-			kind: "token" as const,
-			token,
-			term,
-			label,
-			icon,
-		})),
-		...(query.trim() ? items.slice(0, ITEM_SUGGESTIONS) : []).map((item) => ({
-			kind: "item" as const,
-			item,
-		})),
-	]
+	const { chips, suggestions } = shopSuggestions({ query, filters, items })
 	const statChips = chips.filter(({ token }) => token.kind === "stat")
 	const lastStatChip = statChips.at(-1)
 
@@ -119,23 +90,14 @@ export function ShopSearch({
 		next: Suggestion[],
 		{ reason }: { reason: string },
 	) {
-		const chipKeys = new Set(chips.map(suggestionKey))
-		const picked = next.find(
-			(suggestion) => !chipKeys.has(suggestionKey(suggestion)),
-		)
+		const { picked, ...change } = pickSuggestions(next, {
+			chips,
+			query,
+			filters,
+		})
 		if (picked && reason === "item-press") trackPick(picked)
 		if (picked?.kind === "item") onItemPick(picked.item.id)
-		const tokens = next.flatMap((suggestion) =>
-			suggestion.kind === "token" ? [suggestion.token] : [],
-		)
-		const isTokenPicked = tokens.some(
-			(token) =>
-				!chips.some((chip) => tokenKey(chip.token) === tokenKey(token)),
-		)
-		onSearchChange({
-			query: isTokenPicked ? withoutTypedWord(query) : query,
-			filters: filtersFromTokens(tokens, filters),
-		})
+		onSearchChange(change)
 	}
 
 	function trackPick(picked: Suggestion) {
@@ -146,7 +108,7 @@ export function ShopSearch({
 		track("shop_search_suggestion_picked", {
 			...(picked.kind === "item"
 				? { kind: "item", value: picked.item.id }
-				: tokenValue(picked.token)),
+				: picked.value),
 			position,
 		})
 	}
@@ -196,7 +158,7 @@ export function ShopSearch({
 				className={cn("min-h-9 max-lg:min-h-11", className)}
 			>
 				{chips.map((chip) => (
-					<Fragment key={tokenKey(chip.token)}>
+					<Fragment key={chip.key}>
 						<ComboboxChip
 							aria-label={chip.label}
 							removeLabel={`Remove ${chip.label}`}
@@ -258,7 +220,7 @@ function SuggestionRow({ suggestion }: { suggestion: Suggestion }) {
 	return (
 		<ComboboxItem value={suggestion}>
 			<span className="w-10 shrink-0 font-semibold text-[0.6875rem] text-gold">
-				{suggestionKind(suggestion)}
+				{suggestionKindLabel(suggestion)}
 			</span>
 			{suggestion.kind === "item" ? (
 				<>
@@ -286,35 +248,4 @@ function SuggestionRow({ suggestion }: { suggestion: Suggestion }) {
 			)}
 		</ComboboxItem>
 	)
-}
-
-function tokenSuggestion(token: ShopToken) {
-	return {
-		kind: "token" as const,
-		token,
-		term: tokenTerm(token),
-		label: tokenLabel(token),
-	}
-}
-
-function suggestionKind(suggestion: Suggestion) {
-	if (suggestion.kind === "item") return "Item"
-	switch (suggestion.token.kind) {
-		case "stat":
-			return "Stat"
-		case "role":
-			return "Role"
-		case "match":
-			return "Match"
-	}
-}
-
-function suggestionKey(suggestion: Suggestion) {
-	return suggestion.kind === "item"
-		? `item:${suggestion.item.id}`
-		: tokenKey(suggestion.token)
-}
-
-function suggestionText(suggestion: Suggestion) {
-	return suggestion.kind === "item" ? suggestion.item.name : suggestion.label
 }
