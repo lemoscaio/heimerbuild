@@ -49,7 +49,7 @@ export function ComboboxChip({
 			<ComboboxPrimitive.ChipRemove
 				data-slot="combobox-chip-remove"
 				aria-label={removeLabel}
-				className="flex h-full items-center px-1 text-subtle hover:text-white max-lg:px-2"
+				className="flex h-full items-center px-1 text-subtle hover:text-white max-lg:px-1.5"
 			>
 				<XIcon className="pointer-events-none size-3" />
 			</ComboboxPrimitive.ChipRemove>
@@ -65,7 +65,7 @@ export function ComboboxChipsInput({
 		<ComboboxPrimitive.Input
 			data-slot="combobox-chip-input"
 			className={cn(
-				"h-6 min-w-16 flex-1 bg-transparent text-white outline-none placeholder:text-subtle",
+				"h-6 min-w-6 flex-1 bg-transparent text-white outline-none placeholder:text-subtle",
 				className,
 			)}
 			{...props}
