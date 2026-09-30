@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test"
 import perks from "./fixtures/runes/perks.json"
 import perkStyles from "./fixtures/runes/perkstyles.json"
 import runesReforged from "./fixtures/runes/runesReforged.json"
-import { normalizeRunes, parseShardStats } from "./normalize-runes"
+import {
+	fillPlaceholders,
+	normalizeRunes,
+	parseShardStats,
+} from "./normalize-runes"
 
 // Fixtures are trimmed copies of the Data Dragon 16.19.1 / CommunityDragon 16.19 cache.
 const VERSION = "16.19.1"
@@ -43,6 +47,27 @@ describe("normalizeRunes", () => {
 		expect(electrocute?.description).toBe(
 			"Hitting a champion with 3 separate attacks or abilities in 3s deals bonus adaptive damage.",
 		)
+	})
+
+	test("keeps the long description with its numbers as rich text", () => {
+		const bloodline = runes()
+			.trees.flatMap((tree) => tree.rows.flat())
+			.find((rune) => rune.key === "LegendBloodline")
+		expect(bloodline?.longDescription[0]?.[0]).toEqual([
+			{ text: "Gain 0.45% Life Steal for every " },
+			{ text: "Legend", italic: true },
+			{ text: " stack (max 15 stacks). At maximum " },
+			{ text: "Legend", italic: true },
+			{ text: " stacks, gain 85 max health." },
+		])
+	})
+
+	test("fills the placeholders Data Dragon leaves in long descriptions", () => {
+		const text = JSON.stringify(
+			runes().trees.flatMap((tree) => [...tree.keystones, ...tree.rows.flat()]),
+		)
+		expect(text).not.toMatch(/@\w+@/)
+		expect(text).toContain("initial swap cooldown is 270 seconds")
 	})
 
 	test("reads the three shard rows shared by every tree", () => {
@@ -92,6 +117,14 @@ describe("normalizeRunes", () => {
 		expect(() =>
 			normalizeRunes(runesReforged, withoutHealth, perkStyles, VERSION),
 		).toThrow("shard 5011 is missing")
+	})
+})
+
+describe("fillPlaceholders", () => {
+	test("fails on a placeholder it has no value for instead of shipping it", () => {
+		expect(() => fillPlaceholders("Electrocute", "Deals @Damage@.")).toThrow(
+			"unresolved @Damage@",
+		)
 	})
 })
 

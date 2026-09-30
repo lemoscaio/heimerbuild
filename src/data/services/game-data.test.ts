@@ -120,6 +120,7 @@ describe("withRuneIconUrls", () => {
 			name: "Arcane Comet",
 			icon: "perk-images/Styles/Sorcery/ArcaneComet/ArcaneComet.png",
 			description: "",
+			longDescription: [[[{ text: "Hurls a comet." }]]],
 		}
 		const file = withRuneIconUrls({
 			version: "16.19.1",
