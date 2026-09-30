@@ -34,7 +34,9 @@ export function RoleFilter({
 					value={option}
 					size={isVertical ? "default" : "icon"}
 					aria-label={isVertical ? undefined : label}
-					className={cn({ "h-9 justify-start gap-2.5 px-2": isVertical })}
+					className={cn("max-lg:size-11", {
+						"h-9 justify-start gap-2.5 px-2": isVertical,
+					})}
 				>
 					<img
 						src={icon}

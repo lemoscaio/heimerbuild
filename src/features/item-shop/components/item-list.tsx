@@ -8,7 +8,7 @@ export function ItemList({
 	return (
 		<section
 			className={cn(
-				"scrollbar-purple flex h-[40vh] flex-wrap content-start justify-center gap-1.5 overflow-y-auto rounded-md bg-primary-4 p-1.5 lg:h-auto lg:min-h-0 lg:flex-1",
+				"scrollbar-purple flex flex-wrap content-start justify-center gap-1.5 rounded-md bg-primary-4 p-1.5 lg:min-h-0 lg:flex-1 lg:overflow-y-auto",
 				className,
 			)}
 			{...props}

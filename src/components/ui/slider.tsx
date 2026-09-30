@@ -28,7 +28,7 @@ export function Slider<Value extends number | readonly number[]>({
 			thumbAlignment="edge"
 			{...props}
 		>
-			<SliderPrimitive.Control className="relative flex w-full touch-none select-none items-center py-2 data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col data-disabled:opacity-50">
+			<SliderPrimitive.Control className="relative flex w-full touch-none select-none items-center py-2 data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col data-disabled:opacity-50 max-lg:py-4.5">
 				<SliderPrimitive.Track
 					data-slot="slider-track"
 					className="relative grow select-none overflow-hidden rounded-full bg-primary-1 data-horizontal:h-2 data-vertical:h-full data-horizontal:w-full data-vertical:w-2"
@@ -45,7 +45,7 @@ export function Slider<Value extends number | readonly number[]>({
 						key={index}
 						aria-label={ariaLabel}
 						// The focused range input is visually hidden: its thumb shows the focus outline.
-						className="relative block size-4 shrink-0 select-none rounded-full bg-white shadow-black/50 shadow-sm transition-transform after:absolute after:-inset-2 hover:scale-110 has-disabled:pointer-events-none has-disabled:opacity-50 has-focus-visible:outline-2 has-focus-visible:outline-ring has-focus-visible:outline-offset-2"
+						className="relative block size-4 shrink-0 select-none rounded-full bg-white shadow-black/50 shadow-sm transition-transform after:absolute after:-inset-2 hover:scale-110 has-disabled:pointer-events-none has-disabled:opacity-50 has-focus-visible:outline-2 has-focus-visible:outline-ring has-focus-visible:outline-offset-2 max-lg:after:-inset-3.5"
 					/>
 				))}
 			</SliderPrimitive.Control>

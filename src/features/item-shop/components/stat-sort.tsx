@@ -54,7 +54,7 @@ export function StatSort({ sort, onSortChange, className }: StatSortProps) {
 			>
 				<div className="flex items-center gap-1.5">
 					<SelectLabel>Sort by</SelectLabel>
-					<SelectTrigger size="sm" className="w-40">
+					<SelectTrigger size="sm" className="w-40 max-lg:data-[size=sm]:h-11">
 						<SelectValue />
 					</SelectTrigger>
 				</div>
@@ -69,6 +69,7 @@ export function StatSort({ sort, onSortChange, className }: StatSortProps) {
 			<Button
 				type="button"
 				size="sm"
+				className="max-lg:h-11"
 				disabled={!sort}
 				onClick={toggleDirection}
 			>

@@ -28,6 +28,8 @@ type UseBuildOptions = {
 	) => void
 }
 
+export type Build = ReturnType<typeof useBuild>
+
 /** Build state kept in the URL search: champion, level and chosen items, plus their stats. */
 export function useBuild({
 	patch,

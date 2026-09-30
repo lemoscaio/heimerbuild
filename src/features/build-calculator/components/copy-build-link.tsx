@@ -46,7 +46,7 @@ export function CopyBuildLink({
 			<Button
 				type="button"
 				size="lg"
-				className={cn("w-full", { "w-auto px-4": isInline })}
+				className={cn("w-full max-lg:h-11", { "w-auto px-4": isInline })}
 				onClick={handleClick}
 			>
 				Copy link

@@ -35,6 +35,7 @@ export function ItemDetailsCard({
 					type="button"
 					variant="ghost"
 					size="icon-sm"
+					className="max-lg:size-11"
 					aria-label="Close item details"
 					onClick={onClose}
 				>

@@ -34,7 +34,7 @@ export function ItemSearch({
 				placeholder="Search items"
 				aria-label="Search items"
 				aria-keyshortcuts="/"
-				className="border-primary-1 bg-primary-3 pr-8 text-white dark:bg-primary-3"
+				className="border-primary-1 bg-primary-3 pr-8 text-white max-lg:h-11 dark:bg-primary-3"
 				value={query}
 				onChange={(event) => onQueryChange(event.target.value)}
 				onKeyDown={handleKeyDown}
@@ -42,7 +42,7 @@ export function ItemSearch({
 			{!query && (
 				<kbd
 					aria-hidden
-					className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-sm border border-primary-1 px-1.5 font-mono text-subtle text-xs"
+					className="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 rounded-sm border border-primary-1 px-1.5 font-mono text-subtle text-xs max-lg:hidden"
 				>
 					/
 				</kbd>
