@@ -20,39 +20,75 @@ export type ShopFilters = {
 	match: StatMatch
 }
 
-/** A word the search turns into a token, and how the suggestions show it. */
-type TokenTerm = {
+/** Everything the search shows about a token. */
+export type TokenDescription = {
+	/** A stable identity, to compare and key tokens. */
+	key: string
+	/** The term shown for it: the first alias of a stat, `role:<role>`, `and` or `or`. */
 	term: string
+	/** The name of what it filters: "Ability Power", "Mage", "Items with any selected stat". */
 	label: string
+	/** What kind of filter it is, in the suggestions: "Stat", "Role", "Match". */
+	kindLabel: string
 	icon?: string
-	token: ShopToken
+	/** Its kind and raw value for analytics (stat key, role id or match mode), never a label. */
+	value: ShopSearchToken
 }
 
-/** Every word that types a token. A new token kind adds its terms here and a case in `applyToken`. */
-const tokenTerms: readonly TokenTerm[] = [
-	...shopStats.flatMap(({ stat, label, icon, aliases }) =>
-		aliases.map((term) => ({ term, label, icon, token: statToken(stat) })),
+/** The one place that describes a token. A new token kind adds a case here, its terms below and a case in `applyToken`. */
+export function describeToken(token: ShopToken): TokenDescription {
+	switch (token.kind) {
+		case "stat": {
+			const info = shopStats.find(({ stat }) => stat === token.stat)
+			return {
+				key: `stat:${token.stat}`,
+				term: info?.aliases[0] ?? "",
+				label: info?.label ?? "",
+				kindLabel: "Stat",
+				icon: info?.icon,
+				value: { kind: "stat", value: token.stat },
+			}
+		}
+		case "role": {
+			const info = rolesInfo.find(({ role }) => role === token.role)
+			return {
+				key: `role:${token.role}`,
+				term: `role:${token.role.toLowerCase()}`,
+				label: info?.label ?? "",
+				kindLabel: "Role",
+				icon: info?.icon,
+				value: { kind: "role", value: token.role },
+			}
+		}
+		case "match":
+			return {
+				key: `match:${token.match}`,
+				term: token.match === "all" ? "and" : "or",
+				label:
+					token.match === "all"
+						? "Items with every selected stat"
+						: "Items with any selected stat",
+				kindLabel: "Match",
+				value: { kind: "match", value: token.match },
+			}
+	}
+}
+
+/** Every word that types a token, in suggestion order. */
+const tokenTerms: readonly { term: string; token: ShopToken }[] = [
+	...shopStats.flatMap(({ stat, aliases }) =>
+		aliases.map((term) => ({ term, token: statToken(stat) })),
 	),
-	...rolesInfo.flatMap(({ role, label, icon }) =>
+	...rolesInfo.flatMap(({ role }) =>
 		role === "ALL"
 			? []
 			: [`role:${role.toLowerCase()}`, role.toLowerCase()].map((term) => ({
 					term,
-					label,
-					icon,
 					token: { kind: "role" as const, role },
 				})),
 	),
-	{
-		term: "and",
-		label: "Items with every selected stat",
-		token: { kind: "match", match: "all" },
-	},
-	{
-		term: "or",
-		label: "Items with any selected stat",
-		token: { kind: "match", match: "any" },
-	},
+	{ term: "and", token: { kind: "match", match: "all" } },
+	{ term: "or", token: { kind: "match", match: "any" } },
 ]
 
 const termsByWord = new Map(tokenTerms.map((term) => [term.term, term]))
@@ -96,16 +132,6 @@ export function parseShopQuery(
 	return { tokens, freeText: freeWords.join(" ") }
 }
 
-export function serializeShopQuery({
-	tokens,
-	freeText,
-}: {
-	tokens: readonly ShopToken[]
-	freeText: string
-}) {
-	return [...tokens.map(tokenTerm), freeText.trim()].filter(Boolean).join(" ")
-}
-
 type CommitOptions = {
 	/** Also commit the word being typed (Enter, Tab), not only the words a space closed. */
 	includeLastWord?: boolean
@@ -132,40 +158,12 @@ export function commitShopQuery(
 
 /** Tokens as analytics values: stat keys, role ids and the match mode, never display labels. */
 export function searchTokensForAnalytics(filters: ShopFilters) {
-	const tokens: ShopSearchToken[] = tokensFromFilters(filters).map(tokenValue)
+	const tokens: ShopSearchToken[] = tokensFromFilters(filters).map(
+		(token) => describeToken(token).value,
+	)
 	return filters.stats.length
 		? [...tokens, { kind: "match" as const, value: filters.match }]
 		: tokens
-}
-
-/** A token's kind and raw value (stat key, role id or match mode). */
-export function tokenValue(token: ShopToken): ShopSearchToken {
-	switch (token.kind) {
-		case "stat":
-			return { kind: "stat", value: token.stat }
-		case "role":
-			return { kind: "role", value: token.role }
-		case "match":
-			return { kind: "match", value: token.match }
-	}
-}
-
-/** The term shown for a token: the first alias of a stat, `role:<role>`, `and` or `or`. */
-export function tokenTerm(token: ShopToken) {
-	switch (token.kind) {
-		case "stat":
-			return shopStats.find(({ stat }) => stat === token.stat)?.aliases[0] ?? ""
-		case "role":
-			return `role:${token.role.toLowerCase()}`
-		case "match":
-			return token.match === "all" ? "and" : "or"
-	}
-}
-
-/** The name of what a token filters: "Ability Power", "Mage", "Items with any selected stat". */
-export function tokenLabel(token: ShopToken) {
-	const key = tokenKey(token)
-	return tokenTerms.find((term) => tokenKey(term.token) === key)?.label ?? ""
 }
 
 /** The word being typed at the end of the query, or "" right after a space. */
@@ -176,18 +174,6 @@ export function typedWord(query: string) {
 /** The query without the word being typed, once a suggestion has replaced it. */
 export function withoutTypedWord(query: string) {
 	return query.replace(/\S+$/, "")
-}
-
-/** A stable identity for a token, to compare and key them. */
-export function tokenKey(token: ShopToken) {
-	switch (token.kind) {
-		case "stat":
-			return `stat:${token.stat}`
-		case "role":
-			return `role:${token.role}`
-		case "match":
-			return `match:${token.match}`
-	}
 }
 
 /** The tokens that show the filters in the search: the role, then the stats in selection order. */
@@ -227,17 +213,17 @@ export function suggestShopTokens(
 ) {
 	const typed = normalizeTerm(word.trim())
 	if (!typed) return []
-	const seen = new Set(active.map(tokenKey))
-	const suggestions: TokenTerm[] = []
-	for (const term of tokenTerms) {
-		const key = tokenKey(term.token)
+	const seen = new Set(active.map((token) => describeToken(token).key))
+	const suggestions: ({ token: ShopToken } & TokenDescription)[] = []
+	for (const { term, token } of tokenTerms) {
+		const description = describeToken(token)
 		const matches =
-			term.term.startsWith(typed) ||
-			(term.token.kind === "stat" &&
-				normalizeTerm(term.label).startsWith(typed))
-		if (!matches || seen.has(key)) continue
-		seen.add(key)
-		suggestions.push({ ...term, term: tokenTerm(term.token) })
+			term.startsWith(typed) ||
+			(token.kind === "stat" &&
+				normalizeTerm(description.label).startsWith(typed))
+		if (!matches || seen.has(description.key)) continue
+		seen.add(description.key)
+		suggestions.push({ token, ...description })
 		if (suggestions.length === limit) break
 	}
 	return suggestions
