@@ -1,5 +1,6 @@
+import { formatStat } from "@/lib/stat-display"
 import type { ComputedStats } from "@/lib/stats/compute-stats"
-import { championStatRows, formatStat, keyStatRows } from "../lib/stats-info"
+import { championStatRows, keyStatRows } from "../lib/stats-info"
 
 type KeyStatsProps = {
 	stats: ComputedStats

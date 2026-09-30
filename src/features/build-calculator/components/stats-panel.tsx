@@ -1,6 +1,7 @@
+import { statGroups } from "@/lib/stat-display"
 import type { ComputedStats } from "@/lib/stats/compute-stats"
 import { diffStats } from "../lib/diff-stats"
-import { championStatRows, statGroups } from "../lib/stats-info"
+import { championStatRows } from "../lib/stats-info"
 import { StatRow } from "./stat-row"
 
 type StatsPanelProps = {

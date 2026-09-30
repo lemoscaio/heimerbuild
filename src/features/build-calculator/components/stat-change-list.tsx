@@ -1,6 +1,7 @@
+import { formatStat } from "@/lib/stat-display"
 import type { ComputedStats } from "@/lib/stats/compute-stats"
 import { diffStats } from "../lib/diff-stats"
-import { formatStat, statRows } from "../lib/stats-info"
+import { statRows } from "../lib/stats-info"
 
 type StatChangeListProps = {
 	stats: ComputedStats

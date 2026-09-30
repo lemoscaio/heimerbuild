@@ -1,0 +1,175 @@
+import apIcon from "@/assets/stats-icons/ability-power-icon.png"
+import armorIcon from "@/assets/stats-icons/armor-icon.png"
+import armorPenIcon from "@/assets/stats-icons/armor-penetration-icon.png"
+import adIcon from "@/assets/stats-icons/attack-damage-icon.png"
+import attackSpeedIcon from "@/assets/stats-icons/attack-speed-icon.png"
+import abilityHasteIcon from "@/assets/stats-icons/cooldown-reduction-icon.png"
+import critIcon from "@/assets/stats-icons/critical-strike-chance-icon.png"
+import critDamageIcon from "@/assets/stats-icons/critical-strike-damage-icon.png"
+import healAndShieldPowerIcon from "@/assets/stats-icons/heal-and-shield-power-icon.png"
+import healthIcon from "@/assets/stats-icons/heal-power.png"
+import lifeStealIcon from "@/assets/stats-icons/life-steal-icon.png"
+import magicPenIcon from "@/assets/stats-icons/magic-penetration-icon.png"
+import mrIcon from "@/assets/stats-icons/magic-resistance-icon.png"
+import manaIcon from "@/assets/stats-icons/mana-icon.png"
+import manaRegenIcon from "@/assets/stats-icons/mana-regeneration-icon.png"
+import moveSpeedIcon from "@/assets/stats-icons/movement-speed-icon.png"
+import omnivampIcon from "@/assets/stats-icons/omnivamp-icon.png"
+import rangeIcon from "@/assets/stats-icons/range-icon.png"
+import slowResistIcon from "@/assets/stats-icons/slow-immune-icon.png"
+import tenacityIcon from "@/assets/stats-icons/tenacity-icon.png"
+import type { StatKey } from "../../scripts/sync-data/schemas/item"
+import type { StatName } from "./stats/compute-stats"
+
+export type StatGroup = "offense" | "defense" | "utility"
+
+/** The stat panel and the shop's stat rail group stats the same way, in this order. */
+export const statGroups: readonly { group: StatGroup; label: string }[] = [
+	{ group: "offense", label: "Offense" },
+	{ group: "defense", label: "Defense" },
+	{ group: "utility", label: "Utility" },
+]
+
+type StatDisplay = {
+	/** The stat's name in the stats panel, the shop filters and the sort menu. */
+	label: string
+	/** The name on an item's stat line ("+25%" beside it), when it differs from `label`. */
+	itemLabel?: string
+	icon: string
+	group: StatGroup
+}
+
+/** How every stat is shown: item stats (`StatKey`) and computed champion stats (`StatName`). */
+export const statDisplay: Readonly<Record<StatKey | StatName, StatDisplay>> = {
+	attackDamage: { label: "Attack Damage", icon: adIcon, group: "offense" },
+	abilityPower: { label: "Ability Power", icon: apIcon, group: "offense" },
+	health: { label: "Health", icon: healthIcon, group: "defense" },
+	mana: { label: "Mana", icon: manaIcon, group: "utility" },
+	armor: { label: "Armor", icon: armorIcon, group: "defense" },
+	magicResist: { label: "Magic Resistance", icon: mrIcon, group: "defense" },
+	abilityHaste: {
+		label: "Ability Haste",
+		icon: abilityHasteIcon,
+		group: "utility",
+	},
+	lethality: { label: "Lethality", icon: armorPenIcon, group: "offense" },
+	attackRange: { label: "Attack Range", icon: rangeIcon, group: "utility" },
+	healthRegen: {
+		label: "Health Regen",
+		itemLabel: "Health Regen per 5s",
+		icon: healthIcon,
+		group: "defense",
+	},
+	manaRegen: {
+		label: "Mana Regen",
+		itemLabel: "Mana Regen per 5s",
+		icon: manaIcon,
+		group: "utility",
+	},
+	attackSpeed: {
+		label: "Attack Speed",
+		icon: attackSpeedIcon,
+		group: "offense",
+	},
+	attackSpeedPercent: {
+		label: "Attack Speed",
+		icon: attackSpeedIcon,
+		group: "offense",
+	},
+	attackSpeedMultiplicativePercent: {
+		label: "Total Attack Speed",
+		icon: attackSpeedIcon,
+		group: "offense",
+	},
+	critChance: { label: "Critical Strike", icon: critIcon, group: "offense" },
+	critChancePercent: {
+		label: "Critical Strike Chance",
+		icon: critIcon,
+		group: "offense",
+	},
+	critDamagePercent: {
+		label: "Critical Strike Damage",
+		icon: critDamageIcon,
+		group: "offense",
+	},
+	armorPenetrationFlat: {
+		label: "Armor Penetration",
+		icon: armorPenIcon,
+		group: "offense",
+	},
+	armorPenetrationPercent: {
+		label: "Armor Penetration",
+		icon: armorPenIcon,
+		group: "offense",
+	},
+	magicPenetrationFlat: {
+		label: "Flat Magic Penetration",
+		itemLabel: "Magic Penetration",
+		icon: magicPenIcon,
+		group: "offense",
+	},
+	magicPenetrationPercent: {
+		label: "Percent Magic Penetration",
+		itemLabel: "Magic Penetration",
+		icon: magicPenIcon,
+		group: "offense",
+	},
+	movementSpeed: {
+		label: "Movement Speed",
+		icon: moveSpeedIcon,
+		group: "utility",
+	},
+	movementSpeedFlat: {
+		label: "Flat Move Speed",
+		itemLabel: "Move Speed",
+		icon: moveSpeedIcon,
+		group: "utility",
+	},
+	movementSpeedPercent: {
+		label: "Percent Move Speed",
+		itemLabel: "Move Speed",
+		icon: moveSpeedIcon,
+		group: "utility",
+	},
+	lifeStealPercent: {
+		label: "Life Steal",
+		icon: lifeStealIcon,
+		group: "offense",
+	},
+	omnivampPercent: { label: "Omnivamp", icon: omnivampIcon, group: "offense" },
+	tenacityPercent: { label: "Tenacity", icon: tenacityIcon, group: "defense" },
+	slowResistPercent: {
+		label: "Slow Resist",
+		icon: slowResistIcon,
+		group: "utility",
+	},
+	healAndShieldPowerPercent: {
+		label: "Heal and Shield Power",
+		icon: healAndShieldPowerIcon,
+		group: "defense",
+	},
+	baseHealthRegenPercent: {
+		label: "Base Health Regen",
+		icon: healthIcon,
+		group: "defense",
+	},
+	baseManaRegenPercent: {
+		label: "Base Mana Regen",
+		icon: manaRegenIcon,
+		group: "utility",
+	},
+	cooldownPercent: {
+		label: "Cooldowns",
+		icon: abilityHasteIcon,
+		group: "utility",
+	},
+}
+
+export type StatFormat = "flat" | "percent" | "attackSpeed"
+
+/** Attack speed is attacks per second (no unit); percent stats are stored as fractions. */
+export function formatStat(value: number, format: StatFormat = "flat") {
+	if (format === "percent") return `${Number((value * 100).toFixed(1))}%`
+	if (format === "attackSpeed") return value.toFixed(3)
+	return String(Number(value.toFixed(2)))
+}
