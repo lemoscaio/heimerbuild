@@ -21,8 +21,11 @@ export type AnalyticsEvents = {
 		stats: StatKey[]
 		match: "all" | "any"
 	}
-	/** Debounced shop search; only the query length is sent, never the text. */
-	shop_searched: { queryLength: number }
+	/**
+	 * Debounced shop search; only lengths and counts are sent, never the text.
+	 * `queryLength`: the free text; `tokens`: the filter tokens (role and stats) in the search.
+	 */
+	shop_searched: { queryLength: number; tokens: number }
 	/** `null` stat and direction: back to the shop's own order. */
 	shop_sorted: { stat: StatKey | null; direction: "asc" | "desc" | null }
 	/** A shop view setting changed; the active view also rides on every event (`AnalyticsContext`). */
