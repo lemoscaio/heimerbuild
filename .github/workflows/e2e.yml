@@ -50,7 +50,6 @@ jobs:
           else
             install=(bunx playwright install --with-deps chromium)
           fi
-          install=(sleep 900) # DEMO: simulate a hung install; reverted in the next commit
           for attempt in 1 2; do
             timeout --kill-after=15s 4m "${install[@]}" && exit 0
             echo "::warning::Chromium install attempt $attempt failed (exit $?)"
