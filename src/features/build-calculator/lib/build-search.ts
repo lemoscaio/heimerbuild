@@ -1,4 +1,5 @@
 import * as z from "zod/mini"
+import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { MAX_ITEMS } from "./build-items"
 
@@ -35,6 +36,11 @@ export const buildSearchSchema = z.object({
 	),
 	/** Page layout: the expanded shop; absent means the overview. */
 	view: z.catch(z.optional(z.literal("shop")), undefined),
+	/** Rune page in the compact form of `serializeRuneSelection`; checked against the data later. */
+	runes: z.catch(
+		z.optional(z.string().check(z.regex(RUNES_PARAM_PATTERN))),
+		undefined,
+	),
 })
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
@@ -46,19 +52,23 @@ export type BuildState = {
 	itemIds: readonly string[]
 	patch: string | undefined
 	view?: BuildView
+	/** `serializeRuneSelection` output; `undefined` for no runes. */
+	runes?: string
 }
 
-/** The URL search for a build. Defaults (level 1, no items, overview) stay out of the URL. */
+/** The URL search for a build. Defaults (level 1, no items, overview, no runes) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
 	patch,
 	view,
+	runes,
 }: BuildState): BuildSearch {
 	return {
 		lvl: level === MIN_LEVEL ? undefined : level,
 		items: itemIds.length ? [...itemIds] : undefined,
 		patch,
 		view: view === "shop" ? view : undefined,
+		runes,
 	}
 }

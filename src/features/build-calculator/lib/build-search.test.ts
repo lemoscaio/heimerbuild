@@ -52,6 +52,14 @@ describe("buildSearchSchema", () => {
 		expect(parse({ view: 1 }).view).toBeUndefined()
 	})
 
+	test("accepts a rune page in its compact form and drops anything else", () => {
+		const runes = "8200-8229-8226-8210-8237_8300-8304-8347_5008-5008-5011"
+		expect(parse({ runes }).runes).toBe(runes)
+		expect(parse({ runes: "8200" }).runes).toBeUndefined()
+		expect(parse({ runes: 8200 }).runes).toBeUndefined()
+		expect(parse({ runes: "<script>_x_y" }).runes).toBeUndefined()
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,

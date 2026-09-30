@@ -133,7 +133,9 @@
 											"**/champions",
 											"**/champions/**",
 											"**/item-shop",
-											"**/item-shop/**"
+											"**/item-shop/**",
+											"**/runes",
+											"**/runes/**"
 										],
 										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
 									}
@@ -160,7 +162,9 @@
 											"**/build-calculator",
 											"**/build-calculator/**",
 											"**/item-shop",
-											"**/item-shop/**"
+											"**/item-shop/**",
+											"**/runes",
+											"**/runes/**"
 										],
 										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
 									}
@@ -187,7 +191,38 @@
 											"**/build-calculator",
 											"**/build-calculator/**",
 											"**/champions",
-											"**/champions/**"
+											"**/champions/**",
+											"**/runes",
+											"**/runes/**"
+										],
+										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/features/runes/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": [
+											"@/features/*/**",
+											"!@/features/runes/**",
+											"**/build-calculator",
+											"**/build-calculator/**",
+											"**/champions",
+											"**/champions/**",
+											"**/item-shop",
+											"**/item-shop/**"
 										],
 										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
 									}
