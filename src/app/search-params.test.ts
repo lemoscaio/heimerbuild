@@ -19,6 +19,16 @@ describe("stringifySearch", () => {
 		).toEqual(build)
 	})
 
+	test("round-trips a rune page without quoting it", () => {
+		const build = {
+			items: ["3089"],
+			runes: "8200-8229-8226-8210-8237_8300-8304-8347_5008-5008-5011",
+		}
+		const search = stringifySearch(build)
+		expect(search).toContain(`runes=${build.runes}`)
+		expect(buildSearchSchema.parse(defaultParseSearch(search))).toEqual(build)
+	})
+
 	test("round-trips a single item", () => {
 		const build = { items: ["3089"] }
 		expect(

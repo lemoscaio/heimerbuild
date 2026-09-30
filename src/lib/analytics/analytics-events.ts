@@ -54,7 +54,26 @@ export type AnalyticsEvents = {
 		from: ShopGrouping
 		to: ShopGrouping
 	}
-	build_link_copied: { champion: string; level: number; itemsCount: number }
+	/** A choice on the rune page; `id` is the tree, rune or stat shard id. */
+	rune_picked: {
+		slot:
+			| "primary_tree"
+			| "keystone"
+			| "primary_rune"
+			| "secondary_tree"
+			| "secondary_rune"
+			| "shard"
+		id: number
+	}
+	/** The rune page was reset to empty. */
+	runes_reset: Record<string, never>
+	build_link_copied: {
+		champion: string
+		level: number
+		itemsCount: number
+		/** Whether the link carries at least one rune choice. */
+		hasRunes: boolean
+	}
 	/** The "Not possible in-game" warning appeared or changed; `rules` are the broken item groups. */
 	impossible_build_warning_shown: { rules: string[] }
 }

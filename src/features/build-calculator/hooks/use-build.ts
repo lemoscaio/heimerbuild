@@ -1,9 +1,18 @@
 import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
+import { useRunes } from "@/data/hooks/use-runes"
 import { track } from "@/lib/analytics/analytics"
-import { computeStats } from "@/lib/stats/compute-stats"
+import {
+	EMPTY_RUNE_SELECTION,
+	parseRuneSelection,
+	type RuneSelection,
+	selectedShards,
+	serializeRuneSelection,
+} from "@/lib/rune-selection"
+import { computeStats, type ItemInput } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
+import { shardStatsInput } from "@/lib/stats/rune-shards"
 import {
 	addItemId,
 	knownItemIds,
@@ -30,7 +39,7 @@ type UseBuildOptions = {
 
 export type Build = ReturnType<typeof useBuild>
 
-/** Build state kept in the URL search: champion, level and chosen items, plus their stats. */
+/** Build state kept in the URL search: champion, level, items and runes, plus their stats. */
 export function useBuild({
 	patch,
 	championKey,
@@ -50,15 +59,35 @@ export function useBuild({
 		? knownItemIds(search.items, itemsById)
 		: (search.items ?? [])
 	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
-	const stats = champion && computeStats(champion, level, items)
+	const { data: runesFile } = useRunes(patch)
+	const runeSelection = runesFile
+		? parseRuneSelection(search.runes, runesFile)
+		: EMPTY_RUNE_SELECTION
+	// Until the runes load, keep the link's value so other edits do not drop it.
+	const runes = runesFile ? serializeRuneSelection(runeSelection) : search.runes
+	const shards = runesFile ? selectedShards(runeSelection, runesFile) : []
+
+	/** Stats of `buildItems` plus the chosen stat shards (Adaptive Force depends on the items). */
+	function statsWith(buildItems: readonly ItemInput[]) {
+		if (!champion) return undefined
+		const shardInput = shardStatsInput(shards, {
+			level,
+			defaultAdaptiveType: champion.adaptiveType,
+			items: buildItems,
+		})
+		return computeStats(champion, level, [...buildItems, shardInput])
+	}
+
+	const stats = statsWith(items)
+	const statsWithoutRunes = champion && computeStats(champion, level, items)
 	const selectedItem = selectedItemId ? itemsById?.[selectedItemId] : undefined
+	const selectedItemStats = selectedItem && statsWith([...items, selectedItem])
 	const preview =
-		champion && selectedItem
-			? {
-					itemName: selectedItem.name,
-					stats: computeStats(champion, level, [...items, selectedItem]),
-				}
+		selectedItem && selectedItemStats
+			? { label: selectedItem.name, stats: selectedItemStats }
 			: undefined
+	const runesPreview =
+		shards.length && stats ? { label: "stat shards", stats } : undefined
 	const isFull = itemIds.length >= MAX_ITEMS
 
 	// Edits keep the link's own patch: changing it would reload the route mid-edit.
@@ -68,7 +97,7 @@ export function useBuild({
 		navigation: { replace: boolean },
 	) {
 		onSearchChange(
-			toBuildSearch({ ...next, patch: search.patch, view }),
+			toBuildSearch({ ...next, patch: search.patch, view, runes }),
 			navigation,
 		)
 		recordRecentBuild({
@@ -105,8 +134,28 @@ export function useBuild({
 
 	function setView(nextView: BuildView) {
 		onSearchChange(
-			toBuildSearch({ level, itemIds, patch: search.patch, view: nextView }),
+			toBuildSearch({
+				level,
+				itemIds,
+				patch: search.patch,
+				view: nextView,
+				runes,
+			}),
 			{ replace: false },
+		)
+	}
+
+	// Each pick replaces the history entry, like the level: Back leaves the page, not one rune.
+	function setRunes(nextSelection: RuneSelection) {
+		onSearchChange(
+			toBuildSearch({
+				level,
+				itemIds,
+				patch: search.patch,
+				view,
+				runes: serializeRuneSelection(nextSelection),
+			}),
+			{ replace: true },
 		)
 	}
 
@@ -145,10 +194,18 @@ export function useBuild({
 		selectedItem,
 		selectItem,
 		clearSelection: () => setSelectedItemId(undefined),
+		/** The rune page read from the URL, checked against this patch's runes. */
+		runeSelection,
+		setRunes,
+		/** Totals with items and stat shards. */
 		stats,
+		/** Totals without the stat shards: the base of the runes preview. */
+		statsWithoutRunes,
 		/** The stats with the selected item added, while one is selected. */
 		preview,
+		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
+		runesPreview,
 		/** The full build for sharing, pinned to the patch in use. */
-		shareSearch: toBuildSearch({ level, itemIds, patch, view }),
+		shareSearch: toBuildSearch({ level, itemIds, patch, view, runes }),
 	}
 }
