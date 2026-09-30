@@ -138,7 +138,7 @@ describe("keyStatRows", () => {
 		"magicResist",
 		"attackSpeed",
 		"movementSpeed",
-	]
+	] as const
 
 	test.each(["MANA", "ENERGY"])(
 		"a %s champion ends with its resource",
