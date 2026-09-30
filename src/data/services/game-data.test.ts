@@ -5,6 +5,7 @@ import {
 	fetchGameData,
 	GameDataUnavailableError,
 	toItemsById,
+	withRuneIconUrls,
 } from "./game-data"
 
 const MANIFEST = {
@@ -108,5 +109,48 @@ describe("toItemsById", () => {
 				icon: "https://ddragon.leagueoflegends.com/cdn/16.19.1/img/item/1036.png",
 			},
 		})
+	})
+})
+
+describe("withRuneIconUrls", () => {
+	test("points tree, rune and shard icons at the Data Dragon image folder", () => {
+		const rune = {
+			id: 8229,
+			key: "ArcaneComet",
+			name: "Arcane Comet",
+			icon: "perk-images/Styles/Sorcery/ArcaneComet/ArcaneComet.png",
+			description: "",
+		}
+		const file = withRuneIconUrls({
+			version: "16.19.1",
+			trees: [
+				{
+					id: 8200,
+					key: "Sorcery",
+					name: "Sorcery",
+					icon: "perk-images/Styles/7202_Sorcery.png",
+					keystones: [rune],
+					rows: [[rune], [rune], [rune]],
+				},
+			],
+			shards: [
+				{
+					id: 5008,
+					name: "Adaptive Force",
+					icon: "perk-images/StatMods/StatModsAdaptiveForceIcon.png",
+					description: "+9 Adaptive Force",
+					stats: [{ stat: "adaptiveForce", min: 9, max: 9 }],
+				},
+			],
+			shardRows: [],
+		})
+		const base = "https://ddragon.leagueoflegends.com/cdn/img"
+		expect(file.trees[0]?.icon).toBe(
+			`${base}/perk-images/Styles/7202_Sorcery.png`,
+		)
+		expect(file.trees[0]?.rows[2]?.[0]?.icon).toBe(`${base}/${rune.icon}`)
+		expect(file.shards[0]?.icon).toBe(
+			`${base}/perk-images/StatMods/StatModsAdaptiveForceIcon.png`,
+		)
 	})
 })

@@ -12,6 +12,10 @@ import {
 	type DataManifest,
 	dataManifestSchema,
 } from "../../../scripts/sync-data/schemas/manifest"
+import {
+	type RunesFile,
+	runesFileSchema,
+} from "../../../scripts/sync-data/schemas/rune"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
 
@@ -100,6 +104,39 @@ export async function fetchItems(
 		await fetchGameData(
 			dataFileUrl([patch, "items.json"], files),
 			ItemsFileSchema,
+		),
+	)
+}
+
+/** Rune icons live outside the patch folders of Data Dragon. */
+const DDRAGON_RUNE_IMAGES = `${DDRAGON_CDN}/img`
+
+/** Turns every rune and shard `icon` path into a full Data Dragon URL. */
+export function withRuneIconUrls(file: RunesFile): RunesFile {
+	const url = (icon: string) => `${DDRAGON_RUNE_IMAGES}/${icon}`
+	const withUrl = <T extends { icon: string }>(entry: T): T => ({
+		...entry,
+		icon: url(entry.icon),
+	})
+	return {
+		...file,
+		trees: file.trees.map((tree) => ({
+			...withUrl(tree),
+			keystones: tree.keystones.map(withUrl),
+			rows: tree.rows.map((row) => row.map(withUrl)),
+		})),
+		shards: file.shards.map(withUrl),
+	}
+}
+
+export async function fetchRunes(
+	patch: string,
+	files: DataFileHashes,
+): Promise<RunesFile> {
+	return withRuneIconUrls(
+		await fetchGameData(
+			dataFileUrl([patch, "runes.json"], files),
+			runesFileSchema,
 		),
 	)
 }
