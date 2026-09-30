@@ -65,6 +65,26 @@ export const ITEM_OVERRIDES: readonly ItemOverride[] = [
 		source: "https://wiki.leagueoflegends.com/en-us/Stormsurge",
 		apply: (tags) => tags.filter((tag) => tag !== "GoldPer"),
 	}),
+	defineItemOverride({
+		id: "tear-of-the-goddess-lane-tag",
+		itemId: "3070",
+		field: "tags",
+		since: "16.19",
+		reason:
+			"Riot gives it no Lane tag, but the in-game shop lists it as a Starter, like Dark Seal, Cull and the Doran's items, which all carry Lane",
+		source: "https://wiki.leagueoflegends.com/en-us/Tear_of_the_Goddess",
+		apply: (tags) => (tags.includes("Lane") ? tags : [...tags, "Lane"]),
+	}),
+	defineItemOverride({
+		id: "long-sword-no-lane-tag",
+		itemId: "1036",
+		field: "tags",
+		since: "16.19",
+		reason:
+			"Riot tags it Lane, the tag that marks Starter items, but the in-game shop lists it as a Basic component, like Pickaxe and Dagger",
+		source: "https://wiki.leagueoflegends.com/en-us/Long_Sword",
+		apply: (tags) => tags.filter((tag) => tag !== "Lane"),
+	}),
 	...SUPPORT_QUEST_REWARDS.map(([itemId, name]) =>
 		defineItemOverride({
 			id: `${name}-support-role`,
