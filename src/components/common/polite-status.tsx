@@ -7,12 +7,12 @@ type PoliteStatusProps = {
 	message: string
 }
 
-/** A screen-reader-only polite status region, such as a result count. */
+/** A screen-reader-only polite live region, such as a result count. */
 export function PoliteStatus({ message }: PoliteStatusProps) {
 	const settledMessage = useDebouncedValue(message, SETTLE_DELAY_MS)
 
 	return (
-		<span role="status" className="sr-only">
+		<span aria-live="polite" aria-atomic="true" className="sr-only">
 			{settledMessage}
 		</span>
 	)
