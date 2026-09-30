@@ -15,6 +15,7 @@ import { MobileChampionRow } from "@/features/build-calculator/components/mobile
 import { MobileLayout } from "@/features/build-calculator/components/mobile-layout"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
 import { RunesPlaceholder } from "@/features/build-calculator/components/runes-placeholder"
+import { ShopViewIconToggle } from "@/features/build-calculator/components/shop-view-icon-toggle"
 import { ShopViewToggle } from "@/features/build-calculator/components/shop-view-toggle"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { StatsPanelSkeleton } from "@/features/build-calculator/components/stats-panel-skeleton"
@@ -173,11 +174,7 @@ function DesktopChampionPage({
 					patch={patch}
 					layout={isShopView ? "expanded" : "compact"}
 					actions={
-						<ShopViewToggle
-							className="max-lg:hidden"
-							view={view}
-							onViewChange={build.setView}
-						/>
+						<ShopViewIconToggle view={view} onViewChange={build.setView} />
 					}
 					selectedItemId={build.selectedItem?.id}
 					onItemSelect={build.selectItem}

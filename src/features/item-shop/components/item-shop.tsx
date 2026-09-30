@@ -20,22 +20,21 @@ import {
 } from "../lib/filter-items-by-stats"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
 import type { ItemPickProps } from "../types/item-pick"
+import { GroupingMenu } from "./grouping-menu"
 import { ItemGrid } from "./item-grid"
 import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
 import { ItemSearch } from "./item-search"
 import { RoleFilter } from "./role-filter"
-import { ShopGroupingSelect } from "./shop-grouping-select"
-import { StatChecklist } from "./stat-checklist"
-import { StatFilter } from "./stat-filter"
+import { SortMenu } from "./sort-menu"
 import { StatMatchToggle } from "./stat-match-toggle"
-import { StatSort } from "./stat-sort"
+import { StatRail } from "./stat-rail"
 
 type ItemShopProps = {
 	patch: string
-	/** `expanded`: filters in a side rail and bigger tiles. */
+	/** `expanded`: the full-width shop, with bigger tiles. */
 	layout?: "compact" | "expanded"
-	/** Shown at the end of the title row, such as the switch to the expanded shop. */
+	/** Icon buttons after the sort and view menus, such as the switch to the expanded shop. */
 	actions?: React.ReactNode
 } & ItemPickProps
 
@@ -107,116 +106,89 @@ export function ItemShop({
 	}
 
 	const isExpanded = layout === "expanded"
-	const groupingSelect = (
-		<ShopGroupingSelect grouping={grouping} onGroupingChange={setGrouping} />
-	)
-	const search = (
-		<ItemSearch
-			className={cn("min-w-40 max-w-none flex-1", {
-				"max-[90rem]:basis-full": !isExpanded,
-			})}
-			query={query}
-			onQueryChange={handleQueryChange}
-			onEscape={handleSearchEscape}
-		/>
-	)
-	const results = (
-		<ItemList
-			ref={listRef}
-			aria-label="Item shop"
-			className={cn({ "lg:bg-transparent lg:p-0": isExpanded })}
-		>
-			<ItemGrid
-				items={items}
-				grouping={grouping}
-				tileSize={isExpanded ? "lg" : "md"}
-				{...pickProps}
-			/>
-			{itemsQuery.isSuccess && !items.length && (
-				<p className="w-full p-5 text-center text-white">
-					No items match these filters.
-				</p>
-			)}
-			{itemsQuery.isPending && (
-				<>
-					<span className="sr-only" role="status">
-						Loading items
-					</span>
-					<ItemGridSkeleton />
-				</>
-			)}
-			{itemsQuery.isError && (
-				<LoadError className="pb-8" onRetry={() => itemsQuery.refetch()}>
-					Could not load the items. Check your connection.
-				</LoadError>
-			)}
-		</ItemList>
-	)
-
-	if (isExpanded) {
-		return (
-			<div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
-				<div className="scrollbar-purple flex flex-col gap-5 border-primary-2 bg-primary-3 p-4 lg:overflow-y-auto lg:border-r lg:p-5">
-					<div className="flex flex-col gap-1.5">
-						<h3 className="font-semibold text-gold text-xs uppercase tracking-widest">
-							Role
-						</h3>
-						<RoleFilter
-							orientation="vertical"
-							role={role}
-							onRoleChange={handleRoleChange}
-						/>
-					</div>
-					<StatChecklist stats={stats} onStatsChange={handleStatsChange}>
-						<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
-					</StatChecklist>
-				</div>
-				<div className="flex min-h-0 flex-col gap-4 p-4 lg:p-5">
-					<div className="flex flex-col gap-2.5">
-						<div className="flex items-center gap-3">
-							<ShopTitle className="shrink-0 text-lg" />
-							{search}
-							{actions}
-						</div>
-						<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-							<StatSort
-								className="p-0"
-								sort={sort}
-								onSortChange={handleSortChange}
-							/>
-							{groupingSelect}
-						</div>
-					</div>
-					{results}
-				</div>
-			</div>
-		)
-	}
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col">
-			<div className="flex items-center justify-between gap-3 pb-1 max-lg:hidden">
-				<ShopTitle />
-				{actions}
+		<div
+			className={cn(
+				"@container grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto_minmax(0,1fr)] gap-x-3 gap-y-2 [grid-template-areas:'roles_roles_roles''rail_search_actions''rail_items_items'] lg:[grid-template-areas:'roles_roles_actions''rail_search_search''rail_items_items']",
+				{ "p-4 lg:gap-x-5 lg:px-5 lg:pt-3": isExpanded },
+			)}
+		>
+			<div className="flex min-w-0 items-center gap-3 [grid-area:roles]">
+				<ShopTitle className="@max-4xl:sr-only shrink-0" />
+				<RoleFilter role={role} onRoleChange={handleRoleChange} />
 			</div>
-			<RoleFilter role={role} onRoleChange={handleRoleChange} />
-			<div className="flex items-center justify-center gap-2 px-2.5 pb-2">
-				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
-				{/* A fixed 12-column grid (12 + 11 icons); it scrolls sideways when narrower. */}
-				<div className="scrollbar-purple min-w-0 overflow-x-auto">
-					<StatFilter stats={stats} onStatsChange={handleStatsChange} />
-				</div>
-			</div>
-			<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2.5 pb-2 max-lg:order-first min-[90rem]:flex-nowrap">
-				{search}
-				<StatSort
-					className="shrink-0 flex-nowrap p-0"
+			<div className="flex items-center gap-1.5 self-center [grid-area:actions]">
+				<SortMenu
+					className="max-lg:size-11"
 					sort={sort}
 					onSortChange={handleSortChange}
 				/>
-				{groupingSelect}
+				<GroupingMenu
+					className="max-lg:size-11"
+					grouping={grouping}
+					onGroupingChange={setGrouping}
+				/>
+				{actions}
 			</div>
-			{results}
+			<StatRail
+				className={cn(
+					"scrollbar-purple [grid-area:rail] max-lg:sticky max-lg:top-[calc(var(--spacing-header)+--spacing(2))] max-lg:max-h-[calc(100dvh-var(--spacing-header)-8rem)] max-lg:self-start max-lg:overflow-y-auto lg:min-h-0 lg:overflow-y-auto",
+					{ "lg:border-primary-2 lg:border-r lg:pr-3": isExpanded },
+				)}
+				stats={stats}
+				onStatsChange={handleStatsChange}
+			>
+				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
+			</StatRail>
+			<div className="flex min-w-0 items-center gap-3 [grid-area:search]">
+				<ItemSearch
+					className="min-w-0 max-w-none flex-1"
+					query={query}
+					onQueryChange={handleQueryChange}
+					onEscape={handleSearchEscape}
+				/>
+				{itemsQuery.isSuccess && (
+					<p
+						aria-live="polite"
+						className="shrink-0 text-subtle text-xs max-lg:sr-only"
+					>
+						{items.length} {items.length === 1 ? "item" : "items"}
+					</p>
+				)}
+			</div>
+			<ItemList
+				ref={listRef}
+				aria-label="Item shop"
+				className={cn("[grid-area:items]", {
+					"lg:bg-transparent lg:p-0": isExpanded,
+				})}
+			>
+				<ItemGrid
+					items={items}
+					grouping={grouping}
+					tileSize={isExpanded ? "lg" : "md"}
+					{...pickProps}
+				/>
+				{itemsQuery.isSuccess && !items.length && (
+					<p className="w-full p-5 text-center text-white">
+						No items match these filters.
+					</p>
+				)}
+				{itemsQuery.isPending && (
+					<>
+						<span className="sr-only" role="status">
+							Loading items
+						</span>
+						<ItemGridSkeleton />
+					</>
+				)}
+				{itemsQuery.isError && (
+					<LoadError className="pb-8" onRetry={() => itemsQuery.refetch()}>
+						Could not load the items. Check your connection.
+					</LoadError>
+				)}
+			</ItemList>
 		</div>
 	)
 }

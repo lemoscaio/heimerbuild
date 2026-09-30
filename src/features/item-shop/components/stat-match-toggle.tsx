@@ -22,7 +22,7 @@ export function StatMatchToggle({
 	return (
 		<ToggleGroup
 			aria-label="Match selected stats"
-			className="shrink-0 gap-0 rounded-sm border border-primary-1 p-0.5"
+			className="grid grid-cols-2 gap-0 rounded-sm border border-primary-1 p-0.5 max-lg:grid-cols-1"
 			value={[match]}
 			// Pressing the selected mode again would leave none: one mode is always selected.
 			onValueChange={([next]) => next && onMatchChange(next)}
@@ -32,7 +32,7 @@ export function StatMatchToggle({
 					key={option}
 					value={option}
 					title={title}
-					className="h-6 min-w-0 px-2 font-display font-semibold text-white text-xs max-lg:h-11 max-lg:min-w-11 max-lg:px-3"
+					className="h-6 min-w-0 px-0 font-display font-semibold text-white text-xs max-lg:h-11 max-lg:w-11"
 				>
 					{label}
 				</ToggleGroupItem>
