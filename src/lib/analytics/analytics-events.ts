@@ -2,6 +2,12 @@ import type { ShopGrouping, ShopMode } from "@/types/shop-view"
 import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
 import type { StatKey } from "../../../scripts/sync-data/schemas/item"
 
+/** A shop search token: `value` is the stat key, the role id or the match mode (`all` / `any`). */
+export type ShopSearchToken = {
+	kind: "stat" | "role" | "match"
+	value: string
+}
+
 /** Every custom PostHog event and its properties. Add an event here before tracking it. */
 export type AnalyticsEvents = {
 	/** A champion card was clicked on the home page. `champion` is the champion key. */
@@ -22,10 +28,24 @@ export type AnalyticsEvents = {
 		match: "all" | "any"
 	}
 	/**
-	 * Debounced shop search; only lengths and counts are sent, never the text.
-	 * `queryLength`: the free text; `tokens`: the filter tokens (role and stats) in the search.
+	 * Debounced shop search. `query`: the free text, trimmed, lowercased and cut to 50 characters;
+	 * `tokens`: the filters in the search (role, stats, and the match mode when a stat is set);
+	 * `results`: items shown after the search.
 	 */
-	shop_searched: { queryLength: number; tokens: number }
+	shop_searched: {
+		query: string
+		queryLength: number
+		tokens: ShopSearchToken[]
+		results: number
+		zeroResults: boolean
+	}
+	/** A shop search suggestion was picked; `position` is 1-based in the suggestion list. */
+	shop_search_suggestion_picked: {
+		kind: ShopSearchToken["kind"] | "item"
+		/** The stat key, role id, match mode (`all` / `any`) or item id. */
+		value: string
+		position: number
+	}
 	/** `null` stat and direction: back to the shop's own order. */
 	shop_sorted: { stat: StatKey | null; direction: "asc" | "desc" | null }
 	/** A shop view setting changed; the active view also rides on every event (`AnalyticsContext`). */
