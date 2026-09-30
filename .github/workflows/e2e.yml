@@ -2,9 +2,6 @@ name: E2E
 
 on:
   pull_request:
-  # Runs on main only to save the browser cache, which PR runs can restore but not share.
-  push:
-    branches: [main]
 
 permissions:
   contents: read
@@ -16,37 +13,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  e2e:
-    name: e2e
+  # Runs on the host runner: the Playwright image has no gh or jq for find-preview-url.sh.
+  prepare:
+    name: e2e prepare
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
+    outputs:
+      playwright: ${{ steps.playwright.outputs.version }}
+      url: ${{ steps.preview.outputs.url }}
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
         with:
-          bun-version-file: package.json
-      - run: bun install --frozen-lockfile
+          sparse-checkout: |
+            .github/scripts
+            bun.lock
+          sparse-checkout-cone-mode: false
       - name: Resolve the Playwright version
         id: playwright
         run: |
           version=$(grep -oE '"@playwright/test@[^"]+"' bun.lock | head -n 1 | tr -d '"' | cut -d @ -f 3)
           test -n "$version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Cache the Playwright browsers
-        id: browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      # A stuck apt mirror once hung this step until the 25-minute job timeout (PR 168):
-      # each attempt now times out on its own and retries once.
-      - name: Install Chromium
-        timeout-minutes: 10
-        env:
-          CACHE_HIT: ${{ steps.browsers.outputs.cache-hit }}
-        run: bash .github/scripts/install-chromium.sh
       - name: Wait for the Cloudflare preview
-        if: github.event_name == 'pull_request'
         id: preview
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,14 +42,30 @@ jobs:
           SHA: ${{ github.event.pull_request.head.sha }}
           PR: ${{ github.event.pull_request.number }}
         run: bash .github/scripts/find-preview-url.sh
+
+  e2e:
+    name: e2e
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The image ships the browsers and their OS deps, so nothing comes from apt. Its tag is
+    # read from bun.lock, so it always matches @playwright/test.
+    container:
+      image: mcr.microsoft.com/playwright:v${{ needs.prepare.outputs.playwright }}-noble
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v7
+      # oven-sh/setup-bun needs unzip, which the image lacks; npm ships the same binary.
+      - name: Install Bun
+        run: npm install -g --no-fund --no-audit "bun@$(node -p 'require("./package.json").packageManager.split("@")[1]')"
+      - run: bun install --frozen-lockfile
       # Without BASE_URL, playwright.config.ts runs `bun run build && bun run preview:local`.
       - name: Run the flows
-        if: github.event_name == 'pull_request'
         env:
-          BASE_URL: ${{ steps.preview.outputs.url }}
+          BASE_URL: ${{ needs.prepare.outputs.url }}
         run: bun run e2e
       - name: Upload the Playwright trace
-        if: failure() && github.event_name == 'pull_request'
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-trace
