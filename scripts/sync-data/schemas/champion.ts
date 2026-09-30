@@ -71,6 +71,8 @@ export const championSchema = z.strictObject({
 	lore: z.string().check(z.minLength(1)),
 	attackType: z.enum(["melee", "ranged"]),
 	resource: z.string().check(z.regex(/^[A-Z_]+$/)),
+	/** What Adaptive Force becomes when bonus AD and AP are equal (CommunityDragon `mAdaptiveForceToAbilityPowerWeight`). */
+	adaptiveType: z.enum(["ad", "ap"]),
 	stats: championStatsSchema,
 })
 

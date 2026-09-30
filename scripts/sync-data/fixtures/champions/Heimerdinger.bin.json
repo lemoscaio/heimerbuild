@@ -18,6 +18,7 @@
 			"__type": "ModifiableFloat"
 		},
 		"purchaseIdentities": ["Ranged"],
-		"__type": "CharacterRecord"
+		"__type": "CharacterRecord",
+		"mAdaptiveForceToAbilityPowerWeight": 1.0
 	}
 }

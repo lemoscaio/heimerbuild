@@ -71,6 +71,7 @@ describe("normalizeChampion", () => {
 				roles: ["MAGE", "SUPPORT"],
 				attackType: "ranged",
 				resource: "MANA",
+				adaptiveType: "ap",
 			},
 			stats: {
 				health: { base: 558, perLevel: 105 },
@@ -96,6 +97,7 @@ describe("normalizeChampion", () => {
 				roles: ["FIGHTER", "TANK"],
 				attackType: "melee",
 				resource: "NONE",
+				adaptiveType: "ad",
 			},
 			stats: {
 				health: { base: 690, perLevel: 98 },
@@ -121,6 +123,7 @@ describe("normalizeChampion", () => {
 				roles: ["MAGE"],
 				attackType: "ranged",
 				resource: "ENERGY",
+				adaptiveType: "ap",
 			},
 			stats: {
 				health: { base: 580, perLevel: 98 },
