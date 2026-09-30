@@ -1,0 +1,49 @@
+# THROWAWAY (reverted before merge): the same fault against main's retry loop, to show it
+# fails on the dpkg lock without the fix.
+name: apt-lock demo (before fix)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  before-fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - run: bun install --frozen-lockfile
+      - name: Resolve the Playwright version
+        id: playwright
+        run: |
+          version=$(grep -oE '"@playwright/test@[^"]+"' bun.lock | head -n 1 | tr -d '"' | cut -d @ -f 3)
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Restore the Playwright browsers
+        id: browsers
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: "DEMO: kill attempt 1 mid-apt"
+        run: bash .github/demo/inject-apt-fault.sh
+      - name: Install Chromium (main's loop, no lock recovery)
+        timeout-minutes: 10
+        env:
+          CACHE_HIT: ${{ steps.browsers.outputs.cache-hit }}
+        run: |
+          if [ "$CACHE_HIT" = "true" ]; then
+            install=(bunx playwright install-deps chromium)
+          else
+            install=(bunx playwright install --with-deps chromium)
+          fi
+          for attempt in 1 2; do
+            timeout --kill-after=15s 4m "${install[@]}" && exit 0
+            echo "::warning::Chromium install attempt $attempt failed (exit $?)"
+          done
+          exit 1

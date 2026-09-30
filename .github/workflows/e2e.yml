@@ -38,6 +38,8 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - name: "DEMO (throwaway): kill attempt 1 mid-apt"
+        run: bash .github/demo/inject-apt-fault.sh
       # A stuck apt mirror once hung this step until the 25-minute job timeout (PR 168):
       # each attempt now times out on its own and retries once.
       - name: Install Chromium
