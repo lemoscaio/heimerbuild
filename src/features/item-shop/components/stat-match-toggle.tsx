@@ -32,7 +32,7 @@ export function StatMatchToggle({
 					key={option}
 					value={option}
 					title={title}
-					className="h-6 min-w-0 px-0 font-display font-semibold text-white text-xs max-lg:h-11 max-lg:w-11"
+					className="h-6 min-w-0 px-0 font-display font-semibold text-[0.625rem] text-white max-lg:h-11 max-lg:w-11 max-lg:text-xs"
 				>
 					{label}
 				</ToggleGroupItem>

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Toggle } from "@/components/ui/toggle"
 import {
 	createTooltipHandle,
 	Tooltip,
@@ -8,7 +8,12 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
+import { useRovingFocus } from "../hooks/use-roving-focus"
 import { shopStatGroups } from "../lib/shop-stats"
+
+const railStats = shopStatGroups.flatMap(({ stats }) =>
+	stats.map(({ stat }) => stat),
+)
 
 type StatRailProps = {
 	stats: readonly StatKey[]
@@ -27,23 +32,30 @@ export function StatRail({
 }: StatRailProps) {
 	// One tooltip for all 23 icons; each trigger passes its stat name.
 	const [tooltip] = useState(createTooltipHandle<string>)
+	// One Tab stop; arrows move across the two columns and rows, as in the item grid.
+	const { containerRef, handleKeyDown, getItemProps } =
+		useRovingFocus(railStats)
+
+	function toggle(stat: StatKey, pressed: boolean) {
+		onStatsChange(
+			pressed ? [...stats, stat] : stats.filter((other) => other !== stat),
+		)
+	}
 
 	return (
 		<div className={cn("flex w-max flex-col gap-2", className)} {...props}>
 			{children}
-			<ToggleGroup
-				multiple
-				orientation="vertical"
+			<fieldset
+				ref={containerRef}
 				aria-label="Filter by stat"
-				className="items-stretch gap-2"
-				value={stats}
-				onValueChange={onStatsChange}
+				className="flex min-w-0 flex-col gap-1.5"
+				onKeyDown={handleKeyDown}
 			>
 				{shopStatGroups.map(({ group, label, stats: groupStats }) => (
 					<fieldset
 						key={group}
 						aria-label={label}
-						className="grid min-w-0 grid-cols-1 gap-1 border-primary-2 border-t pt-2 lg:grid-cols-2"
+						className="grid min-w-0 grid-cols-1 gap-0.5 border-primary-2 border-t pt-1.5 lg:grid-cols-2"
 					>
 						{groupStats.map(({ stat, label: statLabel, icon }) => (
 							<TooltipTrigger
@@ -51,23 +63,25 @@ export function StatRail({
 								handle={tooltip}
 								payload={statLabel}
 								render={
-									<ToggleGroupItem
-										value={stat}
+									<Toggle
 										aria-label={statLabel}
-										className="size-9 p-1.5 data-pressed:inset-ring-gold data-pressed:bg-primary-2 max-lg:size-11 max-lg:p-2"
+										pressed={stats.includes(stat)}
+										onPressedChange={(pressed) => toggle(stat, pressed)}
+										className="size-8 min-w-0 p-0 data-pressed:inset-ring-gold data-pressed:bg-primary-2 max-lg:size-11"
+										{...getItemProps(stat)}
 									/>
 								}
 							>
 								<img
 									src={icon}
 									alt=""
-									className="size-full opacity-70 transition-opacity group-hover/toggle:opacity-100 group-data-pressed/toggle:opacity-100"
+									className="size-4.5 opacity-70 transition-opacity group-hover/toggle:opacity-100 group-data-pressed/toggle:opacity-100"
 								/>
 							</TooltipTrigger>
 						))}
 					</fieldset>
 				))}
-			</ToggleGroup>
+			</fieldset>
 			<Tooltip handle={tooltip}>
 				{({ payload }) => (
 					<TooltipContent side="right">{payload}</TooltipContent>
