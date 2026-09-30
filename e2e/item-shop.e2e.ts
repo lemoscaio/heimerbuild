@@ -163,10 +163,24 @@ test("the search and the icons drive the same filters: typed tokens light the ic
 	const shop = shopItems(page)
 	await expect(shop).toHaveCount(items.length)
 
+	const rail = page.getByRole("group", { name: "Filter by stat" })
+	// A word that starts an item name stays text: "health potion" finds the potion.
+	await page.keyboard.press("/")
+	await page.keyboard.type("health potion ")
+	await page.keyboard.press("Escape")
+	await expect(shop).toHaveCount(
+		items.filter((item) => item.name.toLowerCase().includes("health potion"))
+			.length,
+	)
+	await expect(
+		rail.getByRole("button", { name: "Health", exact: true, pressed: false }),
+	).toBeVisible()
+	await page.keyboard.press("Escape")
+	await expect(shop).toHaveCount(items.length)
+
 	await page.keyboard.press("/")
 	await page.keyboard.type("ap mr ")
 	await page.keyboard.press("Escape")
-	const rail = page.getByRole("group", { name: "Filter by stat" })
 	await expect(
 		rail.getByRole("button", { name: "Ability Power", pressed: true }),
 	).toBeVisible()
