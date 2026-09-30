@@ -11,7 +11,7 @@ const RUNES_PER_ROW = 3
 /** The secondary tree's caption and three rows, empty, until a tree is chosen. */
 export function SecondaryTreeSkeleton() {
 	return (
-		<RuneRailSkeleton hint="Choose a secondary tree.">
+		<RuneRailSkeleton>
 			<div className="flex flex-col gap-2">
 				<p className={cn("ml-7.5", RAIL_LABEL_CLASSES)}>Pick 2</p>
 				<RuneRail>

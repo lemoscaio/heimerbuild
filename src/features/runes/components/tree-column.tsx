@@ -40,26 +40,32 @@ export function TreeColumn({
 			<h3 className="sr-only">
 				{tree ? `${title} tree: ${tree.name}` : `${title} tree`}
 			</h3>
-			<div className="flex items-center gap-3.5">
-				{tree ? (
-					<GameIcon
-						src={tree.icon}
-						name={tree.name}
-						className={cn(
-							"border-(--tree) border-3 bg-primary-4 shadow-(--tree)/35 shadow-[0_0_18px]",
-							emblemClassName,
-						)}
-					/>
-				) : (
-					<span
-						aria-hidden="true"
-						className={cn(
-							"border-2 border-primary-2 border-dashed",
-							emblemClassName,
-						)}
-					/>
-				)}
-				{picker}
+			<div className="flex flex-col gap-2">
+				<div className="flex items-center gap-3.5">
+					{tree ? (
+						<GameIcon
+							src={tree.icon}
+							name={tree.name}
+							className={cn(
+								"border-(--tree) border-3 bg-primary-4 shadow-(--tree)/35 shadow-[0_0_18px]",
+								emblemClassName,
+							)}
+						/>
+					) : (
+						<span
+							aria-hidden="true"
+							className={cn(
+								"border-2 border-primary-2 border-dashed",
+								emblemClassName,
+							)}
+						/>
+					)}
+					{picker}
+				</div>
+				{/* The line keeps its height once a tree is chosen, so nothing below moves. */}
+				<p className="h-4 text-subtle text-xs leading-4">
+					{!tree && `Choose a ${title.toLowerCase()} tree.`}
+				</p>
 			</div>
 			{children}
 		</section>

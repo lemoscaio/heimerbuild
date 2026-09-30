@@ -10,7 +10,7 @@ const RUNES_PER_ROW = 3
 /** The primary tree's keystone row and three rows, empty, until a tree is chosen. */
 export function PrimaryTreeSkeleton() {
 	return (
-		<RuneRailSkeleton hint="Choose a primary tree.">
+		<RuneRailSkeleton>
 			<RuneRail>
 				<RuneRailRow isPicked={false}>
 					<p className={RAIL_LABEL_CLASSES}>Keystones</p>
