@@ -1,4 +1,5 @@
 import { useId } from "react"
+import { PoliteStatus } from "@/components/common/polite-status"
 import { useChampions } from "@/data/hooks/use-champions"
 import { useCurrentPatch } from "@/data/hooks/use-current-patch"
 import { filterChampions } from "@/lib/filter-champions"
@@ -41,10 +42,19 @@ export function ChampionBrowser({
 	const filteredChampions = champions
 		? filterChampions(champions, search, { role })
 		: []
+	const isFiltered = !!champions && (!!search.trim() || !!role)
+	const championCount = isFiltered
+		? `${filteredChampions.length} of ${champions.length} champions`
+		: `${champions?.length} champions`
+
+	function resultStatus() {
+		return filteredChampions.length ? championCount : "No champions found."
+	}
 
 	return (
 		<div className="flex w-full flex-col items-center gap-7">
 			<SearchContainer search={search} setSearch={handleSearchChange} />
+			<PoliteStatus message={isFiltered ? resultStatus() : ""} />
 			{recentBuilds}
 			<ChampionListToggle
 				expanded={expanded}
@@ -62,7 +72,7 @@ export function ChampionBrowser({
 					<ChampionRoleFilter role={role} onRoleChange={setRole} />
 					{!!champions && !!patch.data && (
 						<p className="text-subtle text-xs">
-							{champions.length} champions on patch {patch.data}
+							{championCount} on patch {patch.data}
 						</p>
 					)}
 				</div>

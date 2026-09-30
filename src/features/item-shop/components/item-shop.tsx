@@ -1,6 +1,7 @@
 import { useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { LoadError } from "@/components/common/load-error"
+import { PoliteStatus } from "@/components/common/polite-status"
 import { useItems } from "@/data/hooks/use-items"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { track } from "@/lib/analytics/analytics"
@@ -158,12 +159,17 @@ export function ItemShop({
 					onEscape={handleSearchEscape}
 				/>
 				{itemsQuery.isSuccess && (
-					<p
-						aria-live="polite"
-						className="shrink-0 text-subtle text-xs max-lg:sr-only"
-					>
-						{items.length} {items.length === 1 ? "item" : "items"}
-					</p>
+					<>
+						<p
+							aria-hidden="true"
+							className="shrink-0 text-subtle text-xs max-lg:hidden"
+						>
+							{itemCount(items.length)}
+						</p>
+						<PoliteStatus
+							message={items.length ? itemCount(items.length) : NO_ITEMS}
+						/>
+					</>
 				)}
 			</div>
 			<ItemList
@@ -180,9 +186,7 @@ export function ItemShop({
 					{...pickProps}
 				/>
 				{itemsQuery.isSuccess && !items.length && (
-					<p className="w-full p-5 text-center text-white">
-						No items match these filters.
-					</p>
+					<p className="w-full p-5 text-center text-white">{NO_ITEMS}</p>
 				)}
 				{itemsQuery.isPending && (
 					<>
@@ -209,6 +213,12 @@ function ShopTitle({ className }: { className?: string }) {
 		</h2>
 	)
 }
+
+function itemCount(count: number) {
+	return `${count} ${count === 1 ? "item" : "items"}`
+}
+
+const NO_ITEMS = "No items match these filters."
 
 const SEARCH_TRACK_DELAY_MS = 1000
 const MAX_TRACKED_QUERY = 50
