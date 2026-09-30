@@ -165,6 +165,7 @@ const { data, isPending, isError } = useQuery(championQueries.detail(patch, key)
 - Game data is fetched only through `fetchGameData(path, schema)` in `src/data/`.
 - Types come from `z.infer` on the schema; never hand-write a duplicate shape, never `as`-cast fetched data.
 - Game data schemas live in `scripts/sync-data/schemas/`, shared with the pipeline.
+- Code that reaches the browser (`src/**` and the shared schemas) uses `zod/mini` (`import * as z from "zod/mini"`, checks via `.check(z.regex(...))`, wrappers such as `z.optional()`, `z.catch()`, `z._default()`): classic `zod` costs ~16 kB gzip more. Its issues carry generic messages ("Invalid input") but keep `path` and `code`. Pipeline-only schemas and the Worker may stay on classic `zod`.
 
 ## Context
 
@@ -195,7 +196,7 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 - A route whose page is heavy (the champion page) splits in two: `<name>-route.tsx` keeps `createRoute` with search, loader, `head` and the pending/error/not-found components, and `<name>-route.lazy.tsx` holds the page (`createLazyRoute(<full route id>)`), attached with `.lazy()`. Links preload on intent (`defaultPreload: "intent"`).
 - Loaders load data through the `queryOptions()` factories (`queryClient.ensureQueryData(gameDataQueries...)`); components then read the same queries from the cache.
 - Every data route sets `pendingComponent` and `errorComponent`, and `notFoundComponent` when a param can point at nothing.
-- Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`. Invalid values are dropped with `.catch()`, so a bad link never shows an error page.
+- Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`. Invalid values are dropped with `z.catch()`, so a bad link never shows an error page.
 
 ## TypeScript
 

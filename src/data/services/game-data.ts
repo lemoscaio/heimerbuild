@@ -1,4 +1,4 @@
-import type { z } from "zod"
+import type * as z from "zod/mini"
 import {
 	championIndexSchema,
 	championSchema,
@@ -29,7 +29,7 @@ export type FetchGameDataOptions = { fetchFn?: typeof fetch }
 
 export async function fetchGameData<T>(
 	path: string,
-	schema: z.ZodType<T>,
+	schema: z.ZodMiniType<T>,
 	{ fetchFn = fetch }: FetchGameDataOptions = {},
 ): Promise<T> {
 	const response = await fetchFn(path)

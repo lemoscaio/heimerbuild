@@ -1,4 +1,4 @@
-import { z } from "zod"
+import * as z from "zod/mini"
 import type { ShopGrouping } from "@/types/shop-view"
 
 const STORAGE_KEY = "heimerbuild:shop-grouping:v1"
