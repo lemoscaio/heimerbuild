@@ -14,12 +14,19 @@ export function TooltipProvider({
 	)
 }
 
-export function Tooltip(props: TooltipPrimitive.Root.Props) {
+export function Tooltip<Payload>(props: TooltipPrimitive.Root.Props<Payload>) {
 	return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
 }
 
-export function TooltipTrigger(props: TooltipPrimitive.Trigger.Props) {
+export function TooltipTrigger<Payload>(
+	props: TooltipPrimitive.Trigger.Props<Payload>,
+) {
 	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+}
+
+/** One tooltip shared by many triggers: pass it as `handle` to the `Tooltip` and to each trigger. */
+export function createTooltipHandle<Payload>() {
+	return TooltipPrimitive.createHandle<Payload>()
 }
 
 type TooltipContentProps = TooltipPrimitive.Popup.Props &

@@ -6,24 +6,15 @@ import { rolesInfo } from "../lib/roles-info"
 type RoleFilterProps = {
 	role: Role
 	onRoleChange: (role: Role) => void
-	/** `vertical`: a labelled list, for the expanded shop's rail. */
-	orientation?: "horizontal" | "vertical"
+	className?: string
 }
 
-export function RoleFilter({
-	role,
-	onRoleChange,
-	orientation = "horizontal",
-}: RoleFilterProps) {
-	const isVertical = orientation === "vertical"
-
+/** Role tabs with icon and label; phones show icons only, the label stays the accessible name. */
+export function RoleFilter({ role, onRoleChange, className }: RoleFilterProps) {
 	return (
 		<ToggleGroup
 			aria-label="Filter by role"
-			orientation={orientation}
-			className={cn("justify-center py-1.5", {
-				"items-stretch gap-1 py-0": isVertical,
-			})}
+			className={cn("flex-wrap gap-1", className)}
 			value={[role]}
 			// Pressing the selected role again would leave none: one role is always selected.
 			onValueChange={([next]) => next && onRoleChange(next)}
@@ -32,18 +23,11 @@ export function RoleFilter({
 				<ToggleGroupItem
 					key={option}
 					value={option}
-					size={isVertical ? "default" : "icon"}
-					aria-label={isVertical ? undefined : label}
-					className={cn("max-lg:size-11", {
-						"h-9 justify-start gap-2.5 px-2": isVertical,
-					})}
+					title={label}
+					className="h-9 gap-1.5 px-3 text-prose text-xs data-pressed:text-white max-lg:size-11 max-lg:px-0"
 				>
-					<img
-						src={icon}
-						alt=""
-						className={cn("size-full", { "size-6": isVertical })}
-					/>
-					{isVertical && label}
+					<img src={icon} alt="" className="size-5 max-lg:size-7" />
+					<span className="max-lg:sr-only">{label}</span>
 				</ToggleGroupItem>
 			))}
 		</ToggleGroup>

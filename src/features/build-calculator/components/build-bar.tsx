@@ -14,8 +14,6 @@ type BuildBarProps = {
 	onRemoveItem: (slot: number) => void
 	notice: string | undefined
 	stats: ComputedStats
-	/** The way back to the overview, at the end of the bar. */
-	children?: React.ReactNode
 }
 
 /** The expanded shop's bottom bar: champion, level, build slots and key stats. */
@@ -27,7 +25,6 @@ export function BuildBar({
 	onRemoveItem,
 	notice,
 	stats,
-	children,
 }: BuildBarProps) {
 	return (
 		<section
@@ -54,7 +51,6 @@ export function BuildBar({
 			<div className="min-w-0 flex-1 basis-96">
 				<KeyStats stats={stats} resource={champion.resource} />
 			</div>
-			{children}
 		</section>
 	)
 }

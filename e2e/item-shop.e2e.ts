@@ -32,8 +32,8 @@ test("the shop filters by a stat and sorts by it", async ({
 		withAbilityPower.map((item) => item.name).sort(),
 	)
 
-	await page.getByRole("combobox", { name: "Sort by" }).click()
-	await page.getByRole("option", { name: "Ability Power" }).click()
+	await page.getByRole("button", { name: /^Sort/ }).click()
+	await page.getByRole("menuitemradio", { name: "Ability Power" }).click()
 	// Sort applies inside each shop section.
 	const sections = page
 		.getByRole("region", { name: "Item shop" })
@@ -75,7 +75,7 @@ test("the shop is one Tab stop: arrow keys move between items, Enter selects one
 	await expect(shop.first()).toBeVisible()
 	const [, , third] = await itemNames(shop)
 
-	await page.getByRole("combobox", { name: "Group by" }).focus()
+	await page.getByRole("searchbox", { name: "Search items" }).focus()
 	await page.keyboard.press("Tab")
 	await expect(shop.first()).toBeFocused()
 	await page.keyboard.press("ArrowRight")
@@ -126,8 +126,8 @@ test("the shop grouping switches between tiers, compact and one list, and surviv
 	await expect(sections).toHaveCount(5)
 
 	async function groupBy(option: string) {
-		await page.getByRole("combobox", { name: "Group by" }).click()
-		await page.getByRole("option", { name: option }).click()
+		await page.getByRole("button", { name: /^View/ }).click()
+		await page.getByRole("menuitemradio", { name: option }).click()
 	}
 
 	await groupBy("Compact")

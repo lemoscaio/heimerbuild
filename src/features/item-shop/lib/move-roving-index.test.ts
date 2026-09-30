@@ -51,6 +51,20 @@ describe("moveRovingIndex", () => {
 		expect(moveRovingIndex(5, "ArrowRight", sections)).toBe(6)
 	})
 
+	test("the two-column stat rail: columns, rows and the group separators", () => {
+		// Offense 0-10 in rows of 2 (10 alone), then Defense 11-16 and Utility 17-22.
+		const rail = { rows: [2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2] }
+		expect(moveRovingIndex(0, "ArrowRight", rail)).toBe(1)
+		expect(moveRovingIndex(1, "ArrowLeft", rail)).toBe(0)
+		expect(moveRovingIndex(1, "ArrowDown", rail)).toBe(3)
+		expect(moveRovingIndex(9, "ArrowDown", rail)).toBe(10)
+		expect(moveRovingIndex(10, "ArrowDown", rail)).toBe(11)
+		expect(moveRovingIndex(12, "ArrowUp", rail)).toBe(10)
+		expect(moveRovingIndex(16, "ArrowDown", rail)).toBe(18)
+		expect(moveRovingIndex(7, "End", rail)).toBe(22)
+		expect(moveRovingIndex(7, "Home", rail)).toBe(0)
+	})
+
 	test("ignores keys the grid does not handle", () => {
 		expect(moveRovingIndex(5, "Enter", grid)).toBeUndefined()
 		expect(moveRovingIndex(5, "a", grid)).toBeUndefined()

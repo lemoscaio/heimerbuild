@@ -27,12 +27,12 @@ test("the expanded shop adds an item, survives a reload and hands the build back
 	await expect(chosenItems(page)).toHaveCount(1)
 
 	await page.reload()
-	await expect(
-		page.getByRole("button", { name: "Back to overview" }).first(),
-	).toBeVisible()
+	await expect(page.getByRole("button", { name: "Collapse shop" })).toHaveCount(
+		1,
+	)
 	await expect(chosenItems(page)).toHaveCount(1)
 
-	await page.getByRole("button", { name: "Back to overview" }).first().click()
+	await page.getByRole("button", { name: "Collapse shop" }).click()
 	await expect(page).not.toHaveURL(/view=/)
 	await expect(page.getByRole("button", { name: "Expand shop" })).toBeVisible()
 	expect(await itemNames(chosenItems(page))).toEqual(["Remove Void Staff"])
