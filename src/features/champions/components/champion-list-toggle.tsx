@@ -34,10 +34,16 @@ export function ChampionListToggle({
 				(championCount === undefined
 					? "Browse all champions"
 					: `Browse all ${championCount} champions`)}
-			<ChevronDown
+			{/* Rotating a wrapper, not the SVG, keeps the transform GPU-accelerated. */}
+			<span
 				aria-hidden="true"
-				className={cn("transition-transform", { "rotate-180": expanded })}
-			/>
+				className={cn(
+					"inline-flex transition-transform duration-300 ease-out motion-reduce:transition-none",
+					{ "rotate-180": expanded },
+				)}
+			>
+				<ChevronDown />
+			</span>
 		</Button>
 	)
 }
