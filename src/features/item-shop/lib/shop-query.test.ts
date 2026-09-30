@@ -6,6 +6,7 @@ import {
 	parseShopQuery,
 	type ShopFilters,
 	type ShopToken,
+	searchTokensForAnalytics,
 	serializeShopQuery,
 	suggestShopTokens,
 	tokenLabel,
@@ -134,6 +135,40 @@ describe("commitShopQuery", () => {
 		})
 	})
 
+	test("an alias that continues the start of an item name stays free text", () => {
+		const itemNames = ["Health Potion", "Manamune", "Rabadon's Deathcap"]
+		expect(commitShopQuery("health ", { itemNames })).toEqual({
+			tokens: [],
+			text: "health ",
+		})
+		expect(commitShopQuery("health potion", { itemNames })).toEqual({
+			tokens: [],
+			text: "health potion",
+		})
+		expect(
+			commitShopQuery("health potion", { itemNames, includeLastWord: true })
+				.tokens,
+		).toEqual([])
+	})
+
+	test("aliases that start no item name, or only part of a name's first word, become tokens", () => {
+		const itemNames = ["Health Potion", "Manamune", "Rabadon's Deathcap"]
+		expect(commitShopQuery("ap mr ", { itemNames })).toEqual({
+			tokens: [
+				{ kind: "stat", stat: "abilityPower" },
+				{ kind: "stat", stat: "magicResist" },
+			],
+			text: "",
+		})
+		expect(commitShopQuery("mana ", { itemNames }).tokens).toEqual([
+			{ kind: "stat", stat: "mana" },
+		])
+		expect(commitShopQuery("health mr ", { itemNames })).toEqual({
+			tokens: [{ kind: "stat", stat: "magicResist" }],
+			text: "health ",
+		})
+	})
+
 	test("Enter or Tab also commit the last word", () => {
 		expect(commitShopQuery("bans mr", { includeLastWord: true })).toEqual({
 			tokens: [{ kind: "stat", stat: "magicResist" }],
@@ -247,5 +282,28 @@ describe("the word being typed", () => {
 			"Ability Power",
 		)
 		expect(tokenLabel({ kind: "role", role: "MAGE" })).toBe("Mage")
+	})
+})
+
+describe("searchTokensForAnalytics", () => {
+	test("sends stat keys, role ids and the match mode, never display labels", () => {
+		expect(
+			searchTokensForAnalytics({
+				role: "MAGE",
+				stats: ["abilityPower", "magicResist"],
+				match: "any",
+			}),
+		).toEqual([
+			{ kind: "role", value: "MAGE" },
+			{ kind: "stat", value: "abilityPower" },
+			{ kind: "stat", value: "magicResist" },
+			{ kind: "match", value: "any" },
+		])
+	})
+
+	test("leaves the match mode out while no stat is selected", () => {
+		expect(
+			searchTokensForAnalytics({ role: "TANK", stats: [], match: "all" }),
+		).toEqual([{ kind: "role", value: "TANK" }])
 	})
 })

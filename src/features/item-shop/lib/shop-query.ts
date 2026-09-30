@@ -1,3 +1,5 @@
+import type { ShopSearchToken } from "@/lib/analytics/analytics-events"
+import { normalizeSearchText } from "@/lib/normalize-search-text"
 import type { ChampionRole } from "../../../../scripts/sync-data/schemas/champion"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import type { RoleFilter } from "./filter-items-by-role"
@@ -64,13 +66,23 @@ export function findToken(word: string): ShopToken | undefined {
 	return termsByWord.get(normalizeTerm(word))?.token
 }
 
+type ParseOptions = {
+	/** Item names: a word that continues the start of one stays free text ("health potion"). */
+	itemNames?: readonly string[]
+}
+
 /** Splits a query into tokens and the free text left for the item name search. */
-export function parseShopQuery(text: string) {
+export function parseShopQuery(
+	text: string,
+	{ itemNames = [] }: ParseOptions = {},
+) {
 	const tokens: ShopToken[] = []
 	const freeWords: string[] = []
+	const nameWords = itemNames.map(searchWords)
 	for (const word of words(text)) {
 		const token = findToken(word)
-		if (token) {
+		const phrase = searchWords([...freeWords, word].join(" "))
+		if (token && !nameWords.some((name) => startsWith(name, phrase))) {
 			tokens.push(token)
 		} else {
 			freeWords.push(word)
@@ -92,7 +104,7 @@ export function serializeShopQuery({
 type CommitOptions = {
 	/** Also commit the word being typed (Enter, Tab), not only the words a space closed. */
 	includeLastWord?: boolean
-}
+} & ParseOptions
 
 /**
  * Commits the finished words of the search input: tokens come out, other words stay as text.
@@ -100,16 +112,36 @@ type CommitOptions = {
  */
 export function commitShopQuery(
 	text: string,
-	{ includeLastWord = false }: CommitOptions = {},
+	{ includeLastWord = false, itemNames }: CommitOptions = {},
 ) {
 	const closed = includeLastWord || /\s$/.test(text)
 	const all = words(text)
 	const typing = closed ? undefined : all.pop()
-	const { tokens, freeText } = parseShopQuery(all.join(" "))
+	const { tokens, freeText } = parseShopQuery(all.join(" "), { itemNames })
 	const rest = [freeText, typing].filter(Boolean).join(" ")
 	return {
 		tokens,
 		text: closed && !includeLastWord && freeText ? `${rest} ` : rest,
+	}
+}
+
+/** Tokens as analytics values: stat keys, role ids and the match mode, never display labels. */
+export function searchTokensForAnalytics(filters: ShopFilters) {
+	const tokens: ShopSearchToken[] = tokensFromFilters(filters).map(tokenValue)
+	return filters.stats.length
+		? [...tokens, { kind: "match" as const, value: filters.match }]
+		: tokens
+}
+
+/** A token's kind and raw value (stat key, role id or match mode). */
+export function tokenValue(token: ShopToken): ShopSearchToken {
+	switch (token.kind) {
+		case "stat":
+			return { kind: "stat", value: token.stat }
+		case "role":
+			return { kind: "role", value: token.role }
+		case "match":
+			return { kind: "match", value: token.match }
 	}
 }
 
@@ -221,6 +253,18 @@ function applyToken(filters: ShopFilters, token: ShopToken): ShopFilters {
 
 function statToken(stat: StatKey): ShopToken {
 	return { kind: "stat", stat }
+}
+
+/** Whole words, so "mana" does not continue "Manamune" but "health" continues "Health Potion". */
+function searchWords(text: string) {
+	return words(text).map(normalizeSearchText).filter(Boolean)
+}
+
+function startsWith(name: readonly string[], phrase: readonly string[]) {
+	return (
+		phrase.length <= name.length &&
+		phrase.every((word, index) => name[index] === word)
+	)
 }
 
 function words(text: string) {
