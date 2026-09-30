@@ -46,6 +46,14 @@ export function ChampionCard({ champion }: ChampionCardProps) { ... }
 - A wrapper element repeated with identical props becomes a named component.
 - A component that grows several independent parts (header, list, footer with their own state) is split with composition.
 
+## Components assemble, features live in hooks and `lib/`
+
+- A `.tsx` component **assembles and presents** the components it is made of. It does not carry feature logic.
+- A **real feature** (rules of its own: parsing, suggestion building, stat math) lives in its own hook (`use-*.ts`) or pure `lib/` file, where it can be read and tested alone.
+- **Data hooks never know presentation.** A hook that carries a domain concept (`useBuild`: build state and data) returns state and actions only: no component-shaped prop bundles, no UI state. When a screen needs UI state (view, selection, layout), a new hook composes the data hook with it (`useBuildPage` = `useBuild` + view and selection). One concept per hook, assembled like lego.
+- **Don't extract the trivial.** A one-line derivation, a single `useState` or a helper with one caller that reads fine inline stays inline.
+- **More files is not more complexity.** Split when each piece reads on its own; judge readability, not line or file counts.
+
 ```tsx
 // Wrong
 function ItemShop() {
