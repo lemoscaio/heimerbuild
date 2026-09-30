@@ -16,7 +16,7 @@ export function RadioGroup<Value>({
 	)
 }
 
-/** An unstyled radio: style the checked state with `data-checked:`. */
+/** An unstyled radio (a `<span>`, so it opts out of the text cursor): style the checked state with `data-checked:`. */
 export function RadioGroupItem<Value>({
 	className,
 	...props
@@ -25,7 +25,7 @@ export function RadioGroupItem<Value>({
 		<RadioPrimitive.Root
 			data-slot="radio-group-item"
 			className={cn(
-				"outline-none focus-visible:ring-2 focus-visible:ring-lilac focus-visible:ring-offset-2 focus-visible:ring-offset-primary-3 data-disabled:pointer-events-none data-disabled:opacity-40",
+				"cursor-default select-none outline-none focus-visible:ring-2 focus-visible:ring-lilac focus-visible:ring-offset-2 focus-visible:ring-offset-primary-3 data-disabled:pointer-events-none data-disabled:opacity-40",
 				className,
 			)}
 			{...props}

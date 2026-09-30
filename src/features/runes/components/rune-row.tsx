@@ -1,19 +1,23 @@
+import type { Rune } from "@schemas/rune"
 import { useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { cn } from "@/lib/cn"
-
-export type DescribedPerk = { name: string; description?: string }
+import {
+	RUNE_ROW_GAP_CLASSES,
+	RUNE_SIZE_CLASSES,
+	type RuneSize,
+} from "../lib/rune-styles"
 
 type RuneRowProps = {
 	/** Accessible name of the row, such as "Sorcery keystone". */
 	label: string
-	runes: readonly (DescribedPerk & { id: number; icon: string })[]
+	runes: readonly Rune[]
 	value: number | undefined
 	onValueChange: (runeId: number) => void
 	/** Hover or focus on a rune: the page shows its details. */
-	onDescribe: (perk: DescribedPerk) => void
-	size?: "keystone" | "rune" | "small"
+	onDescribe: (rune: Rune) => void
+	size?: RuneSize
 	className?: string
 }
 
@@ -36,7 +40,7 @@ export function RuneRow({
 			onValueChange={(runeId) => {
 				if (runeId !== null) onValueChange(runeId)
 			}}
-			className={cn("gap-3", { "gap-2": size === "small" }, className)}
+			className={cn(RUNE_ROW_GAP_CLASSES[size], className)}
 		>
 			{runes.map((rune) => (
 				<RadioGroupItem
@@ -48,11 +52,7 @@ export function RuneRow({
 					onFocus={() => onDescribe(rune)}
 					className={cn(
 						"group/rune relative shrink-0 rounded-full border-2 border-primary-2 p-0.5 opacity-55 transition hover:opacity-90 data-checked:border-(--tree) data-checked:opacity-100",
-						{
-							"size-12 lg:size-12.5": size === "keystone",
-							"size-11 lg:size-10": size === "rune",
-							"size-11 lg:size-9": size === "small",
-						},
+						RUNE_SIZE_CLASSES[size],
 					)}
 				>
 					<GameIcon

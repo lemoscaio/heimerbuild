@@ -1,5 +1,5 @@
 import type { RunesFile, RuneTree } from "@schemas/rune"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { LoadError } from "@/components/common/load-error"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -7,11 +7,18 @@ import { useRunes } from "@/data/hooks/use-runes"
 import { track } from "@/lib/analytics/analytics"
 import type { AnalyticsEvents } from "@/lib/analytics/analytics-events"
 import { cn } from "@/lib/cn"
+import { preloadImages } from "@/lib/preload-images"
 import {
 	EMPTY_RUNE_SELECTION,
 	isRuneSelectionEmpty,
 	type RuneSelection,
 } from "@/lib/rune-selection"
+import {
+	type PerkDetail,
+	runeDetail,
+	shardDetail,
+	treeDetail,
+} from "../lib/perk-detail"
 import {
 	pickKeystone,
 	pickPrimaryRune,
@@ -20,10 +27,17 @@ import {
 	pickSecondaryTree,
 	pickShard,
 } from "../lib/pick-runes"
-import { treeAccentClass } from "../lib/tree-accent"
+import { runeImageUrls } from "../lib/rune-image-urls"
+import { RAIL_LABEL_CLASSES } from "../lib/rune-styles"
+import { SHARD_ACCENT } from "../lib/tree-accent"
+import { PrimaryTreeSkeleton } from "./primary-tree-skeleton"
 import { RuneDetails } from "./rune-details"
-import { type DescribedPerk, RuneRow } from "./rune-row"
+import { RuneRail } from "./rune-rail"
+import { RuneRailRow } from "./rune-rail-row"
+import { RuneRow } from "./rune-row"
+import { SecondaryTreeSkeleton } from "./secondary-tree-skeleton"
 import { ShardRow } from "./shard-row"
+import { TreeColumn } from "./tree-column"
 import { TreePicker } from "./tree-picker"
 
 type RunePageProps = {
@@ -79,12 +93,17 @@ function RunePageEditor({
 	selection,
 	onSelectionChange,
 }: RunePageEditorProps) {
-	const [described, setDescribed] = useState<DescribedPerk>()
+	const [described, setDescribed] = useState<PerkDetail>()
 	const { primary, secondary } = selection
 	const primaryTree = runes.trees.find((tree) => tree.id === primary?.treeId)
 	const secondaryTree = runes.trees.find(
 		(tree) => tree.id === secondary?.treeId,
 	)
+
+	// Opening the tab loads every tree's images, so switching trees shows them at once.
+	useEffect(() => {
+		preloadImages(runeImageUrls(runes))
+	}, [runes])
 
 	function change(next: RuneSelection, pick: AnalyticsEvents["rune_picked"]) {
 		if (next === selection) return
@@ -95,6 +114,10 @@ function RunePageEditor({
 	function reset() {
 		onSelectionChange(EMPTY_RUNE_SELECTION)
 		track("runes_reset", {})
+	}
+
+	function describeTree(tree: RuneTree) {
+		setDescribed(treeDetail(tree))
 	}
 
 	return (
@@ -111,11 +134,11 @@ function RunePageEditor({
 					Reset runes
 				</Button>
 			</div>
-			<div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-7">
+			<div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-x-8.5 lg:gap-y-6">
 				<TreeColumn
 					title="Primary"
 					tree={primaryTree}
-					className={treeAccentClass(primaryTree?.key)}
+					emblemSize="large"
 					picker={
 						<TreePicker
 							label="Primary tree"
@@ -127,151 +150,151 @@ function RunePageEditor({
 									id: treeId,
 								})
 							}
-							onDescribe={setDescribed}
+							onDescribe={describeTree}
 						/>
 					}
 				>
-					{primaryTree && (
-						<>
-							<RuneRow
-								label={`${primaryTree.name} keystone`}
-								size="keystone"
-								runes={primaryTree.keystones}
-								value={primary?.keystoneId}
-								onValueChange={(runeId) =>
-									change(pickKeystone(selection, runeId), {
-										slot: "keystone",
-										id: runeId,
-									})
-								}
-								onDescribe={setDescribed}
-								className="border-primary-2 border-b pb-3"
-							/>
-							{primaryTree.rows.map((row, index) => (
+					{primaryTree ? (
+						<RuneRail>
+							<RuneRailRow isPicked={primary?.keystoneId !== undefined}>
+								<p className={RAIL_LABEL_CLASSES}>Keystones</p>
 								<RuneRow
-									// Rows have no id of their own; their position is stable.
-									// biome-ignore lint/suspicious/noArrayIndexKey: see above
-									key={index}
-									label={`${primaryTree.name} row ${index + 1}`}
-									runes={row}
-									value={primary?.runeIds[index]}
+									label={`${primaryTree.name} keystone`}
+									size="keystone"
+									runes={primaryTree.keystones}
+									value={primary?.keystoneId}
 									onValueChange={(runeId) =>
-										change(pickPrimaryRune(selection, index, runeId), {
-											slot: "primary_rune",
+										change(pickKeystone(selection, runeId), {
+											slot: "keystone",
 											id: runeId,
 										})
 									}
-									onDescribe={setDescribed}
+									onDescribe={(rune) =>
+										setDescribed(runeDetail(rune, primaryTree))
+									}
 								/>
+							</RuneRailRow>
+							{primaryTree.rows.map((row, index) => (
+								<RuneRailRow
+									// Rows have no id of their own; their position is stable.
+									// biome-ignore lint/suspicious/noArrayIndexKey: see above
+									key={index}
+									isPicked={primary?.runeIds[index] !== undefined}
+								>
+									<RuneRow
+										label={`${primaryTree.name} row ${index + 1}`}
+										runes={row}
+										value={primary?.runeIds[index]}
+										onValueChange={(runeId) =>
+											change(pickPrimaryRune(selection, index, runeId), {
+												slot: "primary_rune",
+												id: runeId,
+											})
+										}
+										onDescribe={(rune) =>
+											setDescribed(runeDetail(rune, primaryTree))
+										}
+									/>
+								</RuneRailRow>
 							))}
-						</>
+						</RuneRail>
+					) : (
+						<PrimaryTreeSkeleton />
 					)}
 				</TreeColumn>
-				<div className="flex flex-col gap-6">
+				<div className="flex flex-col gap-8 lg:gap-6">
 					<TreeColumn
 						title="Secondary"
-						hint="pick 2"
 						tree={secondaryTree}
-						className={treeAccentClass(secondaryTree?.key)}
+						emblemSize="medium"
 						picker={
 							<TreePicker
 								label="Secondary tree"
-								trees={runes.trees}
+								trees={runes.trees.filter(
+									(tree) => tree.id !== primary?.treeId,
+								)}
 								value={secondary?.treeId}
-								unavailableTreeId={primary?.treeId}
 								onValueChange={(treeId) =>
 									change(pickSecondaryTree(selection, treeId), {
 										slot: "secondary_tree",
 										id: treeId,
 									})
 								}
-								onDescribe={setDescribed}
+								onDescribe={describeTree}
 							/>
 						}
 					>
-						{secondaryTree?.rows.map((row, index) => (
-							<RuneRow
-								// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
-								key={index}
-								label={`${secondaryTree.name} row ${index + 1}`}
-								size="small"
-								runes={row}
-								value={secondary?.runeIds.find((id) =>
-									row.some((rune) => rune.id === id),
-								)}
-								onValueChange={(runeId) =>
-									change(pickSecondaryRune(selection, secondaryTree, runeId), {
-										slot: "secondary_rune",
-										id: runeId,
-									})
-								}
-								onDescribe={setDescribed}
-							/>
-						))}
+						{secondaryTree ? (
+							<div className="flex flex-col gap-2">
+								<p className={cn("ml-7.5", RAIL_LABEL_CLASSES)}>Pick 2</p>
+								<RuneRail>
+									{secondaryTree.rows.map((row, index) => {
+										const picked = secondary?.runeIds.find((id) =>
+											row.some((rune) => rune.id === id),
+										)
+										return (
+											<RuneRailRow
+												// biome-ignore lint/suspicious/noArrayIndexKey: rows are positional
+												key={index}
+												isPicked={picked !== undefined}
+											>
+												<RuneRow
+													label={`${secondaryTree.name} row ${index + 1}`}
+													runes={row}
+													value={picked}
+													onValueChange={(runeId) =>
+														change(
+															pickSecondaryRune(
+																selection,
+																secondaryTree,
+																runeId,
+															),
+															{ slot: "secondary_rune", id: runeId },
+														)
+													}
+													onDescribe={(rune) =>
+														setDescribed(runeDetail(rune, secondaryTree))
+													}
+												/>
+											</RuneRailRow>
+										)
+									})}
+								</RuneRail>
+							</div>
+						) : (
+							<SecondaryTreeSkeleton />
+						)}
 					</TreeColumn>
-					<div className="flex flex-col gap-2">
-						<h3 className="font-bold font-display text-gold text-sm">
-							Stat shards
-						</h3>
-						{runes.shardRows.map((row, index) => (
-							<ShardRow
-								key={row.label}
-								label={row.label}
-								shards={row.shardIds.flatMap((id) =>
-									runes.shards.filter((shard) => shard.id === id),
-								)}
-								value={selection.shardIds[index]}
-								onValueChange={(shardId) =>
-									change(pickShard(selection, index, shardId), {
-										slot: "shard",
-										id: shardId,
-									})
-								}
-								onDescribe={setDescribed}
-							/>
-						))}
-					</div>
+					<section className={cn("flex flex-col gap-2.5", SHARD_ACCENT)}>
+						<h3 className={cn("ml-7.5", RAIL_LABEL_CLASSES)}>Stat shards</h3>
+						<RuneRail>
+							{runes.shardRows.map((row, index) => (
+								<RuneRailRow
+									key={row.label}
+									isPicked={selection.shardIds[index] !== undefined}
+								>
+									<ShardRow
+										label={row.label}
+										shards={row.shardIds.flatMap((id) =>
+											runes.shards.filter((shard) => shard.id === id),
+										)}
+										value={selection.shardIds[index]}
+										onValueChange={(shardId) =>
+											change(pickShard(selection, index, shardId), {
+												slot: "shard",
+												id: shardId,
+											})
+										}
+										onDescribe={(shard) => setDescribed(shardDetail(shard))}
+									/>
+								</RuneRailRow>
+							))}
+						</RuneRail>
+					</section>
 				</div>
+				<RuneDetails detail={described} className="lg:col-span-2" />
 			</div>
-			<RuneDetails perk={described} />
 		</>
-	)
-}
-
-type TreeColumnProps = {
-	title: string
-	hint?: string
-	tree: RuneTree | undefined
-	picker: React.ReactNode
-	children: React.ReactNode
-	className?: string
-}
-
-function TreeColumn({
-	title,
-	hint,
-	tree,
-	picker,
-	children,
-	className,
-}: TreeColumnProps) {
-	return (
-		<div className={cn("flex flex-col gap-3", className)}>
-			{picker}
-			<h3 className="font-bold font-display text-(--tree) text-sm">
-				{tree ? tree.name : `${title} tree`}
-				{!!hint && tree && (
-					<span className="font-normal text-subtle"> · {hint}</span>
-				)}
-			</h3>
-			{tree ? (
-				children
-			) : (
-				<p className="text-subtle text-xs">
-					Choose a {title.toLowerCase()} tree.
-				</p>
-			)}
-		</div>
 	)
 }
 
