@@ -1,17 +1,13 @@
 import { cn } from "@/lib/cn"
 
-/** The inset panel around the chosen item slots, shared with its loading placeholder. */
+/** The build heading and its slots, shared with the loading placeholder. */
 export function ItemSlotsPanel({
 	className,
 	...props
 }: React.ComponentProps<"div">) {
-	return (
-		<div
-			className={cn(
-				"bg-primary-3 pt-3 pb-1 shadow-[inset_0_0_8px_rgb(0_0_0/0.7)]",
-				className,
-			)}
-			{...props}
-		/>
-	)
+	return <div className={cn("flex flex-col gap-2.5", className)} {...props} />
 }
+
+/** Six slots in one row, a 3×2 grid in the workbench column. */
+export const slotGridClassName =
+	"grid grid-cols-[repeat(6,minmax(0,3.5rem))] justify-center gap-1.5 lg:grid-cols-3 lg:gap-2"

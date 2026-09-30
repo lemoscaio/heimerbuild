@@ -49,6 +49,8 @@ test("the shop filters by a stat and sorts by it", async ({
 			(item.stats.abilityPower ?? 0) !== 0 ||
 			(item.stats.magicResist ?? 0) !== 0,
 	)
+	// The sort option was picked over the grid: move off the item whose tooltip opened.
+	await page.mouse.move(0, 0)
 	await statFilter.getByRole("button", { name: "Magic Resistance" }).click()
 	await page
 		.getByRole("group", { name: "Match selected stats" })

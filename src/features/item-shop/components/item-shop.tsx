@@ -90,20 +90,28 @@ export function ItemShop({ patch, onItemClick }: ItemShopProps) {
 	}
 
 	return (
-		<div className="bg-primary-4">
-			<div className="flex justify-center px-2.5 pt-2">
+		<div className="flex min-h-0 flex-1 flex-col">
+			<RoleFilter role={role} onRoleChange={handleRoleChange} />
+			<div className="flex items-center justify-center gap-2 px-2.5 pb-2">
+				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
+				{/* A fixed 12-column grid (12 + 11 icons); it scrolls sideways when narrower. */}
+				<div className="scrollbar-purple min-w-0 overflow-x-auto">
+					<StatFilter stats={stats} onStatsChange={handleStatsChange} />
+				</div>
+			</div>
+			<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2.5 pb-2 xl:flex-nowrap">
 				<ItemSearch
+					className="min-w-40 max-w-none flex-1 max-xl:basis-full"
 					query={query}
 					onQueryChange={handleQueryChange}
 					onEscape={handleSearchEscape}
 				/>
+				<StatSort
+					className="shrink-0 flex-nowrap p-0"
+					sort={sort}
+					onSortChange={handleSortChange}
+				/>
 			</div>
-			<RoleFilter role={role} onRoleChange={handleRoleChange} />
-			<div className="flex items-center justify-center gap-2 px-2.5 pb-1.5">
-				<StatMatchToggle match={match} onMatchChange={handleMatchChange} />
-				<StatFilter stats={stats} onStatsChange={handleStatsChange} />
-			</div>
-			<StatSort sort={sort} onSortChange={handleSortChange} />
 			<ItemList ref={listRef} aria-label="Item shop">
 				<ItemGrid items={items} onItemClick={onItemClick} />
 				{itemsQuery.isSuccess && !items.length && (

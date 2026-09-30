@@ -3,12 +3,17 @@ import { RouteError } from "@/components/common/route-error"
 import { buttonVariants } from "@/components/ui/button"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { GameDataUnavailableError } from "@/data/services/game-data"
-import { BuildSkeleton } from "@/features/build-calculator/components/build-skeleton"
 import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
+import { ItemSlotsSkeleton } from "@/features/build-calculator/components/item-slots-skeleton"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
+import { LevelSelectorSkeleton } from "@/features/build-calculator/components/level-selector-skeleton"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
+import { RunesPlaceholder } from "@/features/build-calculator/components/runes-placeholder"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
+import { StatsPanelSkeleton } from "@/features/build-calculator/components/stats-panel-skeleton"
+import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
+import { WorkbenchPanel } from "@/features/build-calculator/components/workbench-panel"
 import { useBuild } from "@/features/build-calculator/hooks/use-build"
 import { resolveBuildPatch } from "@/features/build-calculator/lib/build-patch"
 import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
@@ -75,61 +80,81 @@ function ChampionPage() {
 	}).href
 
 	return (
-		<ChampionPageLayout>
-			{build.champion && (
-				<main className="min-h-screen pt-header text-sm lg:pt-0">
-					<ChampionHeader champion={build.champion}>
-						<CopyBuildLink
-							href={buildHref}
-							onCopied={() =>
-								track("build_link_copied", {
-									champion: key,
-									level: build.level,
-									itemsCount: build.items.length,
-								})
-							}
-						/>
-					</ChampionHeader>
-					{unavailablePatch && (
-						<PatchNotice requestedPatch={unavailablePatch} patch={patch} />
-					)}
-					<LevelSelector level={build.level} onLevelChange={build.setLevel} />
-					<ItemSlots
-						items={build.items}
-						onRemoveItem={build.removeItem}
-						notice={build.notice}
+		build.champion && (
+			<WorkbenchLayout
+				actions={
+					<CopyBuildLink
+						layout="inline"
+						href={buildHref}
+						onCopied={() =>
+							track("build_link_copied", {
+								champion: key,
+								level: build.level,
+								itemsCount: build.items.length,
+							})
+						}
 					/>
-					<ItemShop patch={patch} onItemClick={build.addItem} />
-					{build.stats && <StatsPanel stats={build.stats} />}
-				</main>
-			)}
-		</ChampionPageLayout>
+				}
+				build={
+					<>
+						<WorkbenchPanel className="flex flex-col gap-3">
+							<ChampionHeader champion={build.champion} />
+							{unavailablePatch && (
+								<PatchNotice requestedPatch={unavailablePatch} patch={patch} />
+							)}
+							<LevelSelector
+								level={build.level}
+								onLevelChange={build.setLevel}
+							/>
+						</WorkbenchPanel>
+						<WorkbenchPanel>
+							<ItemSlots
+								items={build.items}
+								onRemoveItem={build.removeItem}
+								notice={build.notice}
+							/>
+						</WorkbenchPanel>
+						<RunesPlaceholder />
+					</>
+				}
+				shop={<ItemShop patch={patch} onItemClick={build.addItem} />}
+				stats={
+					<WorkbenchPanel>
+						{build.stats && <StatsPanel stats={build.stats} />}
+					</WorkbenchPanel>
+				}
+			/>
+		)
 	)
 }
 
 function ChampionPagePending() {
 	return (
-		<ChampionPageLayout>
-			<main className="min-h-screen pt-header text-sm lg:pt-0" role="status">
-				<span className="sr-only">Loading champion</span>
-				<ChampionHeaderSkeleton />
-				<BuildSkeleton />
+		<WorkbenchLayout
+			role="status"
+			build={
+				<>
+					<span className="sr-only">Loading champion</span>
+					<WorkbenchPanel className="flex flex-col gap-3">
+						<ChampionHeaderSkeleton />
+						<LevelSelectorSkeleton />
+					</WorkbenchPanel>
+					<WorkbenchPanel>
+						<ItemSlotsSkeleton />
+					</WorkbenchPanel>
+				</>
+			}
+			shop={
 				<ItemList>
 					<ItemGridSkeleton />
 				</ItemList>
-			</main>
-		</ChampionPageLayout>
-	)
-}
-
-/** The centred card that holds the champion page on desktop; full width on smaller screens. */
-function ChampionPageLayout({ children }: React.PropsWithChildren) {
-	return (
-		<div className="lg:mx-auto lg:max-w-200 lg:pt-20 lg:pb-5">
-			<div className="size-full bg-primary-3 lg:rounded-xl lg:shadow-black/25 lg:shadow-lg">
-				{children}
-			</div>
-		</div>
+			}
+			stats={
+				<WorkbenchPanel>
+					<StatsPanelSkeleton />
+				</WorkbenchPanel>
+			}
+		/>
 	)
 }
 

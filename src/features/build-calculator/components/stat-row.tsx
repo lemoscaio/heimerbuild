@@ -14,28 +14,28 @@ export function StatRow({
 	...props
 }: StatRowProps) {
 	const { label, icon, format, suffix } = info
-	const { base, bonus, total } = breakdown
+	const { bonus, total } = breakdown
 
 	return (
 		<li
 			className={cn(
-				"my-1 flex items-center gap-1.5 text-xs leading-4",
+				"flex items-center gap-2 rounded-md bg-primary-2/40 px-2 py-1 text-xs leading-4",
 				className,
 			)}
 			{...props}
 		>
 			<img src={icon} alt="" className="size-4 shrink-0" />
-			<div>
-				{label}: {formatStat(total, format)}
+			<span className="min-w-0 flex-1 text-prose">{label}</span>
+			<span className="shrink-0 font-medium tabular-nums">
+				{formatStat(total, format)}
 				{suffix}
 				{bonus !== 0 && (
-					<>
-						{" "}
-						({formatStat(base, format)} +{" "}
-						<span className="text-success">{formatStat(bonus, format)}</span>)
-					</>
+					<span className="ml-1.5 text-success">
+						{bonus > 0 && "+"}
+						{formatStat(bonus, format)}
+					</span>
 				)}
-			</div>
+			</span>
 		</li>
 	)
 }

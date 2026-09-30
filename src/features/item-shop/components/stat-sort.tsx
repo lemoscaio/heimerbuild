@@ -7,6 +7,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/cn"
 import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { shopStats } from "../lib/shop-stats"
 import type { ItemSort } from "../lib/sort-items-by-stat"
@@ -20,9 +21,10 @@ const sortOptions = [
 type StatSortProps = {
 	sort: ItemSort | undefined
 	onSortChange: (sort: ItemSort | undefined) => void
+	className?: string
 }
 
-export function StatSort({ sort, onSortChange }: StatSortProps) {
+export function StatSort({ sort, onSortChange, className }: StatSortProps) {
 	function handleStatChange(stat: StatKey | null) {
 		onSortChange(
 			stat ? { stat, direction: sort?.direction ?? "desc" } : undefined,
@@ -39,7 +41,12 @@ export function StatSort({ sort, onSortChange }: StatSortProps) {
 	}
 
 	return (
-		<div className="flex flex-wrap items-center justify-center gap-2 px-2.5 pb-2 text-white text-xs">
+		<div
+			className={cn(
+				"flex flex-wrap items-center justify-center gap-2 px-2.5 pb-2 text-white text-xs",
+				className,
+			)}
+		>
 			<Select
 				items={sortOptions}
 				value={sort?.stat ?? null}
@@ -47,7 +54,7 @@ export function StatSort({ sort, onSortChange }: StatSortProps) {
 			>
 				<div className="flex items-center gap-1.5">
 					<SelectLabel>Sort by</SelectLabel>
-					<SelectTrigger size="sm" className="w-48">
+					<SelectTrigger size="sm" className="w-40">
 						<SelectValue />
 					</SelectTrigger>
 				</div>

@@ -10,7 +10,7 @@ import {
 	type BuildViolation,
 	findBuildViolations,
 } from "../lib/build-violations"
-import { ItemSlotsPanel } from "./item-slots-panel"
+import { ItemSlotsPanel, slotGridClassName } from "./item-slots-panel"
 
 const slots = Array.from({ length: MAX_ITEMS }, (_, index) => index)
 
@@ -53,11 +53,8 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 
 	return (
 		<ItemSlotsPanel>
-			<fieldset
-				ref={slotsRef}
-				className="flex justify-center gap-1.5"
-				tabIndex={-1}
-			>
+			<BuildHeading gold={totalGold(items)} />
+			<fieldset ref={slotsRef} className={slotGridClassName} tabIndex={-1}>
 				<legend className="sr-only">Chosen items</legend>
 				{slots.map((slot) => {
 					const item = items[slot]
@@ -65,7 +62,7 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 						return (
 							<div
 								key={`empty-${slot}`}
-								className="size-10 rounded-sm bg-primary-1"
+								className="aspect-square rounded-md border-2 border-primary-1 border-dashed bg-primary-4/60"
 							/>
 						)
 					}
@@ -73,21 +70,21 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 						<ItemButton
 							key={`${slot}-${item.id}`}
 							item={item}
-							className="size-10 rounded-sm bg-primary-1"
+							className="aspect-square overflow-hidden rounded-md border-2 border-gold/70 bg-primary-2"
 							aria-label={`Remove ${item.name}`}
 							onClick={(event) => handleRemove(slot, event)}
 						>
 							<GameIcon
 								src={item.icon}
 								name={item.name}
-								className="size-full rounded-sm"
+								className="size-full"
 							/>
 						</ItemButton>
 					)
 				})}
 			</fieldset>
 			<div
-				className="flex min-h-5 flex-col items-center gap-2 px-2.5 pt-1 pb-2 text-center text-lilac text-xs"
+				className="flex flex-col items-center gap-2 text-center text-lilac text-xs empty:-mt-2.5"
 				role="status"
 				aria-live="polite"
 			>
@@ -95,6 +92,21 @@ export function ItemSlots({ items, onRemoveItem, notice }: ItemSlotsProps) {
 				{!!violations.length && <BuildWarning violations={violations} />}
 			</div>
 		</ItemSlotsPanel>
+	)
+}
+
+function totalGold(items: readonly Item[]) {
+	return items.reduce((sum, item) => sum + item.gold.total, 0)
+}
+
+function BuildHeading({ gold }: { gold: number }) {
+	return (
+		<div className="flex items-baseline justify-between">
+			<h2 className="font-bold font-display text-base">Build</h2>
+			<span className="text-gold text-xs tabular-nums">
+				{gold.toLocaleString("en-US")} gold
+			</span>
+		</div>
 	)
 }
 

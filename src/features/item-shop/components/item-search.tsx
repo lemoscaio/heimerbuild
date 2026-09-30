@@ -1,5 +1,6 @@
 import { useRef } from "react"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/cn"
 import { useSearchShortcut } from "../hooks/use-search-shortcut"
 
 type ItemSearchProps = {
@@ -7,12 +8,14 @@ type ItemSearchProps = {
 	onQueryChange: (query: string) => void
 	/** Escape pressed in the input; the shop clears the search and moves focus to the items. */
 	onEscape: () => void
+	className?: string
 }
 
 export function ItemSearch({
 	query,
 	onQueryChange,
 	onEscape,
+	className,
 }: ItemSearchProps) {
 	const inputRef = useRef<HTMLInputElement>(null)
 	useSearchShortcut(inputRef)
@@ -24,7 +27,7 @@ export function ItemSearch({
 	}
 
 	return (
-		<div className="relative w-full max-w-xs">
+		<div className={cn("relative w-full max-w-xs", className)}>
 			<Input
 				ref={inputRef}
 				type="search"
