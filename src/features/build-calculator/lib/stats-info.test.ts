@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test"
 import { computeStats } from "@/lib/stats/compute-stats"
 import type { ChampionStats } from "../../../../scripts/sync-data/schemas/champion"
-import { championStatRows, formatStat, resourceLabel } from "./stats-info"
+import {
+	championStatRows,
+	formatStat,
+	keyStatRows,
+	resourceLabel,
+} from "./stats-info"
 
 describe("formatStat", () => {
 	test.each([
@@ -47,28 +52,28 @@ describe("resourceLabel", () => {
 	})
 })
 
-describe("championStatRows", () => {
-	function statsOf(
-		resource: string,
-		{ mana, manaRegen }: { mana: number; manaRegen: number },
-	) {
-		const flat = { base: 0, perLevel: 0 }
-		const stats: ChampionStats = {
-			health: flat,
-			healthRegen: flat,
-			mana: { base: mana, perLevel: 0 },
-			manaRegen: { base: manaRegen, perLevel: 0 },
-			armor: flat,
-			magicResist: flat,
-			attackDamage: flat,
-			attackSpeed: { base: 0.625, perLevelPercent: 0, ratio: 0.625 },
-			critChance: flat,
-			movementSpeed: flat,
-			attackRange: flat,
-		}
-		return computeStats({ resource, stats }, 1, [])
+function statsOf(
+	resource: string,
+	{ mana, manaRegen }: { mana: number; manaRegen: number },
+) {
+	const flat = { base: 0, perLevel: 0 }
+	const stats: ChampionStats = {
+		health: flat,
+		healthRegen: flat,
+		mana: { base: mana, perLevel: 0 },
+		manaRegen: { base: manaRegen, perLevel: 0 },
+		armor: flat,
+		magicResist: flat,
+		attackDamage: flat,
+		attackSpeed: { base: 0.625, perLevelPercent: 0, ratio: 0.625 },
+		critChance: flat,
+		movementSpeed: flat,
+		attackRange: flat,
 	}
+	return computeStats({ resource, stats }, 1, [])
+}
 
+describe("championStatRows", () => {
 	function resourceRows(
 		resource: string,
 		values = { mana: 200, manaRegen: 50 },
@@ -115,5 +120,44 @@ describe("championStatRows", () => {
 
 		expect(rows.map(({ stat }) => stat)).toContain("health")
 		expect(rows.map(({ stat }) => stat)).toContain("abilityHaste")
+	})
+})
+
+describe("keyStatRows", () => {
+	function keyStats(resource: string, values = { mana: 200, manaRegen: 50 }) {
+		return keyStatRows(
+			championStatRows(resource, statsOf(resource, values)),
+		).map(({ stat }) => stat)
+	}
+
+	const fixedStats = [
+		"abilityPower",
+		"attackDamage",
+		"health",
+		"armor",
+		"magicResist",
+		"attackSpeed",
+		"movementSpeed",
+	]
+
+	test.each(["MANA", "ENERGY"])(
+		"a %s champion ends with its resource",
+		(resource) => {
+			expect(keyStats(resource)).toEqual([...fixedStats, "mana"])
+		},
+	)
+
+	test("a champion without a resource ends with Ability Haste", () => {
+		expect(keyStats("NONE", { mana: 0, manaRegen: 0 })).toEqual([
+			...fixedStats,
+			"abilityHaste",
+		])
+	})
+
+	test("a resource with no value also ends with Ability Haste", () => {
+		expect(keyStats("FRENZY", { mana: 0, manaRegen: 0 })).toEqual([
+			...fixedStats,
+			"abilityHaste",
+		])
 	})
 })
