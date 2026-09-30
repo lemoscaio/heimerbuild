@@ -17,6 +17,7 @@ import { ChampionHeader } from "@/features/champions/components/champion-header"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { RuneSummary } from "@/features/runes/components/rune-summary"
+import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 
 type OverviewPageProps = {
@@ -37,6 +38,7 @@ export function OverviewPage({
 }: OverviewPageProps) {
 	const [tab, setTab] = useState<WorkbenchTab>("items")
 	const isRunesTab = tab === "runes"
+	const preloadRuneImages = useRuneImagePreload(patch)
 	useAnalyticsContext({ shop_mode: "overview" })
 
 	return (
@@ -69,6 +71,7 @@ export function OverviewPage({
 				<WorkbenchTabs
 					tab={tab}
 					onTabChange={setTab}
+					onRunesIntent={preloadRuneImages}
 					items={
 						<ItemShop
 							patch={patch}

@@ -7,6 +7,8 @@ type WorkbenchTabsProps = {
 	onTabChange: (tab: WorkbenchTab) => void
 	items: React.ReactNode
 	runes: React.ReactNode
+	/** Hover, focus or touch on the Runes tab, before it opens (preloads its images). */
+	onRunesIntent?: () => void
 }
 
 /** The overview's center column: Items | Runes. */
@@ -15,6 +17,7 @@ export function WorkbenchTabs({
 	onTabChange,
 	items,
 	runes,
+	onRunesIntent,
 }: WorkbenchTabsProps) {
 	return (
 		<Tabs
@@ -26,7 +29,13 @@ export function WorkbenchTabs({
 				<TabsTrigger value="items" className="px-5">
 					Items
 				</TabsTrigger>
-				<TabsTrigger value="runes" className="px-5">
+				<TabsTrigger
+					value="runes"
+					className="px-5"
+					onPointerEnter={onRunesIntent}
+					onPointerDown={onRunesIntent}
+					onFocus={onRunesIntent}
+				>
 					Runes
 				</TabsTrigger>
 			</TabsList>

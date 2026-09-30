@@ -6,6 +6,8 @@ type MobileLayoutProps = {
 	stats: React.ReactNode
 	shop: React.ReactNode
 	runes: React.ReactNode
+	/** Touch or focus on the Runes tab, before it opens (preloads its images). */
+	onRunesIntent?: () => void
 	/** Pinned to the bottom of the screen: item details and page actions. */
 	bottom: React.ReactNode
 }
@@ -16,6 +18,7 @@ export function MobileLayout({
 	stats,
 	shop,
 	runes,
+	onRunesIntent,
 	bottom,
 }: MobileLayoutProps) {
 	return (
@@ -31,7 +34,13 @@ export function MobileLayout({
 						<TabsTrigger value="shop" className="h-11">
 							Shop
 						</TabsTrigger>
-						<TabsTrigger value="runes" className="h-11">
+						<TabsTrigger
+							value="runes"
+							className="h-11"
+							onPointerEnter={onRunesIntent}
+							onPointerDown={onRunesIntent}
+							onFocus={onRunesIntent}
+						>
 							Runes
 						</TabsTrigger>
 					</TabsList>

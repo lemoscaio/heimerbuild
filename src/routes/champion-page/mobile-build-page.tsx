@@ -10,6 +10,7 @@ import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import type { BuildPage } from "@/features/build-calculator/hooks/use-build-page"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
+import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 
 type MobileBuildPageProps = {
@@ -29,6 +30,7 @@ export function MobileBuildPage({
 	patchNotice,
 }: MobileBuildPageProps) {
 	useAnalyticsContext({ shop_mode: "mobile" })
+	const preloadRuneImages = useRuneImagePreload(patch)
 
 	return (
 		<MobileLayout
@@ -63,6 +65,7 @@ export function MobileBuildPage({
 					onItemAdd={build.addItem}
 				/>
 			}
+			onRunesIntent={preloadRuneImages}
 			runes={
 				<RunePage
 					patch={patch}

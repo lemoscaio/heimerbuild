@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { useRunes } from "@/data/hooks/use-runes"
 import { cn } from "@/lib/cn"
 import type { RuneSelection } from "@/lib/rune-selection"
+import { useRuneImagePreload } from "../hooks/use-rune-image-preload"
 import { treeAccentClass } from "../lib/tree-accent"
 
 type RuneSummaryProps = {
@@ -13,7 +14,7 @@ type RuneSummaryProps = {
 	onEdit: () => void
 } & Omit<React.ComponentProps<"section">, "children">
 
-/** The rune page at a glance (keystone, trees, shards) in the build column; opens the editor. */
+/** The rune page at a glance (keystone, trees, shards) in the build column; opens the editor and preloads its images on intent. */
 export function RuneSummary({
 	patch,
 	selection,
@@ -23,6 +24,7 @@ export function RuneSummary({
 	...props
 }: RuneSummaryProps) {
 	const { data: runes } = useRunes(patch)
+	const preloadRuneImages = useRuneImagePreload(patch)
 	const primaryTree = runes?.trees.find(
 		(tree) => tree.id === selection.primary?.treeId,
 	)
@@ -44,6 +46,7 @@ export function RuneSummary({
 				treeAccentClass(primaryTree?.key),
 				className,
 			)}
+			onPointerEnter={preloadRuneImages}
 			{...props}
 		>
 			<div className="flex items-center justify-between gap-2">
@@ -58,6 +61,8 @@ export function RuneSummary({
 					size="sm"
 					className="text-lilac"
 					aria-pressed={isEditing}
+					onFocus={preloadRuneImages}
+					onPointerDown={preloadRuneImages}
 					onClick={onEdit}
 				>
 					{isEditing
