@@ -5,6 +5,7 @@ import { filterChampions } from "@/lib/filter-champions"
 import type { ChampionFilters } from "../hooks/use-champion-filters"
 import { useChampionListExpanded } from "../hooks/use-champion-list-expanded"
 import { ChampionList } from "./champion-list"
+import { ChampionListRegion } from "./champion-list-region"
 import { ChampionListToggle } from "./champion-list-toggle"
 import { ChampionRoleFilter } from "./champion-role-filter"
 import { SearchContainer } from "./search-container"
@@ -51,10 +52,10 @@ export function ChampionBrowser({
 				controls={listId}
 				championCount={champions?.length}
 			/>
-			<section
+			<ChampionListRegion
 				id={listId}
 				aria-label="Champions"
-				hidden={!expanded}
+				expanded={expanded}
 				className="flex w-full flex-col gap-5"
 			>
 				<div className="flex flex-col items-center gap-3">
@@ -72,7 +73,7 @@ export function ChampionBrowser({
 					failedChampionsLoad={failedChampionsLoad}
 					loadChampions={loadChampions}
 				/>
-			</section>
+			</ChampionListRegion>
 		</div>
 	)
 }
