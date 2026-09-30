@@ -6,10 +6,13 @@ import { toCommunityDragonPatch } from "./version"
 const DDRAGON_BASE = "https://ddragon.leagueoflegends.com/cdn"
 const CDRAGON_BASE = "https://raw.communitydragon.org"
 const CDRAGON_ITEMS_PATH = "game/items.cdtb.bin.json"
+// Client data (stat shards): plain JSON, unlike the game bins.
+const CDRAGON_CLIENT_DATA_PATH =
+	"plugins/rcp-be-lol-game-data/global/default/v1"
 
 export const MANIFEST_FILE = "manifest.json"
 /** Bump when the set of cached files changes, so older caches are re-downloaded. */
-export const CACHE_LAYOUT = 3
+export const CACHE_LAYOUT = 4
 
 export type DownloadOptions = {
 	fetchFn?: typeof fetch
@@ -106,9 +109,10 @@ export async function downloadRawData(
 		return json
 	}
 
-	const [championList, , communityDragonItems] = await Promise.all([
+	const [championList, , , communityDragonItems] = await Promise.all([
 		download("ddragon/champion.json", `${ddragon}/champion.json`),
 		download("ddragon/item.json", `${ddragon}/item.json`),
+		download("ddragon/runesReforged.json", `${ddragon}/runesReforged.json`),
 		fetchCommunityDragonItems(version, fetchFn),
 	])
 	await save(
@@ -128,12 +132,15 @@ export async function downloadRawData(
 			],
 		] as const
 	})
+	const cdragonClientData = `${CDRAGON_BASE}/${communityDragonItems.patch}/${CDRAGON_CLIENT_DATA_PATH}`
 	const cdragonFiles = [
 		...perChampion,
 		[
 			"cdragon/map11.bin.json",
 			`${cdragonGame}/data/maps/shipping/map11/map11.bin.json`,
 		],
+		["cdragon/perks.json", `${cdragonClientData}/perks.json`],
+		["cdragon/perkstyles.json", `${cdragonClientData}/perkstyles.json`],
 	] as const
 	await mapWithConcurrency(cdragonFiles, concurrency, ([path, url]) =>
 		download(path, url),

@@ -1,0 +1,62 @@
+[
+	{
+		"id": 5003,
+		"name": "Magic Resist",
+		"shortDesc": "+8 Magic Resist",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsMagicResIcon.png"
+	},
+	{
+		"id": 5012,
+		"name": "Resist Scaling",
+		"shortDesc": "+1-8 Armor and Magic Resist (based on level)",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsAdaptiveForceScalingIcon.png"
+	},
+	{
+		"id": 5002,
+		"name": "Armor",
+		"shortDesc": "+6 Armor",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsArmorIcon.png"
+	},
+	{
+		"id": 5011,
+		"name": "Health",
+		"shortDesc": "+65 Health",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsHealthScalingIcon.png"
+	},
+	{
+		"id": 5013,
+		"name": "Tenacity and Slow Resist",
+		"shortDesc": "+15% Tenacity and Slow Resist",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsTenacityIcon.png"
+	},
+	{
+		"id": 5008,
+		"name": "Adaptive Force",
+		"shortDesc": "+9 <lol-uikit-tooltipped-keyword key='LinkTooltip_Description_Adaptive'><font color='#48C4B7'>Adaptive Force</font></lol-uikit-tooltipped-keyword>",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsAdaptiveForceIcon.png"
+	},
+	{
+		"id": 5001,
+		"name": "Health Scaling",
+		"shortDesc": "+10-180 Health (based on level)",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsHealthPlusIcon.png"
+	},
+	{
+		"id": 5007,
+		"name": "Ability Haste",
+		"shortDesc": "+8 <lol-uikit-tooltipped-keyword key='LinkTooltip_Description_CDR'>Ability Haste</lol-uikit-tooltipped-keyword> ",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsCDRScalingIcon.png"
+	},
+	{
+		"id": 5005,
+		"name": "Attack Speed",
+		"shortDesc": "+10% Attack Speed",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsAttackSpeedIcon.png"
+	},
+	{
+		"id": 5010,
+		"name": "Move Speed",
+		"shortDesc": "+2.5% <lol-uikit-tooltipped-keyword key='LinkTooltip_Description_MS'>Move Speed</lol-uikit-tooltipped-keyword>",
+		"iconPath": "/lol-game-data/assets/v1/perk-images/StatMods/StatModsMovementSpeedIcon.png"
+	}
+]
