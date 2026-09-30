@@ -41,6 +41,7 @@ jobs:
           REPO: ${{ github.repository }}
           SHA: ${{ github.event.pull_request.head.sha }}
           PR: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.head_ref }}
         run: bash .github/scripts/find-preview-url.sh
 
   e2e:

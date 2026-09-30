@@ -22,6 +22,18 @@ export default defineConfig({
 		react(),
 		babel({ presets: [reactCompilerPreset()] }),
 		tailwindcss(),
+		// /version.json names the built commit; the E2E workflow polls it to tell whether a
+		// preview already serves the PR head (.github/scripts/find-preview-url.sh).
+		{
+			name: "heimerbuild-version-file",
+			generateBundle() {
+				this.emitFile({
+					type: "asset",
+					fileName: "version.json",
+					source: `${JSON.stringify({ commit: appRelease ?? null })}\n`,
+				})
+			},
+		},
 		uploadSourceMaps &&
 			sentryVitePlugin({
 				org: "caio-lemos",
