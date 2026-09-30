@@ -38,10 +38,10 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 ## Game data pipeline
 
 1. `bun run sync-data` downloads Data Dragon + CommunityDragon for a patch into `.cache/<version>/` (gitignored).
-2. It normalizes champions and items (canonical stat names, Summoner's Rift shop filter, `from`/`into` limited to shop items) and validates them with the Zod schemas.
+2. It normalizes champions, items and runes (canonical stat names, Summoner's Rift shop filter, `from`/`into` limited to shop items; rune trees from Data Dragon `runesReforged.json`, stat shards from CommunityDragon `perks.json`/`perkstyles.json`, their values read from the shard descriptions by `SHARD_STAT_RULES` in `normalize-runes.ts`) and validates them with the Zod schemas.
    Item stats must also match the `<stats>` block of each Data Dragon item description; known differences go in `ITEM_STAT_ALLOWLIST` (`scripts/sync-data/validate-item-stats.ts`), each with a reason.
    Known bugs in Riot's data are fixed by typed overrides in `scripts/sync-data/overrides/`, applied before validation (README, Data overrides).
-3. It writes `public/data/<patch>/{champions.json, champions/<key>.json, items.json}` and `public/data/manifest.json`, which lists a content hash per data file.
+3. It writes `public/data/<patch>/{champions.json, champions/<key>.json, items.json, runes.json}` and `public/data/manifest.json`, which lists a content hash per data file.
 4. The app reads the manifest (revalidated on every load) for the current patch, then fetches that patch's files as `/data/<patch>/<file>?v=<hash>` and parses them with the same schemas. Patch files are cached as immutable; a changed file gets a new hash, so a new URL.
 5. `.github/workflows/sync-data.yml` runs the sync daily and opens a PR (`chore/sync-game-data`) when a new patch ships; it never pushes to `main`.
 
