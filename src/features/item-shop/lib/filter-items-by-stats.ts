@@ -1,4 +1,4 @@
-import type { Item, StatKey } from "../../../../scripts/sync-data/schemas/item"
+import type { Item, StatKey } from "@schemas/item"
 
 /** `all`: the item gives every selected stat (AND). `any`: at least one (OR). */
 export type StatMatch = "all" | "any"

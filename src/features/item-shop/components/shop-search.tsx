@@ -1,3 +1,4 @@
+import type { Item } from "@schemas/item"
 import { Fragment, useRef } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import {
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/combobox"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { useSearchShortcut } from "../hooks/use-search-shortcut"
 import {
 	commitShopQuery,

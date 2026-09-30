@@ -60,6 +60,11 @@ export default defineConfig({
 		assetsInlineLimit: 0,
 	},
 	resolve: {
-		alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+		alias: {
+			"@": fileURLToPath(new URL("./src", import.meta.url)),
+			"@schemas": fileURLToPath(
+				new URL("./scripts/sync-data/schemas", import.meta.url),
+			),
+		},
 	},
 })

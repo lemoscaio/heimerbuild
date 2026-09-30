@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
+import type { ChampionStats } from "@schemas/champion"
 import { formatStat } from "@/lib/stat-display"
 import { computeStats } from "@/lib/stats/compute-stats"
-import type { ChampionStats } from "../../../../scripts/sync-data/schemas/champion"
 import { championStatRows, keyStatRows, resourceLabel } from "./stats-info"
 
 describe("formatStat", () => {

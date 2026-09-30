@@ -1,5 +1,5 @@
+import type { ChampionSummary } from "@schemas/champion"
 import { LoadError } from "@/components/common/load-error"
-import type { ChampionSummary } from "../../../../scripts/sync-data/schemas/champion"
 import { ChampionCard } from "./champion-card"
 import { ChampionGrid } from "./champion-grid"
 import { ChampionGridSkeleton } from "./champion-grid-skeleton"

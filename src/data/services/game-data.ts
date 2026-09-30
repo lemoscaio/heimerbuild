@@ -1,21 +1,8 @@
+import { championIndexSchema, championSchema } from "@schemas/champion"
+import { type Item, type ItemsFile, ItemsFileSchema } from "@schemas/item"
+import { type DataManifest, dataManifestSchema } from "@schemas/manifest"
+import { type RunesFile, runesFileSchema } from "@schemas/rune"
 import type * as z from "zod/mini"
-import {
-	championIndexSchema,
-	championSchema,
-} from "../../../scripts/sync-data/schemas/champion"
-import {
-	type Item,
-	type ItemsFile,
-	ItemsFileSchema,
-} from "../../../scripts/sync-data/schemas/item"
-import {
-	type DataManifest,
-	dataManifestSchema,
-} from "../../../scripts/sync-data/schemas/manifest"
-import {
-	type RunesFile,
-	runesFileSchema,
-} from "../../../scripts/sync-data/schemas/rune"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
 

@@ -1,4 +1,4 @@
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
+import type { Item } from "@schemas/item"
 
 type BuildItem = Pick<Item, "id" | "name" | "groupLimits">
 

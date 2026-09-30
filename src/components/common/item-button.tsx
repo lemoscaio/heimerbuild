@@ -1,3 +1,4 @@
+import type { Item } from "@schemas/item"
 import { useId, useState } from "react"
 import {
 	Tooltip,
@@ -6,7 +7,6 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
 import { itemStatLines } from "@/lib/item-stats"
-import type { Item } from "../../../scripts/sync-data/schemas/item"
 
 type ItemButtonProps = {
 	item: Item

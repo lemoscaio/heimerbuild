@@ -1,3 +1,4 @@
+import type { StatKey } from "@schemas/item"
 import { ArrowDownUp } from "lucide-react"
 import {
 	DropdownMenu,
@@ -11,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { IconButton } from "@/components/ui/icon-button"
 import { cn } from "@/lib/cn"
-import type { StatKey } from "../../../../scripts/sync-data/schemas/item"
 import { shopStats } from "../lib/shop-stats"
 import type { ItemSort, SortDirection } from "../lib/sort-items-by-stat"
 

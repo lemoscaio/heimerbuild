@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import type { Item, StatKey } from "../../../../scripts/sync-data/schemas/item"
+import type { Item, StatKey } from "@schemas/item"
 import { filterItemsByStats, type StatMatch } from "./filter-items-by-stats"
 
 function item(id: string, stats: Item["stats"]) {

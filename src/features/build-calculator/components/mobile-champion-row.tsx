@@ -1,5 +1,5 @@
+import type { Champion } from "@schemas/champion"
 import { GameIcon } from "@/components/common/game-icon"
-import type { Champion } from "../../../../scripts/sync-data/schemas/champion"
 
 type MobileChampionRowProps = {
 	champion: Pick<Champion, "name" | "icon">

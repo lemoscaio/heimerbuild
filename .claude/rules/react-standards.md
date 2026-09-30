@@ -21,6 +21,7 @@ Rules marked **(after #N)** apply once that issue lands; until then, follow the 
 
 - A feature never imports another feature (`src/features/a` → `src/features/b`), no exceptions. Features import only `components/`, `lib/`, `hooks/`, `types/` and `data/`. Details: [import boundaries](../../docs/frontend-architecture.md#import-boundaries).
 - `@/` resolves to `src/`: import other layers as `@/data/hooks/use-champions`, not with long `../../..` chains.
+- `@schemas/` resolves to `scripts/sync-data/schemas/`: import the game data schemas and their types as `@schemas/item`.
 - Enforced by Biome `noRestrictedImports` overrides in `biome.json`. A new feature folder needs its own override there (see [import boundaries](../../docs/frontend-architecture.md#import-boundaries)).
 
 ## Exports and declarations

@@ -1,12 +1,5 @@
-import type {
-	Champion,
-	ChampionStats,
-} from "../../../scripts/sync-data/schemas/champion"
-import {
-	type Item,
-	STAT_UNITS,
-	type StatKey,
-} from "../../../scripts/sync-data/schemas/item"
+import type { Champion, ChampionStats } from "@schemas/champion"
+import { type Item, STAT_UNITS, type StatKey } from "@schemas/item"
 import { attackSpeedAtLevel } from "./attack-speed"
 import { assertChampionLevel, statAtLevel } from "./growth"
 

@@ -1,4 +1,4 @@
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
+import type { Item } from "@schemas/item"
 import { filterItemsByName } from "./filter-items-by-name"
 import { filterItemsByRole } from "./filter-items-by-role"
 import { filterItemsByStats } from "./filter-items-by-stats"

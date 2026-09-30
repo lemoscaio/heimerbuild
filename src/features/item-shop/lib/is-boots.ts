@@ -1,4 +1,4 @@
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
+import type { Item } from "@schemas/item"
 
 /** Gunmetal Greaves lacks the Boots tag in some patches but shares the boots group limit. */
 export function isBoots({

@@ -1,5 +1,5 @@
-import type { ChampionRole } from "../../../../scripts/sync-data/schemas/champion"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
+import type { ChampionRole } from "@schemas/champion"
+import type { Item } from "@schemas/item"
 import { isBoots } from "./is-boots"
 
 export type RoleFilter = "ALL" | ChampionRole

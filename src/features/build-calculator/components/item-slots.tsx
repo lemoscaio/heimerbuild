@@ -1,3 +1,4 @@
+import type { Item } from "@schemas/item"
 import { TriangleAlert } from "lucide-react"
 import { useEffect, useLayoutEffect, useRef } from "react"
 import { GameIcon } from "@/components/common/game-icon"
@@ -6,7 +7,6 @@ import { PoliteStatus } from "@/components/common/polite-status"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
-import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { MAX_ITEMS } from "../lib/build-items"
 import {
 	type BuildViolation,

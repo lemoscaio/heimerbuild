@@ -1,5 +1,5 @@
+import type { RuneTree } from "@schemas/rune"
 import { type RuneSelection, runeRowIndex } from "@/lib/rune-selection"
-import type { RuneTree } from "../../../../scripts/sync-data/schemas/rune"
 
 const SECONDARY_RUNES = 2
 

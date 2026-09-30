@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test"
-import type { Champion } from "../../../scripts/sync-data/schemas/champion"
-import {
-	type ItemStats,
-	STAT_UNITS,
-} from "../../../scripts/sync-data/schemas/item"
+import type { Champion } from "@schemas/champion"
+import { type ItemStats, STAT_UNITS } from "@schemas/item"
 import { computeStats } from "./compute-stats"
 
 // Heimerdinger, patch 16.19.1 (public/data/16.19.1/champions/Heimerdinger.json).

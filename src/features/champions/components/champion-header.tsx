@@ -1,3 +1,4 @@
+import type { Champion } from "@schemas/champion"
 import { ChevronRight } from "lucide-react"
 import { GameIcon } from "@/components/common/game-icon"
 import {
@@ -5,7 +6,6 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import type { Champion } from "../../../../scripts/sync-data/schemas/champion"
 import { attackTypeLabels, roleLabels } from "../lib/champion-labels"
 import { ChampionHeaderLayout } from "./champion-header-layout"
 

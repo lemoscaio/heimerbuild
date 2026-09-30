@@ -1,3 +1,4 @@
+import type { RunesFile, RuneTree } from "@schemas/rune"
 import { useState } from "react"
 import { LoadError } from "@/components/common/load-error"
 import { Button } from "@/components/ui/button"
@@ -11,10 +12,6 @@ import {
 	isRuneSelectionEmpty,
 	type RuneSelection,
 } from "@/lib/rune-selection"
-import type {
-	RunesFile,
-	RuneTree,
-} from "../../../../scripts/sync-data/schemas/rune"
 import {
 	pickKeystone,
 	pickPrimaryRune,

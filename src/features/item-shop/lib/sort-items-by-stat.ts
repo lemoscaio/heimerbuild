@@ -1,4 +1,4 @@
-import type { Item, StatKey } from "../../../../scripts/sync-data/schemas/item"
+import type { Item, StatKey } from "@schemas/item"
 
 export type SortDirection = "desc" | "asc"
 

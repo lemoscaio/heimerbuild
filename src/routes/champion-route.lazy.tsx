@@ -1,3 +1,4 @@
+import type { Champion } from "@schemas/champion"
 import { createLazyRoute, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -33,7 +34,6 @@ import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { track } from "@/lib/analytics/analytics"
 import { isRuneSelectionEmpty } from "@/lib/rune-selection"
-import type { Champion } from "../../scripts/sync-data/schemas/champion"
 
 // Tailwind's `lg` breakpoint.
 const LG_QUERY = "(min-width: 64rem)"

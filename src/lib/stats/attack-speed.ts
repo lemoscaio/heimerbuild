@@ -1,4 +1,4 @@
-import type { ChampionStats } from "../../../scripts/sync-data/schemas/champion"
+import type { ChampionStats } from "@schemas/champion"
 import { growthMultiplier } from "./growth"
 
 /**
