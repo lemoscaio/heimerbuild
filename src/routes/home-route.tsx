@@ -7,7 +7,7 @@ import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { RecentBuilds } from "@/features/build-calculator/components/recent-builds"
 import { ChampionBrowser } from "@/features/champions/components/champion-browser"
 import { useChampionFilters } from "@/features/champions/hooks/use-champion-filters"
-import { rootRoute } from "./root-route"
+import { APP_TITLE, rootRoute } from "./root-route"
 
 export const homeRoute = createRoute({
 	getParentRoute: () => rootRoute,
@@ -18,6 +18,9 @@ export const homeRoute = createRoute({
 		)
 		await queryClient.ensureQueryData(gameDataQueries.champions(currentPatch))
 	},
+	head: () => ({
+		meta: [{ title: `${APP_TITLE} · League of Legends build calculator` }],
+	}),
 	component: HomePage,
 	pendingComponent: HomePending,
 	errorComponent: RouteError,

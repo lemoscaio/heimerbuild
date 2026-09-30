@@ -37,6 +37,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { track } from "@/lib/analytics/analytics"
 import type { Champion } from "../../scripts/sync-data/schemas/champion"
 import { pageWithHeaderRoute } from "./page-with-header-route"
+import { APP_TITLE } from "./root-route"
 
 // Tailwind's `lg` breakpoint.
 const LG_QUERY = "(min-width: 64rem)"
@@ -61,15 +62,26 @@ export const championRoute = createRoute({
 		// Items keep their own loading and error state inside the page.
 		queryClient.prefetchQuery(gameDataQueries.items(patch))
 		try {
-			await queryClient.ensureQueryData(gameDataQueries.champion(patch, key))
+			const champion = await queryClient.ensureQueryData(
+				gameDataQueries.champion(patch, key),
+			)
+			return { patch, unavailablePatch, championName: champion.name }
 		} catch (error) {
 			if (error instanceof GameDataUnavailableError) {
 				throw notFound()
 			}
 			throw error
 		}
-		return { patch, unavailablePatch }
 	},
+	head: ({ loaderData }) => ({
+		meta: [
+			{
+				title: loaderData
+					? `${loaderData.championName} build · ${APP_TITLE}`
+					: APP_TITLE,
+			},
+		],
+	}),
 	component: ChampionPage,
 	pendingComponent: ChampionPagePending,
 	errorComponent: RouteError,

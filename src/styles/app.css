@@ -122,4 +122,9 @@
 	:focus-visible {
 		@apply outline-2 outline-ring outline-offset-2;
 	}
+
+	/* The page start focused after a route change (RouteFocus) is not a control. */
+	[data-route-focus]:focus-visible {
+		@apply outline-none;
+	}
 }
