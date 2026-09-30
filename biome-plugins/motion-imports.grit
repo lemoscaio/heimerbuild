@@ -1,0 +1,14 @@
+language js
+
+// Motion is imported only in src/components/motion/, *.motion.tsx files and the app's provider (paths in biome.json).
+or {
+	`import $_ from $source`,
+	`import type $_ from $source`
+} where {
+	$source <: or {
+		`"motion"`,
+		`"motion/react"`,
+		`"motion/react-m"`
+	},
+	register_diagnostic(span=$source, message="Import Motion only in src/components/motion/ or a *.motion.tsx file (.claude/rules/react-standards.md, Motion).")
+}

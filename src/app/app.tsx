@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { RouterProvider } from "@tanstack/react-router"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AppError } from "./app-error"
+import { MotionProvider } from "./motion-provider"
 import { queryClient } from "./query-client"
 import { router } from "./router"
 
@@ -12,9 +13,11 @@ export function App() {
 		<ErrorBoundary fallback={<AppError />}>
 			<QueryClientProvider client={queryClient}>
 				{import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-				<TooltipProvider>
-					<RouterProvider router={router} />
-				</TooltipProvider>
+				<MotionProvider>
+					<TooltipProvider>
+						<RouterProvider router={router} />
+					</TooltipProvider>
+				</MotionProvider>
 			</QueryClientProvider>
 		</ErrorBoundary>
 	)

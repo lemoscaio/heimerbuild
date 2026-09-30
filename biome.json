@@ -42,6 +42,18 @@
 			}
 		}
 	},
+	"plugins": [
+		{
+			"path": "./biome-plugins/motion-imports.grit",
+			"includes": [
+				"**/src/**",
+				"!**/src/components/motion/**",
+				"!**/src/**/*.motion.tsx",
+				"!**/src/app/motion-provider.tsx",
+				"!**/src/app/motion-features.ts"
+			]
+		}
+	],
 	"css": {
 		"parser": {
 			"tailwindDirectives": true

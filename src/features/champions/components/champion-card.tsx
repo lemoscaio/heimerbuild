@@ -16,7 +16,7 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 		<Link
 			to="/champions/$key"
 			params={{ key: champion.key }}
-			className="group min-w-0 rounded-lg"
+			className="group block min-w-0 rounded-lg"
 			onClick={() => track("champion_selected", { champion: champion.key })}
 		>
 			<ChampionCardShell>

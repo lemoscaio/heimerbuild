@@ -3,6 +3,7 @@ import type { ChampionSummary } from "../../../../scripts/sync-data/schemas/cham
 import { ChampionCard } from "./champion-card"
 import { ChampionGrid } from "./champion-grid"
 import { ChampionGridSkeleton } from "./champion-grid-skeleton"
+import { ChampionCardReveal, ChampionGridReveal } from "./champion-list.motion"
 
 type ChampionListProps = {
 	champions: ChampionSummary[] | undefined
@@ -28,20 +29,19 @@ export function ChampionList(props: ChampionListProps) {
 	return (
 		<>
 			{champions && (
-				<ChampionGrid>
+				<ChampionGridReveal>
 					{filteredChampions.length > 0 ? (
-						filteredChampions.map((champion) => (
-							<ChampionCard
-								key={champion.id}
-								champion={champion}
-							></ChampionCard>
+						filteredChampions.map((champion, index) => (
+							<ChampionCardReveal key={champion.id} index={index}>
+								<ChampionCard champion={champion} />
+							</ChampionCardReveal>
 						))
 					) : (
 						<p className="col-span-full py-8 text-center text-prose">
 							No champions found.
 						</p>
 					)}
-				</ChampionGrid>
+				</ChampionGridReveal>
 			)}
 			{isLoadingChampions && <ChampionGridSkeleton />}
 			{failedChampionsLoad && (
