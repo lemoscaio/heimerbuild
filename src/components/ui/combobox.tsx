@@ -49,7 +49,8 @@ export function ComboboxChip({
 			<ComboboxPrimitive.ChipRemove
 				data-slot="combobox-chip-remove"
 				aria-label={removeLabel}
-				className="flex h-full items-center px-1 text-subtle hover:text-white max-lg:px-1.5"
+				// On phones the tap area grows to 44px around the small visible button.
+				className="relative flex h-full items-center px-1 text-subtle hover:text-white max-lg:px-1.5 max-lg:after:absolute max-lg:after:top-1/2 max-lg:after:left-1/2 max-lg:after:size-11 max-lg:after:-translate-x-1/2 max-lg:after:-translate-y-1/2"
 			>
 				<XIcon className="pointer-events-none size-3" />
 			</ComboboxPrimitive.ChipRemove>
