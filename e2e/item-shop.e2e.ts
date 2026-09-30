@@ -75,7 +75,7 @@ test("the shop is one Tab stop: arrow keys move between items, Enter selects one
 	await expect(shop.first()).toBeVisible()
 	const [, , third] = await itemNames(shop)
 
-	await page.getByRole("combobox", { name: "Sort by" }).focus()
+	await page.getByRole("combobox", { name: "Group by" }).focus()
 	await page.keyboard.press("Tab")
 	await expect(shop.first()).toBeFocused()
 	await page.keyboard.press("ArrowRight")
@@ -113,4 +113,28 @@ test("/ focuses the shop search, which filters by name, and Escape clears it", a
 	await page.keyboard.press("Escape")
 	await expect(shop).toHaveCount(items.length)
 	await expect(shop.first()).toBeFocused()
+})
+
+test("the shop grouping switches between tiers, compact and one list, and survives a reload", async ({
+	page,
+}) => {
+	await page.goto("/champions/Heimerdinger")
+	const sections = page
+		.getByRole("region", { name: "Item shop" })
+		.getByRole("group")
+		.filter({ has: page.getByRole("heading"), hasNot: page.getByRole("group") })
+	await expect(sections).toHaveCount(5)
+
+	async function groupBy(option: string) {
+		await page.getByRole("combobox", { name: "Group by" }).click()
+		await page.getByRole("option", { name: option }).click()
+	}
+
+	await groupBy("Compact")
+	await expect(sections).toHaveCount(3)
+	await page.reload()
+	await expect(sections).toHaveCount(3)
+	await groupBy("None")
+	await expect(sections).toHaveCount(1)
+	await expect(shopItems(page).first()).toBeVisible()
 })

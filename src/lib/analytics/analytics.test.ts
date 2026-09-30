@@ -3,10 +3,18 @@ import { type AnalyticsClient, createAnalytics } from "./analytics"
 
 function fakeClient(flags: Record<string, boolean | string> = {}) {
 	const captured: { event: string; properties: Record<string, unknown> }[] = []
+	const registered: Record<string, unknown> = {}
 	let flagsCallback: (() => void) | undefined
 	const client: AnalyticsClient = {
+		// Like PostHog: registered super properties join every event, the event's own win.
 		capture: (event, properties) => {
-			captured.push({ event, properties })
+			captured.push({ event, properties: { ...registered, ...properties } })
+		},
+		register: (properties) => {
+			Object.assign(registered, properties)
+		},
+		unregister: (property) => {
+			delete registered[property]
 		},
 		getFeatureFlag: (name) => flags[name],
 		onFeatureFlags: (callback) => {
@@ -53,6 +61,100 @@ describe("createAnalytics", () => {
 			{ event: "champion_selected", properties: { champion: "Heimerdinger" } },
 			{ event: "item_added", properties: { itemId: "3089" } },
 			{ event: "item_removed", properties: { itemId: "3089" } },
+		])
+	})
+
+	test("sends the view that was active when each event happened, before and after loading", async () => {
+		const analytics = createAnalytics()
+		const { client, captured } = fakeClient()
+		let resolveClient: (client: AnalyticsClient) => void = () => {}
+
+		const connecting = analytics.connect(
+			() => new Promise((resolve) => (resolveClient = resolve)),
+		)
+		analytics.setAnalyticsContext({
+			shop_grouping: "tiers",
+			shop_mode: "overview",
+		})
+		analytics.track("shop_item_selected", { itemId: "3135" })
+		analytics.setAnalyticsContext({ shop_grouping: "compact" })
+		analytics.track("item_added", { itemId: "3135" })
+		resolveClient(client)
+		await connecting
+		analytics.setAnalyticsContext({ shop_mode: "expanded" })
+		analytics.track("item_removed", { itemId: "3135" })
+
+		expect(captured).toEqual([
+			{
+				event: "shop_item_selected",
+				properties: {
+					shop_grouping: "tiers",
+					shop_mode: "overview",
+					itemId: "3135",
+				},
+			},
+			{
+				event: "item_added",
+				properties: {
+					shop_grouping: "compact",
+					shop_mode: "overview",
+					itemId: "3135",
+				},
+			},
+			{
+				event: "item_removed",
+				properties: {
+					shop_grouping: "compact",
+					shop_mode: "expanded",
+					itemId: "3135",
+				},
+			},
+		])
+	})
+
+	test("clears the parts of the view that are no longer shown, before and after loading", async () => {
+		const analytics = createAnalytics()
+		const { client, captured } = fakeClient()
+		let resolveClient: (client: AnalyticsClient) => void = () => {}
+
+		const connecting = analytics.connect(
+			() => new Promise((resolve) => (resolveClient = resolve)),
+		)
+		analytics.setAnalyticsContext({
+			shop_grouping: "compact",
+			shop_mode: "overview",
+			shop_stat_match: "any",
+		})
+		analytics.clearAnalyticsContext(["shop_mode", "shop_stat_match"])
+		analytics.track("champion_selected", { champion: "Ahri" })
+		resolveClient(client)
+		await connecting
+		analytics.setAnalyticsContext({
+			shop_mode: "mobile",
+			shop_stat_match: "all",
+		})
+		analytics.track("item_added", { itemId: "3135" })
+		analytics.clearAnalyticsContext(["shop_mode", "shop_stat_match"])
+		analytics.track("champion_selected", { champion: "Garen" })
+
+		expect(captured).toEqual([
+			{
+				event: "champion_selected",
+				properties: { shop_grouping: "compact", champion: "Ahri" },
+			},
+			{
+				event: "item_added",
+				properties: {
+					shop_grouping: "compact",
+					shop_mode: "mobile",
+					shop_stat_match: "all",
+					itemId: "3135",
+				},
+			},
+			{
+				event: "champion_selected",
+				properties: { shop_grouping: "compact", champion: "Garen" },
+			},
 		])
 	})
 

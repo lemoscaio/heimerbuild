@@ -1,3 +1,4 @@
+import type { ShopGrouping, ShopMode } from "@/types/shop-view"
 import type { ChampionRole } from "../../../scripts/sync-data/schemas/champion"
 import type { StatKey } from "../../../scripts/sync-data/schemas/item"
 
@@ -24,9 +25,22 @@ export type AnalyticsEvents = {
 	shop_searched: { queryLength: number }
 	/** `null` stat and direction: back to the shop's own order. */
 	shop_sorted: { stat: StatKey | null; direction: "asc" | "desc" | null }
+	/** A shop view setting changed; the active view also rides on every event (`AnalyticsContext`). */
+	shop_view_changed: {
+		setting: "grouping"
+		from: ShopGrouping
+		to: ShopGrouping
+	}
 	build_link_copied: { champion: string; level: number; itemsCount: number }
 	/** The "Not possible in-game" warning appeared or changed; `rules` are the broken item groups. */
 	impossible_build_warning_shown: { rules: string[] }
 }
 
 export type AnalyticsEvent = keyof AnalyticsEvents
+
+/** The active view, sent with every event as PostHog super properties. */
+export type AnalyticsContext = {
+	shop_grouping?: ShopGrouping
+	shop_mode?: ShopMode
+	shop_stat_match?: "all" | "any"
+}
