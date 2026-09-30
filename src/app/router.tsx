@@ -16,6 +16,8 @@ const routeTree = rootRoute.addChildren([
 export const router = createRouter({
 	routeTree,
 	context: { queryClient },
+	// Hovering or focusing a link loads the next route's chunk and data before the click.
+	defaultPreload: "intent",
 	// React Query owns caching; the router always asks it on preload.
 	defaultPreloadStaleTime: 0,
 	// Loader and render errors that a route's errorComponent shows.

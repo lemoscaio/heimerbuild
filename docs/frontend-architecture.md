@@ -8,7 +8,7 @@ Target structure for `src/`, grouped by feature instead of by file type. Compone
 
 ```
 src/
-├── main.tsx              Vite entry: starts Sentry, mounts <App /> and global styles, then starts PostHog; nothing else
+├── main.tsx              Vite entry: starts Sentry and the stale-chunk reload, mounts <App /> and global styles, then starts PostHog; nothing else
 ├── app/                  app shell: App, providers, query client, router (route tree), Sentry and PostHog setup
 ├── routes/               TanStack Router code routes: one *-route.tsx per route
 ├── features/             feature slices, never import each other
