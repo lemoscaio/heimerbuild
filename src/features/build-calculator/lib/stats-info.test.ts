@@ -35,6 +35,7 @@ describe("resourceLabel", () => {
 		["MANA", "Mana"],
 		["ENERGY", "Energy"],
 		["FURY", "Fury"],
+		["FRENZY", "Frenzy"],
 		["BLOOD_WELL", "Blood Well"],
 		["CRIMSON_RUSH", "Crimson Rush"],
 	])("%s is %s", (resource, label) => {

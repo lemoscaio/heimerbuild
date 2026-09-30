@@ -24,7 +24,7 @@
 		"16.19.1/champions/Blitzcrank.json": "d5d6c06118",
 		"16.19.1/champions/Brand.json": "1477c78850",
 		"16.19.1/champions/Braum.json": "fe2763f413",
-		"16.19.1/champions/Briar.json": "bb47332df4",
+		"16.19.1/champions/Briar.json": "27551b58cb",
 		"16.19.1/champions/Caitlyn.json": "b08d48b781",
 		"16.19.1/champions/Camille.json": "7f7aa53ef0",
 		"16.19.1/champions/Cassiopeia.json": "d6a4b155ec",
@@ -112,7 +112,7 @@
 		"16.19.1/champions/Quinn.json": "0533182a5c",
 		"16.19.1/champions/Rakan.json": "c1ea8c4999",
 		"16.19.1/champions/Rammus.json": "4006e3cbc3",
-		"16.19.1/champions/RekSai.json": "e1e34c8ac8",
+		"16.19.1/champions/RekSai.json": "0ad8a30628",
 		"16.19.1/champions/Rell.json": "20ccd46c91",
 		"16.19.1/champions/Renata.json": "180de00053",
 		"16.19.1/champions/Renekton.json": "9f4f7b4ca8",
@@ -180,5 +180,5 @@
 		"16.19.1/champions/Zyra.json": "d586d05ab7",
 		"16.19.1/items.json": "4575b434d2"
 	},
-	"generatedAt": "2026-09-30T16:46:54.116Z"
+	"generatedAt": "2026-09-30T17:55:58.239Z"
 }
