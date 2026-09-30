@@ -28,18 +28,17 @@ import {
 	pickShard,
 } from "../lib/pick-runes"
 import { runeImageUrls } from "../lib/rune-image-urls"
+import { RAIL_LABEL_CLASSES } from "../lib/rune-styles"
 import { SHARD_ACCENT } from "../lib/tree-accent"
+import { PrimaryTreeSkeleton } from "./primary-tree-skeleton"
 import { RuneDetails } from "./rune-details"
 import { RuneRail } from "./rune-rail"
 import { RuneRailRow } from "./rune-rail-row"
 import { RuneRow } from "./rune-row"
+import { SecondaryTreeSkeleton } from "./secondary-tree-skeleton"
 import { ShardRow } from "./shard-row"
 import { TreeColumn } from "./tree-column"
 import { TreePicker } from "./tree-picker"
-
-// The small gold caption of a rail ("Keystones", "Stat shards").
-const RAIL_LABEL =
-	"font-semibold text-[10px] text-gold uppercase tracking-[0.14em]"
 
 type RunePageProps = {
 	patch: string
@@ -155,10 +154,10 @@ function RunePageEditor({
 						/>
 					}
 				>
-					{primaryTree && (
+					{primaryTree ? (
 						<RuneRail>
 							<RuneRailRow isPicked={primary?.keystoneId !== undefined}>
-								<p className={RAIL_LABEL}>Keystones</p>
+								<p className={RAIL_LABEL_CLASSES}>Keystones</p>
 								<RuneRow
 									label={`${primaryTree.name} keystone`}
 									size="keystone"
@@ -199,6 +198,8 @@ function RunePageEditor({
 								</RuneRailRow>
 							))}
 						</RuneRail>
+					) : (
+						<PrimaryTreeSkeleton />
 					)}
 				</TreeColumn>
 				<div className="flex flex-col gap-8 lg:gap-6">
@@ -223,9 +224,9 @@ function RunePageEditor({
 							/>
 						}
 					>
-						{secondaryTree && (
+						{secondaryTree ? (
 							<div className="flex flex-col gap-2">
-								<p className={cn("ml-7.5", RAIL_LABEL)}>Pick 2</p>
+								<p className={cn("ml-7.5", RAIL_LABEL_CLASSES)}>Pick 2</p>
 								<RuneRail>
 									{secondaryTree.rows.map((row, index) => {
 										const picked = secondary?.runeIds.find((id) =>
@@ -260,10 +261,12 @@ function RunePageEditor({
 									})}
 								</RuneRail>
 							</div>
+						) : (
+							<SecondaryTreeSkeleton />
 						)}
 					</TreeColumn>
 					<section className={cn("flex flex-col gap-2.5", SHARD_ACCENT)}>
-						<h3 className={cn("ml-7.5", RAIL_LABEL)}>Stat shards</h3>
+						<h3 className={cn("ml-7.5", RAIL_LABEL_CLASSES)}>Stat shards</h3>
 						<RuneRail>
 							{runes.shardRows.map((row, index) => (
 								<RuneRailRow

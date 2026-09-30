@@ -10,7 +10,7 @@ type TreeColumnProps = {
 	/** The tree picker, shown next to the chosen tree's emblem. */
 	picker: React.ReactNode
 	emblemSize: "large" | "medium"
-	/** The tree's rows, shown once a tree is chosen. */
+	/** The tree's rows, or their skeleton until a tree is chosen. */
 	children: React.ReactNode
 	className?: string
 }
@@ -61,13 +61,7 @@ export function TreeColumn({
 				)}
 				{picker}
 			</div>
-			{tree ? (
-				children
-			) : (
-				<p className="text-subtle text-xs">
-					Choose a {title.toLowerCase()} tree.
-				</p>
-			)}
+			{children}
 		</section>
 	)
 }
