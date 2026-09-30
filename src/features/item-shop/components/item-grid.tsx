@@ -1,18 +1,18 @@
-import { useId } from "react"
-import { GameIcon } from "@/components/common/game-icon"
-import { ItemButton } from "@/components/common/item-button"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { useRovingFocus } from "../hooks/use-roving-focus"
+import { groupShopItems } from "../lib/group-shop-items"
+import { ItemSection } from "./item-section"
 
 type ItemGridProps = {
 	items: readonly Item[]
 	onItemClick: (itemId: string) => void
 }
 
+/** The items split into shop sections; arrow keys move across them in visual order. */
 export function ItemGrid({ items, onItemClick }: ItemGridProps) {
-	const positionId = useId()
+	const sections = groupShopItems(items)
 	const { containerRef, handleKeyDown, getItemProps } = useRovingFocus(
-		items.map((item) => item.id),
+		sections.flatMap((section) => section.items.map((item) => item.id)),
 	)
 
 	if (!items.length) return null
@@ -20,31 +20,17 @@ export function ItemGrid({ items, onItemClick }: ItemGridProps) {
 	return (
 		<fieldset
 			ref={containerRef}
-			className="flex w-full min-w-0 flex-wrap content-start justify-center gap-1.5"
+			className="flex w-full min-w-0 flex-col gap-4"
 			onKeyDown={handleKeyDown}
 		>
 			<legend className="sr-only">Items</legend>
-			{items.map((item, index) => (
-				<ItemButton
-					key={item.id}
-					item={item}
-					aria-label={item.name}
-					aria-describedby={`${positionId}-${index}`}
-					onClick={() => onItemClick(item.id)}
-					{...getItemProps(item.id)}
-				>
-					<GameIcon
-						src={item.icon}
-						name={item.name}
-						width={40}
-						height={40}
-						loading="lazy"
-						className="size-10"
-					/>
-					<span id={`${positionId}-${index}`} hidden>
-						{index + 1} of {items.length}
-					</span>
-				</ItemButton>
+			{sections.map((section) => (
+				<ItemSection
+					key={section.key}
+					section={section}
+					onItemClick={onItemClick}
+					getItemProps={getItemProps}
+				/>
 			))}
 		</fieldset>
 	)

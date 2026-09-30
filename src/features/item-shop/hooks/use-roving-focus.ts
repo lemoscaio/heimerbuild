@@ -16,8 +16,7 @@ export function useRovingFocus(keys: readonly string[]) {
 		const index = activeKey === undefined ? -1 : keys.indexOf(activeKey)
 		if (index < 0 || event.altKey || event.ctrlKey || event.metaKey) return
 		const next = moveRovingIndex(index, event.key, {
-			count: keys.length,
-			columns: countColumns(elements),
+			rows: countRows(elements),
 		})
 		if (next === undefined) return
 		event.preventDefault()
@@ -49,9 +48,18 @@ function rovingItems(container: HTMLElement | null) {
 	]
 }
 
-/** Items in the first row: all rows but the last are full. */
-function countColumns(elements: readonly HTMLElement[]) {
-	const top = elements[0]?.offsetTop
-	const firstRow = elements.findIndex((element) => element.offsetTop !== top)
-	return firstRow < 0 ? elements.length || 1 : firstRow
+/** Items per visual row, in order: a new row starts wherever the top edge changes. */
+function countRows(elements: readonly HTMLElement[]) {
+	const rows: number[] = []
+	let top: number | undefined
+	for (const element of elements) {
+		const elementTop = Math.round(element.getBoundingClientRect().top)
+		if (elementTop === top) {
+			rows[rows.length - 1] = (rows.at(-1) ?? 0) + 1
+		} else {
+			rows.push(1)
+			top = elementTop
+		}
+	}
+	return rows
 }

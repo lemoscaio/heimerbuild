@@ -18,10 +18,6 @@ test("the shop filters by a stat and sorts by it", async ({
 	const withAbilityPower = items.filter(
 		(item) => (item.stats.abilityPower ?? 0) !== 0,
 	)
-	const highestFirst = withAbilityPower
-		.map((item) => item.stats.abilityPower ?? 0)
-		.sort((a, b) => b - a)
-
 	await page.goto("/champions/Heimerdinger")
 	const shop = shopItems(page)
 	await expect(shop).toHaveCount(items.length)
@@ -38,11 +34,23 @@ test("the shop filters by a stat and sorts by it", async ({
 
 	await page.getByRole("combobox", { name: "Sort by" }).click()
 	await page.getByRole("option", { name: "Ability Power" }).click()
+	// Sort applies inside each shop section.
+	const sections = page
+		.getByRole("region", { name: "Item shop" })
+		.getByRole("group")
+		.filter({ has: page.getByRole("heading"), hasNot: page.getByRole("group") })
 	await expect
-		.poll(async () =>
-			(await itemNames(shop)).map((name) => abilityPowerOf.get(name)),
-		)
-		.toEqual(highestFirst)
+		.poll(async () => {
+			const sorted = []
+			for (const section of await sections.all()) {
+				const values = (await itemNames(section.getByRole("button"))).map(
+					(name) => abilityPowerOf.get(name) ?? 0,
+				)
+				sorted.push(values.join() === values.toSorted((a, b) => b - a).join())
+			}
+			return sorted.length > 1 && sorted.every(Boolean)
+		})
+		.toBe(true)
 
 	const withAbilityPowerOrMagicResist = items.filter(
 		(item) =>

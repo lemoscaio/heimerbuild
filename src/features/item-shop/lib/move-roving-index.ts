@@ -1,6 +1,6 @@
 type GridShape = {
-	count: number
-	columns: number
+	/** Items per visual row, top to bottom. Rows may differ: each shop section ends its own last row. */
+	rows: readonly number[]
 }
 
 /**
@@ -10,21 +10,18 @@ type GridShape = {
 export function moveRovingIndex(
 	index: number,
 	key: string,
-	{ count, columns }: GridShape,
+	{ rows }: GridShape,
 ) {
-	const last = count - 1
+	const last = rows.reduce((total, row) => total + row, 0) - 1
 	switch (key) {
 		case "ArrowLeft":
 			return Math.max(index - 1, 0)
 		case "ArrowRight":
 			return Math.min(index + 1, last)
 		case "ArrowUp":
-			return index >= columns ? index - columns : index
+			return moveRow(index, rows, -1)
 		case "ArrowDown":
-			// The row above a shorter last row moves to its last item.
-			return rowOf(index, columns) < rowOf(last, columns)
-				? Math.min(index + columns, last)
-				: index
+			return moveRow(index, rows, 1)
 		case "Home":
 			return 0
 		case "End":
@@ -34,6 +31,17 @@ export function moveRovingIndex(
 	}
 }
 
-function rowOf(index: number, columns: number) {
-	return Math.floor(index / columns)
+/** Same column in the row above or below; a shorter row moves to its last item. */
+function moveRow(index: number, rows: readonly number[], step: -1 | 1) {
+	let start = 0
+	let row = 0
+	while (row < rows.length - 1 && index >= start + (rows[row] ?? 0)) {
+		start += rows[row] ?? 0
+		row++
+	}
+	const target = rows[row + step]
+	if (target === undefined) return index
+	const column = index - start
+	const targetStart = step === 1 ? start + (rows[row] ?? 0) : start - target
+	return targetStart + Math.min(column, target - 1)
 }
