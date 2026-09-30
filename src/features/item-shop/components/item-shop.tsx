@@ -112,7 +112,7 @@ export function ItemShop({
 	const search = (
 		<ItemSearch
 			className={cn("min-w-40 max-w-none flex-1", {
-				"max-xl:basis-full": !isExpanded,
+				"max-[90rem]:basis-full": !isExpanded,
 			})}
 			query={query}
 			onQueryChange={handleQueryChange}
@@ -206,7 +206,7 @@ export function ItemShop({
 					<StatFilter stats={stats} onStatsChange={handleStatsChange} />
 				</div>
 			</div>
-			<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2.5 pb-2 max-lg:order-first xl:flex-nowrap">
+			<div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2.5 pb-2 max-lg:order-first min-[90rem]:flex-nowrap">
 				{search}
 				<StatSort
 					className="shrink-0 flex-nowrap p-0"
