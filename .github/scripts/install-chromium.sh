@@ -16,8 +16,9 @@ echo 'DPkg::Lock::Timeout "60";' | sudo tee /etc/apt/apt.conf.d/99-lock-timeout 
 # `timeout` kills sudo but not the root apt-get under it, which keeps the dpkg lock and
 # fails the retry (PR 179's first e2e run). Kill it, wait for the locks, repair dpkg.
 release_apt() {
-	sudo pkill -KILL -x apt-get || true
-	sudo pkill -KILL -x dpkg || true
+	echo "Releasing apt/dpkg locks before the retry"
+	sudo pkill -e -KILL -x apt-get || true
+	sudo pkill -e -KILL -x dpkg || true
 	for _ in $(seq 30); do
 		sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock \
 			/var/lib/apt/lists/lock /var/cache/apt/archives/lock >/dev/null 2>&1 || break
