@@ -1,4 +1,4 @@
-import { z } from "zod"
+import * as z from "zod/mini"
 
 /**
  * Canonical champion stats (shared with the item stats in `./item.ts`).
@@ -34,9 +34,9 @@ export const championStatsSchema = z.strictObject({
 	magicResist: growthStat,
 	attackDamage: growthStat,
 	attackSpeed: z.strictObject({
-		base: z.number().positive(),
+		base: z.number().check(z.positive()),
 		perLevelPercent: z.number(),
-		ratio: z.number().nonnegative(),
+		ratio: z.number().check(z.nonnegative()),
 	}),
 	critChance: growthStat,
 	movementSpeed: growthStat,
@@ -54,21 +54,23 @@ export const championRoleSchema = z.enum([
 
 /** `key` is the Data Dragon string id ("MonkeyKing"), `id` its numeric key (62): swapped vs Data Dragon. */
 export const championSummarySchema = z.strictObject({
-	key: z.string().regex(/^\w+$/),
-	id: z.number().int().positive(),
-	name: z.string().min(1),
-	title: z.string().min(1),
-	roles: z.array(championRoleSchema).min(1),
+	key: z.string().check(z.regex(/^\w+$/)),
+	id: z.int().check(z.positive()),
+	name: z.string().check(z.minLength(1)),
+	title: z.string().check(z.minLength(1)),
+	roles: z.array(championRoleSchema).check(z.minLength(1)),
 	icon: z.url(),
 })
 
-export const championIndexSchema = z.array(championSummarySchema).min(1)
+export const championIndexSchema = z
+	.array(championSummarySchema)
+	.check(z.minLength(1))
 
 export const championSchema = z.strictObject({
 	...championSummarySchema.shape,
-	lore: z.string().min(1),
+	lore: z.string().check(z.minLength(1)),
 	attackType: z.enum(["melee", "ranged"]),
-	resource: z.string().regex(/^[A-Z_]+$/),
+	resource: z.string().check(z.regex(/^[A-Z_]+$/)),
 	stats: championStatsSchema,
 })
 

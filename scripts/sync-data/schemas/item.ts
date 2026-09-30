@@ -1,4 +1,4 @@
-import { z } from "zod"
+import * as z from "zod/mini"
 import { championRoleSchema } from "./champion"
 
 /** `percent` values are fractions: 0.1 means 10%. */
@@ -43,22 +43,22 @@ export type StatKey = keyof typeof STAT_UNITS
 const statsShape = Object.fromEntries(
 	Object.entries(STAT_UNITS).map(([stat, unit]) => [
 		stat,
-		z.number().meta({ unit }).optional(),
+		z.optional(z.number().check(z.meta({ unit }))),
 	]),
-) as Record<StatKey, z.ZodOptional<z.ZodNumber>>
+) as Record<StatKey, z.ZodMiniOptional<z.ZodMiniNumber>>
 
 export const ItemStatsSchema = z.strictObject(statsShape)
 
 export const ItemSchema = z.strictObject({
-	id: z.string().regex(/^\d+$/),
+	id: z.string().check(z.regex(/^\d+$/)),
 	name: z.string(),
 	/** Plain text from Data Dragon (`<stats>` block removed); empty when the item has only stats. */
 	// Defaults keep browsers that cached an older items.json of the same patch working.
-	description: z.string().default(""),
+	description: z._default(z.string(), ""),
 	/** Short plain-text summary; empty for some items. */
-	plaintext: z.string().default(""),
+	plaintext: z._default(z.string(), ""),
 	/** File name only; the app builds the Data Dragon URL from the patch. */
-	icon: z.string().min(1),
+	icon: z.string().check(z.minLength(1)),
 	gold: z.strictObject({
 		base: z.number(),
 		total: z.number(),
@@ -66,22 +66,23 @@ export const ItemSchema = z.strictObject({
 		purchasable: z.boolean(),
 	}),
 	tags: z.array(z.string()),
-	maps: z.array(z.number().int()),
+	maps: z.array(z.int()),
 	from: z.array(z.string()),
 	into: z.array(z.string()),
 	inStore: z.boolean(),
-	requiredChampion: z.string().optional(),
+	requiredChampion: z.optional(z.string()),
 	/** In-game shop class filters (CommunityDragon `mItemAttributes`); empty means "All Items" only. */
 	roles: z.array(championRoleSchema),
 	/** A build holds at most `max` items that share `group` (CommunityDragon item groups: boots, lifeline, ...). */
-	groupLimits: z
-		.array(
+	groupLimits: z._default(
+		z.array(
 			z.strictObject({
-				group: z.string().min(1),
-				max: z.number().int().positive(),
+				group: z.string().check(z.minLength(1)),
+				max: z.int().check(z.positive()),
 			}),
-		)
-		.default([]),
+		),
+		[],
+	),
 	stats: ItemStatsSchema,
 })
 

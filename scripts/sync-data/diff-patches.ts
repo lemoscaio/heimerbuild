@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
+import * as z from "zod/mini"
 import { type Champion, championSchema } from "./schemas/champion"
 import { type Item, ItemsFileSchema } from "./schemas/item"
 import { assertValidVersion } from "./version"
@@ -196,6 +197,8 @@ async function main(): Promise<void> {
 }
 
 if (import.meta.main) {
+	// zod/mini loads no locale; readable messages for this CLI only.
+	z.config(z.locales.en())
 	main().catch((error: unknown) => {
 		console.error(
 			`diff-patches failed: ${error instanceof Error ? error.message : String(error)}`,

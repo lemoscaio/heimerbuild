@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
+import * as z from "zod/mini"
 import {
 	CACHE_LAYOUT,
 	downloadRawData,
@@ -27,6 +28,9 @@ import {
 	compareVersions,
 	resolveLatestVersion,
 } from "./version"
+
+// The shared schemas use zod/mini, which loads no locale: keep validation failures readable.
+z.config(z.locales.en())
 
 const CACHE_ROOT = resolve(import.meta.dir, "../../.cache")
 const OUTPUT_ROOT = resolve(import.meta.dir, "../../public/data")
