@@ -10,7 +10,7 @@ Target structure for `src/`, grouped by feature instead of by file type. Compone
 src/
 ├── main.tsx              Vite entry: starts Sentry and the stale-chunk reload, mounts <App /> and global styles, then starts PostHog; nothing else
 ├── app/                  app shell: App, providers, query client, router (route tree), Sentry and PostHog setup
-├── routes/               TanStack Router code routes: one *-route.tsx per route
+├── routes/               TanStack Router code routes: one *-route.tsx per route, a page's screens in <name>-page/
 ├── features/             feature slices, never import each other
 │   ├── champions/        champion grid, search, champion header and skills
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
@@ -50,7 +50,7 @@ features/<feature>/
 ### Import boundaries
 
 - **A feature never imports another feature. No exceptions.** Routes compose features; anything two features need is promoted to a shared layer.
-- When two features interact, the route wires them with props and callbacks. Example: the champion route calls `useBuild()` (build-calculator) and passes `build.addItem` to `ItemShop` (item-shop) as `onItemClick`; the shop never knows about the build.
+- When two features interact, the route wires them with props and callbacks. Example: the champion route calls `useBuildPage()` (build-calculator) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`.
 - Shared layers never import from `features/` or `routes/`.
 - CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override per feature lists the other features, one covers the shared layers. **Adding a feature means adding its override and its name to the other features' lists.**
