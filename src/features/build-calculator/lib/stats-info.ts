@@ -156,6 +156,7 @@ const RESOURCE_LABELS: Readonly<Record<string, string>> = {
 	ENERGY: "Energy",
 	FEROCITY: "Ferocity",
 	FLOW: "Flow",
+	FRENZY: "Frenzy",
 	FURY: "Fury",
 	GRIT: "Grit",
 	HEAT: "Heat",
