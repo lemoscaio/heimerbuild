@@ -26,12 +26,14 @@ export type StatBreakdown = { base: number; bonus: number; total: number }
 
 export type ComputedStats = Record<StatName, StatBreakdown>
 
-export type ChampionInput = Pick<Champion, "stats">
+export type ChampionInput = Pick<Champion, "resource" | "stats">
 export type ItemInput = Pick<Item, "stats">
+
+/** Champion `resource` value of mana users; other resources ignore mana stats on items. */
+export const MANA_RESOURCE = "MANA"
 
 const FLAT_GROWTH_STATS = [
 	"health",
-	"mana",
 	"armor",
 	"magicResist",
 	"attackDamage",
@@ -57,7 +59,8 @@ function breakdown(base: number, total: number): StatBreakdown {
 /**
  * `base` is the champion alone at `level` (1 to 18, growth included);
  * `bonus` is what the items add on top of it. Attack speed is the exception:
- * its level growth is bonus attack speed, as in game.
+ * its level growth is bonus attack speed, as in game. Champions without
+ * mana keep their own resource in `mana` and `manaRegen`, with no item bonus.
  */
 export function computeStats(
 	champion: ChampionInput,
@@ -66,6 +69,7 @@ export function computeStats(
 ): ComputedStats {
 	assertChampionLevel(level)
 	const { stats } = champion
+	const usesMana = champion.resource === MANA_RESOURCE
 	const {
 		attackSpeedPercent,
 		critChancePercent,
@@ -92,10 +96,15 @@ export function computeStats(
 		healthRegen * (1 + baseHealthRegenPercent) + itemStats.healthRegen,
 	)
 
+	const mana = statAtLevel(stats.mana, level)
+	computed.mana = breakdown(mana, usesMana ? mana + itemStats.mana : mana)
+
 	const manaRegen = statAtLevel(stats.manaRegen, level)
 	computed.manaRegen = breakdown(
 		manaRegen,
-		manaRegen * (1 + baseManaRegenPercent) + itemStats.manaRegen,
+		usesMana
+			? manaRegen * (1 + baseManaRegenPercent) + itemStats.manaRegen
+			: manaRegen,
 	)
 
 	computed.attackSpeed = breakdown(
