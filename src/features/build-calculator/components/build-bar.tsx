@@ -7,7 +7,7 @@ import { KeyStats } from "./key-stats"
 import { LevelStepper } from "./level-stepper"
 
 type BuildBarProps = {
-	champion: Pick<Champion, "name" | "icon">
+	champion: Pick<Champion, "name" | "icon" | "resource">
 	level: number
 	onLevelChange: (level: number) => void
 	items: readonly Item[]
@@ -52,7 +52,7 @@ export function BuildBar({
 				notice={notice}
 			/>
 			<div className="min-w-0 flex-1 basis-96">
-				<KeyStats stats={stats} />
+				<KeyStats stats={stats} resource={champion.resource} />
 			</div>
 			{children}
 		</section>

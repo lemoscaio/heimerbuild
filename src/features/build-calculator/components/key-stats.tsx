@@ -1,5 +1,5 @@
 import type { ComputedStats, StatName } from "@/lib/stats/compute-stats"
-import { formatStat, statRows } from "../lib/stats-info"
+import { championStatRows, formatStat } from "../lib/stats-info"
 
 const KEY_STATS: readonly StatName[] = [
 	"abilityPower",
@@ -12,16 +12,19 @@ const KEY_STATS: readonly StatName[] = [
 	"mana",
 ]
 
-const keyRows = KEY_STATS.flatMap(
-	(stat) => statRows.find((info) => info.stat === stat) ?? [],
-)
-
 type KeyStatsProps = {
 	stats: ComputedStats
+	/** The champion's `resource`: names the mana tile, or hides it. */
+	resource: string
 }
 
 /** The eight stats most builds care about, as compact tiles. */
-export function KeyStats({ stats }: KeyStatsProps) {
+export function KeyStats({ stats, resource }: KeyStatsProps) {
+	const rows = championStatRows(resource, stats)
+	const keyRows = KEY_STATS.flatMap(
+		(stat) => rows.find((info) => info.stat === stat) ?? [],
+	)
+
 	return (
 		<dl aria-label="Key stats" className="grid grid-cols-4 gap-1.5 text-xs">
 			{keyRows.map(({ stat, label, format }) => (
