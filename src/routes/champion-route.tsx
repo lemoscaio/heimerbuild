@@ -3,14 +3,17 @@ import { RouteError } from "@/components/common/route-error"
 import { buttonVariants } from "@/components/ui/button"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
 import { GameDataUnavailableError } from "@/data/services/game-data"
+import { BuildBar } from "@/features/build-calculator/components/build-bar"
 import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
 import { ItemDetailsCard } from "@/features/build-calculator/components/item-details-card"
+import { ItemDetailsPanel } from "@/features/build-calculator/components/item-details-panel"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { ItemSlotsSkeleton } from "@/features/build-calculator/components/item-slots-skeleton"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
 import { LevelSelectorSkeleton } from "@/features/build-calculator/components/level-selector-skeleton"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
 import { RunesPlaceholder } from "@/features/build-calculator/components/runes-placeholder"
+import { ShopViewToggle } from "@/features/build-calculator/components/shop-view-toggle"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { StatsPanelSkeleton } from "@/features/build-calculator/components/stats-panel-skeleton"
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
@@ -23,8 +26,12 @@ import { ChampionHeaderSkeleton } from "@/features/champions/components/champion
 import { ItemGridSkeleton } from "@/features/item-shop/components/item-grid-skeleton"
 import { ItemList } from "@/features/item-shop/components/item-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { track } from "@/lib/analytics/analytics"
 import { pageWithHeaderRoute } from "./page-with-header-route"
+
+// Tailwind's `lg` breakpoint.
+const LG_QUERY = "(min-width: 64rem)"
 
 export const championRoute = createRoute({
 	getParentRoute: () => pageWithHeaderRoute,
@@ -74,6 +81,9 @@ function ChampionPage() {
 		onSearchChange: (nextSearch, { replace }) =>
 			navigate({ search: nextSearch, replace, resetScroll: false }),
 	})
+	// The expanded shop is desktop-only: smaller screens keep the regular page.
+	const view = useMediaQuery(LG_QUERY) ? build.view : "overview"
+	const isShopView = view === "shop"
 	const buildHref = router.buildLocation({
 		to: championRoute.fullPath,
 		params: { key },
@@ -83,6 +93,7 @@ function ChampionPage() {
 	return (
 		build.champion && (
 			<WorkbenchLayout
+				view={view}
 				actions={
 					<CopyBuildLink
 						layout="inline"
@@ -121,27 +132,61 @@ function ChampionPage() {
 				shop={
 					<ItemShop
 						patch={patch}
+						layout={isShopView ? "expanded" : "compact"}
+						actions={
+							<ShopViewToggle
+								className="max-lg:hidden"
+								view={view}
+								onViewChange={build.setView}
+							/>
+						}
 						selectedItemId={build.selectedItem?.id}
 						onItemSelect={build.selectItem}
 						onItemAdd={build.addItem}
 					/>
 				}
-				stats={
-					<>
-						{build.selectedItem && (
-							<ItemDetailsCard
-								item={build.selectedItem}
-								isBuildFull={build.isFull}
-								onAdd={build.addItem}
-								onClose={build.clearSelection}
-							/>
-						)}
-						<WorkbenchPanel>
-							{build.stats && (
-								<StatsPanel stats={build.stats} preview={build.preview} />
+				side={
+					isShopView ? (
+						<ItemDetailsPanel
+							item={build.selectedItem}
+							stats={build.stats}
+							next={build.preview?.stats}
+							isBuildFull={build.isFull}
+							onAdd={build.addItem}
+							onClose={build.clearSelection}
+						/>
+					) : (
+						<>
+							{build.selectedItem && (
+								<ItemDetailsCard
+									item={build.selectedItem}
+									isBuildFull={build.isFull}
+									onAdd={build.addItem}
+									onClose={build.clearSelection}
+								/>
 							)}
-						</WorkbenchPanel>
-					</>
+							<WorkbenchPanel>
+								{build.stats && (
+									<StatsPanel stats={build.stats} preview={build.preview} />
+								)}
+							</WorkbenchPanel>
+						</>
+					)
+				}
+				bar={
+					build.stats && (
+						<BuildBar
+							champion={build.champion}
+							level={build.level}
+							onLevelChange={build.setLevel}
+							items={build.items}
+							onRemoveItem={build.removeItem}
+							notice={build.notice}
+							stats={build.stats}
+						>
+							<ShopViewToggle view={view} onViewChange={build.setView} />
+						</BuildBar>
+					)
 				}
 			/>
 		)
@@ -169,7 +214,7 @@ function ChampionPagePending() {
 					<ItemGridSkeleton />
 				</ItemList>
 			}
-			stats={
+			side={
 				<WorkbenchPanel>
 					<StatsPanelSkeleton />
 				</WorkbenchPanel>

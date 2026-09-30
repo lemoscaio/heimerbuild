@@ -29,25 +29,32 @@ export const buildSearchSchema = z.object({
 		.regex(/^\d+\.\d+\.\d+$/)
 		.optional()
 		.catch(undefined),
+	/** Page layout: the expanded shop; absent means the overview. */
+	view: z.literal("shop").optional().catch(undefined),
 })
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
+
+export type BuildView = "overview" | "shop"
 
 export type BuildState = {
 	level: number
 	itemIds: readonly string[]
 	patch: string | undefined
+	view?: BuildView
 }
 
-/** The URL search for a build. Defaults (level 1, no items) stay out of the URL. */
+/** The URL search for a build. Defaults (level 1, no items, overview) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
 	patch,
+	view,
 }: BuildState): BuildSearch {
 	return {
 		lvl: level === MIN_LEVEL ? undefined : level,
 		items: itemIds.length ? [...itemIds] : undefined,
 		patch,
+		view: view === "shop" ? view : undefined,
 	}
 }

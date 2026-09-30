@@ -10,7 +10,11 @@ import {
 	MAX_ITEMS,
 	removeItemAt,
 } from "../lib/build-items"
-import { type BuildSearch, toBuildSearch } from "../lib/build-search"
+import {
+	type BuildSearch,
+	type BuildView,
+	toBuildSearch,
+} from "../lib/build-search"
 import { recordRecentBuild } from "../services/recent-builds"
 
 type UseBuildOptions = {
@@ -37,6 +41,7 @@ export function useBuild({
 	const [selectedItemId, setSelectedItemId] = useState<string>()
 
 	const level = search.lvl ?? MIN_LEVEL
+	const view: BuildView = search.view ?? "overview"
 	// Until the items load, keep the ids from the link so a level change does not drop them.
 	const itemIds = itemsById
 		? knownItemIds(search.items, itemsById)
@@ -59,7 +64,10 @@ export function useBuild({
 		next: { level: number; itemIds: readonly string[] },
 		navigation: { replace: boolean },
 	) {
-		onSearchChange(toBuildSearch({ ...next, patch: search.patch }), navigation)
+		onSearchChange(
+			toBuildSearch({ ...next, patch: search.patch, view }),
+			navigation,
+		)
 		recordRecentBuild({
 			championKey,
 			level: next.level,
@@ -89,6 +97,13 @@ export function useBuild({
 		}
 	}
 
+	function setView(nextView: BuildView) {
+		onSearchChange(
+			toBuildSearch({ level, itemIds, patch: search.patch, view: nextView }),
+			{ replace: false },
+		)
+	}
+
 	function selectItem(itemId: string) {
 		if (itemId === selectedItemId) return
 		setSelectedItemId(itemId)
@@ -108,6 +123,9 @@ export function useBuild({
 		champion,
 		level,
 		setLevel,
+		/** The overview workbench or the expanded shop, kept in the URL. */
+		view,
+		setView,
 		items,
 		addItem,
 		removeItem,
@@ -122,6 +140,6 @@ export function useBuild({
 		/** The stats with the selected item added, while one is selected. */
 		preview,
 		/** The full build for sharing, pinned to the patch in use. */
-		shareSearch: toBuildSearch({ level, itemIds, patch }),
+		shareSearch: toBuildSearch({ level, itemIds, patch, view }),
 	}
 }
