@@ -12,13 +12,13 @@ import {
 	type WorkbenchTab,
 	WorkbenchTabs,
 } from "@/features/build-calculator/components/workbench-tabs"
-import type { BuildPage } from "@/features/build-calculator/hooks/use-build-page"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { RuneSummary } from "@/features/runes/components/rune-summary"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
+import type { BuildPage } from "./hooks/use-build-page"
 
 type OverviewPageProps = {
 	build: BuildPage

@@ -7,11 +7,11 @@ import { MobileLayout } from "@/features/build-calculator/components/mobile-layo
 import { RunesStatsNote } from "@/features/build-calculator/components/runes-stats-note"
 import { StatChangeList } from "@/features/build-calculator/components/stat-change-list"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
-import type { BuildPage } from "@/features/build-calculator/hooks/use-build-page"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
+import type { BuildPage } from "./hooks/use-build-page"
 
 type MobileBuildPageProps = {
 	build: BuildPage
