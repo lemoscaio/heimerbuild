@@ -18,19 +18,24 @@ const items = [
 describe("sortItemsByStat", () => {
 	test.each<[string, ItemSort, string[]]>([
 		[
-			"highest first, items without the stat last",
+			"highest first, items without the stat (0) last",
 			{ stat: "attackDamage", direction: "desc" },
 			["bruiser", "pickaxe", "blade", "longsword", "tome", "zero"],
 		],
 		[
-			"lowest first, items without the stat still last",
+			"lowest first, items without the stat (0) first",
 			{ stat: "attackDamage", direction: "asc" },
-			["longsword", "pickaxe", "blade", "bruiser", "tome", "zero"],
+			["tome", "zero", "longsword", "pickaxe", "blade", "bruiser"],
 		],
 		[
-			"a stat only one item has",
+			"a stat only one item has: highest first puts it first",
 			{ stat: "health", direction: "desc" },
 			["bruiser", "tome", "longsword", "pickaxe", "blade", "zero"],
+		],
+		[
+			"a stat only one item has: lowest first puts it last, the others keep their order",
+			{ stat: "health", direction: "asc" },
+			["tome", "longsword", "pickaxe", "blade", "zero", "bruiser"],
 		],
 		[
 			"a stat nobody has keeps the order",
