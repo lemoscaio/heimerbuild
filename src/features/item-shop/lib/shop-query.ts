@@ -78,11 +78,16 @@ export function parseShopQuery(
 ) {
 	const tokens: ShopToken[] = []
 	const freeWords: string[] = []
-	const nameWords = itemNames.map(searchWords)
+	// Split the names only once a word could be a token.
+	let nameWords: string[][] | undefined
+	function startsItemName(phrase: string) {
+		nameWords ??= itemNames.map(searchWords)
+		const phraseWords = searchWords(phrase)
+		return nameWords.some((name) => startsWith(name, phraseWords))
+	}
 	for (const word of words(text)) {
 		const token = findToken(word)
-		const phrase = searchWords([...freeWords, word].join(" "))
-		if (token && !nameWords.some((name) => startsWith(name, phrase))) {
+		if (token && !startsItemName([...freeWords, word].join(" "))) {
 			tokens.push(token)
 		} else {
 			freeWords.push(word)

@@ -45,19 +45,18 @@ export function ItemShop({
 	const { role, stats, match } = filters
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
 	useAnalyticsContext({ shop_stat_match: match })
-	const trackSearch = useDebouncedCallback(
-		(search: ShopSearchChange, results: number) =>
-			track("shop_searched", {
-				query: search.query.trim().toLowerCase().slice(0, MAX_TRACKED_QUERY),
-				queryLength: search.query.length,
-				tokens: searchTokensForAnalytics(search.filters),
-				results,
-				zeroResults: !results,
-			}),
-		SEARCH_TRACK_DELAY_MS,
-	)
-
 	const allItems = itemsQuery.data ? Object.values(itemsQuery.data) : []
+	const trackSearch = useDebouncedCallback((search: ShopSearchChange) => {
+		const results = filterShopItems(allItems, search).length
+		track("shop_searched", {
+			query: search.query.trim().toLowerCase().slice(0, MAX_TRACKED_QUERY),
+			queryLength: search.query.length,
+			tokens: searchTokensForAnalytics(search.filters),
+			results,
+			zeroResults: !results,
+		})
+	}, SEARCH_TRACK_DELAY_MS)
+
 	const filteredItems = filterShopItems(allItems, { filters, query })
 	const items = sort ? sortItemsByStat(filteredItems, sort) : filteredItems
 
@@ -70,7 +69,7 @@ export function ItemShop({
 	function handleSearchChange(change: ShopSearchChange) {
 		setQuery(change.query)
 		handleFiltersChange(change.filters)
-		trackSearch(change, filterShopItems(allItems, change).length)
+		trackSearch(change)
 	}
 
 	function handleSearchEscape() {
