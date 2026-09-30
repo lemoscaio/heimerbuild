@@ -44,7 +44,7 @@
 		"16.19.1/champions/Galio.json": "1d939ae0b2",
 		"16.19.1/champions/Gangplank.json": "a05d0fa313",
 		"16.19.1/champions/Garen.json": "a278f197ef",
-		"16.19.1/champions/Gnar.json": "6208bd131d",
+		"16.19.1/champions/Gnar.json": "a2cc69fdd7",
 		"16.19.1/champions/Gragas.json": "ee379a3abc",
 		"16.19.1/champions/Graves.json": "3e0ae4ae1c",
 		"16.19.1/champions/Gwen.json": "932f62194c",
@@ -72,7 +72,7 @@
 		"16.19.1/champions/Kennen.json": "f23ee080a8",
 		"16.19.1/champions/Khazix.json": "6311f41855",
 		"16.19.1/champions/Kindred.json": "781e707ee1",
-		"16.19.1/champions/Kled.json": "b2275ddd25",
+		"16.19.1/champions/Kled.json": "b53bac77b9",
 		"16.19.1/champions/KogMaw.json": "115850a195",
 		"16.19.1/champions/Leblanc.json": "d62fbdadad",
 		"16.19.1/champions/LeeSin.json": "1959b2dec9",
@@ -180,5 +180,5 @@
 		"16.19.1/champions/Zyra.json": "d586d05ab7",
 		"16.19.1/items.json": "d9792bc27c"
 	},
-	"generatedAt": "2026-09-30T16:26:43.482Z"
+	"generatedAt": "2026-09-30T16:46:29.576Z"
 }
