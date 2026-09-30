@@ -175,7 +175,7 @@ export type NormalizedItems = {
 
 export type NormalizeItemsOptions = { overrides?: readonly ItemOverride[] }
 
-/** Keeps only items buyable on Summoner's Rift; `removed` counts the items each rule dropped. */
+/** Keeps only items buyable on Summoner's Rift, and only their ids in `from`/`into`; `removed` counts the items each rule dropped. */
 export function normalizeItems(
 	dataDragonItems: unknown,
 	communityDragonBin: unknown,
@@ -186,6 +186,9 @@ export function normalizeItems(
 	const binItems = indexCommunityDragonItems(communityDragonBin)
 	const bin = z.record(z.string(), z.unknown()).parse(communityDragonBin)
 	const { kept, removed } = filterShopItems(data, classicItemIds(map11Bin))
+	const shopIds = new Set(kept.map(([id]) => id))
+	// Removed, other-mode and auto-transform ids (Whispering Circlet -> Diadem) would skew shop tiers.
+	const inShop = (ids: string[] = []) => ids.filter((id) => shopIds.has(id))
 	const unmapped = new Map<string, string[]>()
 
 	const normalized = kept
@@ -208,8 +211,8 @@ export function normalizeItems(
 				maps: Object.entries(item.maps)
 					.filter(([, enabled]) => enabled)
 					.map(([map]) => Number(map)),
-				from: item.from ?? [],
-				into: item.into ?? [],
+				from: inShop(item.from),
+				into: inShop(item.into),
 				inStore: item.inStore ?? true,
 				requiredChampion: item.requiredChampion,
 				roles: extractRoles(entry),
