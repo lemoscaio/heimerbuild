@@ -16,21 +16,21 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 		<Link
 			to="/champions/$key"
 			params={{ key: champion.key }}
-			className="group rounded-lg"
+			className="group min-w-0 rounded-lg"
 			onClick={() => track("champion_selected", { champion: champion.key })}
 		>
-			<ChampionCardShell className="transition group-hover:scale-110 group-hover:ring-lilac/60">
+			<ChampionCardShell>
 				<GameIcon
 					src={champion.icon}
 					name={champion.name}
-					width={60}
-					height={60}
+					width={120}
+					height={120}
 					loading="lazy"
-					className="size-15 rounded-md"
+					className="aspect-square w-full rounded-xl ring-1 ring-primary-2 transition group-hover:scale-105 group-hover:ring-lilac"
 				/>
-				<h3 className="w-full text-center text-xs leading-tight tracking-tight">
+				<span className="w-full truncate text-center text-prose text-xs group-hover:text-white">
 					{champion.name}
-				</h3>
+				</span>
 			</ChampionCardShell>
 		</Link>
 	)

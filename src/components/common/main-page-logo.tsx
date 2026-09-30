@@ -1,15 +1,14 @@
 import heimerdingerAnimation from "@/assets/images/heimerdinger.webp"
 
+/** The animated Heimerdinger under the home page title; smaller on phones so the search stays in view. */
 export function MainPageLogo() {
 	return (
-		<div className="flex justify-center">
-			<img
-				src={heimerdingerAnimation}
-				alt="Heimerdinger"
-				width={498}
-				height={475}
-				className="h-auto w-1/2 max-w-62.5 transition-transform duration-300 hover:scale-101"
-			/>
-		</div>
+		<img
+			src={heimerdingerAnimation}
+			alt="Heimerdinger"
+			width={498}
+			height={475}
+			className="h-auto w-32 sm:w-44 lg:w-52"
+		/>
 	)
 }

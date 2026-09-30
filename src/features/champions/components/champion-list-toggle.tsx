@@ -1,0 +1,43 @@
+import { ChevronDown } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/cn"
+
+type ChampionListToggleProps = {
+	expanded: boolean
+	onExpandedChange: (expanded: boolean) => void
+	/** Id of the list region it shows and hides. */
+	controls: string
+	/** Known once the champions load. */
+	championCount: number | undefined
+}
+
+export function ChampionListToggle({
+	expanded,
+	onExpandedChange,
+	controls,
+	championCount,
+}: ChampionListToggleProps) {
+	return (
+		<Button
+			type="button"
+			variant="outline"
+			aria-expanded={expanded}
+			aria-controls={controls}
+			className={cn(
+				"h-11 rounded-full border-lilac bg-transparent px-5.5 font-semibold dark:bg-transparent",
+				{ "bg-primary-2 dark:bg-primary-2": expanded },
+			)}
+			onClick={() => onExpandedChange(!expanded)}
+		>
+			{expanded && "Hide champions"}
+			{!expanded &&
+				(championCount === undefined
+					? "Browse all champions"
+					: `Browse all ${championCount} champions`)}
+			<ChevronDown
+				aria-hidden="true"
+				className={cn("transition-transform", { "rotate-180": expanded })}
+			/>
+		</Button>
+	)
+}

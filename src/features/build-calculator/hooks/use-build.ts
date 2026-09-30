@@ -11,6 +11,7 @@ import {
 	removeItemAt,
 } from "../lib/build-items"
 import { type BuildSearch, toBuildSearch } from "../lib/build-search"
+import { recordRecentBuild } from "../services/recent-builds"
 
 type UseBuildOptions = {
 	patch: string
@@ -43,18 +44,26 @@ export function useBuild({
 	const stats = champion && computeStats(champion, level, items)
 
 	// Edits keep the link's own patch: changing it would reload the route mid-edit.
+	// Each edit also lists the build in the home page's recent builds (this browser only).
+	function saveBuild(
+		next: { level: number; itemIds: readonly string[] },
+		navigation: { replace: boolean },
+	) {
+		onSearchChange(toBuildSearch({ ...next, patch: search.patch }), navigation)
+		recordRecentBuild({
+			championKey,
+			level: next.level,
+			itemIds: [...next.itemIds],
+			patch: search.patch,
+		})
+	}
+
 	function setLevel(nextLevel: number) {
-		onSearchChange(
-			toBuildSearch({ level: nextLevel, itemIds, patch: search.patch }),
-			{ replace: true },
-		)
+		saveBuild({ level: nextLevel, itemIds }, { replace: true })
 	}
 
 	function setItemIds(nextItemIds: readonly string[]) {
-		onSearchChange(
-			toBuildSearch({ level, itemIds: nextItemIds, patch: search.patch }),
-			{ replace: false },
-		)
+		saveBuild({ level, itemIds: nextItemIds }, { replace: false })
 	}
 
 	function addItem(itemId: string) {
