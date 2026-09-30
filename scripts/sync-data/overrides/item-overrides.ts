@@ -34,6 +34,37 @@ export const ITEM_OVERRIDES: readonly ItemOverride[] = [
 		apply: (tags) =>
 			tags.map((tag) => (tag === "NonbootsMovement" ? "Boots" : tag)),
 	}),
+	defineItemOverride({
+		id: "world-atlas-health-regen-tag",
+		itemId: "3865",
+		field: "tags",
+		since: "16.19",
+		reason:
+			"Riot tags it Health, but it has no health stat; it gives 50% base health regen, and its upgrades are tagged HealthRegen",
+		source: "https://wiki.leagueoflegends.com/en-us/World_Atlas",
+		apply: (tags) =>
+			tags.map((tag) => (tag === "Health" ? "HealthRegen" : tag)),
+	}),
+	defineItemOverride({
+		id: "titanic-hydra-no-health-regen-tag",
+		itemId: "3748",
+		field: "tags",
+		since: "16.19",
+		reason:
+			"Riot tags it HealthRegen, a leftover from an older version: it has no health regen stat",
+		source: "https://wiki.leagueoflegends.com/en-us/Titanic_Hydra",
+		apply: (tags) => tags.filter((tag) => tag !== "HealthRegen"),
+	}),
+	defineItemOverride({
+		id: "stormsurge-no-gold-per-tag",
+		itemId: "4646",
+		field: "tags",
+		since: "16.19",
+		reason:
+			"Riot tags it GoldPer, but neither its stats nor its passive give gold income",
+		source: "https://wiki.leagueoflegends.com/en-us/Stormsurge",
+		apply: (tags) => tags.filter((tag) => tag !== "GoldPer"),
+	}),
 	...SUPPORT_QUEST_REWARDS.map(([itemId, name]) =>
 		defineItemOverride({
 			id: `${name}-support-role`,
