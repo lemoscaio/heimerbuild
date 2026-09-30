@@ -6,6 +6,7 @@ import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
 import { useDebouncedCallback } from "../hooks/use-debounced-callback"
+import { useFocusOnLayoutChange } from "../hooks/use-focus-on-layout-change"
 import { useReturnFocusToItem } from "../hooks/use-return-focus-to-item"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
 import { useShopGrouping } from "../hooks/use-shop-grouping"
@@ -43,6 +44,10 @@ export function ItemShop({
 	const [query, setQuery] = useState("")
 	const [grouping, setGrouping] = useShopGrouping()
 	const listRef = useRef<HTMLElement>(null)
+	const searchRef = useRef<HTMLDivElement>(null)
+	const actionsRef = useRef<HTMLSpanElement>(null)
+	// Expanding moves focus to the search; collapsing, back to the switch in `actions`.
+	useFocusOnLayoutChange(layout, { expanded: searchRef, compact: actionsRef })
 	useReturnFocusToItem(pickProps.selectedItemId, listRef)
 	const { role, stats, match } = filters
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
@@ -117,7 +122,9 @@ export function ItemShop({
 					grouping={grouping}
 					onGroupingChange={setGrouping}
 				/>
-				{actions}
+				<span ref={actionsRef} className="contents">
+					{actions}
+				</span>
 			</div>
 			<StatRail
 				className={cn(
@@ -136,7 +143,10 @@ export function ItemShop({
 					}
 				/>
 			</StatRail>
-			<div className="flex min-w-0 items-center gap-3 [grid-area:search]">
+			<div
+				ref={searchRef}
+				className="flex min-w-0 items-center gap-3 [grid-area:search]"
+			>
 				<ShopSearch
 					className="min-w-0 flex-1"
 					query={query}
