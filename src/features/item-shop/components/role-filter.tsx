@@ -9,10 +9,7 @@ type RoleFilterProps = {
 	className?: string
 }
 
-/**
- * Role tabs with icon and label. In a narrower shop only the selected role shows its label,
- * and on phones none does; the label stays the accessible name.
- */
+/** Role tabs with icon and label; phones show icons only, the label stays the accessible name. */
 export function RoleFilter({ role, onRoleChange, className }: RoleFilterProps) {
 	return (
 		<ToggleGroup
@@ -30,13 +27,7 @@ export function RoleFilter({ role, onRoleChange, className }: RoleFilterProps) {
 					className="h-9 gap-1.5 px-3 text-prose text-xs data-pressed:text-white max-lg:size-11 max-lg:px-0"
 				>
 					<img src={icon} alt="" className="size-5 max-lg:size-7" />
-					<span
-						className={cn("max-lg:sr-only", {
-							"@max-3xl:sr-only": option !== role,
-						})}
-					>
-						{label}
-					</span>
+					<span className="max-lg:sr-only">{label}</span>
 				</ToggleGroupItem>
 			))}
 		</ToggleGroup>

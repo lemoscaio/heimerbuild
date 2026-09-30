@@ -110,7 +110,7 @@ export function ItemShop({
 	return (
 		<div
 			className={cn(
-				"@container grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto_minmax(0,1fr)] gap-x-3 gap-y-2 [grid-template-areas:'roles_roles_roles''rail_search_actions''rail_items_items'] lg:[grid-template-areas:'roles_roles_actions''rail_search_search''rail_items_items']",
+				"@container grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto_minmax(0,1fr)] gap-x-3 gap-y-2 [grid-template-areas:'roles_roles_roles''rail_search_actions''rail_items_items']",
 				{ "p-4 lg:gap-x-5 lg:px-5 lg:pt-3": isExpanded },
 			)}
 		>
