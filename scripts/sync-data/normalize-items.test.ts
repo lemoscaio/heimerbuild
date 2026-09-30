@@ -121,6 +121,13 @@ describe("normalizeItems", () => {
 		}
 	})
 
+	test("keeps only shop items in from and into", () => {
+		// Long Sword builds into 25 items; of the fixture's items only Serrated Dirk.
+		expect(itemOf("1036").into).toEqual(["3134"])
+		expect(itemOf("3134")).toMatchObject({ from: ["1036", "1036"], into: [] })
+		expect(itemOf("3135").from).toEqual([])
+	})
+
 	test("fails when a Data Dragon item has no CommunityDragon entry", () => {
 		const bin = structuredClone(communityDragonBin) as Record<string, unknown>
 		delete bin["Items/3134"]

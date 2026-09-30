@@ -39,8 +39,14 @@ describe("shopTierOf", () => {
 			section: "starter",
 		},
 		{
+			name: "a lane starter that builds into more",
+			tags: ["SpellDamage", "Lane"],
+			into: ["3041"],
+			section: "starter",
+		},
+		{
 			name: "a basic component",
-			tags: ["Damage", "Lane"],
+			tags: ["Damage"],
 			into: ["3071"],
 			section: "basic",
 		},
@@ -138,6 +144,10 @@ describe("groupShopItems", () => {
 			sections.reduce((total, section) => total + section.items.length, 0),
 		).toBe(items.length)
 		expect(sectionOf("Doran's Ring")).toBe("starter")
+		expect(sectionOf("Dark Seal")).toBe("starter")
+		expect(sectionOf("Tear of the Goddess")).toBe("starter")
+		expect(sectionOf("Long Sword")).toBe("basic")
+		expect(sectionOf("Whispering Circlet")).toBe("legendary")
 		expect(sectionOf("Amplifying Tome")).toBe("basic")
 		expect(sectionOf("Blasting Wand")).toBe("basic")
 		expect(sectionOf("Fiendish Codex")).toBe("epic")

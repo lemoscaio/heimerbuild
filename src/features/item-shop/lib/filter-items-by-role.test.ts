@@ -2,8 +2,15 @@ import { describe, expect, test } from "bun:test"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { filterItemsByRole } from "./filter-items-by-role"
 
-function item(id: string, roles: Item["roles"]) {
-	return { id, roles } as Item
+function item(
+	id: string,
+	roles: Item["roles"],
+	{
+		tags = [],
+		groupLimits = [],
+	}: Partial<Pick<Item, "tags" | "groupLimits">> = {},
+) {
+	return { id, roles, tags, groupLimits }
 }
 
 const items = [
@@ -13,8 +20,17 @@ const items = [
 	item("4", ["TANK"]),
 ]
 
-function idsFor(role: Parameters<typeof filterItemsByRole>[1]) {
-	return filterItemsByRole(items, role).map(({ id }) => id)
+const everyRoleItems = [
+	item("potion", ["FIGHTER"], { tags: ["Consumable"] }),
+	item("boots", ["SUPPORT"], { tags: ["Boots"] }),
+	item("greaves", [], { groupLimits: [{ group: "Boots", max: 1 }] }),
+]
+
+function idsFor(
+	role: Parameters<typeof filterItemsByRole>[1],
+	list: readonly ReturnType<typeof item>[] = items,
+) {
+	return filterItemsByRole(list, role).map(({ id }) => id)
 }
 
 describe("filterItemsByRole", () => {
@@ -29,5 +45,11 @@ describe("filterItemsByRole", () => {
 
 	test("returns nothing when no item has the role", () => {
 		expect(idsFor("SUPPORT")).toEqual([])
+	})
+
+	test("keeps consumables and boots under every role, whatever their class", () => {
+		const list = [...items, ...everyRoleItems]
+		expect(idsFor("MAGE", list)).toEqual(["1", "potion", "boots", "greaves"])
+		expect(idsFor("MARKSMAN", list)).toEqual(["potion", "boots", "greaves"])
 	})
 })
