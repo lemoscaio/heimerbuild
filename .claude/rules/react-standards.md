@@ -200,9 +200,10 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 
 ## Routing
 
-- Route components are thin: read params, compose feature components, nothing else. The one extra they may do is call a feature hook to wire two features together through props and callbacks (champion route: `useBuild()` feeds `ItemShop`'s `onItemClick`).
+- Route components are thin: read params, compose feature components, nothing else. The one extra they may do is call a feature hook to wire two features together through props and callbacks (champion route: `useBuildPage()` feeds `ItemShop`'s `onItemAdd`).
 - TanStack Router with code-based routes. Each route lives in `src/routes/<name>-route.tsx` (`createRoute` + its page component), and `src/app/router.tsx` assembles the tree.
 - A route whose page is heavy (the champion page) splits in two: `<name>-route.tsx` keeps `createRoute` with search, loader, `head` and the pending/error/not-found components, and `<name>-route.lazy.tsx` holds the page (`createLazyRoute(<full route id>)`), attached with `.lazy()`. Links preload on intent (`defaultPreload: "intent"`).
+- A page with several screens keeps one file per screen next to its route (`src/routes/champion-page/overview-page.tsx`, `expanded-shop-page.tsx`, `mobile-build-page.tsx`); the route only picks one. Screens compose features, so they live under `routes/`, never in a feature.
 - Loaders load data through the `queryOptions()` factories (`queryClient.ensureQueryData(gameDataQueries...)`); components then read the same queries from the cache.
 - Every data route sets `pendingComponent` and `errorComponent`, and `notFoundComponent` when a param can point at nothing.
 - Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`. Invalid values are dropped with `z.catch()`, so a bad link never shows an error page.

@@ -19,11 +19,7 @@ import {
 	MAX_ITEMS,
 	removeItemAt,
 } from "../lib/build-items"
-import {
-	type BuildSearch,
-	type BuildView,
-	toBuildSearch,
-} from "../lib/build-search"
+import { type BuildSearch, toBuildSearch } from "../lib/build-search"
 import { recordRecentBuild } from "../services/recent-builds"
 
 type UseBuildOptions = {
@@ -39,7 +35,10 @@ type UseBuildOptions = {
 
 export type Build = ReturnType<typeof useBuild>
 
-/** Build state kept in the URL search: champion, level, items and runes, plus their stats. */
+/**
+ * Build state kept in the URL search: champion, level, items and runes, plus their stats.
+ * No page state: the view and the item selection live in `useBuildPage`.
+ */
 export function useBuild({
 	patch,
 	championKey,
@@ -50,10 +49,8 @@ export function useBuild({
 	const { data: itemsById } = useItems(patch)
 	const [notice, setNotice] = useState<string>()
 	const [announcement, setAnnouncement] = useState<string>()
-	const [selectedItemId, setSelectedItemId] = useState<string>()
 
 	const level = search.lvl ?? MIN_LEVEL
-	const view: BuildView = search.view ?? "overview"
 	// Until the items load, keep the ids from the link so a level change does not drop them.
 	const itemIds = itemsById
 		? knownItemIds(search.items, itemsById)
@@ -80,12 +77,6 @@ export function useBuild({
 
 	const stats = statsWith(items)
 	const statsWithoutRunes = champion && computeStats(champion, level, items)
-	const selectedItem = selectedItemId ? itemsById?.[selectedItemId] : undefined
-	const selectedItemStats = selectedItem && statsWith([...items, selectedItem])
-	const preview =
-		selectedItem && selectedItemStats
-			? { label: selectedItem.name, stats: selectedItemStats }
-			: undefined
 	const runesPreview =
 		shards.length && stats ? { label: "stat shards", stats } : undefined
 	const isFull = itemIds.length >= MAX_ITEMS
@@ -97,7 +88,7 @@ export function useBuild({
 		navigation: { replace: boolean },
 	) {
 		onSearchChange(
-			toBuildSearch({ ...next, patch: search.patch, view, runes }),
+			toBuildSearch({ ...next, patch: search.patch, runes }),
 			navigation,
 		)
 		recordRecentBuild({
@@ -116,33 +107,21 @@ export function useBuild({
 		saveBuild({ level, itemIds: nextItemIds }, { replace: false })
 	}
 
+	/** Returns whether the item went in: a full build keeps it out and shows `notice`. */
 	function addItem(itemId: string) {
-		if (!itemsById) return
+		if (!itemsById) return false
 		const nextItemIds = addItemId(itemIds, itemId)
-		if (nextItemIds) {
-			setNotice(undefined)
-			setAnnouncement(
-				`Added ${itemsById[itemId]?.name}, ${nextItemIds.length} of ${MAX_ITEMS} item slots filled`,
-			)
-			setSelectedItemId(undefined)
-			setItemIds(nextItemIds)
-			track("item_added", { itemId })
-		} else {
+		if (!nextItemIds) {
 			setNotice(`All ${MAX_ITEMS} item slots are full. Remove an item first.`)
+			return false
 		}
-	}
-
-	function setView(nextView: BuildView) {
-		onSearchChange(
-			toBuildSearch({
-				level,
-				itemIds,
-				patch: search.patch,
-				view: nextView,
-				runes,
-			}),
-			{ replace: false },
+		setNotice(undefined)
+		setAnnouncement(
+			`Added ${itemsById[itemId]?.name}, ${nextItemIds.length} of ${MAX_ITEMS} item slots filled`,
 		)
+		setItemIds(nextItemIds)
+		track("item_added", { itemId })
+		return true
 	}
 
 	// Each pick replaces the history entry, like the level: Back leaves the page, not one rune.
@@ -152,17 +131,10 @@ export function useBuild({
 				level,
 				itemIds,
 				patch: search.patch,
-				view,
 				runes: serializeRuneSelection(nextSelection),
 			}),
 			{ replace: true },
 		)
-	}
-
-	function selectItem(itemId: string) {
-		if (itemId === selectedItemId) return
-		setSelectedItemId(itemId)
-		track("shop_item_selected", { itemId })
 	}
 
 	function removeItem(slot: number) {
@@ -179,9 +151,6 @@ export function useBuild({
 		champion,
 		level,
 		setLevel,
-		/** The overview workbench or the expanded shop, kept in the URL. */
-		view,
-		setView,
 		items,
 		addItem,
 		removeItem,
@@ -190,10 +159,6 @@ export function useBuild({
 		/** The last item added, for screen readers, until an item is removed. */
 		announcement,
 		isFull,
-		/** The shop item picked for a closer look, not in the build yet. */
-		selectedItem,
-		selectItem,
-		clearSelection: () => setSelectedItemId(undefined),
 		/** The rune page read from the URL, checked against this patch's runes. */
 		runeSelection,
 		setRunes,
@@ -201,11 +166,13 @@ export function useBuild({
 		stats,
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes,
-		/** The stats with the selected item added, while one is selected. */
-		preview,
+		/** The totals with `item` added to the build: the preview of a shop item. */
+		statsWithItem: (item: ItemInput) => statsWith([...items, item]),
 		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
 		runesPreview,
+		/** The build as the URL reads it: known items, checked runes, the link's own patch. */
+		buildSearch: toBuildSearch({ level, itemIds, patch: search.patch, runes }),
 		/** The full build for sharing, pinned to the patch in use. */
-		shareSearch: toBuildSearch({ level, itemIds, patch, view, runes }),
+		shareSearch: toBuildSearch({ level, itemIds, patch, runes }),
 	}
 }

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useRef } from "react"
 import { flushSync } from "react-dom"
 import { LoadError } from "@/components/common/load-error"
 import { PoliteStatus } from "@/components/common/polite-status"
@@ -21,6 +21,7 @@ import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
 import { RoleFilter } from "./role-filter"
 import { ShopSearch, type ShopSearchChange } from "./shop-search"
+import { type ShopLayout, useShopState } from "./shop-state-provider"
 import { SortMenu } from "./sort-menu"
 import { StatMatchToggle } from "./stat-match-toggle"
 import { StatRail } from "./stat-rail"
@@ -28,7 +29,7 @@ import { StatRail } from "./stat-rail"
 type ItemShopProps = {
 	patch: string
 	/** `expanded`: the full-width shop, with bigger tiles. */
-	layout?: "compact" | "expanded"
+	layout?: ShopLayout
 	/** Icon buttons after the sort and view menus, such as the switch to the expanded shop. */
 	actions?: React.ReactNode
 } & ItemPickProps
@@ -40,15 +41,18 @@ export function ItemShop({
 	...pickProps
 }: ItemShopProps) {
 	const itemsQuery = useItems(patch)
-	const [filters, setFilters] = useState<ShopFilters>(NO_FILTERS)
-	const [sort, setSort] = useState<ItemSort>()
-	const [query, setQuery] = useState("")
+	const { filters, setFilters, sort, setSort, query, setQuery, lastLayout } =
+		useShopState()
 	const [grouping, setGrouping] = useShopGrouping()
 	const listRef = useRef<HTMLElement>(null)
 	const searchRef = useRef<HTMLDivElement>(null)
 	const actionsRef = useRef<HTMLSpanElement>(null)
 	// Expanding moves focus to the search; collapsing, back to the switch in `actions`.
-	useFocusOnLayoutChange(layout, { expanded: searchRef, compact: actionsRef })
+	useFocusOnLayoutChange(
+		layout,
+		{ expanded: searchRef, compact: actionsRef },
+		lastLayout,
+	)
 	useReturnFocusToItem(pickProps.selectedItemId, listRef)
 	const { role, stats, match } = filters
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
@@ -222,8 +226,6 @@ const NO_ITEMS = "No items match these filters."
 
 const SEARCH_TRACK_DELAY_MS = 1000
 const MAX_TRACKED_QUERY = 50
-
-const NO_FILTERS: ShopFilters = { role: "ALL", stats: [], match: "all" }
 
 function sameFilters(a: ShopFilters, b: ShopFilters) {
 	return (

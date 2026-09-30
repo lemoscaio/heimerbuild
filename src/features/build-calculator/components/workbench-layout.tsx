@@ -17,10 +17,7 @@ type WorkbenchLayoutProps = {
 	bar?: React.ReactNode
 } & Omit<React.ComponentProps<"main">, "children">
 
-/**
- * The champion page: columns that fill the viewport from `lg` up, stacked below it.
- * The shop keeps its position in the tree in both views, so switching keeps its filters.
- */
+/** The champion page: columns that fill the viewport from `lg` up, stacked below it. */
 export function WorkbenchLayout({
 	actions,
 	view = "overview",
