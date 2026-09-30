@@ -34,11 +34,8 @@ export function ItemButton({
 					[describedBy, open && tooltipId].filter(Boolean).join(" ") ||
 					undefined
 				}
-				// The ring is drawn on an overlay: the icon tile is positioned and would cover an outline.
-				className={cn(
-					"relative block p-0 after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:outline-ring focus-visible:after:-outline-offset-2",
-					className,
-				)}
+				// The focus ring (app.css) is drawn outside the tile, never over the item art.
+				className={cn("relative block p-0", className)}
 				onPointerUp={(event) => {
 					// Base UI tooltips ignore touch; a tap shows the details (and still clicks).
 					if (event.pointerType !== "mouse") setOpen(true)
