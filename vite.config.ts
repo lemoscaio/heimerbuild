@@ -3,7 +3,6 @@ import babel from "@rolldown/plugin-babel"
 import { sentryVitePlugin } from "@sentry/vite-plugin"
 import tailwindcss from "@tailwindcss/vite"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
-import { cn as cnTables } from "cn/vite"
 import { defineConfig } from "vite"
 
 // Cloudflare Workers Builds sets WORKERS_CI, WORKERS_CI_BRANCH and WORKERS_CI_COMMIT_SHA.
@@ -23,12 +22,6 @@ export default defineConfig({
 		react(),
 		babel({ presets: [reactCompilerPreset()] }),
 		tailwindcss(),
-		// Regenerates src/lib/cn-tables.ts (committed) with only the class groups the sources use.
-		cnTables({
-			content: ["src/**/*.{ts,tsx}"],
-			out: "src/lib/cn-tables.ts",
-			css: "src/styles/app.css",
-		}),
 		// /version.json names the built commit; the E2E workflow polls it to tell whether a
 		// preview already serves the PR head (.github/scripts/find-preview-url.sh).
 		{
