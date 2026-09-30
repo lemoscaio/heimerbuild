@@ -173,22 +173,20 @@ function DesktopChampionPage({
 				</>
 			}
 			shop={
-				isShopView ? (
-					itemShop
-				) : (
-					<WorkbenchTabs
-						tab={tab}
-						onTabChange={setTab}
-						items={itemShop}
-						runes={
+				<WorkbenchTabs
+					tab={tab}
+					onTabChange={setTab}
+					items={itemShop}
+					runes={
+						!isShopView && (
 							<RunePage
 								patch={patch}
 								selection={build.runeSelection}
 								onSelectionChange={build.setRunes}
 							/>
-						}
-					/>
-				)
+						)
+					}
+				/>
 			}
 			side={
 				isShopView ? (
