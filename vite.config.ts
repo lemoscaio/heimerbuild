@@ -56,6 +56,8 @@ export default defineConfig({
 	},
 	build: {
 		sourcemap: uploadSourceMaps ? "hidden" : false,
+		// Base64 icons inside JS cannot be gzipped or cached apart from the code: ship files.
+		assetsInlineLimit: 0,
 	},
 	resolve: {
 		alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
