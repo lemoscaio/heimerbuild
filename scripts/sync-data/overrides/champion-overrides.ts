@@ -65,6 +65,25 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 		apply: (stats) => ({ ...stats, mana: { base: 0, perLevel: 0 } }),
 	}),
 	defineChampionOverride({
+		id: "briar-frenzy-resource",
+		championKey: "Briar",
+		field: "resource",
+		since: "16.19",
+		reason:
+			"Riot's data names Briar's resource FURY; her bar is Frenzy, the remaining duration of her frenzy",
+		source: "https://wiki.leagueoflegends.com/en-us/Briar",
+		apply: () => "FRENZY",
+	}),
+	defineChampionOverride({
+		id: "reksai-fury-resource",
+		championKey: "RekSai",
+		field: "resource",
+		since: "16.19",
+		reason: "Riot's data names Rek'Sai's resource RAGE; her bar is Fury",
+		source: "https://wiki.leagueoflegends.com/en-us/Rek%27Sai",
+		apply: () => "FURY",
+	}),
+	defineChampionOverride({
 		id: "kled-mounted-health",
 		championKey: "Kled",
 		field: "stats",
