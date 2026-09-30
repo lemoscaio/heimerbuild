@@ -1,29 +1,15 @@
-import type { ComputedStats, StatName } from "@/lib/stats/compute-stats"
-import { championStatRows, formatStat } from "../lib/stats-info"
-
-const KEY_STATS: readonly StatName[] = [
-	"abilityPower",
-	"attackDamage",
-	"health",
-	"armor",
-	"magicResist",
-	"attackSpeed",
-	"movementSpeed",
-	"mana",
-]
+import type { ComputedStats } from "@/lib/stats/compute-stats"
+import { championStatRows, formatStat, keyStatRows } from "../lib/stats-info"
 
 type KeyStatsProps = {
 	stats: ComputedStats
-	/** The champion's `resource`: names the mana tile, or hides it. */
+	/** The champion's `resource`: names the last tile, or swaps it for Ability Haste. */
 	resource: string
 }
 
 /** The eight stats most builds care about, as compact tiles. */
 export function KeyStats({ stats, resource }: KeyStatsProps) {
-	const rows = championStatRows(resource, stats)
-	const keyRows = KEY_STATS.flatMap(
-		(stat) => rows.find((info) => info.stat === stat) ?? [],
-	)
+	const keyRows = keyStatRows(championStatRows(resource, stats))
 
 	return (
 		<dl aria-label="Key stats" className="grid grid-cols-4 gap-1.5 text-xs">

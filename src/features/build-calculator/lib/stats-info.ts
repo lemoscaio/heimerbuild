@@ -196,6 +196,26 @@ export function championStatRows(
 	})
 }
 
+const KEY_STATS: readonly StatName[] = [
+	"abilityPower",
+	"attackDamage",
+	"health",
+	"armor",
+	"magicResist",
+	"attackSpeed",
+	"movementSpeed",
+]
+
+/** The key stats tiles, from a champion's rows: seven fixed stats, then its resource or, without one, Ability Haste. */
+export function keyStatRows(rows: readonly StatRowInfo[]): StatRowInfo[] {
+	const last = rows.some(({ stat }) => stat === "mana")
+		? "mana"
+		: "abilityHaste"
+	return [...KEY_STATS, last].flatMap(
+		(stat) => rows.find((info) => info.stat === stat) ?? [],
+	)
+}
+
 /** Attack speed is attacks per second (no unit); percent stats are stored as fractions. */
 export function formatStat(value: number, format: StatFormat = "flat") {
 	if (format === "percent") return `${Number((value * 100).toFixed(1))}%`
