@@ -164,6 +164,7 @@ function DesktopChampionPage({
 							items={build.items}
 							onRemoveItem={build.removeItem}
 							notice={build.notice}
+							announcement={build.announcement}
 						/>
 					</WorkbenchPanel>
 					<RunesPlaceholder />
@@ -226,6 +227,7 @@ function DesktopChampionPage({
 						items={build.items}
 						onRemoveItem={build.removeItem}
 						notice={build.notice}
+						announcement={build.announcement}
 						stats={build.stats}
 					/>
 				)
@@ -256,6 +258,7 @@ function MobileChampionPage({
 						items={build.items}
 						onRemoveItem={build.removeItem}
 						notice={build.notice}
+						announcement={build.announcement}
 					/>
 				</>
 			}

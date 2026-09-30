@@ -13,6 +13,7 @@ type BuildBarProps = {
 	items: readonly Item[]
 	onRemoveItem: (slot: number) => void
 	notice: string | undefined
+	announcement: string | undefined
 	stats: ComputedStats
 }
 
@@ -24,6 +25,7 @@ export function BuildBar({
 	items,
 	onRemoveItem,
 	notice,
+	announcement,
 	stats,
 }: BuildBarProps) {
 	return (
@@ -47,6 +49,7 @@ export function BuildBar({
 				items={items}
 				onRemoveItem={onRemoveItem}
 				notice={notice}
+				announcement={announcement}
 			/>
 			<div className="min-w-0 flex-1 basis-96">
 				<KeyStats stats={stats} resource={champion.resource} />

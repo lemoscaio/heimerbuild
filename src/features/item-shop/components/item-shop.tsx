@@ -6,6 +6,7 @@ import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
 import { useDebouncedCallback } from "../hooks/use-debounced-callback"
+import { useReturnFocusToItem } from "../hooks/use-return-focus-to-item"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
 import { useShopGrouping } from "../hooks/use-shop-grouping"
 import { filterShopItems } from "../lib/filter-shop-items"
@@ -42,6 +43,7 @@ export function ItemShop({
 	const [query, setQuery] = useState("")
 	const [grouping, setGrouping] = useShopGrouping()
 	const listRef = useRef<HTMLElement>(null)
+	useReturnFocusToItem(pickProps.selectedItemId, listRef)
 	const { role, stats, match } = filters
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
 	useAnalyticsContext({ shop_stat_match: match })

@@ -26,7 +26,7 @@ export function useRovingFocus(keys: readonly string[]) {
 
 	function getItemProps(key: string) {
 		return {
-			"data-roving-item": "",
+			"data-roving-item": key,
 			tabIndex: key === activeKey ? 0 : -1,
 			onFocus: () => setFocusedKey(key),
 		}
@@ -40,6 +40,15 @@ export function focusRovingTabStop(container: HTMLElement | null) {
 	rovingItems(container)
 		.find((element) => element.tabIndex === 0)
 		?.focus()
+}
+
+/** Focuses the item listed under `key` inside `container`, else the grid's Tab stop. */
+export function focusRovingItem(container: HTMLElement | null, key: string) {
+	const item = rovingItems(container).find(
+		(element) => element.dataset.rovingItem === key,
+	)
+	if (item) item.focus()
+	else focusRovingTabStop(container)
 }
 
 function rovingItems(container: HTMLElement | null) {
