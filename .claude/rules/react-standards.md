@@ -90,6 +90,7 @@ export function StatRow({ stat, value, className, ...props }: StatRowProps) {
 
 - Tailwind 4 utilities; theme tokens (palette, fonts, header height) live in `@theme` in `src/styles/app.css`. Prefer the Tailwind spacing, font-size and radius scales over arbitrary values.
 - Merge classes with `cn()` only; conditional classes use object syntax, never template strings. Biome sorts classes (`useSortedClasses`).
+- `cn()` merges with tables fitted to the class groups used in `src/` (`src/lib/cn-tables.ts`). The `cn` Vite plugin regenerates that file on every build and dev start: commit it when it changes, never edit it. Class names built from strings (`"p-" + size`) are invisible to it, as they are to Tailwind.
 - UI primitives are shadcn/ui components (Base UI) in `src/components/ui/`, added with `bunx shadcn@latest add <name>` and then adapted to the rules here (named exports, `@/lib/cn`).
 - `src/styles/app.css` is the only stylesheet: global rules (base styles, custom utilities such as `scrollbar-purple`) go there, never in a new CSS file.
 
