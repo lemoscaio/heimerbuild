@@ -36,6 +36,13 @@ export function useRovingFocus(keys: readonly string[]) {
 	return { containerRef, handleKeyDown, getItemProps }
 }
 
+/** Focuses the grid's Tab stop inside `container`, if it lists any item. */
+export function focusRovingTabStop(container: HTMLElement | null) {
+	rovingItems(container)
+		.find((element) => element.tabIndex === 0)
+		?.focus()
+}
+
 function rovingItems(container: HTMLElement | null) {
 	return [
 		...(container?.querySelectorAll<HTMLElement>("[data-roving-item]") ?? []),
