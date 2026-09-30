@@ -52,6 +52,9 @@ export function initPostHog() {
 			register: (properties) => {
 				posthog.register(properties)
 			},
+			unregister: (property) => {
+				posthog.unregister(property)
+			},
 			getFeatureFlag: (name) => posthog.getFeatureFlag(name),
 			onFeatureFlags: (callback) => posthog.onFeatureFlags(() => callback()),
 		}

@@ -13,6 +13,9 @@ function fakeClient(flags: Record<string, boolean | string> = {}) {
 		register: (properties) => {
 			Object.assign(registered, properties)
 		},
+		unregister: (property) => {
+			delete registered[property]
+		},
 		getFeatureFlag: (name) => flags[name],
 		onFeatureFlags: (callback) => {
 			flagsCallback = callback
@@ -105,6 +108,52 @@ describe("createAnalytics", () => {
 					shop_mode: "expanded",
 					itemId: "3135",
 				},
+			},
+		])
+	})
+
+	test("clears the parts of the view that are no longer shown, before and after loading", async () => {
+		const analytics = createAnalytics()
+		const { client, captured } = fakeClient()
+		let resolveClient: (client: AnalyticsClient) => void = () => {}
+
+		const connecting = analytics.connect(
+			() => new Promise((resolve) => (resolveClient = resolve)),
+		)
+		analytics.setAnalyticsContext({
+			shop_grouping: "compact",
+			shop_mode: "overview",
+			shop_stat_match: "any",
+		})
+		analytics.clearAnalyticsContext(["shop_mode", "shop_stat_match"])
+		analytics.track("champion_selected", { champion: "Ahri" })
+		resolveClient(client)
+		await connecting
+		analytics.setAnalyticsContext({
+			shop_mode: "mobile",
+			shop_stat_match: "all",
+		})
+		analytics.track("item_added", { itemId: "3135" })
+		analytics.clearAnalyticsContext(["shop_mode", "shop_stat_match"])
+		analytics.track("champion_selected", { champion: "Garen" })
+
+		expect(captured).toEqual([
+			{
+				event: "champion_selected",
+				properties: { shop_grouping: "compact", champion: "Ahri" },
+			},
+			{
+				event: "item_added",
+				properties: {
+					shop_grouping: "compact",
+					shop_mode: "mobile",
+					shop_stat_match: "all",
+					itemId: "3135",
+				},
+			},
+			{
+				event: "champion_selected",
+				properties: { shop_grouping: "compact", champion: "Garen" },
 			},
 		])
 	})

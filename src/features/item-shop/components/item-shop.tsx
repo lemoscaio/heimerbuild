@@ -53,7 +53,8 @@ export function ItemShop({
 	const [query, setQuery] = useState("")
 	const [grouping, setGrouping] = useShopGrouping()
 	const listRef = useRef<HTMLElement>(null)
-	useAnalyticsContext({ shop_grouping: grouping, shop_stat_match: match })
+	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
+	useAnalyticsContext({ shop_stat_match: match })
 	const trackSearch = useDebouncedCallback(
 		(queryLength: number) => track("shop_searched", { queryLength }),
 		SEARCH_TRACK_DELAY_MS,

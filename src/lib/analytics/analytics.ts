@@ -11,6 +11,8 @@ export type AnalyticsClient = {
 	capture: (event: string, properties: Record<string, unknown>) => void
 	/** Super properties: sent with every later event. */
 	register: (properties: Record<string, unknown>) => void
+	/** Stops sending a super property. */
+	unregister: (property: string) => void
 	getFeatureFlag: (name: string) => FeatureFlagValue
 	/** Calls back whenever flags load or change; returns an unsubscribe function. */
 	onFeatureFlags: (callback: () => void) => () => void
@@ -84,9 +86,22 @@ export function createAnalytics() {
 		}
 	}
 
+	/** Drops parts of the view from later events (PostHog `unregister`), for views that are no longer shown. */
+	function clearAnalyticsContext(
+		properties: readonly (keyof AnalyticsContext)[],
+	) {
+		const next = { ...context }
+		for (const property of properties) {
+			delete next[property]
+			client?.unregister(property)
+		}
+		context = next
+	}
+
 	return {
 		track,
 		setAnalyticsContext,
+		clearAnalyticsContext,
 		connect,
 		getFeatureFlag,
 		subscribeToFeatureFlags,
@@ -96,6 +111,7 @@ export function createAnalytics() {
 export const {
 	track,
 	setAnalyticsContext,
+	clearAnalyticsContext,
 	connect: connectAnalytics,
 	getFeatureFlag,
 	subscribeToFeatureFlags,
