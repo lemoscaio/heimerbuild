@@ -10,6 +10,7 @@ import {
 	ComboboxItem,
 	ComboboxList,
 } from "@/components/ui/combobox"
+import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
 import type { Item } from "../../../../scripts/sync-data/schemas/item"
 import { useSearchShortcut } from "../hooks/use-search-shortcut"
@@ -23,6 +24,7 @@ import {
 	tokenLabel,
 	tokensFromFilters,
 	tokenTerm,
+	tokenValue,
 	typedWord,
 	withoutTypedWord,
 } from "../lib/shop-query"
@@ -37,7 +39,7 @@ type Suggestion =
 	  }
 	| { kind: "item"; item: Item }
 
-type ShopSearchChange = { query: string; filters: ShopFilters }
+export type ShopSearchChange = { query: string; filters: ShopFilters }
 
 type ShopSearchProps = {
 	/** Free text, matched against item names. */
@@ -45,6 +47,8 @@ type ShopSearchProps = {
 	filters: ShopFilters
 	/** The items the shop shows; the ones matching the text are suggested. */
 	items: readonly Item[]
+	/** Every item name: an alias that continues the start of one stays free text. */
+	itemNames: readonly string[]
 	onSearchChange: (change: ShopSearchChange) => void
 	/** An item suggestion was picked: the shop selects it. */
 	onItemPick: (itemId: string) => void
@@ -63,6 +67,7 @@ export function ShopSearch({
 	query,
 	filters,
 	items,
+	itemNames,
 	onSearchChange,
 	onItemPick,
 	onEscape,
@@ -95,7 +100,10 @@ export function ShopSearch({
 	const lastStatChip = statChips.at(-1)
 
 	function commit(text: string, options?: { includeLastWord?: boolean }) {
-		const { tokens, text: rest } = commitShopQuery(text, options)
+		const { tokens, text: rest } = commitShopQuery(text, {
+			...options,
+			itemNames,
+		})
 		onSearchChange({
 			query: rest,
 			filters: tokens.length
@@ -107,8 +115,15 @@ export function ShopSearch({
 		})
 	}
 
-	function handleValueChange(next: Suggestion[]) {
-		const picked = next.find((suggestion) => suggestion.kind === "item")
+	function handleValueChange(
+		next: Suggestion[],
+		{ reason }: { reason: string },
+	) {
+		const chipKeys = new Set(chips.map(suggestionKey))
+		const picked = next.find(
+			(suggestion) => !chipKeys.has(suggestionKey(suggestion)),
+		)
+		if (picked && reason === "item-press") trackPick(picked)
 		if (picked?.kind === "item") onItemPick(picked.item.id)
 		const tokens = next.flatMap((suggestion) =>
 			suggestion.kind === "token" ? [suggestion.token] : [],
@@ -120,6 +135,19 @@ export function ShopSearch({
 		onSearchChange({
 			query: isTokenPicked ? withoutTypedWord(query) : query,
 			filters: filtersFromTokens(tokens, filters),
+		})
+	}
+
+	function trackPick(picked: Suggestion) {
+		const position =
+			suggestions.findIndex(
+				(suggestion) => suggestionKey(suggestion) === suggestionKey(picked),
+			) + 1
+		track("shop_search_suggestion_picked", {
+			...(picked.kind === "item"
+				? { kind: "item", value: picked.item.id }
+				: tokenValue(picked.token)),
+			position,
 		})
 	}
 

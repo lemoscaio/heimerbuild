@@ -8,10 +8,8 @@ import { cn } from "@/lib/cn"
 import { useDebouncedCallback } from "../hooks/use-debounced-callback"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
 import { useShopGrouping } from "../hooks/use-shop-grouping"
-import { filterItemsByName } from "../lib/filter-items-by-name"
-import { filterItemsByRole } from "../lib/filter-items-by-role"
-import { filterItemsByStats } from "../lib/filter-items-by-stats"
-import { type ShopFilters, tokensFromFilters } from "../lib/shop-query"
+import { filterShopItems } from "../lib/filter-shop-items"
+import { type ShopFilters, searchTokensForAnalytics } from "../lib/shop-query"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
 import type { ItemPickProps } from "../types/item-pick"
 import { GroupingMenu } from "./grouping-menu"
@@ -19,7 +17,7 @@ import { ItemGrid } from "./item-grid"
 import { ItemGridSkeleton } from "./item-grid-skeleton"
 import { ItemList } from "./item-list"
 import { RoleFilter } from "./role-filter"
-import { ShopSearch } from "./shop-search"
+import { ShopSearch, type ShopSearchChange } from "./shop-search"
 import { SortMenu } from "./sort-menu"
 import { StatMatchToggle } from "./stat-match-toggle"
 import { StatRail } from "./stat-rail"
@@ -48,21 +46,19 @@ export function ItemShop({
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
 	useAnalyticsContext({ shop_stat_match: match })
 	const trackSearch = useDebouncedCallback(
-		(queryLength: number, tokens: number) =>
-			track("shop_searched", { queryLength, tokens }),
+		(search: ShopSearchChange, results: number) =>
+			track("shop_searched", {
+				query: search.query.trim().toLowerCase().slice(0, MAX_TRACKED_QUERY),
+				queryLength: search.query.length,
+				tokens: searchTokensForAnalytics(search.filters),
+				results,
+				zeroResults: !results,
+			}),
 		SEARCH_TRACK_DELAY_MS,
 	)
 
-	const filteredItems = itemsQuery.data
-		? filterItemsByStats(
-				filterItemsByName(
-					filterItemsByRole(Object.values(itemsQuery.data), role),
-					query,
-				),
-				stats,
-				{ match },
-			)
-		: []
+	const allItems = itemsQuery.data ? Object.values(itemsQuery.data) : []
+	const filteredItems = filterShopItems(allItems, { filters, query })
 	const items = sort ? sortItemsByStat(filteredItems, sort) : filteredItems
 
 	function handleFiltersChange(nextFilters: ShopFilters) {
@@ -71,10 +67,10 @@ export function ItemShop({
 		trackFilters(nextFilters)
 	}
 
-	function handleSearchChange(change: { query: string; filters: ShopFilters }) {
+	function handleSearchChange(change: ShopSearchChange) {
 		setQuery(change.query)
 		handleFiltersChange(change.filters)
-		trackSearch(change.query.length, tokensFromFilters(change.filters).length)
+		trackSearch(change, filterShopItems(allItems, change).length)
 	}
 
 	function handleSearchEscape() {
@@ -145,6 +141,7 @@ export function ItemShop({
 					query={query}
 					filters={filters}
 					items={items}
+					itemNames={allItems.map(({ name }) => name)}
 					onSearchChange={handleSearchChange}
 					onItemPick={pickProps.onItemSelect}
 					onEscape={handleSearchEscape}
@@ -203,6 +200,7 @@ function ShopTitle({ className }: { className?: string }) {
 }
 
 const SEARCH_TRACK_DELAY_MS = 1000
+const MAX_TRACKED_QUERY = 50
 
 const NO_FILTERS: ShopFilters = { role: "ALL", stats: [], match: "all" }
 
