@@ -6,7 +6,7 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!!**/dist", "!!public/data"]
+		"includes": ["**", "!!**/dist", "!!public/data", "!!src/lib/cn-tables.ts"]
 	},
 	"formatter": {
 		"enabled": true,
