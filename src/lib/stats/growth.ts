@@ -1,9 +1,11 @@
-import type { ChampionStats } from "@schemas/champion"
+import type { ChampionStats, LevelState } from "@schemas/champion"
 
 export const MIN_LEVEL = 1
 export const MAX_LEVEL = 18
 
-export type GrowthStat = ChampionStats["health"]
+/** A champion growth stat, or a level state's, which may grow linearly. */
+export type GrowthStat = ChampionStats["health"] &
+	Pick<NonNullable<LevelState["attackRange"]>, "growth">
 
 export function assertChampionLevel(level: number): void {
 	if (!Number.isInteger(level) || level < MIN_LEVEL || level > MAX_LEVEL) {
@@ -19,6 +21,11 @@ export function growthMultiplier(level: number): number {
 	return levelsGained * (0.7025 + 0.0175 * levelsGained)
 }
 
-export function statAtLevel({ base, perLevel }: GrowthStat, level: number) {
-	return base + perLevel * growthMultiplier(level)
+export function statAtLevel(
+	{ base, perLevel, growth }: GrowthStat,
+	level: number,
+) {
+	const multiplier =
+		growth === "linear" ? level - MIN_LEVEL : growthMultiplier(level)
+	return base + perLevel * multiplier
 }

@@ -1,5 +1,6 @@
 import type { Champion, ChampionSummary } from "../schemas/champion"
 import type { DataOverride, FieldOverride } from "./apply-overrides"
+import { CHAMPION_LEVEL_STATES } from "./champion-level-states"
 
 /** Summary fields are left out so `champions.json` never disagrees with `champions/<key>.json`. */
 export type ChampionOverrideField = Exclude<
@@ -19,7 +20,7 @@ export function defineChampionOverride<Field extends ChampionOverrideField>({
 	return { ...override, target: championKey }
 }
 
-/** Fixes for bugs in Riot's champion data; see "Data overrides" in the README. */
+/** Fixes for bugs in Riot's champion data, then the level states; see "Data overrides" in the README. */
 export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 	defineChampionOverride({
 		id: "gnar-ranged-attack-type",
@@ -30,19 +31,6 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 			"CommunityDragon lists both Ranged and Melee for Gnar, so the 175 range fallback picks melee; Mini Gnar, his starting form, is ranged",
 		source: "https://wiki.leagueoflegends.com/en-us/Gnar",
 		apply: () => "ranged" as const,
-	}),
-	defineChampionOverride({
-		id: "gnar-attack-range-growth",
-		championKey: "Gnar",
-		field: "stats",
-		since: "16.19",
-		reason:
-			"Mini Gnar's attack range grows from 175 to 275, but Riot's data has no range growth",
-		source: "https://wiki.leagueoflegends.com/en-us/Gnar",
-		apply: (stats) => ({
-			...stats,
-			attackRange: { ...stats.attackRange, perLevel: 100 / 17 },
-		}),
 	}),
 	defineChampionOverride({
 		id: "viego-no-mana",
@@ -96,4 +84,5 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 			health: { base: 810, perLevel: 84 + 1000 / 17 },
 		}),
 	}),
+	...CHAMPION_LEVEL_STATES,
 ]

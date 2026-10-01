@@ -44,7 +44,7 @@
 		"16.19.1/champions/Galio.json": "2c2085b2aa",
 		"16.19.1/champions/Gangplank.json": "80bdb92b0d",
 		"16.19.1/champions/Garen.json": "cfe65e1708",
-		"16.19.1/champions/Gnar.json": "e3595d23aa",
+		"16.19.1/champions/Gnar.json": "81503f513e",
 		"16.19.1/champions/Gragas.json": "1b866c0bef",
 		"16.19.1/champions/Graves.json": "37837843bc",
 		"16.19.1/champions/Gwen.json": "4fa4bd17f6",
@@ -67,7 +67,7 @@
 		"16.19.1/champions/Karthus.json": "386a6dd7a5",
 		"16.19.1/champions/Kassadin.json": "90b93671ee",
 		"16.19.1/champions/Katarina.json": "c6382c6abd",
-		"16.19.1/champions/Kayle.json": "3350d9c027",
+		"16.19.1/champions/Kayle.json": "252d452bdf",
 		"16.19.1/champions/Kayn.json": "1b9317a421",
 		"16.19.1/champions/Kennen.json": "df50489fbd",
 		"16.19.1/champions/Khazix.json": "e3f4a0a3a0",
@@ -144,7 +144,7 @@
 		"16.19.1/champions/Taric.json": "5547f6daef",
 		"16.19.1/champions/Teemo.json": "694624d7cb",
 		"16.19.1/champions/Thresh.json": "0cde0a0a8e",
-		"16.19.1/champions/Tristana.json": "410f55521c",
+		"16.19.1/champions/Tristana.json": "112e460d3b",
 		"16.19.1/champions/Trundle.json": "abe4dc1ee7",
 		"16.19.1/champions/Tryndamere.json": "2be6052747",
 		"16.19.1/champions/TwistedFate.json": "6f68028643",
@@ -181,5 +181,5 @@
 		"16.19.1/items.json": "e7540e9444",
 		"16.19.1/runes.json": "51aeb100e8"
 	},
-	"generatedAt": "2026-10-01T16:23:04.901Z"
+	"generatedAt": "2026-10-01T21:49:56.093Z"
 }

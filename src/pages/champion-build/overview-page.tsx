@@ -14,6 +14,7 @@ import { RunePage } from "@/features/runes/components/rune-page"
 import { RuneSummary } from "@/features/runes/components/rune-summary"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
+import { attackTypeAtLevel } from "@/lib/stats/level-states"
 import type { BuildPage } from "./hooks/use-build-page"
 
 type OverviewPageProps = {
@@ -42,7 +43,10 @@ export function OverviewPage({
 			build={
 				<>
 					<WorkbenchPanel className="flex flex-col gap-3">
-						<ChampionHeader champion={champion} />
+						<ChampionHeader
+							champion={champion}
+							attackType={attackTypeAtLevel(champion, build.level)}
+						/>
 						{patchNotice}
 						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
 					</WorkbenchPanel>

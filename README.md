@@ -130,6 +130,17 @@ defineItemOverride({
 
 The sync applies the overrides for the patch it syncs after normalizing and before validating, so a wrong fix still fails the schema and `<stats>` checks. It logs each applied override and fails on a duplicate id or on two overrides of the same field with overlapping ranges. When an override changes nothing (Riot fixed the data) or its item or champion is gone, the sync warns and the daily sync PR lists it under "Overrides no longer needed": set its `until` to the last patch that needed it. If a bug skips a patch, add a second override with its own range. After adding an override, rerun `bun run sync-data --version <patch>` for the patches it covers and commit the regenerated files.
 
+Stats that change with the level alone (Kayle turns ranged at level 6, Tristana's range grows to 700) are missing from Riot's data rather than wrong. They go in `champion-level-states.ts` with `defineLevelStates`, which takes the same `id`, `since`, `reason` and `source` plus a `levelStates` list, and the sync writes it to the champion's `levelStates`:
+
+```ts
+levelStates: [
+	{ fromLevel: 6, attackType: "ranged", attackRange: { base: 525, perLevel: 0 } },
+	{ fromLevel: 16, attackRange: { base: 625, perLevel: 0 } },
+]
+```
+
+The stats engine applies every state the selected level has reached, in order, each one replacing only the fields it sets. A stat with `growth: "linear"` adds `perLevel` once per level instead of following the champion growth curve.
+
 ## Built with
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
