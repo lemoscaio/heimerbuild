@@ -178,19 +178,39 @@ export const statDisplay: Readonly<Record<StatKey | StatName, StatDisplay>> = {
 	},
 }
 
-type ResourceDisplay = { label: string; icon: string }
+type ResourceDisplay = {
+	label: string
+	icon: string
+	/** How the resource works, for one with no fixed size in the data. */
+	description?: string
+}
 
 /** Every champion `resource` in patch 16.19.1 data. Its icon marks the regen row too, as Mana's does. */
 const resourceDisplays: Readonly<Record<string, ResourceDisplay>> = {
-	BLOOD_WELL: { label: "Blood Well", icon: bloodWellIcon },
+	BLOOD_WELL: {
+		label: "Blood Well",
+		icon: bloodWellIcon,
+		description:
+			"Aatrox's abilities cost nothing. The bar shows how long World Ender has left; champion takedowns extend it.",
+	},
 	COURAGE: { label: "Courage", icon: courageIcon },
 	CRIMSON_RUSH: { label: "Crimson Rush", icon: crimsonRushIcon },
 	ENERGY: { label: "Energy", icon: energyIcon },
 	FEROCITY: { label: "Ferocity", icon: ferocityIcon },
 	FLOW: { label: "Flow", icon: flowIcon },
-	FRENZY: { label: "Frenzy", icon: frenzyIcon },
+	FRENZY: {
+		label: "Frenzy",
+		icon: frenzyIcon,
+		description:
+			"Briar's abilities cost a share of her current health. The bar shows how long her frenzy lasts once Blood Frenzy or Certain Death finds a target.",
+	},
 	FURY: { label: "Fury", icon: furyIcon },
-	GRIT: { label: "Grit", icon: gritIcon },
+	GRIT: {
+		label: "Grit",
+		icon: gritIcon,
+		description:
+			"Sett stores damage he takes as Grit, up to 50% of his maximum health. It decays when he is not hit, and Haymaker spends it all on a shield and damage.",
+	},
 	HEAT: { label: "Heat", icon: heatIcon },
 	MANA: { label: "Mana", icon: manaIcon },
 	RAGE: { label: "Rage", icon: rageIcon },
