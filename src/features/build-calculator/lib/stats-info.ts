@@ -18,6 +18,10 @@ export type StatRowInfo = {
 	format?: StatFormat
 	/** Unit shown after the total, such as "/5s" for regen. */
 	suffix?: string
+	/** A resource whose size the data leaves at 0 (Grit, Frenzy): shown as "—", not 0. */
+	noFixedValue?: boolean
+	/** How the resource works, shown with the "—". */
+	description?: string
 }
 
 type PanelRow = Pick<StatRowInfo, "stat" | "format" | "suffix">
@@ -55,21 +59,27 @@ export const statRows: readonly StatRowInfo[] = panelRows.map((row) => {
 const NO_RESOURCE = "NONE"
 
 /**
- * The panel rows for one champion. The mana rows show its own resource: renamed
- * and with its icon for another resource, dropped when it has none or the value is 0.
+ * The panel rows for one champion. The mana rows show its own resource, renamed
+ * and with its icon, and are dropped when it has none. A resource left at 0 keeps
+ * its row without a number; a regen row at 0 is dropped.
  */
 export function championStatRows(
 	resource: string,
 	stats: ComputedStats,
 ): StatRowInfo[] {
 	if (resource === MANA_RESOURCE) return [...statRows]
-	const { label, icon } = resourceDisplay(resource)
+	if (resource === NO_RESOURCE) {
+		return statRows.filter(
+			({ stat }) => stat !== "mana" && stat !== "manaRegen",
+		)
+	}
+	const { label, icon, description } = resourceDisplay(resource)
 	return statRows.flatMap((info) => {
 		if (info.stat !== "mana" && info.stat !== "manaRegen") return [info]
-		if (resource === NO_RESOURCE || stats[info.stat].total === 0) return []
-		return [
-			{ ...info, icon, label: info.stat === "mana" ? label : `${label} Regen` },
-		]
+		const isRegen = info.stat === "manaRegen"
+		const row = { ...info, icon, label: isRegen ? `${label} Regen` : label }
+		if (stats[info.stat].total !== 0) return [row]
+		return isRegen ? [] : [{ ...row, noFixedValue: true, description }]
 	})
 }
 
