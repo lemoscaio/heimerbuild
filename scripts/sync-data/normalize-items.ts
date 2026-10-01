@@ -1,6 +1,13 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
+import {
+	type AntiHealMismatch,
+	appliesWounds,
+	formatAntiHealMismatches,
+	hasGrievousValues,
+} from "./item-effects"
+import { formatUnlabeledGroups, labelItemGroups } from "./item-groups"
 import { itemMarkupToText } from "./item-text"
 import {
 	applyOverrides,
@@ -165,6 +172,11 @@ function extractGroupLimits(
 	})
 }
 
+/** CommunityDragon `clickable`: the item has an active (`<active>` in the description). */
+function extractActive(entry: CommunityDragonItem): boolean {
+	return z.boolean().optional().parse(entry.clickable) ?? false
+}
+
 function formatUnmapped(unmapped: Map<string, string[]>): string {
 	const lines = [...unmapped].map(
 		([field, ids]) =>
@@ -202,6 +214,7 @@ export function normalizeItems(
 	// Removed, other-mode and auto-transform ids (Whispering Circlet -> Diadem) would skew shop tiers.
 	const inShop = (ids: string[] = []) => ids.filter((id) => shopIds.has(id))
 	const unmapped = new Map<string, string[]>()
+	const antiHealMismatches: AntiHealMismatch[] = []
 
 	const normalized = kept
 		.sort(([a], [b]) => Number(a) - Number(b))
@@ -212,6 +225,10 @@ export function normalizeItems(
 					`Item ${id} (${item.name}) has no CommunityDragon entry`,
 				)
 			}
+			const antiHeal = appliesWounds(item.description)
+			if (antiHeal !== hasGrievousValues(entry)) {
+				antiHealMismatches.push({ id, name: item.name, keyword: antiHeal })
+			}
 			return {
 				id,
 				name: item.name,
@@ -219,7 +236,8 @@ export function normalizeItems(
 				plaintext: itemMarkupToText(item.plaintext),
 				icon: item.image.full,
 				gold: item.gold,
-				tags: item.tags,
+				// The Active tag misses 16 items with an active; `active` replaces it.
+				tags: item.tags.filter((tag) => tag !== "Active"),
 				maps: Object.entries(item.maps)
 					.filter(([, enabled]) => enabled)
 					.map(([map]) => Number(map)),
@@ -230,14 +248,17 @@ export function normalizeItems(
 				epicness: extractEpicness(entry),
 				roles: extractRoles(entry),
 				groupLimits: extractGroupLimits(entry, bin),
+				active: extractActive(entry),
+				antiHeal,
 				stats: extractStats(entry, unmapped),
 			}
 		})
-	const { entities: items, report } = applyOverrides(normalized, overrides, {
-		version,
-		kind: "item",
-		idOf: (item) => item.id,
-	})
+	const { entities: overridden, report } = applyOverrides(
+		normalized,
+		overrides,
+		{ version, kind: "item", idOf: (item) => item.id },
+	)
+	const { items, unlabeled } = labelItemGroups(overridden)
 
 	const { mismatches, stale } = validateItemStats(
 		items.map((item) => ({
@@ -248,6 +269,10 @@ export function normalizeItems(
 	const errors = [
 		...(unmapped.size > 0 ? [formatUnmapped(unmapped)] : []),
 		...(mismatches.length > 0 ? [formatMismatches(mismatches)] : []),
+		...(antiHealMismatches.length > 0
+			? [formatAntiHealMismatches(antiHealMismatches)]
+			: []),
+		...(unlabeled.length > 0 ? [formatUnlabeledGroups(unlabeled)] : []),
 	]
 	if (errors.length > 0) throw new Error(errors.join("\n\n"))
 	return {

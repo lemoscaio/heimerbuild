@@ -25,6 +25,8 @@ function item(id: string, name: string): Item {
 		epicness: 5,
 		roles: [],
 		groupLimits: [],
+		active: false,
+		antiHeal: false,
 		stats: {},
 	}
 }
