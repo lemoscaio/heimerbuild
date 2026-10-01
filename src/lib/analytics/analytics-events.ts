@@ -2,9 +2,22 @@ import type { ChampionRole } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import type { ShopGrouping, ShopMode } from "@/types/shop-view"
 
-/** A shop search token: `value` is the stat key, the role id or the match mode (`all` / `any`). */
+/**
+ * A shop search token. `value` is never typed text: the stat key (`stat`, `statMin`), the role
+ * id, the match mode (`all` / `any`), the effect (`active` / `antiHeal`), the item group id,
+ * the item id (`from` / `into`) or a 500-gold bucket (`gold`: `max:1500`, `min:3000`).
+ */
 export type ShopSearchToken = {
-	kind: "stat" | "role" | "match"
+	kind:
+		| "stat"
+		| "role"
+		| "match"
+		| "has"
+		| "group"
+		| "from"
+		| "into"
+		| "statMin"
+		| "gold"
 	value: string
 }
 
@@ -21,11 +34,13 @@ export type AnalyticsEvents = {
 	/**
 	 * The shop filters after a change; an empty list means no filter of that kind.
 	 * `match`: items need every selected stat (`all`, AND) or at least one (`any`, OR).
+	 * `conditions`: the search-only filters (`has:active`, `from:sheen`, `ap>=80`...).
 	 */
 	shop_filtered: {
 		roles: ChampionRole[]
 		stats: StatKey[]
 		match: "all" | "any"
+		conditions: ShopSearchToken[]
 	}
 	/**
 	 * Debounced shop search. `query`: the free text, trimmed, lowercased and cut to 50 characters;
@@ -41,8 +56,8 @@ export type AnalyticsEvents = {
 	}
 	/** A shop search suggestion was picked; `position` is 1-based in the suggestion list. */
 	shop_search_suggestion_picked: {
-		kind: ShopSearchToken["kind"] | "item"
-		/** The stat key, role id, match mode (`all` / `any`) or item id. */
+		kind: ShopSearchToken["kind"] | "item" | "shortcut"
+		/** A token's `value`, the item id, or the shortcut's prefix (`from:`, `ap>=`). */
 		value: string
 		position: number
 	}
