@@ -13,8 +13,8 @@ import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
 import { ChampionHeaderSkeleton } from "@/features/champions/components/champion-header-skeleton"
 import { ItemGridSkeleton } from "@/features/item-shop/components/item-grid-skeleton"
 import { ItemList } from "@/features/item-shop/components/item-list"
+import { PRODUCT_NAME } from "@/lib/product-name"
 import { pageWithHeaderRoute } from "./page-with-header-route"
-import { APP_TITLE } from "./root-route"
 
 /** Critical half: search, loader, head and fallbacks; the page itself is in `champion-route.lazy.tsx`. */
 export const championRoute = createRoute({
@@ -53,8 +53,8 @@ export const championRoute = createRoute({
 		meta: [
 			{
 				title: loaderData
-					? `${loaderData.championName} build · ${APP_TITLE}`
-					: APP_TITLE,
+					? `${loaderData.championName} build · ${PRODUCT_NAME}`
+					: PRODUCT_NAME,
 			},
 		],
 	}),

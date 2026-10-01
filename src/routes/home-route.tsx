@@ -2,9 +2,10 @@ import { createRoute } from "@tanstack/react-router"
 import { RouteError } from "@/components/common/route-error"
 import { Skeleton } from "@/components/ui/skeleton"
 import { gameDataQueries } from "@/data/queries/game-data-queries"
+import { PRODUCT_NAME } from "@/lib/product-name"
 import { HomeLayout } from "@/pages/home/home-layout"
 import { HomePage } from "@/pages/home/home-page"
-import { APP_TITLE, rootRoute } from "./root-route"
+import { rootRoute } from "./root-route"
 
 export const homeRoute = createRoute({
 	getParentRoute: () => rootRoute,
@@ -16,7 +17,7 @@ export const homeRoute = createRoute({
 		await queryClient.ensureQueryData(gameDataQueries.champions(currentPatch))
 	},
 	head: () => ({
-		meta: [{ title: `${APP_TITLE} · League of Legends build calculator` }],
+		meta: [{ title: `${PRODUCT_NAME} · League of Legends build calculator` }],
 	}),
 	component: HomePage,
 	pendingComponent: HomePending,
