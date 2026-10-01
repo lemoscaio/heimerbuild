@@ -12,7 +12,13 @@ import { useReturnFocusToItem } from "../hooks/use-return-focus-to-item"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
 import { useShopGrouping } from "../hooks/use-shop-grouping"
 import { filterShopItems } from "../lib/filter-shop-items"
-import { type ShopFilters, searchTokensForAnalytics } from "../lib/shop-query"
+import { shopCatalog } from "../lib/shop-catalog"
+import {
+	describeToken,
+	type ShopFilters,
+	searchTokensForAnalytics,
+	tokensFromFilters,
+} from "../lib/shop-query"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
 import type { ItemPickProps } from "../types/item-pick"
 import { GroupingMenu } from "./grouping-menu"
@@ -58,6 +64,7 @@ export function ItemShop({
 	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
 	useAnalyticsContext({ shop_stat_match: match })
 	const allItems = itemsQuery.data ? Object.values(itemsQuery.data) : []
+	const catalog = shopCatalog(allItems)
 	const trackSearch = useDebouncedCallback((search: ShopSearchChange) => {
 		const results = filterShopItems(allItems, search).length
 		track("shop_searched", {
@@ -157,7 +164,7 @@ export function ItemShop({
 					query={query}
 					filters={filters}
 					items={items}
-					itemNames={allItems.map(({ name }) => name)}
+					catalog={catalog}
 					onSearchChange={handleSearchChange}
 					onItemPick={pickProps.onItemSelect}
 					onEscape={handleSearchEscape}
@@ -228,17 +235,21 @@ const SEARCH_TRACK_DELAY_MS = 1000
 const MAX_TRACKED_QUERY = 50
 
 function sameFilters(a: ShopFilters, b: ShopFilters) {
-	return (
-		a.role === b.role &&
-		a.match === b.match &&
-		a.stats.join() === b.stats.join()
-	)
+	return a.match === b.match && filterTerms(a) === filterTerms(b)
 }
 
-function trackFilters({ role, stats, match }: ShopFilters) {
+/** The terms carry each value too: `ap>=80` and `ap>=100` differ. */
+function filterTerms(filters: ShopFilters) {
+	return tokensFromFilters(filters)
+		.map((token) => describeToken(token).term)
+		.join(" ")
+}
+
+function trackFilters({ role, stats, match, conditions }: ShopFilters) {
 	track("shop_filtered", {
 		roles: role === "ALL" ? [] : [role],
 		stats: [...stats],
 		match,
+		conditions: conditions.map((condition) => describeToken(condition).value),
 	})
 }

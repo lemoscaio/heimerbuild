@@ -14,6 +14,7 @@ import {
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
 import { useSearchShortcut } from "../hooks/use-search-shortcut"
+import type { ShopCatalog } from "../lib/shop-catalog"
 import {
 	commitShopQuery,
 	filtersFromTokens,
@@ -36,8 +37,8 @@ type ShopSearchProps = {
 	filters: ShopFilters
 	/** The items the shop shows; the ones matching the text are suggested. */
 	items: readonly Item[]
-	/** Every item name: an alias that continues the start of one stays free text. */
-	itemNames: readonly string[]
+	/** The item names and the terms built from the items (`group:`, `from:`, `into:`). */
+	catalog: ShopCatalog
 	onSearchChange: (change: ShopSearchChange) => void
 	/** An item suggestion was picked: the shop selects it. */
 	onItemPick: (itemId: string) => void
@@ -47,14 +48,15 @@ type ShopSearchProps = {
 }
 
 /**
- * The shop search: free text for item names, plus tokens (`ap`, `role:tank`, `or`) that drive
- * the same filters as the role row and the stat rail, so both always show the same state.
+ * The shop search: free text for item names, plus tokens. `ap`, `role:tank` and `or` drive the
+ * same filters as the role row and the stat rail, so both always show the same state; the
+ * conditions (`has:active`, `from:sheen`, `ap>=80`, `gold<=1500`) exist only here.
  */
 export function ShopSearch({
 	query,
 	filters,
 	items,
-	itemNames,
+	catalog,
 	onSearchChange,
 	onItemPick,
 	onEscape,
@@ -66,14 +68,19 @@ export function ShopSearch({
 	const isOpenRef = useRef(false)
 	useSearchShortcut(inputRef)
 
-	const { chips, suggestions } = shopSuggestions({ query, filters, items })
+	const { chips, suggestions } = shopSuggestions({
+		query,
+		filters,
+		items,
+		catalog,
+	})
 	const statChips = chips.filter(({ token }) => token.kind === "stat")
 	const lastStatChip = statChips.at(-1)
 
 	function commit(text: string, options?: { includeLastWord?: boolean }) {
 		const { tokens, text: rest } = commitShopQuery(text, {
 			...options,
-			itemNames,
+			catalog,
 		})
 		onSearchChange({
 			query: rest,
@@ -106,9 +113,7 @@ export function ShopSearch({
 				(suggestion) => suggestionKey(suggestion) === suggestionKey(picked),
 			) + 1
 		track("shop_search_suggestion_picked", {
-			...(picked.kind === "item"
-				? { kind: "item", value: picked.item.id }
-				: picked.value),
+			...pickedValue(picked),
 			position,
 		})
 	}
@@ -179,7 +184,9 @@ export function ShopSearch({
 					ref={inputRef}
 					aria-label="Search items"
 					aria-keyshortcuts="/"
-					placeholder={chips.length ? "" : "Search items, ap, role:tank…"}
+					placeholder={
+						chips.length ? "" : "Search items, ap, role:tank, gold<=1500…"
+					}
 					className="max-lg:h-9"
 					onKeyDown={handleKeyDown}
 				/>
@@ -201,7 +208,8 @@ export function ShopSearch({
 				className="min-w-[min(20rem,var(--available-width))]"
 			>
 				<ComboboxEmpty>
-					Type a stat (ap, mr), a role (role:tank), and / or, or an item name.
+					Type a stat (ap, ap&gt;=80), a role (role:tank), a filter (has:active,
+					from:sheen, gold&lt;=1500), and / or, or an item name.
 				</ComboboxEmpty>
 				<ComboboxList aria-label="Suggestions">
 					{(suggestion: Suggestion) => (
@@ -216,13 +224,33 @@ export function ShopSearch({
 	)
 }
 
+/** What a pick sends to analytics: a token's value, the item id or the shortcut's prefix. */
+function pickedValue(picked: Suggestion) {
+	switch (picked.kind) {
+		case "item":
+			return { kind: "item" as const, value: picked.item.id }
+		case "shortcut":
+			return { kind: "shortcut" as const, value: picked.text }
+		case "token":
+			return picked.value
+	}
+}
+
 function SuggestionRow({ suggestion }: { suggestion: Suggestion }) {
 	return (
 		<ComboboxItem value={suggestion}>
-			<span className="w-10 shrink-0 font-semibold text-[0.6875rem] text-gold">
+			<span className="w-12 shrink-0 font-semibold text-[0.6875rem] text-gold">
 				{suggestionKindLabel(suggestion)}
 			</span>
-			{suggestion.kind === "item" ? (
+			<SuggestionContent suggestion={suggestion} />
+		</ComboboxItem>
+	)
+}
+
+function SuggestionContent({ suggestion }: { suggestion: Suggestion }) {
+	switch (suggestion.kind) {
+		case "item":
+			return (
 				<>
 					<GameIcon
 						src={suggestion.item.icon}
@@ -233,19 +261,45 @@ function SuggestionRow({ suggestion }: { suggestion: Suggestion }) {
 					/>
 					<span className="min-w-0 truncate">{suggestion.item.name}</span>
 				</>
+			)
+		case "token":
+			return (
+				<FilterContent
+					icon={suggestion.icon}
+					label={suggestion.label}
+					term={suggestion.term}
+				/>
+			)
+		case "shortcut":
+			return (
+				<FilterContent label={`${suggestion.label}…`} term={suggestion.text} />
+			)
+	}
+}
+
+function FilterContent({
+	icon,
+	label,
+	term,
+}: {
+	icon?: string
+	label: string
+	term: string
+}) {
+	return (
+		<>
+			{icon ? (
+				<img src={icon} alt="" className="size-5" />
 			) : (
-				<>
-					{suggestion.icon ? (
-						<img src={suggestion.icon} alt="" className="size-5" />
-					) : (
-						<span className="size-5" />
-					)}
-					<span className="min-w-0 truncate">{suggestion.label}</span>
-					<span className="ml-auto shrink-0 pl-2 font-mono text-subtle text-xs">
-						{suggestion.term}
-					</span>
-				</>
+				<span className="size-5" />
 			)}
-		</ComboboxItem>
+			{/* On phones the term goes under the label, so long item names stay readable. */}
+			<span className="flex min-w-0 flex-1 items-center max-lg:flex-col max-lg:items-start">
+				<span className="min-w-0 max-w-full truncate">{label}</span>
+				<span className="max-w-full shrink-0 truncate font-mono text-subtle text-xs lg:ml-auto lg:pl-2">
+					{term}
+				</span>
+			</span>
+		</>
 	)
 }

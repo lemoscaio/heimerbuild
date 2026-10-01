@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { Item } from "@schemas/item"
+import { shopCatalog } from "./shop-catalog"
 import type { ShopFilters } from "./shop-query"
 import {
 	pickSuggestions,
@@ -34,9 +35,52 @@ function item(id: string, name: string): Item {
 const items = ["3089", "3157", "3165", "3135", "3116"].map((id) =>
 	item(id, `Item ${id}`),
 )
-const noFilters: ShopFilters = { role: "ALL", stats: [], match: "all" }
+const noFilters: ShopFilters = {
+	role: "ALL",
+	stats: [],
+	match: "all",
+	conditions: [],
+}
 
 describe("shopSuggestions", () => {
+	test("the conditions show as chips after the stats", () => {
+		const { chips } = shopSuggestions({
+			query: "",
+			filters: {
+				...noFilters,
+				stats: ["abilityPower"],
+				conditions: [
+					{ kind: "statMin", stat: "abilityPower", min: 80 },
+					{ kind: "gold", bound: "max", value: 3000 },
+				],
+			},
+			items,
+		})
+		expect(chips.map(({ term }) => term)).toEqual([
+			"ap",
+			"ap>=80",
+			"gold<=3000",
+		])
+	})
+
+	test("suggests the catalog's item terms once their prefix is typed", () => {
+		const catalog = shopCatalog([
+			{ ...item("1058", "Needlessly Large Rod"), into: ["3089"] },
+			{ ...item("3089", "Rabadon's Deathcap"), from: ["1058"] },
+		])
+		function keys(query: string) {
+			return shopSuggestions({
+				query,
+				filters: noFilters,
+				items: [],
+				catalog,
+			}).suggestions.map(suggestionKey)
+		}
+		expect(keys("into:death")).toEqual(["into:3089"])
+		expect(keys("from:")).toEqual(["from:1058"])
+		expect(keys("fro")).toEqual(["shortcut:from:"])
+	})
+
 	test("the filters show as chips, the role first, then the stats in order", () => {
 		const { chips } = shopSuggestions({
 			query: "",
@@ -44,13 +88,14 @@ describe("shopSuggestions", () => {
 				role: "MAGE",
 				stats: ["magicResist", "abilityPower"],
 				match: "any",
+				conditions: [],
 			},
 			items,
 		})
 		expect(chips.map(({ term }) => term)).toEqual(["role:mage", "mr", "ap"])
 	})
 
-	test("suggests tokens for the typed word, then the first four items", () => {
+	test("suggests tokens for the typed word, the filters it starts that need a value, then the first four items", () => {
 		const { suggestions } = shopSuggestions({
 			query: "staff ap",
 			filters: noFilters,
@@ -58,6 +103,7 @@ describe("shopSuggestions", () => {
 		})
 		expect(suggestions.map(suggestionKey)).toEqual([
 			"stat:abilityPower",
+			"shortcut:ap>=",
 			"item:3089",
 			"item:3157",
 			"item:3165",
@@ -71,15 +117,24 @@ describe("shopSuggestions", () => {
 				suggestionKey,
 			)
 		}
-		expect(keys({ ...noFilters, stats: ["abilityPower"] }, "ap")).toEqual([])
-		expect(keys(noFilters, "an")).toEqual([])
-		expect(keys({ ...noFilters, match: "any" }, "an")).toEqual(["match:all"])
+		expect(keys({ ...noFilters, stats: ["abilityPower"] }, "ap")).toEqual([
+			"shortcut:ap>=",
+		])
+		expect(keys(noFilters, "and")).toEqual([])
+		expect(keys({ ...noFilters, match: "any" }, "and")).toEqual(["match:all"])
 	})
 
-	test("no text, no suggestions", () => {
+	test("no text, no suggestions; a token being typed suggests no items", () => {
 		expect(
 			shopSuggestions({ query: "", filters: noFilters, items }).suggestions,
 		).toEqual([])
+		expect(
+			shopSuggestions({
+				query: "gold<=1",
+				filters: noFilters,
+				items,
+			}).suggestions.map(suggestionKey),
+		).toEqual(["gold:max"])
 	})
 })
 
@@ -114,6 +169,39 @@ describe("pickSuggestions", () => {
 		const result = pickSuggestions([], { chips, query: "zho", filters })
 		expect(result.picked).toBeUndefined()
 		expect(result).toMatchObject({ query: "zho", filters: noFilters })
+	})
+
+	test("a picked shortcut replaces the typed word with its prefix, to complete", () => {
+		const from: Suggestion = {
+			kind: "shortcut",
+			text: "from:",
+			label: "Builds from an item",
+			kindLabel: "Recipe",
+			example: "from:sheen",
+		}
+		const result = pickSuggestions([...chips, from], {
+			chips,
+			query: "zhonya fr",
+			filters,
+		})
+		expect(result).toMatchObject({
+			picked: from,
+			query: "zhonya from:",
+			filters,
+		})
+	})
+
+	test("a picked condition joins the filters as a chip", () => {
+		const active = tokenSuggestion({ kind: "has", effect: "active" })
+		const result = pickSuggestions([...chips, active], {
+			chips,
+			query: "has:",
+			filters,
+		})
+		expect(result.filters.conditions).toEqual([
+			{ kind: "has", effect: "active" },
+		])
+		expect(result.query).toBe("")
 	})
 
 	test("the match token keeps the mode it sets", () => {
