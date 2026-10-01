@@ -29,6 +29,8 @@ export type AnalyticsEvents = {
 	level_changed: { level: number }
 	/** A shop item was selected to see its details and a stats preview. */
 	shop_item_selected: { itemId: string }
+	/** The champion switched form (Mini to Mega Gnar); `form` is the new form's id. */
+	champion_form_changed: { champion: string; form: string }
 	item_added: { itemId: string }
 	item_removed: { itemId: string }
 	/**
