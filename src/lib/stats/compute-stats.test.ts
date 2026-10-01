@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { Champion } from "@schemas/champion"
 import { type ItemStats, STAT_UNITS } from "@schemas/item"
+import { CHAMPION_LEVEL_STATES } from "../../../scripts/sync-data/overrides/champion-level-states"
 import { computeStats } from "./compute-stats"
 
 // Heimerdinger, patch 16.19.1 (public/data/16.19.1/champions/Heimerdinger.json).
@@ -207,6 +208,71 @@ describe("computeStats", () => {
 
 			expect(stats.abilityHaste.total).toBe(15)
 			expect(stats.health.bonus).toBe(300)
+		})
+	})
+
+	describe("level states", () => {
+		/** The champion as synced: Riot's level 1 range plus its curated level states. */
+		function championWith(key: string, attackRange: number) {
+			const levelStates = CHAMPION_LEVEL_STATES.find(
+				(override) => override.target === key,
+			)?.apply(undefined)
+			if (!levelStates) throw new Error(`No level states for ${key}`)
+			return {
+				...heimerdinger,
+				stats: {
+					...heimerdinger.stats,
+					attackRange: { base: attackRange, perLevel: 0 },
+				},
+				levelStates,
+			}
+		}
+
+		// Expected ranges: wiki Mini Gnar, Divine Ascent and Draw a Bead (linked in the level states).
+		test.each([
+			["Gnar", 175, 1, 400],
+			["Gnar", 175, 9, 400 + (100 / 17) * 8],
+			["Gnar", 175, 18, 500],
+			["Kayle", 175, 1, 175],
+			["Kayle", 175, 5, 175],
+			["Kayle", 175, 6, 525],
+			["Kayle", 175, 15, 525],
+			["Kayle", 175, 16, 625],
+			["Kayle", 175, 18, 625],
+			["Tristana", 550, 1, 550],
+			["Tristana", 550, 2, 550 + 150 / 17],
+			["Tristana", 550, 18, 700],
+		])(
+			"%s (Riot range %i) at level %i has %p attack range",
+			(key, riotRange, level, expected) => {
+				const { attackRange } = computeStats(
+					championWith(key, riotRange),
+					level,
+					[],
+				)
+
+				expect(attackRange.base).toBeCloseTo(expected, 10)
+				expect(attackRange.total).toBeCloseTo(expected, 10)
+			},
+		)
+
+		test("the range a level state sets is base, so items still add bonus", () => {
+			const { attackRange } = computeStats(championWith("Kayle", 175), 6, [
+				{ stats: { attackRange: 50 } },
+			])
+
+			expect(attackRange).toEqual({ base: 525, bonus: 50, total: 575 })
+		})
+
+		test("a level state leaves the stats it does not set as they were", () => {
+			const kayle = championWith("Kayle", 175)
+
+			const withStates = computeStats(kayle, 16, [])
+			const without = computeStats({ ...kayle, levelStates: undefined }, 16, [])
+
+			expect({ ...withStates, attackRange: without.attackRange }).toEqual(
+				without,
+			)
 		})
 	})
 })
