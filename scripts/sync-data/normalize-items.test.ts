@@ -272,9 +272,24 @@ describe("normalizeItems shop filter", () => {
 describe("normalizeItems group limits", () => {
 	type Bin = Record<string, Record<string, unknown>>
 
-	test("keeps the item groups that cap how many a build may hold", () => {
-		expect(itemOf("3135").groupLimits).toEqual([{ group: "VoidPen", max: 1 }])
+	test("keeps the item groups that cap how many a build may hold, with their label", () => {
+		expect(itemOf("3135").groupLimits).toEqual([
+			{ group: "VoidPen", max: 1, label: "Blight" },
+		])
 		expect(itemOf("4645").groupLimits).toEqual([{ group: "4645", max: 1 }])
+	})
+
+	test("fails the sync on a new group of several items without a label", () => {
+		const bin = structuredClone(communityDragonBin) as Bin
+		bin["Items/ItemGroups/Fresh"] = {
+			mItemGroupID: "Fresh",
+			mMaxGroupOwnable: 1,
+		}
+		for (const id of ["3134", "3135"]) {
+			const groups = bin[`Items/${id}`].mItemGroups as string[]
+			groups.push("Items/ItemGroups/Fresh")
+		}
+		expect(() => itemsOf(bin)).toThrow("Fresh (Serrated Dirk, Void Staff)")
 	})
 
 	test("skips groups without a cap", () => {
@@ -286,6 +301,53 @@ describe("normalizeItems group limits", () => {
 		delete bin["Items/ItemGroups/VoidPen"]
 		expect(() => itemsOf(bin)).toThrow(
 			"Item 3135: item group Items/ItemGroups/VoidPen is missing",
+		)
+	})
+})
+
+describe("normalizeItems effects", () => {
+	type Bin = Record<string, Record<string, unknown>>
+	const wounds =
+		"<mainText><stats><attention>10</attention> Attack Damage</stats><br><br><passive>Rend</passive>: Damage applies <keyword>40% Wounds</keyword>.</mainText>"
+	const grievousValues = [
+		{ mName: "GrievousAmount", mValue: 0.4, __type: "ItemDataValue" },
+	]
+
+	function withWounds({ keyword, data }: { keyword: boolean; data: boolean }) {
+		const items = structuredClone(dataDragonItems) as DataDragonItems
+		const bin = structuredClone(communityDragonBin) as Bin
+		if (keyword) items.data["1036"].description = wounds
+		if (data) bin["Items/1036"].mDataValues = grievousValues
+		return () => itemsOf(bin, items).find((item) => item.id === "1036")
+	}
+
+	test("an item has an active when CommunityDragon marks it clickable", () => {
+		const bin = structuredClone(communityDragonBin) as Bin
+		bin["Items/3134"].clickable = true
+		expect(itemOf("3134", bin).active).toBe(true)
+		expect(itemOf("3134").active).toBe(false)
+	})
+
+	test("drops the Data Dragon Active tag, which misses many actives", () => {
+		const items = structuredClone(dataDragonItems) as DataDragonItems
+		items.data["1036"].tags = ["Damage", "Active"]
+		const longSword = itemsOf(communityDragonBin, items).find(
+			(item) => item.id === "1036",
+		)
+		expect(longSword?.tags).toEqual(["Damage"])
+	})
+
+	test("an item applies anti-heal when its description has the Wounds keyword", () => {
+		expect(withWounds({ keyword: true, data: true })()?.antiHeal).toBe(true)
+		expect(itemOf("1036").antiHeal).toBe(false)
+	})
+
+	test("fails the sync when the Wounds keyword and the Grievous data values disagree", () => {
+		expect(withWounds({ keyword: true, data: false })).toThrow(
+			"1036 Long Sword: Wounds keyword without Grievous data values",
+		)
+		expect(withWounds({ keyword: false, data: true })).toThrow(
+			"1036 Long Sword: Grievous data values without a Wounds keyword",
 		)
 	})
 })
