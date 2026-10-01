@@ -1,5 +1,6 @@
 import type { Champion } from "@schemas/champion"
 import { useState } from "react"
+import { FormToggle } from "@/features/build-calculator/components/form-toggle"
 import { ItemDetailsCard } from "@/features/build-calculator/components/item-details-card"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
@@ -47,9 +48,17 @@ export function MobileBuildPage({
 		<MobileLayout
 			top={
 				<>
-					<MobileChampionRow champion={champion}>
+					<MobileChampionRow champion={champion} formName={build.form?.name}>
 						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
 					</MobileChampionRow>
+					{champion.forms && build.form && (
+						<FormToggle
+							forms={champion.forms}
+							form={build.form.id}
+							onFormChange={build.setForm}
+							announcement={build.formAnnouncement}
+						/>
+					)}
 					{patchNotice}
 					<ItemSlots
 						items={build.items}
@@ -67,6 +76,7 @@ export function MobileBuildPage({
 						stats={build.stats}
 						resource={champion.resource}
 						preview={build.preview}
+						formComparison={build.formComparison}
 					/>
 				)
 			}

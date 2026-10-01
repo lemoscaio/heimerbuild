@@ -7,6 +7,7 @@ import type {
 	BuildView,
 } from "@/features/build-calculator/lib/build-search"
 import { track } from "@/lib/analytics/analytics"
+import { useFormSwitch } from "./use-form-switch"
 
 type UseBuildPageOptions = Parameters<typeof useBuild>[0]
 
@@ -14,7 +15,7 @@ export type BuildPage = ReturnType<typeof useBuildPage>
 
 /**
  * The build page: `useBuild` plus the page's own state, the view and the open tab (kept in the
- * URL) and the shop item picked for a closer look. `addItem` also closes that item's details.
+ * URL), the shop item picked for a closer look and the form switch. `addItem` also closes that item's details.
  */
 export function useBuildPage({
 	patch,
@@ -33,6 +34,7 @@ export function useBuildPage({
 				navigation,
 			),
 	})
+	const formSwitch = useFormSwitch(build)
 	const { data: itemsById } = useItems(patch)
 	const [selectedItemId, setSelectedItemId] = useState<string>()
 
@@ -75,6 +77,11 @@ export function useBuildPage({
 	return {
 		...build,
 		addItem,
+		/** Switches the form and announces how many stats changed. */
+		setForm: formSwitch.setForm,
+		/** The selected form's stats against the other form's: the delta chips. */
+		formComparison: formSwitch.comparison,
+		formAnnouncement: formSwitch.announcement,
 		/** The overview workbench or the expanded shop, kept in the URL. */
 		view,
 		setView,

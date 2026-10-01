@@ -53,6 +53,7 @@ export function ExpandedShopPage({
 				build.stats && (
 					<BuildBar
 						champion={champion}
+						formName={build.form?.name}
 						level={build.level}
 						onLevelChange={build.setLevel}
 						items={build.items}
