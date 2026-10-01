@@ -4,11 +4,21 @@ import armorIcon from "@/assets/stats-icons/armor-icon.png"
 import armorPenIcon from "@/assets/stats-icons/armor-penetration-icon.png"
 import adIcon from "@/assets/stats-icons/attack-damage-icon.png"
 import attackSpeedIcon from "@/assets/stats-icons/attack-speed-icon.png"
+import bloodWellIcon from "@/assets/stats-icons/blood-well-icon.svg"
 import abilityHasteIcon from "@/assets/stats-icons/cooldown-reduction-icon.png"
+import courageIcon from "@/assets/stats-icons/courage-icon.svg"
+import crimsonRushIcon from "@/assets/stats-icons/crimson-rush-icon.svg"
 import critIcon from "@/assets/stats-icons/critical-strike-chance-icon.png"
 import critDamageIcon from "@/assets/stats-icons/critical-strike-damage-icon.png"
+import energyIcon from "@/assets/stats-icons/energy-icon.svg"
+import ferocityIcon from "@/assets/stats-icons/ferocity-icon.svg"
+import flowIcon from "@/assets/stats-icons/flow-icon.svg"
+import frenzyIcon from "@/assets/stats-icons/frenzy-icon.svg"
+import furyIcon from "@/assets/stats-icons/fury-icon.svg"
+import gritIcon from "@/assets/stats-icons/grit-icon.svg"
 import healAndShieldPowerIcon from "@/assets/stats-icons/heal-and-shield-power-icon.png"
 import healthIcon from "@/assets/stats-icons/heal-power.png"
+import heatIcon from "@/assets/stats-icons/heat-icon.svg"
 import lifeStealIcon from "@/assets/stats-icons/life-steal-icon.png"
 import magicPenIcon from "@/assets/stats-icons/magic-penetration-icon.png"
 import mrIcon from "@/assets/stats-icons/magic-resistance-icon.png"
@@ -16,7 +26,10 @@ import manaIcon from "@/assets/stats-icons/mana-icon.png"
 import manaRegenIcon from "@/assets/stats-icons/mana-regeneration-icon.png"
 import moveSpeedIcon from "@/assets/stats-icons/movement-speed-icon.png"
 import omnivampIcon from "@/assets/stats-icons/omnivamp-icon.png"
+import rageIcon from "@/assets/stats-icons/rage-icon.svg"
 import rangeIcon from "@/assets/stats-icons/range-icon.png"
+import unknownResourceIcon from "@/assets/stats-icons/resource-icon.svg"
+import shieldIcon from "@/assets/stats-icons/shield-icon.svg"
 import slowResistIcon from "@/assets/stats-icons/slow-immune-icon.png"
 import tenacityIcon from "@/assets/stats-icons/tenacity-icon.png"
 import type { StatName } from "./stats/compute-stats"
@@ -163,6 +176,39 @@ export const statDisplay: Readonly<Record<StatKey | StatName, StatDisplay>> = {
 		icon: abilityHasteIcon,
 		group: "utility",
 	},
+}
+
+type ResourceDisplay = { label: string; icon: string }
+
+/** Every champion `resource` in patch 16.19.1 data. Its icon marks the regen row too, as Mana's does. */
+const resourceDisplays: Readonly<Record<string, ResourceDisplay>> = {
+	BLOOD_WELL: { label: "Blood Well", icon: bloodWellIcon },
+	COURAGE: { label: "Courage", icon: courageIcon },
+	CRIMSON_RUSH: { label: "Crimson Rush", icon: crimsonRushIcon },
+	ENERGY: { label: "Energy", icon: energyIcon },
+	FEROCITY: { label: "Ferocity", icon: ferocityIcon },
+	FLOW: { label: "Flow", icon: flowIcon },
+	FRENZY: { label: "Frenzy", icon: frenzyIcon },
+	FURY: { label: "Fury", icon: furyIcon },
+	GRIT: { label: "Grit", icon: gritIcon },
+	HEAT: { label: "Heat", icon: heatIcon },
+	MANA: { label: "Mana", icon: manaIcon },
+	RAGE: { label: "Rage", icon: rageIcon },
+	SHIELD: { label: "Shield", icon: shieldIcon },
+}
+
+/** How a champion `resource` is shown; one from a later patch reads as words ("SOUL_FLAME": "Soul Flame") with a neutral icon. */
+export function resourceDisplay(resource: string): ResourceDisplay {
+	return (
+		resourceDisplays[resource] ?? {
+			label: resource
+				.toLowerCase()
+				.split("_")
+				.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+				.join(" "),
+			icon: unknownResourceIcon,
+		}
+	)
 }
 
 export type StatFormat = "flat" | "percent" | "attackSpeed"
