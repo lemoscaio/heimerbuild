@@ -12,6 +12,8 @@ export default defineConfig({
 	forbidOnly: isCI,
 	retries: isCI ? 1 : 0,
 	reporter: isCI ? [["github"], ["html", { open: "never" }]] : "list",
+	// A full local run on a busy machine can take over 5 s to show a page after `goto` (issue 220).
+	expect: { timeout: 15_000 },
 	use: {
 		baseURL,
 		trace: "retain-on-failure",
