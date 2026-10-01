@@ -10,13 +10,12 @@ import { attackTypeLabels, roleLabels } from "../lib/champion-labels"
 import { ChampionHeaderLayout } from "./champion-header-layout"
 
 type ChampionHeaderProps = {
-	champion: Pick<
-		Champion,
-		"name" | "title" | "icon" | "roles" | "attackType" | "lore"
-	>
+	champion: Pick<Champion, "name" | "title" | "icon" | "roles" | "lore">
+	/** Melee or ranged at the selected level (Kayle turns ranged at 6). */
+	attackType: Champion["attackType"]
 }
 
-export function ChampionHeader({ champion }: ChampionHeaderProps) {
+export function ChampionHeader({ champion, attackType }: ChampionHeaderProps) {
 	return (
 		<>
 			<ChampionHeaderLayout>
@@ -35,7 +34,7 @@ export function ChampionHeader({ champion }: ChampionHeaderProps) {
 							{champion.roles.map((role) => roleLabels[role]).join(", ")}
 						</span>
 						<span aria-hidden="true"> · </span>
-						<span>{attackTypeLabels[champion.attackType]}</span>
+						<span>{attackTypeLabels[attackType]}</span>
 					</p>
 				</div>
 			</ChampionHeaderLayout>
