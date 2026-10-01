@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router"
 // A separate file: inlined, it would add 4.7 kB to the bundle that every page loads.
 import heimerLogo from "@/assets/images/heimerdinger-logo.webp?no-inline"
+import { PRODUCT_NAME } from "@/lib/product-name"
 
 export function Header() {
 	return (
@@ -15,7 +16,7 @@ export function Header() {
 				<img
 					className="size-full transition-transform duration-100 hover:-rotate-3"
 					src={heimerLogo}
-					alt="Heimerbuild home"
+					alt={`${PRODUCT_NAME} home`}
 				/>
 			</Link>
 			{/* Third flex slot keeps the logo centred between the edges. */}
