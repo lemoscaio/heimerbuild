@@ -34,7 +34,7 @@ export function MobileBuildPage({
 	copyLink,
 	patchNotice,
 }: MobileBuildPageProps) {
-	useAnalyticsContext({ shop_mode: "mobile" })
+	useAnalyticsContext("shop_mode", "mobile")
 	const preloadRuneImages = useRuneImagePreload(patch)
 	// Only Runes lives in the URL (the overview's tab); Stats and Shop both mean Items there.
 	const [itemsTab, setItemsTab] = useState<Exclude<MobileTab, "runes">>("stats")

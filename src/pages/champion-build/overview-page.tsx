@@ -36,7 +36,7 @@ export function OverviewPage({
 }: OverviewPageProps) {
 	const isRunesTab = build.tab === "runes"
 	const preloadRuneImages = useRuneImagePreload(patch)
-	useAnalyticsContext({ shop_mode: "overview" })
+	useAnalyticsContext("shop_mode", "overview")
 
 	return (
 		<WorkbenchLayout

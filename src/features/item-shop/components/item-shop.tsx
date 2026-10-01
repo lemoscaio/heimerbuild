@@ -96,8 +96,8 @@ export function ItemShop({
 	)
 	useReturnFocusToItem(pickProps.selectedItemId, listRef)
 	const { role, stats, match } = filters
-	useAnalyticsContext({ shop_grouping: grouping }, { keepAfterUnmount: true })
-	useAnalyticsContext({ shop_stat_match: match })
+	useAnalyticsContext("shop_grouping", grouping, { keepAfterUnmount: true })
+	useAnalyticsContext("shop_stat_match", match)
 	const allItems = itemsQuery.data ? Object.values(itemsQuery.data) : []
 	const catalog = shopCatalog(allItems)
 	const trackSearch = useDebouncedCallback((search: ShopSearchChange) => {

@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
 import {
@@ -9,6 +9,7 @@ import {
 	CHAMPION_OVERRIDES,
 	type ChampionOverride,
 } from "./overrides/champion-overrides"
+import { readJson } from "./read-json"
 import {
 	type Champion,
 	type ChampionSummary,
@@ -202,10 +203,6 @@ export type ChampionOutputSummary = {
 }
 
 export type WriteChampionsOptions = { overrides?: readonly ChampionOverride[] }
-
-async function readJson(path: string): Promise<unknown> {
-	return JSON.parse(await readFile(path, "utf8"))
-}
 
 /**
  * Normalizes every cached champion, applies the overrides, then writes `champions.json` and

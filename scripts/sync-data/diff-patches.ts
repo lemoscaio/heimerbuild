@@ -1,7 +1,7 @@
-import { readFile } from "node:fs/promises"
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import * as z from "zod/mini"
+import { readJson } from "./read-json"
 import { type Champion, championSchema } from "./schemas/champion"
 import { type Item, ItemsFileSchema } from "./schemas/item"
 import { assertValidVersion } from "./version"
@@ -149,10 +149,6 @@ export function diffPatches(
 			items,
 		),
 	].join("\n")
-}
-
-async function readJson(path: string): Promise<unknown> {
-	return JSON.parse(await readFile(path, "utf8"))
 }
 
 export async function readPatch(

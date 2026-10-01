@@ -3,6 +3,7 @@ import {
 	POSTHOG_ASSET_HOST,
 	POSTHOG_PROXY_PATH,
 } from "../src/app/posthog-config"
+import { plainResponse } from "./plain-response"
 
 const ASSET_PREFIXES = ["/static/", "/array/"]
 const API_METHODS = ["GET", "HEAD", "POST"]
@@ -16,13 +17,6 @@ type ProxyPostHogOptions = {
 
 export function isPostHogProxyPath(pathname: string): boolean {
 	return pathname.startsWith(`${POSTHOG_PROXY_PATH}/`)
-}
-
-function plainResponse(status: number, body: string, headers?: HeadersInit) {
-	return new Response(body, {
-		status,
-		headers: { "Content-Type": "text/plain; charset=utf-8", ...headers },
-	})
 }
 
 /**

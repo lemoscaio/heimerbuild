@@ -1,7 +1,8 @@
-import { readFile, writeFile } from "node:fs/promises"
+import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import * as z from "zod/mini"
 import { itemMarkupToText } from "./item-text"
+import { readJson } from "./read-json"
 import { runeMarkupToRichText } from "./rune-text"
 import {
 	type Rune,
@@ -262,10 +263,6 @@ export type RunesOutputSummary = {
 	runes: number
 	shards: number
 	bytes: number
-}
-
-async function readJson(path: string): Promise<unknown> {
-	return JSON.parse(await readFile(path, "utf8"))
 }
 
 /** Normalizes the cached rune data and writes `runes.json` into `outDir`. */
