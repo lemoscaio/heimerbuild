@@ -84,27 +84,29 @@ export function useBuild({
 	// Edits keep the link's own patch: changing it would reload the route mid-edit.
 	// Each edit also lists the build in the home page's recent builds (this browser only).
 	function saveBuild(
-		next: { level: number; itemIds: readonly string[] },
+		next: {
+			level: number
+			itemIds: readonly string[]
+			runes: string | undefined
+		},
 		navigation: { replace: boolean },
 	) {
-		onSearchChange(
-			toBuildSearch({ ...next, patch: search.patch, runes }),
-			navigation,
-		)
+		onSearchChange(toBuildSearch({ ...next, patch: search.patch }), navigation)
 		recordRecentBuild({
 			championKey,
 			level: next.level,
 			itemIds: [...next.itemIds],
 			patch: search.patch,
+			runes: next.runes,
 		})
 	}
 
 	function setLevel(nextLevel: number) {
-		saveBuild({ level: nextLevel, itemIds }, { replace: true })
+		saveBuild({ level: nextLevel, itemIds, runes }, { replace: true })
 	}
 
 	function setItemIds(nextItemIds: readonly string[]) {
-		saveBuild({ level, itemIds: nextItemIds }, { replace: false })
+		saveBuild({ level, itemIds: nextItemIds, runes }, { replace: false })
 	}
 
 	/** Returns whether the item went in: a full build keeps it out and shows `notice`. */
@@ -126,13 +128,8 @@ export function useBuild({
 
 	// Each pick replaces the history entry, like the level: Back leaves the page, not one rune.
 	function setRunes(nextSelection: RuneSelection) {
-		onSearchChange(
-			toBuildSearch({
-				level,
-				itemIds,
-				patch: search.patch,
-				runes: serializeRuneSelection(nextSelection),
-			}),
+		saveBuild(
+			{ level, itemIds, runes: serializeRuneSelection(nextSelection) },
 			{ replace: true },
 		)
 	}
