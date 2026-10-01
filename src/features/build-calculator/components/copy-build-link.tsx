@@ -1,12 +1,7 @@
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/cn"
-import { copyToClipboard } from "../services/copy-to-clipboard"
-
-const FEEDBACK_MS = 2500
-
-type CopyStatus = "idle" | "copied" | "failed"
+import { useCopyLink } from "../hooks/use-copy-link"
 
 type CopyBuildLinkProps = {
 	/** Path and search of the build, resolved against the current origin on click. */
@@ -23,18 +18,10 @@ export function CopyBuildLink({
 	layout = "stacked",
 }: CopyBuildLinkProps) {
 	const isInline = layout === "inline"
-	const [status, setStatus] = useState<CopyStatus>("idle")
-	const [copiedUrl, setCopiedUrl] = useState("")
+	const copy = useCopyLink({ onCopied })
 
-	async function handleClick() {
-		const url = new URL(href, window.location.origin).href
-		setCopiedUrl(url)
-		const copied = await copyToClipboard(url)
-		setStatus(copied ? "copied" : "failed")
-		if (copied) {
-			onCopied?.()
-			setTimeout(() => setStatus("idle"), FEEDBACK_MS)
-		}
+	function handleCopy() {
+		copy.mutate(new URL(href, window.location.origin).href)
 	}
 
 	return (
@@ -47,25 +34,25 @@ export function CopyBuildLink({
 				type="button"
 				size="lg"
 				className={cn("w-full max-lg:h-11", { "w-auto px-4": isInline })}
-				onClick={handleClick}
+				onClick={handleCopy}
 			>
 				Copy link
 			</Button>
 			<span
 				role="status"
 				className={cn("text-center text-success text-xs empty:hidden", {
-					"text-white": status === "failed",
+					"text-white": copy.isError,
 				})}
 			>
-				{status === "copied" && "Link copied"}
-				{status === "failed" && "Could not copy. Select the link."}
+				{copy.isSuccess && "Link copied"}
+				{copy.isError && "Could not copy. Select the link."}
 			</span>
-			{status === "failed" && (
+			{copy.isError && (
 				<Input
 					className="h-7 w-full min-w-56 border-none text-xs md:text-xs"
 					aria-label="Build link"
 					readOnly
-					value={copiedUrl}
+					value={copy.variables}
 					onFocus={(event) => event.currentTarget.select()}
 				/>
 			)}

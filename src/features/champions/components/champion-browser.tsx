@@ -1,3 +1,4 @@
+import type { QueryStatus, UseQueryResult } from "@tanstack/react-query"
 import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { useChampions } from "@/data/hooks/use-champions"
@@ -9,7 +10,7 @@ import { ChampionList } from "./champion-list"
 import { ChampionListReveal } from "./champion-list.motion"
 import { ChampionListToggle } from "./champion-list-toggle"
 import { ChampionRoleFilter } from "./champion-role-filter"
-import { SearchContainer } from "./search-container"
+import { ChampionSearch } from "./champion-search"
 
 type ChampionBrowserProps = {
 	filters: ChampionFilters
@@ -28,9 +29,9 @@ export function ChampionBrowser({
 	const patch = useCurrentPatch()
 	const championsQuery = useChampions(patch.data)
 	const champions = championsQuery.data
-	const failedChampionsLoad = patch.isError || championsQuery.isError
+	const listStatus = combinedStatus([patch, championsQuery])
 
-	function loadChampions() {
+	function retryLoad() {
 		return patch.isError ? patch.refetch() : championsQuery.refetch()
 	}
 
@@ -53,7 +54,7 @@ export function ChampionBrowser({
 
 	return (
 		<div className="flex w-full flex-col items-center gap-7">
-			<SearchContainer search={search} setSearch={handleSearchChange} />
+			<ChampionSearch search={search} onSearchChange={handleSearchChange} />
 			<PoliteStatus message={isFiltered ? resultStatus() : ""} />
 			{recentBuilds}
 			<ChampionListToggle
@@ -79,11 +80,19 @@ export function ChampionBrowser({
 				<ChampionList
 					champions={champions}
 					filteredChampions={filteredChampions}
-					isLoadingChampions={championsQuery.isPending && !failedChampionsLoad}
-					failedChampionsLoad={failedChampionsLoad}
-					loadChampions={loadChampions}
+					status={listStatus}
+					onRetry={retryLoad}
 				/>
 			</ChampionListReveal>
 		</div>
 	)
+}
+
+// The champions wait for the patch: a failure in either one is the list's error.
+function combinedStatus(
+	queries: Pick<UseQueryResult, "status">[],
+): QueryStatus {
+	if (queries.some(({ status }) => status === "error")) return "error"
+	if (queries.some(({ status }) => status === "pending")) return "pending"
+	return "success"
 }
