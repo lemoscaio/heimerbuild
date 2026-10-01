@@ -25,7 +25,12 @@ export function useShopState() {
 	return context
 }
 
-const NO_FILTERS: ShopFilters = { role: "ALL", stats: [], match: "all" }
+const NO_FILTERS: ShopFilters = {
+	role: "ALL",
+	stats: [],
+	match: "all",
+	conditions: [],
+}
 
 /**
  * The shop's search, filters and sort, above the page's screens: switching between the
