@@ -1,4 +1,5 @@
 import {
+	resourceDisplay,
 	type StatFormat,
 	type StatGroup,
 	statDisplay,
@@ -17,6 +18,10 @@ export type StatRowInfo = {
 	format?: StatFormat
 	/** Unit shown after the total, such as "/5s" for regen. */
 	suffix?: string
+	/** A resource whose size the data leaves at 0 (Grit, Frenzy): shown as "—", not 0. */
+	noFixedValue?: boolean
+	/** How the resource works, shown with the "—". */
+	description?: string
 }
 
 type PanelRow = Pick<StatRowInfo, "stat" | "format" | "suffix">
@@ -51,51 +56,30 @@ export const statRows: readonly StatRowInfo[] = panelRows.map((row) => {
 	return { ...row, label, icon, group }
 })
 
-/** Every champion `resource` value in patch 16.19.1 data. */
-const RESOURCE_LABELS: Readonly<Record<string, string>> = {
-	BLOOD_WELL: "Blood Well",
-	COURAGE: "Courage",
-	CRIMSON_RUSH: "Crimson Rush",
-	ENERGY: "Energy",
-	FEROCITY: "Ferocity",
-	FLOW: "Flow",
-	FRENZY: "Frenzy",
-	FURY: "Fury",
-	GRIT: "Grit",
-	HEAT: "Heat",
-	MANA: "Mana",
-	RAGE: "Rage",
-	SHIELD: "Shield",
-}
-
 const NO_RESOURCE = "NONE"
 
-/** "BLOOD_WELL" reads "Blood Well"; values missing from the table are title-cased. */
-export function resourceLabel(resource: string) {
-	return (
-		RESOURCE_LABELS[resource] ??
-		resource
-			.toLowerCase()
-			.split("_")
-			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-			.join(" ")
-	)
-}
-
 /**
- * The panel rows for one champion. The mana rows show its own resource: renamed
- * for another resource, dropped when it has none or the value is 0.
+ * The panel rows for one champion. The mana rows show its own resource, renamed
+ * and with its icon, and are dropped when it has none. A resource left at 0 keeps
+ * its row without a number; a regen row at 0 is dropped.
  */
 export function championStatRows(
 	resource: string,
 	stats: ComputedStats,
 ): StatRowInfo[] {
 	if (resource === MANA_RESOURCE) return [...statRows]
-	const label = resourceLabel(resource)
+	if (resource === NO_RESOURCE) {
+		return statRows.filter(
+			({ stat }) => stat !== "mana" && stat !== "manaRegen",
+		)
+	}
+	const { label, icon, description } = resourceDisplay(resource)
 	return statRows.flatMap((info) => {
 		if (info.stat !== "mana" && info.stat !== "manaRegen") return [info]
-		if (resource === NO_RESOURCE || stats[info.stat].total === 0) return []
-		return [{ ...info, label: info.stat === "mana" ? label : `${label} Regen` }]
+		const isRegen = info.stat === "manaRegen"
+		const row = { ...info, icon, label: isRegen ? `${label} Regen` : label }
+		if (stats[info.stat].total !== 0) return [row]
+		return isRegen ? [] : [{ ...row, noFixedValue: true, description }]
 	})
 }
 

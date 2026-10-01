@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import type { ChampionStats } from "@schemas/champion"
-import { formatStat } from "@/lib/stat-display"
+import { formatStat, resourceDisplay, statDisplay } from "@/lib/stat-display"
 import { computeStats } from "@/lib/stats/compute-stats"
-import { championStatRows, keyStatRows, resourceLabel } from "./stats-info"
+import { championStatRows, keyStatRows } from "./stats-info"
 
 describe("formatStat", () => {
 	test.each([
@@ -28,23 +28,6 @@ describe("formatStat", () => {
 		},
 	] as const)("$case", ({ value, format, shown }) => {
 		expect(formatStat(value, format)).toBe(shown)
-	})
-})
-
-describe("resourceLabel", () => {
-	test.each([
-		["MANA", "Mana"],
-		["ENERGY", "Energy"],
-		["FURY", "Fury"],
-		["FRENZY", "Frenzy"],
-		["BLOOD_WELL", "Blood Well"],
-		["CRIMSON_RUSH", "Crimson Rush"],
-	])("%s is %s", (resource, label) => {
-		expect(resourceLabel(resource)).toBe(label)
-	})
-
-	test("a resource from a later patch still reads as words", () => {
-		expect(resourceLabel("SOUL_FLAME")).toBe("Soul Flame")
 	})
 })
 
@@ -93,14 +76,51 @@ describe("championStatRows", () => {
 		])
 	})
 
+	test("both resource rows show the resource's icon", () => {
+		const icons = championStatRows(
+			"ENERGY",
+			statsOf("ENERGY", { mana: 200, manaRegen: 50 }),
+		)
+			.filter(({ stat }) => stat === "mana" || stat === "manaRegen")
+			.map(({ icon }) => icon)
+
+		expect(icons).toEqual([
+			resourceDisplay("ENERGY").icon,
+			resourceDisplay("ENERGY").icon,
+		])
+		expect(icons).not.toContain(statDisplay.mana.icon)
+	})
+
 	test("a resource without regen drops only the regen row", () => {
 		expect(resourceRows("FURY", { mana: 100, manaRegen: 0 })).toEqual([
 			["mana", "Fury"],
 		])
 	})
 
-	test("a resource with no value drops both rows", () => {
-		expect(resourceRows("GRIT", { mana: 0, manaRegen: 0 })).toEqual([])
+	test("a resource with no value keeps its row, without a number, and drops regen", () => {
+		const rows = championStatRows(
+			"GRIT",
+			statsOf("GRIT", { mana: 0, manaRegen: 0 }),
+		).filter(({ stat }) => stat === "mana" || stat === "manaRegen")
+
+		expect(rows).toEqual([
+			expect.objectContaining({
+				stat: "mana",
+				label: "Grit",
+				icon: resourceDisplay("GRIT").icon,
+				noFixedValue: true,
+				description: resourceDisplay("GRIT").description,
+			}),
+		])
+	})
+
+	test("a resource with a value is not marked as having no fixed value", () => {
+		const rows = championStatRows(
+			"ENERGY",
+			statsOf("ENERGY", { mana: 200, manaRegen: 50 }),
+		)
+
+		expect(rows.some(({ noFixedValue }) => noFixedValue)).toBe(false)
 	})
 
 	// Viego's data ships a 10000 mana placeholder with resource NONE.
@@ -150,10 +170,10 @@ describe("keyStatRows", () => {
 		])
 	})
 
-	test("a resource with no value also ends with Ability Haste", () => {
+	test("a resource with no value still ends with its resource", () => {
 		expect(keyStats("FRENZY", { mana: 0, manaRegen: 0 })).toEqual([
 			...fixedStats,
-			"abilityHaste",
+			"mana",
 		])
 	})
 })

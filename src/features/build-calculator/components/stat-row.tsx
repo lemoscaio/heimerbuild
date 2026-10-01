@@ -2,6 +2,7 @@ import { cn } from "@/lib/cn"
 import { formatStat } from "@/lib/stat-display"
 import type { StatBreakdown } from "@/lib/stats/compute-stats"
 import type { StatRowInfo } from "../lib/stats-info"
+import { NoFixedValue } from "./no-fixed-value"
 
 type StatRowProps = {
 	info: StatRowInfo
@@ -17,8 +18,7 @@ export function StatRow({
 	className,
 	...props
 }: StatRowProps) {
-	const { label, icon, format, suffix } = info
-	const { bonus, total } = breakdown
+	const { label, icon, noFixedValue, description } = info
 
 	return (
 		<li
@@ -32,30 +32,48 @@ export function StatRow({
 			<img src={icon} alt="" className="size-4 shrink-0" />
 			<span className="min-w-0 flex-1 text-prose">{label}</span>
 			<span className="shrink-0 font-medium tabular-nums">
-				{formatStat(total, format)}
-				{suffix}
-				{next === undefined ? (
-					bonus !== 0 && (
-						<span className="ml-1.5 text-success">
-							{bonus > 0 && "+"}
-							{formatStat(bonus, format)}
-						</span>
-					)
+				{noFixedValue ? (
+					<NoFixedValue label={label} description={description} />
 				) : (
-					<>
-						<span aria-hidden="true"> → </span>
-						<span className="sr-only"> becomes </span>
-						<span
-							className={cn("font-bold text-success", {
-								"text-error": next < total,
-							})}
-						>
-							{formatStat(next, format)}
-							{suffix}
-						</span>
-					</>
+					<StatTotal info={info} breakdown={breakdown} next={next} />
 				)}
 			</span>
 		</li>
+	)
+}
+
+type StatTotalProps = Pick<StatRowProps, "info" | "breakdown" | "next">
+
+/** The total, then its bonus or, with a candidate change, `current → next`. */
+function StatTotal({ info, breakdown, next }: StatTotalProps) {
+	const { format, suffix } = info
+	const { bonus, total } = breakdown
+
+	return (
+		<>
+			{formatStat(total, format)}
+			{suffix}
+			{next === undefined ? (
+				bonus !== 0 && (
+					<span className="ml-1.5 text-success">
+						{bonus > 0 && "+"}
+						{formatStat(bonus, format)}
+					</span>
+				)
+			) : (
+				<>
+					<span aria-hidden="true"> → </span>
+					<span className="sr-only"> becomes </span>
+					<span
+						className={cn("font-bold text-success", {
+							"text-error": next < total,
+						})}
+					>
+						{formatStat(next, format)}
+						{suffix}
+					</span>
+				</>
+			)}
+		</>
 	)
 }
