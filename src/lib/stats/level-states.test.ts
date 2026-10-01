@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { LevelState } from "@schemas/champion"
-import { levelStateAt } from "./level-states"
+import { attackTypeAtLevel, levelStateAt } from "./level-states"
 
 const kayleLike: LevelState[] = [
 	{
@@ -30,5 +30,19 @@ describe("levelStateAt", () => {
 			attackType: "ranged",
 			attackRange: { base: 625, perLevel: 0 },
 		})
+	})
+})
+
+describe("attackTypeAtLevel", () => {
+	const kayle = { attackType: "melee" as const, levelStates: kayleLike }
+
+	test("follows the level states", () => {
+		expect(attackTypeAtLevel(kayle, 5)).toBe("melee")
+		expect(attackTypeAtLevel(kayle, 6)).toBe("ranged")
+		expect(attackTypeAtLevel(kayle, 18)).toBe("ranged")
+	})
+
+	test("is the champion's own without level states", () => {
+		expect(attackTypeAtLevel({ attackType: "ranged" }, 1)).toBe("ranged")
 	})
 })
