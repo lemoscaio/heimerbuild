@@ -87,10 +87,16 @@ export const ItemSchema = z.strictObject({
 			z.strictObject({
 				group: z.string().check(z.minLength(1)),
 				max: z.int().check(z.positive()),
+				/** Readable name of a group of several items ("Lifeline"); the shop filters by it. */
+				label: z.optional(z.string().check(z.minLength(1))),
 			}),
 		),
 		[],
 	),
+	/** The item has an active (CommunityDragon `clickable`). */
+	active: z._default(z.boolean(), false),
+	/** The item applies Grievous Wounds. */
+	antiHeal: z._default(z.boolean(), false),
 	stats: ItemStatsSchema,
 })
 
