@@ -210,3 +210,48 @@ test("the search and the icons drive the same filters: typed tokens light the ic
 		rail.getByRole("button", { name: "Ability Power", pressed: false }),
 	).toBeVisible()
 })
+
+test("condition tokens narrow the shop: has:active typed, from: picked from the suggestions", async ({
+	page,
+	request,
+}) => {
+	const items = await currentItems(request)
+	const withActive = items.filter((item) => item.active)
+	const byId = new Map(items.map((item) => [item.id, item]))
+	function buildsFrom(item: (typeof items)[number], id: string): boolean {
+		return item.from.some(
+			(component) =>
+				component === id ||
+				buildsFrom(byId.get(component) ?? { ...item, from: [] }, id),
+		)
+	}
+	const sheen = items.find((item) => item.name === "Sheen")
+	const withSheen = items.filter((item) => sheen && buildsFrom(item, sheen.id))
+	await page.goto("/champions/Heimerdinger")
+	const shop = shopItems(page)
+	await expect(shop).toHaveCount(items.length)
+
+	const search = page.getByRole("combobox", { name: "Search items" })
+	await page.keyboard.press("/")
+	await page.keyboard.type("has:active ")
+	await page.keyboard.press("Escape")
+	await expect(shop).toHaveCount(withActive.length)
+	expect((await itemNames(shop)).sort()).toEqual(
+		withActive.map((item) => item.name).sort(),
+	)
+	await page.getByRole("button", { name: "Remove Has an active" }).click()
+	await expect(shop).toHaveCount(items.length)
+
+	await search.focus()
+	await page.keyboard.type("fr")
+	await page.getByRole("option", { name: /Builds from an item/ }).click()
+	await expect(search).toHaveValue("from:")
+	await page.keyboard.type("shee")
+	await page.getByRole("option", { name: /Builds from Sheen/ }).click()
+	await page.keyboard.press("Escape")
+	await expect(search).toHaveValue("")
+	await expect(shop).toHaveCount(withSheen.length)
+	expect((await itemNames(shop)).sort()).toEqual(
+		withSheen.map((item) => item.name).sort(),
+	)
+})

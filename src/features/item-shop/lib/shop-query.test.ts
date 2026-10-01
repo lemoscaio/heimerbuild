@@ -1,9 +1,12 @@
 import { describe, expect, test } from "bun:test"
+import type { Item } from "@schemas/item"
+import { shopCatalog } from "./shop-catalog"
 import {
 	applyShopTokens,
 	commitShopQuery,
 	describeToken,
 	filtersFromTokens,
+	nameSearchText,
 	parseShopQuery,
 	type ShopFilters,
 	type ShopToken,
@@ -15,7 +18,12 @@ import {
 } from "./shop-query"
 import { shopStats } from "./shop-stats"
 
-const noFilters: ShopFilters = { role: "ALL", stats: [], match: "all" }
+const noFilters: ShopFilters = {
+	role: "ALL",
+	stats: [],
+	match: "all",
+	conditions: [],
+}
 
 describe("parseShopQuery", () => {
 	test("stat aliases become stat tokens, other words stay as free text", () => {
@@ -149,33 +157,43 @@ describe("commitShopQuery", () => {
 
 	test("an alias that continues the start of an item name stays free text", () => {
 		const itemNames = ["Health Potion", "Manamune", "Rabadon's Deathcap"]
-		expect(commitShopQuery("health ", { itemNames })).toEqual({
+		expect(
+			commitShopQuery("health ", { catalog: { itemNames, terms: [] } }),
+		).toEqual({
 			tokens: [],
 			text: "health ",
 		})
-		expect(commitShopQuery("health potion", { itemNames })).toEqual({
+		expect(
+			commitShopQuery("health potion", { catalog: { itemNames, terms: [] } }),
+		).toEqual({
 			tokens: [],
 			text: "health potion",
 		})
 		expect(
-			commitShopQuery("health potion", { itemNames, includeLastWord: true })
-				.tokens,
+			commitShopQuery("health potion", {
+				catalog: { itemNames, terms: [] },
+				includeLastWord: true,
+			}).tokens,
 		).toEqual([])
 	})
 
 	test("aliases that start no item name, or only part of a name's first word, become tokens", () => {
 		const itemNames = ["Health Potion", "Manamune", "Rabadon's Deathcap"]
-		expect(commitShopQuery("ap mr ", { itemNames })).toEqual({
+		expect(
+			commitShopQuery("ap mr ", { catalog: { itemNames, terms: [] } }),
+		).toEqual({
 			tokens: [
 				{ kind: "stat", stat: "abilityPower" },
 				{ kind: "stat", stat: "magicResist" },
 			],
 			text: "",
 		})
-		expect(commitShopQuery("mana ", { itemNames }).tokens).toEqual([
-			{ kind: "stat", stat: "mana" },
-		])
-		expect(commitShopQuery("health mr ", { itemNames })).toEqual({
+		expect(
+			commitShopQuery("mana ", { catalog: { itemNames, terms: [] } }).tokens,
+		).toEqual([{ kind: "stat", stat: "mana" }])
+		expect(
+			commitShopQuery("health mr ", { catalog: { itemNames, terms: [] } }),
+		).toEqual({
 			tokens: [{ kind: "stat", stat: "magicResist" }],
 			text: "health ",
 		})
@@ -199,6 +217,7 @@ describe("filters and tokens", () => {
 			role: "SUPPORT",
 			stats: ["mana", "abilityPower", "healAndShieldPowerPercent"],
 			match: "any",
+			conditions: [],
 		}
 		expect(filtersFromTokens(tokensFromFilters(filters), filters)).toEqual(
 			filters,
@@ -212,6 +231,7 @@ describe("filters and tokens", () => {
 			role: "TANK",
 			stats: ["abilityPower", "magicResist"],
 			match: "any",
+			conditions: [],
 		})
 	})
 
@@ -220,11 +240,13 @@ describe("filters and tokens", () => {
 			role: "MAGE",
 			stats: ["abilityPower"],
 			match: "all",
+			conditions: [],
 		}
 		expect(applyShopTokens(filters, parseShopQuery("ap tank").tokens)).toEqual({
 			role: "TANK",
 			stats: ["abilityPower"],
 			match: "all",
+			conditions: [],
 		})
 	})
 
@@ -233,6 +255,7 @@ describe("filters and tokens", () => {
 			role: "MAGE",
 			stats: ["abilityPower", "magicResist"],
 			match: "any",
+			conditions: [],
 		}
 		const tokens = tokensFromFilters(filters)
 		const [role, abilityPower] = tokens
@@ -241,7 +264,12 @@ describe("filters and tokens", () => {
 				tokens.filter((token) => token !== abilityPower),
 				filters,
 			),
-		).toEqual({ role: "MAGE", stats: ["magicResist"], match: "any" })
+		).toEqual({
+			role: "MAGE",
+			stats: ["magicResist"],
+			match: "any",
+			conditions: [],
+		})
 		expect(
 			filtersFromTokens(
 				tokens.filter((token) => token !== role),
@@ -277,6 +305,13 @@ describe("suggestShopTokens", () => {
 	})
 })
 
+describe("nameSearchText", () => {
+	test("drops the words being typed as tokens, which no item name has", () => {
+		expect(nameSearchText("long from:she ap>= gold<")).toBe("long")
+		expect(nameSearchText("zhonya's")).toBe("zhonya's")
+	})
+})
+
 describe("the word being typed", () => {
 	test("is the last word, or nothing right after a space", () => {
 		expect(typedWord("mr zho")).toBe("zho")
@@ -304,6 +339,7 @@ describe("searchTokensForAnalytics", () => {
 				role: "MAGE",
 				stats: ["abilityPower", "magicResist"],
 				match: "any",
+				conditions: [],
 			}),
 		).toEqual([
 			{ kind: "role", value: "MAGE" },
@@ -315,7 +351,208 @@ describe("searchTokensForAnalytics", () => {
 
 	test("leaves the match mode out while no stat is selected", () => {
 		expect(
-			searchTokensForAnalytics({ role: "TANK", stats: [], match: "all" }),
+			searchTokensForAnalytics({
+				role: "TANK",
+				stats: [],
+				match: "all",
+				conditions: [],
+			}),
 		).toEqual([{ kind: "role", value: "TANK" }])
 	})
 })
+
+describe("conditions", () => {
+	const catalog = shopCatalog([
+		shopItem("1036", "Long Sword", { into: ["3134"] }),
+		shopItem("1055", "Doran's Blade", { into: [] }),
+		shopItem("1054", "Doran's Shield", { into: [] }),
+		shopItem("3057", "Sheen", { into: ["3078"] }),
+		shopItem("3078", "Trinity Force", { from: ["3057"] }),
+		shopItem("3089", "Rabadon's Deathcap", { from: ["1058"] }),
+		shopItem("3053", "Sterak's Gage", {
+			groupLimits: [{ group: "LifelineItems", max: 1, label: "Lifeline" }],
+		}),
+		shopItem("1001", "Doran's Ring", {
+			from: ["1036"],
+			groupLimits: [{ group: "DoransItems", max: 1, label: "Starter" }],
+		}),
+		shopItem("1002", "Doran's Bow", { from: ["1036"] }),
+	])
+	const sheen = { id: "3057", name: "Sheen", icon: "3057.png" }
+	const rabadon = { id: "3089", name: "Rabadon's Deathcap", icon: "3089.png" }
+
+	test("has:active, active, antiheal and has:antiheal type the effect tokens", () => {
+		expect(
+			parseShopQuery("has:active active antiheal has:antiheal").tokens,
+		).toEqual([
+			{ kind: "has", effect: "active" },
+			{ kind: "has", effect: "active" },
+			{ kind: "has", effect: "antiHeal" },
+			{ kind: "has", effect: "antiHeal" },
+		])
+	})
+
+	test("a stat alias with >= and a number is a stat minimum, gold takes <= and >=", () => {
+		expect(
+			parseShopQuery("ap>=80 ms%>=5 GOLD<=1500 gold>=3000").tokens,
+		).toEqual([
+			{ kind: "statMin", stat: "abilityPower", min: 80 },
+			{ kind: "statMin", stat: "movementSpeedPercent", min: 5 },
+			{ kind: "gold", bound: "max", value: 1500 },
+			{ kind: "gold", bound: "min", value: 3000 },
+		])
+	})
+
+	test("other comparisons stay free text", () => {
+		expect(parseShopQuery("ap<=80 zhonya>=1 ap>= gold<=x").tokens).toEqual([])
+	})
+
+	test("item terms come from the catalog: an exact slug, or the only item it starts", () => {
+		expect(parseShopQuery("from:sheen", { catalog }).tokens).toEqual([
+			{ kind: "from", item: sheen },
+		])
+		expect(parseShopQuery("into:rabadon", { catalog }).tokens).toEqual([
+			{ kind: "into", item: rabadon },
+		])
+		expect(parseShopQuery("group:lifeline", { catalog }).tokens).toEqual([
+			{ kind: "group", group: "LifelineItems", label: "Lifeline" },
+		])
+	})
+
+	test("an ambiguous or unknown item term stays free text", () => {
+		expect(parseShopQuery("from:doran into:sheen from:", { catalog })).toEqual({
+			tokens: [],
+			freeText: "from:doran into:sheen from:",
+		})
+	})
+
+	test("every condition's term parses back to it", () => {
+		const tokens: ShopToken[] = [
+			{ kind: "has", effect: "active" },
+			{ kind: "has", effect: "antiHeal" },
+			{ kind: "group", group: "LifelineItems", label: "Lifeline" },
+			{ kind: "from", item: sheen },
+			{ kind: "into", item: rabadon },
+			{ kind: "statMin", stat: "attackSpeedPercent", min: 30 },
+			{ kind: "gold", bound: "max", value: 1000 },
+		]
+		for (const token of tokens) {
+			expect(
+				parseShopQuery(describeToken(token).term, { catalog }).tokens,
+			).toEqual([token])
+		}
+	})
+
+	test("describes conditions, sending ids and gold buckets to analytics", () => {
+		expect(
+			describeToken({ kind: "statMin", stat: "attackSpeedPercent", min: 30 }),
+		).toMatchObject({
+			key: "statMin:attackSpeedPercent",
+			term: "as>=30",
+			label: "Attack Speed at least 30%",
+			value: { kind: "statMin", value: "attackSpeedPercent" },
+		})
+		expect(describeToken({ kind: "from", item: sheen })).toMatchObject({
+			key: "from:3057",
+			term: "from:sheen",
+			label: "Builds from Sheen",
+			icon: "3057.png",
+			value: { kind: "from", value: "3057" },
+		})
+		expect(
+			describeToken({ kind: "gold", bound: "max", value: 1499 }).value,
+		).toEqual({ kind: "gold", value: "max:1000" })
+	})
+
+	test("conditions add up after the stats, and one with the same key replaces the old one", () => {
+		const filters = applyShopTokens(
+			noFilters,
+			parseShopQuery("ap>=80 has:active ap ap>=100 gold<=1500").tokens,
+		)
+		expect(filters).toEqual({
+			...noFilters,
+			stats: ["abilityPower"],
+			conditions: [
+				{ kind: "statMin", stat: "abilityPower", min: 100 },
+				{ kind: "has", effect: "active" },
+				{ kind: "gold", bound: "max", value: 1500 },
+			],
+		})
+		expect(filtersFromTokens(tokensFromFilters(filters), filters)).toEqual(
+			filters,
+		)
+		expect(tokensFromFilters(filters).map(({ kind }) => kind)).toEqual([
+			"stat",
+			"statMin",
+			"has",
+			"gold",
+		])
+	})
+
+	test("suggests a complete comparison first, unless that exact one is applied", () => {
+		expect(suggestShopTokens("ap>=80").map(({ term }) => term)).toEqual([
+			"ap>=80",
+		])
+		const active: ShopToken[] = [
+			{ kind: "statMin", stat: "abilityPower", min: 80 },
+		]
+		expect(suggestShopTokens("ap>=80", { active })).toEqual([])
+		expect(
+			suggestShopTokens("ap>=100", { active }).map(({ term }) => term),
+		).toEqual(["ap>=100"])
+	})
+
+	test("suggests the effects, and item terms only once their prefix is typed", () => {
+		expect(suggestShopTokens("has:").map(({ term }) => term)).toEqual([
+			"has:active",
+			"antiheal",
+		])
+		expect(
+			suggestShopTokens("fr", { catalog }).map(({ term }) => term),
+		).toEqual([])
+		expect(
+			suggestShopTokens("into:d", { catalog }).map(({ term }) => term),
+		).toEqual(["into:rabadonsdeathcap", "into:doransring", "into:doransbow"])
+		expect(
+			suggestShopTokens("group:", { catalog }).map(({ term }) => term),
+		).toEqual(["group:lifeline", "group:starter"])
+	})
+
+	test("analytics get the conditions' ids, never the typed text", () => {
+		expect(
+			searchTokensForAnalytics({
+				...noFilters,
+				conditions: [
+					{ kind: "into", item: rabadon },
+					{ kind: "gold", bound: "min", value: 3200 },
+				],
+			}),
+		).toEqual([
+			{ kind: "into", value: "3089" },
+			{ kind: "gold", value: "min:3000" },
+		])
+	})
+})
+
+function shopItem(id: string, name: string, fields: Partial<Item> = {}): Item {
+	return {
+		id,
+		name,
+		description: "",
+		plaintext: "",
+		icon: `${id}.png`,
+		gold: { base: 0, total: 0, sell: 0, purchasable: true },
+		tags: [],
+		maps: [11],
+		from: [],
+		into: [],
+		inStore: true,
+		epicness: 5,
+		roles: [],
+		groupLimits: [],
+		active: false,
+		antiHeal: false,
+		stats: {},
+		...fields,
+	}
+}
