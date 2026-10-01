@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { ComputedStats } from "@/lib/stats/compute-stats"
-import { diffStats } from "./diff-stats"
+import { diffStats, statDeltas } from "./diff-stats"
 
 function stats(totals: Record<string, number>) {
 	return Object.fromEntries(
@@ -31,5 +31,22 @@ describe("diffStats", () => {
 		expect(
 			diffStats(stats({ movementSpeed: 385 }), stats({ movementSpeed: 380 })),
 		).toEqual({ movementSpeed: 380 })
+	})
+})
+
+describe("statDeltas", () => {
+	test("lists each changed stat as current minus other, signed", () => {
+		expect(
+			statDeltas(
+				stats({ health: 640, armor: 36, attackRange: 175, mana: 100 }),
+				stats({ health: 540, armor: 32, attackRange: 400, mana: 100 }),
+			),
+		).toEqual({ health: 100, armor: 4, attackRange: -225 })
+	})
+
+	test("ignores float noise below display precision", () => {
+		expect(
+			statDeltas(stats({ health: 0.1 + 0.2 }), stats({ health: 0.3 })),
+		).toEqual({})
 	})
 })
