@@ -9,18 +9,15 @@ import { type Item, ItemsFileSchema } from "@schemas/item"
 import { dataManifestSchema } from "@schemas/manifest"
 
 /**
- * Every flow runs with Data Dragon blocked (behavior must never depend on icons loading)
- * and marked as E2E, so the app never starts Sentry or PostHog (src/app/should-init-telemetry.ts).
- * A flow fails if anything still reaches PostHog or its proxy.
+ * Every flow runs with Data Dragon blocked (behavior must never depend on icons loading; the block
+ * is in playwright.config.ts) and marked as E2E, so the app never starts Sentry or PostHog
+ * (src/app/should-init-telemetry.ts). A flow fails if anything still reaches PostHog or its proxy.
  */
 export const test = base.extend({
 	context: async ({ context }, use) => {
 		await context.addInitScript(() => {
 			Object.assign(window, { __HB_E2E__: true })
 		})
-		await context.route(/^https:\/\/ddragon\.leagueoflegends\.com\//, (route) =>
-			route.abort(),
-		)
 		const analyticsRequests: string[] = []
 		context.on("request", (request) => {
 			const { hostname, pathname } = new URL(request.url())

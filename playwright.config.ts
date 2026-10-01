@@ -15,6 +15,11 @@ export default defineConfig({
 	use: {
 		baseURL,
 		trace: "retain-on-failure",
+		// Blocks Data Dragon in the browser's own resolver: `context.route` would pause every request
+		// for the test worker, which a busy machine starves (PR body, issue 220).
+		launchOptions: {
+			args: ["--host-resolver-rules=MAP ddragon.leagueoflegends.com ~NOTFOUND"],
+		},
 	},
 	projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 	webServer: process.env.BASE_URL
