@@ -40,6 +40,9 @@ export const STAT_UNITS = {
 
 export type StatKey = keyof typeof STAT_UNITS
 
+/** CommunityDragon `epicness` values of the Summoner's Rift shop items; the game omits 0. */
+export const ITEM_EPICNESS = [0, 1, 4, 5, 7] as const
+
 const statsShape = Object.fromEntries(
 	Object.entries(STAT_UNITS).map(([stat, unit]) => [
 		stat,
@@ -70,6 +73,11 @@ export const ItemSchema = z.strictObject({
 	from: z.array(z.string()),
 	into: z.array(z.string()),
 	inStore: z.boolean(),
+	/**
+	 * In-game shop tier (CommunityDragon `epicness`): 0 basic, 1 starter, 4 epic,
+	 * 5 legendary, 7 elixirs and tier-3 boots.
+	 */
+	epicness: z.literal(ITEM_EPICNESS),
 	requiredChampion: z.optional(z.string()),
 	/** In-game shop class filters (CommunityDragon `mItemAttributes`); empty means "All Items" only. */
 	roles: z.array(championRoleSchema),
