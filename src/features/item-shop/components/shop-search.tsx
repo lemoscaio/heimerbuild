@@ -293,9 +293,12 @@ function FilterContent({
 			) : (
 				<span className="size-5" />
 			)}
-			<span className="min-w-0 truncate">{label}</span>
-			<span className="ml-auto shrink-0 pl-2 font-mono text-subtle text-xs">
-				{term}
+			{/* On phones the term goes under the label, so long item names stay readable. */}
+			<span className="flex min-w-0 flex-1 items-center max-lg:flex-col max-lg:items-start">
+				<span className="min-w-0 max-w-full truncate">{label}</span>
+				<span className="max-w-full shrink-0 truncate font-mono text-subtle text-xs lg:ml-auto lg:pl-2">
+					{term}
+				</span>
 			</span>
 		</>
 	)
