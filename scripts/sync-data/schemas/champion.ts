@@ -72,6 +72,39 @@ const levelStatesSchema = z.array(levelStateSchema).check(
 	),
 )
 
+/** A form id, as the share link carries it (`?form=mega`). */
+export const FORM_ID_PATTERN = /^[a-z]+(?:-[a-z]+)*$/
+
+/** A form the player switches to (Mega Gnar, Cougar Nidalee). */
+export const championFormSchema = z.strictObject({
+	id: z.string().check(z.regex(FORM_ID_PATTERN)),
+	/** "Mega Gnar" */
+	name: z.string().check(z.minLength(1)),
+	attackType: z.optional(attackTypeSchema),
+	/** Replaces the champion's growth stats it lists. */
+	stats: z.optional(z.partial(championStatsSchema)),
+	/** Replaces the champion's level states: a form without them has none (Mega Gnar keeps 175 range). */
+	levelStates: z.optional(levelStatesSchema),
+})
+
+const DEFAULT_FORM_FIELDS = new Set(["id", "name"])
+
+/** The first form is the default: the champion's own data, so it carries only `id` and `name`. */
+const championFormsSchema = z.array(championFormSchema).check(
+	z.minLength(2),
+	z.refine(
+		(forms) => new Set(forms.map(({ id }) => id)).size === forms.length,
+		{ error: "forms must have unique ids" },
+	),
+	z.refine(
+		([defaultForm]) =>
+			Object.keys(defaultForm ?? {}).every((field) =>
+				DEFAULT_FORM_FIELDS.has(field),
+			),
+		{ error: "the default (first) form takes its values from the champion" },
+	),
+)
+
 export const championRoleSchema = z.enum([
 	"ASSASSIN",
 	"FIGHTER",
@@ -105,10 +138,13 @@ export const championSchema = z.strictObject({
 	stats: championStatsSchema,
 	/** Applied by the stats engine from the selected level; curated in `overrides/champion-level-states.ts`. */
 	levelStates: z.optional(levelStatesSchema),
+	/** Picked by the player, applied by the stats engine; curated in `overrides/champion-forms.ts`. */
+	forms: z.optional(championFormsSchema),
 })
 
 export type ChampionStats = z.infer<typeof championStatsSchema>
 export type LevelState = z.infer<typeof levelStateSchema>
+export type ChampionForm = z.infer<typeof championFormSchema>
 export type ChampionRole = z.infer<typeof championRoleSchema>
 export type ChampionSummary = z.infer<typeof championSummarySchema>
 export type Champion = z.infer<typeof championSchema>

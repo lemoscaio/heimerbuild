@@ -45,4 +45,19 @@ describe("attackTypeAtLevel", () => {
 	test("is the champion's own without level states", () => {
 		expect(attackTypeAtLevel({ attackType: "ranged" }, 1)).toBe("ranged")
 	})
+
+	test("follows the selected form, whose level states replace the champion's", () => {
+		const gnar = {
+			attackType: "ranged" as const,
+			levelStates: [{ fromLevel: 1, attackType: "ranged" as const }],
+			forms: [
+				{ id: "mini", name: "Mini Gnar" },
+				{ id: "mega", name: "Mega Gnar", attackType: "melee" as const },
+			],
+		}
+
+		expect(attackTypeAtLevel(gnar, 1, { form: "mega" })).toBe("melee")
+		expect(attackTypeAtLevel(gnar, 1, { form: "mini" })).toBe("ranged")
+		expect(attackTypeAtLevel(gnar, 1)).toBe("ranged")
+	})
 })

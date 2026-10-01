@@ -35,7 +35,7 @@
 		"16.19.1/champions/DrMundo.json": "49546a900a",
 		"16.19.1/champions/Draven.json": "ec852708bb",
 		"16.19.1/champions/Ekko.json": "038b88cb25",
-		"16.19.1/champions/Elise.json": "9ba27928c5",
+		"16.19.1/champions/Elise.json": "50e2fbe48f",
 		"16.19.1/champions/Evelynn.json": "1a4c890478",
 		"16.19.1/champions/Ezreal.json": "f27fd92687",
 		"16.19.1/champions/Fiddlesticks.json": "36bfad11d1",
@@ -44,7 +44,7 @@
 		"16.19.1/champions/Galio.json": "2c2085b2aa",
 		"16.19.1/champions/Gangplank.json": "80bdb92b0d",
 		"16.19.1/champions/Garen.json": "cfe65e1708",
-		"16.19.1/champions/Gnar.json": "81503f513e",
+		"16.19.1/champions/Gnar.json": "0a43cd03db",
 		"16.19.1/champions/Gragas.json": "1b866c0bef",
 		"16.19.1/champions/Graves.json": "37837843bc",
 		"16.19.1/champions/Gwen.json": "4fa4bd17f6",
@@ -57,7 +57,7 @@
 		"16.19.1/champions/Janna.json": "e7e99fdacd",
 		"16.19.1/champions/JarvanIV.json": "e8c39b8447",
 		"16.19.1/champions/Jax.json": "4d0c83e8f4",
-		"16.19.1/champions/Jayce.json": "569cbfaaa5",
+		"16.19.1/champions/Jayce.json": "238ad5dafb",
 		"16.19.1/champions/Jhin.json": "1639436996",
 		"16.19.1/champions/Jinx.json": "39b1ea49ad",
 		"16.19.1/champions/KSante.json": "5d143921a9",
@@ -72,7 +72,7 @@
 		"16.19.1/champions/Kennen.json": "df50489fbd",
 		"16.19.1/champions/Khazix.json": "e3f4a0a3a0",
 		"16.19.1/champions/Kindred.json": "99ae268b8f",
-		"16.19.1/champions/Kled.json": "932769cfb0",
+		"16.19.1/champions/Kled.json": "e0727f65fc",
 		"16.19.1/champions/KogMaw.json": "f4f0530eb1",
 		"16.19.1/champions/Leblanc.json": "b43dbbe920",
 		"16.19.1/champions/LeeSin.json": "0cd102a6ad",
@@ -98,7 +98,7 @@
 		"16.19.1/champions/Nasus.json": "6761416b72",
 		"16.19.1/champions/Nautilus.json": "c5116fc536",
 		"16.19.1/champions/Neeko.json": "f6a0e01d8d",
-		"16.19.1/champions/Nidalee.json": "2a8dccc6cd",
+		"16.19.1/champions/Nidalee.json": "925a052b0e",
 		"16.19.1/champions/Nilah.json": "9d3e7be06c",
 		"16.19.1/champions/Nocturne.json": "098479b874",
 		"16.19.1/champions/Nunu.json": "6f50af43f8",
@@ -181,5 +181,5 @@
 		"16.19.1/items.json": "224a7f9688",
 		"16.19.1/runes.json": "51aeb100e8"
 	},
-	"generatedAt": "2026-10-01T22:46:42.491Z"
+	"generatedAt": "2026-10-01T23:09:00.658Z"
 }

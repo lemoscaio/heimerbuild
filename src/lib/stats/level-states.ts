@@ -1,4 +1,5 @@
 import type { Champion, LevelState } from "@schemas/champion"
+import { type FormOptions, formChanges } from "./champion-forms"
 
 export type ActiveLevelState = Omit<LevelState, "fromLevel">
 
@@ -15,12 +16,17 @@ export function levelStateAt(
 	return active
 }
 
-/** Melee or ranged at `level`: Kayle is ranged from level 6. */
+/** Melee or ranged at `level` in the selected form: Kayle is ranged from level 6, Mega Gnar is melee. */
 export function attackTypeAtLevel(
-	champion: Pick<Champion, "attackType" | "levelStates">,
+	champion: Pick<Champion, "attackType" | "levelStates" | "forms">,
 	level: number,
+	{ form }: FormOptions = {},
 ): Champion["attackType"] {
+	const changes = formChanges(champion.forms, form)
+	const levelStates = changes ? changes.levelStates : champion.levelStates
 	return (
-		levelStateAt(champion.levelStates, level).attackType ?? champion.attackType
+		levelStateAt(levelStates, level).attackType ??
+		changes?.attackType ??
+		champion.attackType
 	)
 }
