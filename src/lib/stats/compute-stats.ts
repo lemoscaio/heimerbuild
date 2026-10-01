@@ -2,6 +2,7 @@ import type { Champion, ChampionStats } from "@schemas/champion"
 import { type Item, STAT_UNITS, type StatKey } from "@schemas/item"
 import { attackSpeedAtLevel } from "./attack-speed"
 import { assertChampionLevel, statAtLevel } from "./growth"
+import { levelStateAt } from "./level-states"
 
 /** Item stats that modify a champion stat instead of being reported on their own. */
 type FoldedItemStat =
@@ -19,7 +20,7 @@ export type StatBreakdown = { base: number; bonus: number; total: number }
 
 export type ComputedStats = Record<StatName, StatBreakdown>
 
-export type ChampionInput = Pick<Champion, "resource" | "stats">
+export type ChampionInput = Pick<Champion, "resource" | "stats" | "levelStates">
 export type ItemInput = Pick<Item, "stats">
 
 /** Champion `resource` value of mana users; other resources ignore mana stats on items. */
@@ -54,6 +55,7 @@ function breakdown(base: number, total: number): StatBreakdown {
  * `bonus` is what the items add on top of it. Attack speed is the exception:
  * its level growth is bonus attack speed, as in game. Champions without
  * mana keep their own resource in `mana` and `manaRegen`, with no item bonus.
+ * The level states reached at `level` replace the champion's stats they set.
  */
 export function computeStats(
 	champion: ChampionInput,
@@ -61,7 +63,11 @@ export function computeStats(
 	items: readonly ItemInput[],
 ): ComputedStats {
 	assertChampionLevel(level)
-	const { stats } = champion
+	const { attackRange = champion.stats.attackRange } = levelStateAt(
+		champion.levelStates,
+		level,
+	)
+	const stats = { ...champion.stats, attackRange }
 	const usesMana = champion.resource === MANA_RESOURCE
 	const {
 		attackSpeedPercent,
