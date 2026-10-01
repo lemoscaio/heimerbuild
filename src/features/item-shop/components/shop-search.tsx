@@ -1,5 +1,5 @@
 import type { Item } from "@schemas/item"
-import { Fragment, useRef } from "react"
+import { Fragment, useRef, useState } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import {
 	Combobox,
@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/combobox"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
+import { useSearchHandoff } from "../hooks/use-search-handoff"
 import { useSearchShortcut } from "../hooks/use-search-shortcut"
+import { applyMoreFilter, type MoreFilter } from "../lib/more-filters"
 import type { ShopCatalog } from "../lib/shop-catalog"
 import {
 	commitShopQuery,
@@ -28,6 +30,7 @@ import {
 	suggestionKindLabel,
 	suggestionText,
 } from "../lib/shop-suggestions"
+import { MoreFiltersMenu } from "./more-filters-menu"
 
 export type ShopSearchChange = { query: string; filters: ShopFilters }
 
@@ -65,8 +68,9 @@ export function ShopSearch({
 	const inputRef = useRef<HTMLInputElement>(null)
 	const anchorRef = useRef<HTMLDivElement>(null)
 	const highlightedRef = useRef<Suggestion>(undefined)
-	const isOpenRef = useRef(false)
+	const [isOpen, setOpen] = useState(false)
 	useSearchShortcut(inputRef)
+	const handoff = useSearchHandoff(inputRef, () => setOpen(true))
 
 	const { chips, suggestions } = shopSuggestions({
 		query,
@@ -118,6 +122,12 @@ export function ShopSearch({
 		})
 	}
 
+	function handleMoreFilter(filter: MoreFilter) {
+		// A filter that needs a value is completed in the search, with its suggestions open.
+		if (filter.kind === "shortcut") handoff.handOff()
+		onSearchChange(applyMoreFilter(filter, { query, filters }))
+	}
+
 	function handleKeyDown(
 		event: React.KeyboardEvent<HTMLInputElement> & {
 			preventBaseUIHandler?: () => void
@@ -125,7 +135,7 @@ export function ShopSearch({
 	) {
 		// A first Escape closes the suggestions; with them closed, Escape clears the text only
 		// (the combobox would also clear the tokens) and moves to the items.
-		if (event.key === "Escape" && !isOpenRef.current) {
+		if (event.key === "Escape" && !isOpen) {
 			event.preventBaseUIHandler?.()
 			event.preventDefault()
 			onEscape()
@@ -138,89 +148,95 @@ export function ShopSearch({
 	}
 
 	return (
-		<Combobox<Suggestion, true>
-			multiple
-			items={suggestions}
-			filter={null}
-			value={chips}
-			onValueChange={handleValueChange}
-			inputValue={query}
-			onInputValueChange={(text, { reason }) => {
-				// Picking a suggestion clears the input; `handleValueChange` already set the text.
-				if (reason !== "item-press" && reason !== "input-clear") commit(text)
-			}}
-			onOpenChange={(open) => {
-				isOpenRef.current = open
-			}}
-			onItemHighlighted={(suggestion) => {
-				highlightedRef.current = suggestion
-			}}
-			isItemEqualToValue={(a, b) => suggestionKey(a) === suggestionKey(b)}
-			itemToStringLabel={suggestionText}
-		>
-			<ComboboxChips
-				ref={anchorRef}
-				className={cn("min-h-9 max-lg:min-h-11", className)}
+		<>
+			<Combobox<Suggestion, true>
+				multiple
+				items={suggestions}
+				filter={null}
+				value={chips}
+				onValueChange={handleValueChange}
+				inputValue={query}
+				onInputValueChange={(text, { reason }) => {
+					// Picking a suggestion clears the input; `handleValueChange` already set the text.
+					if (reason !== "item-press" && reason !== "input-clear") commit(text)
+				}}
+				open={isOpen}
+				onOpenChange={setOpen}
+				onItemHighlighted={(suggestion) => {
+					highlightedRef.current = suggestion
+				}}
+				isItemEqualToValue={(a, b) => suggestionKey(a) === suggestionKey(b)}
+				itemToStringLabel={suggestionText}
 			>
-				{chips.map((chip) => (
-					<Fragment key={chip.key}>
-						<ComboboxChip
-							aria-label={chip.label}
-							removeLabel={`Remove ${chip.label}`}
-						>
-							{chip.term}
-						</ComboboxChip>
-						{chip.token.kind === "stat" && chip !== lastStatChip && (
-							<span
-								aria-hidden="true"
-								className="font-bold text-[0.625rem] text-gold"
+				<ComboboxChips
+					ref={anchorRef}
+					className={cn("min-h-9 max-lg:min-h-11", className)}
+				>
+					{chips.map((chip) => (
+						<Fragment key={chip.key}>
+							<ComboboxChip
+								aria-label={chip.label}
+								removeLabel={`Remove ${chip.label}`}
 							>
-								{filters.match === "all" ? "AND" : "OR"}
-							</span>
-						)}
-					</Fragment>
-				))}
-				<ComboboxChipsInput
-					ref={inputRef}
-					aria-label="Search items"
-					aria-keyshortcuts="/"
-					placeholder={
-						chips.length ? "" : "Search items, ap, role:tank, gold<=1500…"
-					}
-					className="max-lg:h-9"
-					onKeyDown={handleKeyDown}
-				/>
-				{!query && !chips.length && (
-					<kbd
-						aria-hidden
-						className="pointer-events-none rounded-sm border border-primary-1 px-1.5 font-mono text-subtle text-xs max-lg:hidden"
-					>
-						/
-					</kbd>
-				)}
-			</ComboboxChips>
-			<span className="sr-only" aria-live="polite">
-				{!!chips.length &&
-					`Filters: ${chips.map(({ label }) => label).join(", ")}`}
-			</span>
-			<ComboboxContent
-				anchor={anchorRef}
-				className="min-w-[min(20rem,var(--available-width))]"
-			>
-				<ComboboxEmpty>
-					Type a stat (ap, ap&gt;=80), a role (role:tank), a filter (has:active,
-					from:sheen, gold&lt;=1500), and / or, or an item name.
-				</ComboboxEmpty>
-				<ComboboxList aria-label="Suggestions">
-					{(suggestion: Suggestion) => (
-						<SuggestionRow
-							key={suggestionKey(suggestion)}
-							suggestion={suggestion}
-						/>
+								{chip.term}
+							</ComboboxChip>
+							{chip.token.kind === "stat" && chip !== lastStatChip && (
+								<span
+									aria-hidden="true"
+									className="font-bold text-[0.625rem] text-gold"
+								>
+									{filters.match === "all" ? "AND" : "OR"}
+								</span>
+							)}
+						</Fragment>
+					))}
+					<ComboboxChipsInput
+						ref={inputRef}
+						aria-label="Search items"
+						aria-keyshortcuts="/"
+						placeholder={
+							chips.length ? "" : "Search items, ap, role:tank, gold<=1500…"
+						}
+						className="max-lg:h-9"
+						onKeyDown={handleKeyDown}
+					/>
+					{!query && !chips.length && (
+						<kbd
+							aria-hidden
+							className="pointer-events-none rounded-sm border border-primary-1 px-1.5 font-mono text-subtle text-xs max-lg:hidden"
+						>
+							/
+						</kbd>
 					)}
-				</ComboboxList>
-			</ComboboxContent>
-		</Combobox>
+				</ComboboxChips>
+				<span className="sr-only" aria-live="polite">
+					{!!chips.length &&
+						`Filters: ${chips.map(({ label }) => label).join(", ")}`}
+				</span>
+				<ComboboxContent
+					anchor={anchorRef}
+					className="min-w-[min(20rem,var(--available-width))]"
+				>
+					<ComboboxEmpty>
+						Type a stat (ap, ap&gt;=80), a role (role:tank), a filter
+						(has:active, from:sheen, gold&lt;=1500), and / or, or an item name.
+					</ComboboxEmpty>
+					<ComboboxList aria-label="Suggestions">
+						{(suggestion: Suggestion) => (
+							<SuggestionRow
+								key={suggestionKey(suggestion)}
+								suggestion={suggestion}
+							/>
+						)}
+					</ComboboxList>
+				</ComboboxContent>
+			</Combobox>
+			<MoreFiltersMenu
+				className="max-lg:size-11"
+				finalFocus={handoff.finalFocus}
+				onPick={handleMoreFilter}
+			/>
+		</>
 	)
 }
 
