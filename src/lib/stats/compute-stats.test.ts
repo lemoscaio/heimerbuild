@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { Champion } from "@schemas/champion"
 import { type ItemStats, STAT_UNITS } from "@schemas/item"
+import { CHAMPION_FORMS } from "../../../scripts/sync-data/overrides/champion-forms"
 import { CHAMPION_LEVEL_STATES } from "../../../scripts/sync-data/overrides/champion-level-states"
 import { computeStats } from "./compute-stats"
 
@@ -273,6 +274,90 @@ describe("computeStats", () => {
 			expect({ ...withStates, attackRange: without.attackRange }).toEqual(
 				without,
 			)
+		})
+	})
+
+	describe("forms", () => {
+		const gnarStats = {
+			...heimerdinger.stats,
+			health: { base: 540, perLevel: 79 },
+			armor: { base: 32, perLevel: 3.7 },
+			magicResist: { base: 30, perLevel: 1.3 },
+			attackDamage: { base: 60, perLevel: 3.2 },
+			attackRange: { base: 175, perLevel: 0 },
+		}
+
+		/** The champion as synced: Riot's stats plus its curated level states and forms. */
+		function championWithForms(key: string, stats = heimerdinger.stats) {
+			const forms = CHAMPION_FORMS.find(
+				(override) => override.target === key,
+			)?.apply(undefined)
+			if (!forms) throw new Error(`No forms for ${key}`)
+			const levelStates = CHAMPION_LEVEL_STATES.find(
+				(override) => override.target === key,
+			)?.apply(undefined)
+			return { ...heimerdinger, stats, levelStates, forms }
+		}
+
+		const gnar = championWithForms("Gnar", gnarStats)
+
+		test("the default form, an unknown one or none is the champion's own data", () => {
+			const own = computeStats(gnar, 9, [])
+
+			expect(computeStats(gnar, 9, [], { form: "mini" })).toEqual(own)
+			expect(computeStats(gnar, 9, [], { form: "giant" })).toEqual(own)
+			expect(own.attackRange.base).toBeCloseTo(400 + (100 / 17) * 8, 10)
+		})
+
+		// Expected values: the GnarBig character record (linked in the forms).
+		test("Mega Gnar has his own base stats and no Mini Gnar range", () => {
+			const mega = computeStats(gnar, 1, [], { form: "mega" })
+
+			expect(mega.health.base).toBe(640)
+			expect(mega.armor.base).toBe(36)
+			expect(mega.magicResist.base).toBe(33)
+			expect(mega.attackDamage.base).toBe(66)
+			expect(mega.attackRange.base).toBe(175)
+			expect(
+				computeStats(gnar, 18, [], { form: "mega" }).attackRange.base,
+			).toBe(175)
+		})
+
+		test("a form grows with its own per-level values", () => {
+			const mini = computeStats(gnar, 18, [])
+			const mega = computeStats(gnar, 18, [], { form: "mega" })
+
+			// 17 levels of growth multiply per-level values by 17 * (0.7025 + 0.0175 * 17).
+			expect(mega.health.base - mini.health.base).toBeCloseTo(
+				100 + (122 - 79) * 17 * (0.7025 + 0.0175 * 17),
+				10,
+			)
+			expect(mega.attackSpeed.total).toBeLessThan(mini.attackSpeed.total)
+		})
+
+		test("a form leaves the stats it does not set as they were", () => {
+			const kled = championWithForms("Kled")
+
+			const mounted = computeStats(kled, 1, [])
+			const dismounted = computeStats(kled, 1, [], { form: "dismounted" })
+
+			expect(dismounted.health.base).toBe(410)
+			expect(dismounted.movementSpeed.base).toBe(305)
+			expect(dismounted.attackRange.base).toBe(250)
+			expect({
+				...dismounted,
+				health: mounted.health,
+				movementSpeed: mounted.movementSpeed,
+				attackRange: mounted.attackRange,
+			}).toEqual(mounted)
+		})
+
+		test("items add bonus on top of the form's base", () => {
+			const { health } = computeStats(gnar, 1, [{ stats: { health: 300 } }], {
+				form: "mega",
+			})
+
+			expect(health).toEqual({ base: 640, bonus: 300, total: 940 })
 		})
 	})
 })
