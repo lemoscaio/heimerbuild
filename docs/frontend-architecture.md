@@ -80,7 +80,7 @@ features/<feature>/
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`. Never `pages/` or `routes/`.
 - Pages may import features and the shared layers, never `routes/`. Routes import pages.
 - Shared layers never import from `features/`, `pages/` or `routes/`.
-- CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override per feature lists the other features plus `pages/` and `routes/`, one covers `pages/`, one covers the shared layers. **Adding a feature means adding its override (with the pages and routes pattern) and its name to the other features' lists.**
+- CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override covers every feature (it bans `@/features/**`, any `../../` climb out of the feature, `pages/` and `routes/`), one covers `pages/`, one covers the shared layers. A feature imports its own files relatively (`../lib/x`), one folder level deep. **A new feature needs no config.**
 
 ```ts
 // src/features/build-calculator/components/stats-panel.tsx
