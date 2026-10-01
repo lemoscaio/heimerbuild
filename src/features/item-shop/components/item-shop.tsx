@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority"
 import { useRef } from "react"
 import { flushSync } from "react-dom"
 import { LoadError } from "@/components/common/load-error"
@@ -31,6 +32,40 @@ import { type ShopLayout, useShopState } from "./shop-state-provider"
 import { SortMenu } from "./sort-menu"
 import { StatMatchToggle } from "./stat-match-toggle"
 import { StatRail } from "./stat-rail"
+
+const shopGrid = cva(
+	"@container grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto_minmax(0,1fr)] gap-x-3 gap-y-2 [grid-template-areas:'roles_roles_roles''rail_search_actions''rail_items_items']",
+	{
+		variants: {
+			layout: {
+				compact: "",
+				expanded: "p-4 lg:gap-x-5 lg:px-5 lg:pt-3",
+			} satisfies Record<ShopLayout, string>,
+		},
+	},
+)
+
+const statRail = cva(
+	"scrollbar-purple [grid-area:rail] max-lg:sticky max-lg:top-[calc(var(--spacing-header)+--spacing(2))] max-lg:max-h-[calc(100dvh-var(--spacing-header)-8rem)] max-lg:self-start max-lg:overflow-y-auto lg:min-h-0 lg:overflow-y-auto",
+	{
+		variants: {
+			layout: {
+				compact: "",
+				expanded: "lg:border-primary-2 lg:border-r lg:pr-3",
+			} satisfies Record<ShopLayout, string>,
+		},
+	},
+)
+
+// The expanded shop's list sits on the page itself, not in an inset well.
+const itemList = cva("[grid-area:items]", {
+	variants: {
+		layout: {
+			compact: "",
+			expanded: "lg:bg-transparent lg:p-0",
+		} satisfies Record<ShopLayout, string>,
+	},
+})
 
 type ItemShopProps = {
 	patch: string
@@ -108,12 +143,7 @@ export function ItemShop({
 	const isExpanded = layout === "expanded"
 
 	return (
-		<div
-			className={cn(
-				"@container grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto] grid-rows-[auto_auto_minmax(0,1fr)] gap-x-3 gap-y-2 [grid-template-areas:'roles_roles_roles''rail_search_actions''rail_items_items']",
-				{ "p-4 lg:gap-x-5 lg:px-5 lg:pt-3": isExpanded },
-			)}
-		>
+		<div className={shopGrid({ layout })}>
 			<div className="flex min-w-0 items-center gap-3 [grid-area:roles]">
 				<ShopTitle className="@max-4xl:sr-only shrink-0" />
 				<RoleFilter
@@ -139,10 +169,7 @@ export function ItemShop({
 				</span>
 			</div>
 			<StatRail
-				className={cn(
-					"scrollbar-purple [grid-area:rail] max-lg:sticky max-lg:top-[calc(var(--spacing-header)+--spacing(2))] max-lg:max-h-[calc(100dvh-var(--spacing-header)-8rem)] max-lg:self-start max-lg:overflow-y-auto lg:min-h-0 lg:overflow-y-auto",
-					{ "lg:border-primary-2 lg:border-r lg:pr-3": isExpanded },
-				)}
+				className={statRail({ layout })}
 				stats={stats}
 				onStatsChange={(nextStats) =>
 					handleFiltersChange({ ...filters, stats: nextStats })
@@ -186,9 +213,7 @@ export function ItemShop({
 			<ItemList
 				ref={listRef}
 				aria-label="Item shop"
-				className={cn("[grid-area:items]", {
-					"lg:bg-transparent lg:p-0": isExpanded,
-				})}
+				className={itemList({ layout })}
 			>
 				<ItemGrid
 					items={items}

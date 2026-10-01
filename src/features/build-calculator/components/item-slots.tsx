@@ -1,4 +1,5 @@
 import type { Item } from "@schemas/item"
+import { cva } from "class-variance-authority"
 import { TriangleAlert } from "lucide-react"
 import { useEffect, useLayoutEffect, useRef } from "react"
 import { GameIcon } from "@/components/common/game-icon"
@@ -6,7 +7,6 @@ import { ItemButton } from "@/components/common/item-button"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { track } from "@/lib/analytics/analytics"
-import { cn } from "@/lib/cn"
 import { MAX_ITEMS } from "../lib/build-items"
 import {
 	type BuildViolation,
@@ -16,6 +16,35 @@ import { ItemSlotsPanel, slotGridClassName } from "./item-slots-panel"
 
 const slots = Array.from({ length: MAX_ITEMS }, (_, index) => index)
 
+type SlotsLayout = "panel" | "bar"
+
+const slotsPanel = cva("", {
+	variants: {
+		layout: { panel: "gap-2.5", bar: "gap-1" } satisfies Record<
+			SlotsLayout,
+			string
+		>,
+	},
+})
+
+const slotGrid = cva("", {
+	variants: {
+		layout: {
+			panel: slotGridClassName,
+			bar: "grid grid-cols-[repeat(6,3rem)] justify-start gap-2",
+		} satisfies Record<SlotsLayout, string>,
+	},
+})
+
+const slotMessages = cva("flex flex-col text-lilac text-xs", {
+	variants: {
+		layout: {
+			panel: "items-center gap-2 text-center empty:-mt-2.5",
+			bar: "items-start text-left empty:-mt-1",
+		} satisfies Record<SlotsLayout, string>,
+	},
+})
+
 type ItemSlotsProps = {
 	items: readonly Item[]
 	onRemoveItem: (slot: number) => void
@@ -24,7 +53,7 @@ type ItemSlotsProps = {
 	/** Screen-reader only: the item just added and how many slots are filled. */
 	announcement?: string
 	/** `bar`: one row of slots with one-line messages, for the expanded shop's build bar. */
-	layout?: "panel" | "bar"
+	layout?: SlotsLayout
 }
 
 export function ItemSlots({
@@ -65,16 +94,9 @@ export function ItemSlots({
 	}
 
 	return (
-		<ItemSlotsPanel className={cn({ "gap-1": isBar })}>
+		<ItemSlotsPanel className={slotsPanel({ layout })}>
 			{!isBar && <BuildHeading gold={totalGold(items)} />}
-			<fieldset
-				ref={slotsRef}
-				className={cn(slotGridClassName, {
-					"grid-cols-[repeat(6,3rem)] justify-start gap-2 lg:grid-cols-[repeat(6,3rem)]":
-						isBar,
-				})}
-				tabIndex={-1}
-			>
+			<fieldset ref={slotsRef} className={slotGrid({ layout })} tabIndex={-1}>
 				<legend className="sr-only">Chosen items</legend>
 				{slots.map((slot) => {
 					const item = items[slot]
@@ -104,10 +126,7 @@ export function ItemSlots({
 				})}
 			</fieldset>
 			<div
-				className={cn(
-					"flex flex-col items-center gap-2 text-center text-lilac text-xs empty:-mt-2.5",
-					{ "items-start gap-0 text-left empty:-mt-1": isBar },
-				)}
+				className={slotMessages({ layout })}
 				role="status"
 				aria-live="polite"
 			>

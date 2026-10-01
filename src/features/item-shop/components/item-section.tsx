@@ -1,14 +1,41 @@
 import type { Item } from "@schemas/item"
+import { cva } from "class-variance-authority"
 import { useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { ItemButton } from "@/components/common/item-button"
-import { cn } from "@/lib/cn"
 import type { useRovingFocus } from "../hooks/use-roving-focus"
 import type { ShopSection } from "../lib/group-shop-items"
 import type { ItemPickProps } from "../types/item-pick"
 
 /** `lg`: bigger tiles with the price under the icon, for the expanded shop. */
 export type TileSize = "md" | "lg"
+
+const tileGrid = cva("grid", {
+	variants: {
+		size: {
+			md: "grid-cols-[repeat(auto-fill,2.75rem)] gap-1.5 lg:grid-cols-[repeat(auto-fill,2.5rem)]",
+			lg: "grid-cols-[repeat(auto-fill,3.5rem)] gap-x-2 gap-y-3",
+		} satisfies Record<TileSize, string>,
+	},
+})
+
+const tile = cva("aria-pressed:ring-2 aria-pressed:ring-gold", {
+	variants: {
+		size: {
+			md: "rounded-sm",
+			lg: "flex flex-col items-center gap-0.5 rounded-md",
+		} satisfies Record<TileSize, string>,
+	},
+})
+
+const tileIcon = cva("", {
+	variants: {
+		size: {
+			md: "size-11 lg:size-10",
+			lg: "size-14 rounded-md",
+		} satisfies Record<TileSize, string>,
+	},
+})
 
 type ItemSectionProps = {
 	tileSize: TileSize
@@ -36,15 +63,7 @@ export function ItemSection({
 					{items.length}
 				</span>
 			</h3>
-			<div
-				className={cn(
-					"grid grid-cols-[repeat(auto-fill,2.75rem)] gap-1.5 lg:grid-cols-[repeat(auto-fill,2.5rem)]",
-					{
-						"grid-cols-[repeat(auto-fill,3.5rem)] gap-x-2 gap-y-3 lg:grid-cols-[repeat(auto-fill,3.5rem)]":
-							isLarge,
-					},
-				)}
-			>
+			<div className={tileGrid({ size: tileSize })}>
 				{items.map((item, index) => (
 					<ItemButton
 						key={item.id}
@@ -52,12 +71,7 @@ export function ItemSection({
 						aria-label={item.name}
 						aria-describedby={`${id}-${index}`}
 						aria-pressed={item.id === selectedItemId}
-						className={cn(
-							"rounded-sm aria-pressed:ring-2 aria-pressed:ring-gold",
-							{
-								"flex flex-col items-center gap-0.5 rounded-md": isLarge,
-							},
-						)}
+						className={tile({ size: tileSize })}
 						onClick={(event) => {
 							// Enter or Space on the selected item adds it (a keyboard click has no detail).
 							if (event.detail === 0 && item.id === selectedItemId) {
@@ -75,9 +89,7 @@ export function ItemSection({
 							width={isLarge ? 56 : 40}
 							height={isLarge ? 56 : 40}
 							loading="lazy"
-							className={cn("size-11 lg:size-10", {
-								"size-14 rounded-md lg:size-14": isLarge,
-							})}
+							className={tileIcon({ size: tileSize })}
 						/>
 						{isLarge && (
 							<span className="text-[0.625rem] text-gold tabular-nums">
