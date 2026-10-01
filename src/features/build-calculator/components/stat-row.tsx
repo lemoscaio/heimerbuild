@@ -67,7 +67,7 @@ export function StatRow({
 		>
 			<img src={icon} alt="" className="size-4 shrink-0" />
 			<span className="min-w-0 flex-1 text-prose">{label}</span>
-			{formDelta && <DeltaChip format={format} {...formDelta} />}
+			{formDelta && <DeltaChip format={info.format} {...formDelta} />}
 			<span className="shrink-0 font-medium tabular-nums">
 				{noFixedValue ? (
 					<NoFixedValue label={label} description={description} />
