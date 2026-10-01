@@ -6,7 +6,7 @@ export type ShopTier = "starter" | "basic" | "epic" | "boots" | "legendary"
 
 export type ShopSectionKey = ShopTier | "components" | "all"
 
-type ShopItem = Pick<Item, "tags" | "from" | "into" | "groupLimits">
+type ShopItem = Pick<Item, "epicness" | "tags" | "groupLimits">
 
 export type ShopSection<T extends ShopItem> = {
 	key: ShopSectionKey
@@ -49,15 +49,18 @@ const groupings: Record<ShopGrouping, Record<ShopTier, ShopSectionKey>> = {
 	},
 }
 
-// Consumables, trinkets and lane or jungle starters (Doran's, Dark Seal, Tear, pets), even when they upgrade.
-const STARTER_TAGS = new Set(["Consumable", "Trinket", "Lane", "Jungle"])
+const tierOfEpicness: Record<Item["epicness"], ShopTier> = {
+	0: "basic",
+	1: "starter",
+	4: "epic",
+	5: "legendary",
+	// Elixirs, listed with the potions and wards; tier-3 boots also carry 7, but isBoots runs first.
+	7: "starter",
+}
 
 /** The in-game shop tier of an item. */
 export function shopTierOf(item: ShopItem): ShopTier {
-	if (isBoots(item)) return "boots"
-	if (item.tags.some((tag) => STARTER_TAGS.has(tag))) return "starter"
-	if (item.into.length) return item.from.length ? "epic" : "basic"
-	return "legendary"
+	return isBoots(item) ? "boots" : tierOfEpicness[item.epicness]
 }
 
 type GroupShopItemsOptions = {

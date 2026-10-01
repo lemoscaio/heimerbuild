@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { ItemsFileSchema } from "@schemas/item"
+import { type Item, ItemsFileSchema } from "@schemas/item"
 import type { ShopGrouping } from "@/types/shop-view"
 import {
 	groupShopItems,
@@ -10,74 +10,45 @@ import {
 
 type Case = {
 	name: string
+	epicness?: Item["epicness"]
 	tags?: string[]
-	from?: string[]
-	into?: string[]
 	groupLimits?: { group: string; max: number }[]
 }
 
-function item({ tags = [], from = [], into = [], groupLimits = [] }: Case) {
-	return { tags, from, into, groupLimits }
+function item({ epicness = 0, tags = [], groupLimits = [] }: Case) {
+	return { epicness, tags, groupLimits }
 }
 
 describe("shopTierOf", () => {
 	test.each<Case & { section: ShopTier }>([
-		{ name: "a starter", tags: ["Lane", "Health"], section: "starter" },
-		{ name: "a jungle pet", tags: ["Jungle"], section: "starter" },
-		{ name: "a potion", tags: ["Consumable"], section: "starter" },
+		{ name: "a basic component", section: "basic" },
+		{ name: "a starter", epicness: 1, section: "starter" },
+		{ name: "an epic component", epicness: 4, section: "epic" },
+		{ name: "a legendary", epicness: 5, section: "legendary" },
+		{ name: "an elixir", epicness: 7, section: "starter" },
 		{
-			name: "a potion that upgrades",
-			tags: ["Consumable", "Lane"],
-			into: ["3000"],
-			section: "starter",
-		},
-		{ name: "a trinket", tags: ["Trinket", "Vision"], section: "starter" },
-		{
-			name: "a support item upgrade",
-			tags: ["Lane", "GoldPer"],
-			from: ["3865"],
-			section: "starter",
-		},
-		{
-			name: "a lane starter that builds into more",
-			tags: ["SpellDamage", "Lane"],
-			into: ["3041"],
-			section: "starter",
-		},
-		{
-			name: "a basic component",
-			tags: ["Damage"],
-			into: ["3071"],
-			section: "basic",
-		},
-		{
-			name: "an epic component",
-			from: ["1052"],
-			into: ["3089"],
-			section: "epic",
-		},
-		{
-			name: "tier 1 boots that build into more",
+			name: "tier 1 boots",
 			tags: ["Boots"],
-			into: ["3020"],
-			section: "boots",
-		},
-		{
-			name: "boots only in the boots group",
 			groupLimits: [{ group: "Boots", max: 1 }],
 			section: "boots",
 		},
-		{ name: "a finished item", tags: ["SpellDamage"], section: "legendary" },
+		{ name: "tier 2 boots", epicness: 4, tags: ["Boots"], section: "boots" },
+		{
+			name: "tier 3 boots only in the boots group",
+			epicness: 7,
+			groupLimits: [{ group: "Boots", max: 1 }],
+			section: "boots",
+		},
 	])("$name goes to $section", (testCase) => {
 		expect(shopTierOf(item(testCase))).toBe(testCase.section)
 	})
 })
 
 describe("groupShopItems", () => {
-	const legendary = { id: "l", ...item({ name: "l" }) }
-	const component = { id: "c", ...item({ name: "c", into: ["l"] }) }
-	const component2 = { id: "c2", ...item({ name: "c2", into: ["l"] }) }
-	const epic = { id: "e", ...item({ name: "e", from: ["c"], into: ["l"] }) }
+	const legendary = { id: "l", ...item({ name: "l", epicness: 5 }) }
+	const component = { id: "c", ...item({ name: "c" }) }
+	const component2 = { id: "c2", ...item({ name: "c2" }) }
+	const epic = { id: "e", ...item({ name: "e", epicness: 4 }) }
 
 	test("orders sections as the shop does and keeps the item order inside each", () => {
 		const sections = groupShopItems([legendary, epic, component2, component])
@@ -154,5 +125,10 @@ describe("groupShopItems", () => {
 		expect(sectionOf("Gunmetal Greaves")).toBe("boots")
 		expect(sectionOf("Sorcerer's Shoes")).toBe("boots")
 		expect(sectionOf("Rabadon's Deathcap")).toBe("legendary")
+		expect(sectionOf("Elixir of Iron")).toBe("starter")
+		expect(sectionOf("World Atlas")).toBe("starter")
+		expect(sectionOf("Celestial Opposition")).toBe("legendary")
+		expect(sectionOf("Gluttonous Greaves")).toBe("boots")
+		expect(sectionOf("Swiftmarch")).toBe("boots")
 	})
 })
