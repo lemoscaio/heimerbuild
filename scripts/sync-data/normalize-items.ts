@@ -9,6 +9,7 @@ import {
 import { ITEM_OVERRIDES, type ItemOverride } from "./overrides/item-overrides"
 import { type ChampionRole, championRoleSchema } from "./schemas/champion"
 import {
+	ITEM_EPICNESS,
 	type Item,
 	type ItemStats,
 	type ItemsFile,
@@ -130,6 +131,17 @@ function extractRoles(entry: CommunityDragonItem): ChampionRole[] {
 	return championRoleSchema.options.filter((role) => roles.has(role))
 }
 
+function extractEpicness(entry: CommunityDragonItem): Item["epicness"] {
+	const epicness = z.number().optional().parse(entry.epicness) ?? 0
+	const known = ITEM_EPICNESS.find((value) => value === epicness)
+	if (known === undefined) {
+		throw new Error(
+			`Item ${entry.itemID}: unknown epicness ${epicness}; add it to ITEM_EPICNESS (schemas/item.ts) and give it a shop tier in group-shop-items.ts`,
+		)
+	}
+	return known
+}
+
 const ItemGroupSchema = z.object({
 	mItemGroupID: z.string(),
 	mMaxGroupOwnable: z.number().int().positive().optional(),
@@ -215,6 +227,7 @@ export function normalizeItems(
 				into: inShop(item.into),
 				inStore: item.inStore ?? true,
 				requiredChampion: item.requiredChampion,
+				epicness: extractEpicness(entry),
 				roles: extractRoles(entry),
 				groupLimits: extractGroupLimits(entry, bin),
 				stats: extractStats(entry, unmapped),

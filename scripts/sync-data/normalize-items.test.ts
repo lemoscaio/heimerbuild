@@ -121,6 +121,22 @@ describe("normalizeItems", () => {
 		}
 	})
 
+	test("carries the shop epicness, 0 when the game data omits it", () => {
+		expect(itemOf("1036").epicness).toBe(0)
+		expect(itemOf("1054").epicness).toBe(1)
+		expect(itemOf("3134").epicness).toBe(4)
+		expect(itemOf("3135").epicness).toBe(5)
+	})
+
+	test("fails the sync on an epicness with no shop tier", () => {
+		const bin = structuredClone(communityDragonBin) as Record<
+			string,
+			Record<string, unknown>
+		>
+		bin["Items/3134"].epicness = 3
+		expect(() => itemsOf(bin)).toThrow("Item 3134: unknown epicness 3")
+	})
+
 	test("keeps only shop items in from and into", () => {
 		// Long Sword builds into 25 items; of the fixture's items only Serrated Dirk.
 		expect(itemOf("1036").into).toEqual(["3134"])

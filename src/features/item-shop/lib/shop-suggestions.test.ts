@@ -22,6 +22,7 @@ function item(id: string, name: string): Item {
 		from: [],
 		into: [],
 		inStore: true,
+		epicness: 5,
 		roles: [],
 		groupLimits: [],
 		stats: {},
