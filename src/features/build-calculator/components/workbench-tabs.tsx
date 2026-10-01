@@ -1,10 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-export type WorkbenchTab = "items" | "runes"
+import type { BuildTab } from "../lib/build-search"
 
 type WorkbenchTabsProps = {
-	tab: WorkbenchTab
-	onTabChange: (tab: WorkbenchTab) => void
+	tab: BuildTab
+	onTabChange: (tab: BuildTab) => void
 	items: React.ReactNode
 	runes: React.ReactNode
 	/** Hover, focus or touch on the Runes tab, before it opens (preloads its images). */
@@ -22,7 +21,7 @@ export function WorkbenchTabs({
 	return (
 		<Tabs
 			value={tab}
-			onValueChange={(value: WorkbenchTab) => onTabChange(value)}
+			onValueChange={(value: BuildTab) => onTabChange(value)}
 			className="min-h-0 flex-1"
 		>
 			<TabsList className="shrink-0">

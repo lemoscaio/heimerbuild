@@ -36,6 +36,8 @@ export const buildSearchSchema = z.object({
 	),
 	/** Page layout: the expanded shop; absent means the overview. */
 	view: z.catch(z.optional(z.literal("shop")), undefined),
+	/** Open center tab: the rune page; absent means the items. */
+	tab: z.catch(z.optional(z.literal("runes")), undefined),
 	/** Rune page in the compact form of `serializeRuneSelection`; checked against the data later. */
 	runes: z.catch(
 		z.optional(z.string().check(z.regex(RUNES_PARAM_PATTERN))),
@@ -47,21 +49,25 @@ export type BuildSearch = z.infer<typeof buildSearchSchema>
 
 export type BuildView = "overview" | "shop"
 
+export type BuildTab = "items" | "runes"
+
 export type BuildState = {
 	level: number
 	itemIds: readonly string[]
 	patch: string | undefined
 	view?: BuildView
+	tab?: BuildTab
 	/** `serializeRuneSelection` output; `undefined` for no runes. */
 	runes?: string
 }
 
-/** The URL search for a build. Defaults (level 1, no items, overview, no runes) stay out of the URL. */
+/** The URL search for a build. Defaults (level 1, no items, overview, items tab, no runes) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
 	patch,
 	view,
+	tab,
 	runes,
 }: BuildState): BuildSearch {
 	return {
@@ -69,6 +75,7 @@ export function toBuildSearch({
 		items: itemIds.length ? [...itemIds] : undefined,
 		patch,
 		view: view === "shop" ? view : undefined,
+		tab: tab === "runes" ? tab : undefined,
 		runes,
 	}
 }

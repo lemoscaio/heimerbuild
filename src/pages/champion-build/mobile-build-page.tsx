@@ -1,9 +1,13 @@
 import type { Champion } from "@schemas/champion"
+import { useState } from "react"
 import { ItemDetailsCard } from "@/features/build-calculator/components/item-details-card"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
 import { MobileChampionRow } from "@/features/build-calculator/components/mobile-champion-row"
-import { MobileLayout } from "@/features/build-calculator/components/mobile-layout"
+import {
+	MobileLayout,
+	type MobileTab,
+} from "@/features/build-calculator/components/mobile-layout"
 import { RunesStatsNote } from "@/features/build-calculator/components/runes-stats-note"
 import { StatChangeList } from "@/features/build-calculator/components/stat-change-list"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
@@ -31,6 +35,13 @@ export function MobileBuildPage({
 }: MobileBuildPageProps) {
 	useAnalyticsContext({ shop_mode: "mobile" })
 	const preloadRuneImages = useRuneImagePreload(patch)
+	// Only Runes lives in the URL (the overview's tab); Stats and Shop both mean Items there.
+	const [itemsTab, setItemsTab] = useState<Exclude<MobileTab, "runes">>("stats")
+
+	function changeTab(nextTab: MobileTab) {
+		if (nextTab !== "runes") setItemsTab(nextTab)
+		build.setTab(nextTab === "runes" ? "runes" : "items")
+	}
 
 	return (
 		<MobileLayout
@@ -48,6 +59,8 @@ export function MobileBuildPage({
 					/>
 				</>
 			}
+			tab={build.tab === "runes" ? "runes" : itemsTab}
+			onTabChange={changeTab}
 			stats={
 				build.stats && (
 					<StatsPanel

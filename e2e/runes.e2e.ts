@@ -44,7 +44,11 @@ test("a rune page changes the stats with its shards, and a copied link restores 
 
 	const shared = await context.newPage()
 	await shared.goto(link)
-	await shared.getByRole("tab", { name: "Runes" }).click()
+	// The link keeps the open tab: the shared page opens on Runes.
+	await expect(shared.getByRole("tab", { name: "Runes" })).toHaveAttribute(
+		"aria-selected",
+		"true",
+	)
 	for (const [rowName, name] of [
 		["Primary tree", "Sorcery"],
 		["Sorcery keystone", "Arcane Comet"],
