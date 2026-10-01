@@ -1,5 +1,6 @@
 import type { Champion, ChampionSummary } from "../schemas/champion"
 import type { DataOverride, FieldOverride } from "./apply-overrides"
+import { CHAMPION_FORMS } from "./champion-forms"
 import { CHAMPION_LEVEL_STATES } from "./champion-level-states"
 
 /** Summary fields are left out so `champions.json` never disagrees with `champions/<key>.json`. */
@@ -20,7 +21,7 @@ export function defineChampionOverride<Field extends ChampionOverrideField>({
 	return { ...override, target: championKey }
 }
 
-/** Fixes for bugs in Riot's champion data, then the level states; see "Data overrides" in the README. */
+/** Fixes for bugs in Riot's champion data, then the level states and forms; see "Data overrides" in the README. */
 export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 	defineChampionOverride({
 		id: "gnar-ranged-attack-type",
@@ -28,7 +29,7 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 		field: "attackType",
 		since: "16.19",
 		reason:
-			"CommunityDragon lists both Ranged and Melee for Gnar, so the 175 range fallback picks melee; Mini Gnar, his starting form, is ranged",
+			"CommunityDragon lists both Ranged and Melee for Gnar, so the 175 range fallback picks melee; Mini Gnar, his starting and default form, is ranged",
 		source: "https://wiki.leagueoflegends.com/en-us/Gnar",
 		apply: () => "ranged" as const,
 	}),
@@ -77,12 +78,13 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 		field: "stats",
 		since: "16.19",
 		reason:
-			"Riot's health is dismounted Kled alone (410); he starts mounted, and the wiki gives Kled and Skaarl 810 health growing to 3238. Interim choice until his forms are modeled",
-		source: "https://github.com/lemoscaio/heimerbuild/issues/177",
+			"Riot's health is dismounted Kled alone (410); he starts mounted, his default form, and the wiki gives Kled and Skaarl 810 health growing to 3238",
+		source: "https://wiki.leagueoflegends.com/en-us/Module:ChampionData/data",
 		apply: (stats) => ({
 			...stats,
 			health: { base: 810, perLevel: 84 + 1000 / 17 },
 		}),
 	}),
 	...CHAMPION_LEVEL_STATES,
+	...CHAMPION_FORMS,
 ]

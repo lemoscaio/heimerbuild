@@ -141,6 +141,17 @@ levelStates: [
 
 The stats engine applies every state the selected level has reached, in order, each one replacing only the fields it sets. A stat with `growth: "linear"` adds `perLevel` once per level instead of following the champion growth curve.
 
+Forms the player switches between (Mini and Mega Gnar, Human and Cougar Nidalee) go in `champion-forms.ts` with `defineForms`, the same way, and the sync writes them to the champion's `forms`. The first form is the default: Riot's data, so it has only an `id` and a `name`. Every other form may set `attackType`, any growth stats it replaces, and its own `levelStates`, which replace the champion's (Mega Gnar has none, so he keeps 175 range):
+
+```ts
+forms: [
+	{ id: "mini", name: "Mini Gnar" },
+	{ id: "mega", name: "Mega Gnar", attackType: "melee", stats: { attackRange: { base: 175, perLevel: 0 } } },
+]
+```
+
+The stats engine applies the selected form first, then the level states. The form `id` is what the share link carries (`?form=mega`).
+
 ## Built with
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
