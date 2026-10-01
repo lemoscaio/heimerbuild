@@ -95,13 +95,15 @@ describe("shopSuggestions", () => {
 		expect(chips.map(({ term }) => term)).toEqual(["role:mage", "mr", "ap"])
 	})
 
-	test("suggests tokens for the typed word, the filters it starts that need a value, then the first four items", () => {
+	test("suggests the name search, tokens for the typed word, the filters it starts that need a value, then the first four items", () => {
 		const { suggestions } = shopSuggestions({
 			query: "staff ap",
 			filters: noFilters,
 			items,
 		})
+		expect(suggestions[0]).toEqual({ kind: "text", text: "staff" })
 		expect(suggestions.map(suggestionKey)).toEqual([
+			"text",
 			"stat:abilityPower",
 			"shortcut:ap>=",
 			"item:3089",
@@ -122,6 +124,21 @@ describe("shopSuggestions", () => {
 		])
 		expect(keys(noFilters, "and")).toEqual([])
 		expect(keys({ ...noFilters, match: "any" }, "and")).toEqual(["match:all"])
+	})
+
+	test("the name search leads only when free text is left and it names items", () => {
+		function keys(query: string, shown: readonly Item[] = items) {
+			return shopSuggestions({
+				query,
+				filters: noFilters,
+				items: shown,
+			}).suggestions.map(suggestionKey)
+		}
+		// "ap" alone becomes a token on Enter, so the token leads.
+		expect(keys("ap")[0]).toBe("stat:abilityPower")
+		// No item names "gro": the filter it starts leads.
+		expect(keys("gro", [])).toEqual(["shortcut:group:"])
+		expect(keys("zhon").slice(0, 2)).toEqual(["text", "item:3089"])
 	})
 
 	test("no text, no suggestions; a token being typed suggests no items", () => {
@@ -202,6 +219,19 @@ describe("pickSuggestions", () => {
 			{ kind: "has", effect: "active" },
 		])
 		expect(result.query).toBe("")
+	})
+
+	test("the picked name search commits the text's tokens and keeps the rest as text", () => {
+		const result = pickSuggestions([...chips, { kind: "text", text: "zhon" }], {
+			chips,
+			query: "mr zhon",
+			filters,
+		})
+		expect(result).toMatchObject({
+			picked: { kind: "text" },
+			query: "zhon",
+			filters: { ...filters, stats: ["abilityPower", "magicResist"] },
+		})
 	})
 
 	test("the match token keeps the mode it sets", () => {
