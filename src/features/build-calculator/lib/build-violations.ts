@@ -42,36 +42,43 @@ export function findBuildViolations(
 	}
 
 	// Boots and BootsWithoutActives flag the same two boots: say it once.
-	const byItems = new Map<string, BuildViolation & { rank: number }>()
+	const kept = new Map<string, BuildViolation>()
 	for (const [group, { max, members }] of groups) {
 		if (members.length <= max) continue
 		const itemIds = members.map(({ id }) => id)
 		const key = itemIds.join(",")
-		const candidate = { group, max, itemIds, ...describe(group, max, members) }
-		const kept = byItems.get(key)
-		if (!kept || candidate.rank < kept.rank) byItems.set(key, candidate)
+		const current = kept.get(key)
+		if (current && priority(current.group, members) <= priority(group, members))
+			continue
+		kept.set(key, {
+			group,
+			max,
+			itemIds,
+			message: describe(group, max, members),
+		})
 	}
-	return [...byItems.values()].map(({ rank: _rank, ...violation }) => violation)
+	return [...kept.values()]
+}
+
+// Lower wins: an unlabelled one-item limit, then GROUP_LABELS order, then the rest.
+function priority(group: string, members: readonly BuildItem[]) {
+	const labelIndex = GROUP_LABELS.findIndex(([name]) => name === group)
+	if (labelIndex !== -1) return 1 + labelIndex
+	return isOneItem(members) ? 0 : 1 + GROUP_LABELS.length
 }
 
 function describe(group: string, max: number, members: readonly BuildItem[]) {
-	const labelIndex = GROUP_LABELS.findIndex(([name]) => name === group)
-	const isOneItem = new Set(members.map(({ id }) => id)).size === 1
-	if (labelIndex === -1 && isOneItem) {
-		return { rank: 0, message: `only ${max} ${members[0].name}` }
-	}
+	const label = GROUP_LABELS.find(([name]) => name === group)?.[1]
+	if (!label && isOneItem(members)) return `only ${max} ${members[0].name}`
 	const names = listNames(members)
-	if (labelIndex !== -1) {
-		const label = GROUP_LABELS[labelIndex][1]
-		return { rank: 1 + labelIndex, message: `only ${max} ${label} (${names})` }
-	}
-	return {
-		rank: 1 + GROUP_LABELS.length,
-		message:
-			max === 1
-				? `these items can't be combined (${names})`
-				: `only ${max} of these items (${names})`,
-	}
+	if (label) return `only ${max} ${label} (${names})`
+	return max === 1
+		? `these items can't be combined (${names})`
+		: `only ${max} of these items (${names})`
+}
+
+function isOneItem(members: readonly BuildItem[]) {
+	return new Set(members.map(({ id }) => id)).size === 1
 }
 
 function listNames(members: readonly BuildItem[]) {
