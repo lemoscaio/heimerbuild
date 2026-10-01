@@ -1,20 +1,56 @@
+import { cva } from "class-variance-authority"
 import { cn } from "@/lib/cn"
-import { formatStat } from "@/lib/stat-display"
+import { formatStat, type StatFormat } from "@/lib/stat-display"
 import type { StatBreakdown } from "@/lib/stats/compute-stats"
 import type { StatRowInfo } from "../lib/stats-info"
 import { NoFixedValue } from "./no-fixed-value"
+
+const deltaChipVariants = cva(
+	"rounded-full bg-primary-4 px-1.5 font-semibold text-[0.625rem] leading-4",
+	{
+		variants: {
+			direction: {
+				up: "text-success",
+				down: "text-warning",
+			},
+		},
+	},
+)
+
+type DeltaChipProps = {
+	delta: number
+	format: StatFormat | undefined
+	/** The form the delta is measured against ("Mini Gnar"). */
+	comparedWith: string
+}
+
+function DeltaChip({ delta, format, comparedWith }: DeltaChipProps) {
+	return (
+		<span
+			title={`Compared with ${comparedWith}`}
+			className={deltaChipVariants({ direction: delta > 0 ? "up" : "down" })}
+		>
+			{delta > 0 ? "+" : "\u2212"}
+			{formatStat(Math.abs(delta), format)}
+			<span className="sr-only"> vs {comparedWith}</span>
+		</span>
+	)
+}
 
 type StatRowProps = {
 	info: StatRowInfo
 	breakdown: StatBreakdown
 	/** The total with the selected item added, when it differs. */
 	next?: number
+	/** How far the total is from another form's, when it differs. */
+	formDelta?: { delta: number; comparedWith: string }
 } & React.ComponentProps<"li">
 
 export function StatRow({
 	info,
 	breakdown,
 	next,
+	formDelta,
 	className,
 	...props
 }: StatRowProps) {
@@ -31,6 +67,7 @@ export function StatRow({
 		>
 			<img src={icon} alt="" className="size-4 shrink-0" />
 			<span className="min-w-0 flex-1 text-prose">{label}</span>
+			{formDelta && <DeltaChip format={format} {...formDelta} />}
 			<span className="shrink-0 font-medium tabular-nums">
 				{noFixedValue ? (
 					<NoFixedValue label={label} description={description} />
