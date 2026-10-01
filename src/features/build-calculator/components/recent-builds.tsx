@@ -27,6 +27,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				level: build.level,
 				itemIds: build.itemIds,
 				patch: build.patch,
+				runes: build.runes,
 			})}
 			className="flex items-center gap-2.5 rounded-xl border border-primary-2 bg-primary-0 px-3.5 py-2.5 transition-colors hover:bg-primary-2"
 		>

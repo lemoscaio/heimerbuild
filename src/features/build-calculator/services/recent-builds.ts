@@ -1,4 +1,5 @@
 import * as z from "zod/mini"
+import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { MAX_ITEMS } from "../lib/build-items"
 
@@ -14,6 +15,11 @@ const recentBuildSchema = z.object({
 		.check(z.maxLength(MAX_ITEMS)),
 	/** The patch pinned in the build's link, if any. */
 	patch: z.optional(z.string().check(z.regex(/^\d+\.\d+\.\d+$/))),
+	/** The rune page as the `runes` URL value. Absent in entries saved before runes; a bad one only loses the runes. */
+	runes: z.catch(
+		z.optional(z.string().check(z.regex(RUNES_PARAM_PATTERN))),
+		undefined,
+	),
 })
 
 export type RecentBuild = z.infer<typeof recentBuildSchema>

@@ -50,6 +50,39 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })).toEqual([heimer])
 	})
 
+	test("keep the rune page and hand it back as recorded", () => {
+		const storage = memoryStorage()
+		const runes = "8200-8229-8226-8210-8237_8300-8304-8347_5008-5008-5011"
+		recordRecentBuild({ ...build("Ahri"), runes }, { storage })
+		expect(readRecentBuilds({ storage })[0]?.runes).toBe(runes)
+	})
+
+	test("read builds stored before runes existed", () => {
+		const storage = memoryStorage()
+		const stored = [
+			{ championKey: "Heimerdinger", level: 11, itemIds: ["3089"] },
+		]
+		storage.setItem("heimerbuild:recent-builds:v1", JSON.stringify(stored))
+		expect(readRecentBuilds({ storage })).toEqual(stored)
+
+		recordRecentBuild(build("Ahri"), { storage })
+		expect(championKeys(readRecentBuilds({ storage }))).toEqual([
+			"Ahri",
+			"Heimerdinger",
+		])
+	})
+
+	test("drop only the runes of a build whose stored rune page is invalid", () => {
+		const storage = memoryStorage()
+		storage.setItem(
+			"heimerbuild:recent-builds:v1",
+			JSON.stringify([
+				{ championKey: "Ahri", level: 3, itemIds: [], runes: "<script>_x_y" },
+			]),
+		)
+		expect(readRecentBuilds({ storage })).toEqual([build("Ahri", 3)])
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

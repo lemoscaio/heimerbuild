@@ -52,6 +52,13 @@ describe("buildSearchSchema", () => {
 		expect(parse({ view: 1 }).view).toBeUndefined()
 	})
 
+	test("accepts the runes tab and drops any other tab", () => {
+		expect(parse({ tab: "runes" }).tab).toBe("runes")
+		expect(parse({ tab: "items" }).tab).toBeUndefined()
+		expect(parse({ tab: "masteries" }).tab).toBeUndefined()
+		expect(parse({ tab: 1 }).tab).toBeUndefined()
+	})
+
 	test("accepts a rune page in its compact form and drops anything else", () => {
 		const runes = "8200-8229-8226-8210-8237_8300-8304-8347_5008-5008-5011"
 		expect(parse({ runes }).runes).toBe(runes)
@@ -90,12 +97,19 @@ describe("toBuildSearch", () => {
 		expect(toBuildSearch({ ...build, view: "overview" }).view).toBeUndefined()
 	})
 
+	test("writes the runes tab and leaves the items tab out", () => {
+		const build = { level: 1, itemIds: [], patch: undefined }
+		expect(toBuildSearch({ ...build, tab: "runes" }).tab).toBe("runes")
+		expect(toBuildSearch({ ...build, tab: "items" }).tab).toBeUndefined()
+	})
+
 	test("reads back through the search schema", () => {
 		const search = toBuildSearch({
 			level: 18,
 			itemIds: ["3089"],
 			patch: "16.19.1",
 			view: "shop",
+			tab: "runes",
 		})
 		expect(buildSearchSchema.parse(search)).toEqual(search)
 	})

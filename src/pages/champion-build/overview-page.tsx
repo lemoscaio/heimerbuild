@@ -1,5 +1,4 @@
 import type { Champion } from "@schemas/champion"
-import { useState } from "react"
 import { ItemDetailsCard } from "@/features/build-calculator/components/item-details-card"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
@@ -8,10 +7,7 @@ import { ShopViewIconToggle } from "@/features/build-calculator/components/shop-
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
 import { WorkbenchPanel } from "@/features/build-calculator/components/workbench-panel"
-import {
-	type WorkbenchTab,
-	WorkbenchTabs,
-} from "@/features/build-calculator/components/workbench-tabs"
+import { WorkbenchTabs } from "@/features/build-calculator/components/workbench-tabs"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
@@ -36,8 +32,7 @@ export function OverviewPage({
 	copyLink,
 	patchNotice,
 }: OverviewPageProps) {
-	const [tab, setTab] = useState<WorkbenchTab>("items")
-	const isRunesTab = tab === "runes"
+	const isRunesTab = build.tab === "runes"
 	const preloadRuneImages = useRuneImagePreload(patch)
 	useAnalyticsContext({ shop_mode: "overview" })
 
@@ -63,14 +58,14 @@ export function OverviewPage({
 						patch={patch}
 						selection={build.runeSelection}
 						isEditing={isRunesTab}
-						onEdit={() => setTab("runes")}
+						onEdit={() => build.setTab("runes")}
 					/>
 				</>
 			}
 			shop={
 				<WorkbenchTabs
-					tab={tab}
-					onTabChange={setTab}
+					tab={build.tab}
+					onTabChange={build.setTab}
 					onRunesIntent={preloadRuneImages}
 					items={
 						<ItemShop

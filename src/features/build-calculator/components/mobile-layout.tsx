@@ -1,8 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+export type MobileTab = "stats" | "shop" | "runes"
+
 type MobileLayoutProps = {
 	/** Champion, level and build slots, above the tabs. */
 	top: React.ReactNode
+	tab: MobileTab
+	onTabChange: (tab: MobileTab) => void
 	stats: React.ReactNode
 	shop: React.ReactNode
 	runes: React.ReactNode
@@ -15,6 +19,8 @@ type MobileLayoutProps = {
 /** The champion page below `lg`: the build on top, then Stats | Shop | Runes tabs. */
 export function MobileLayout({
 	top,
+	tab,
+	onTabChange,
 	stats,
 	shop,
 	runes,
@@ -26,7 +32,10 @@ export function MobileLayout({
 			<div className="flex flex-1 flex-col gap-4 pb-4">
 				{top}
 				{/* Both panels stay mounted: switching keeps the shop's filters and scroll. */}
-				<Tabs defaultValue="stats">
+				<Tabs
+					value={tab}
+					onValueChange={(value: MobileTab) => onTabChange(value)}
+				>
 					<TabsList className="grid w-full grid-cols-3">
 						<TabsTrigger value="stats" className="h-11">
 							Stats
