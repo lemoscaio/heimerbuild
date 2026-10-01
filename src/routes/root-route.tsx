@@ -10,7 +10,7 @@ import { RouteFocus } from "@/app/route-focus"
 import { SiteFooter } from "@/components/common/site-footer"
 import { PRODUCT_NAME } from "@/lib/product-name"
 
-export type RouterContext = {
+type RouterContext = {
 	queryClient: QueryClient
 }
 

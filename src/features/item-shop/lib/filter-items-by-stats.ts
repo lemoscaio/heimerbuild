@@ -5,7 +5,7 @@ export type StatMatch = "all" | "any"
 
 type FilterItemsByStatsOptions = { match?: StatMatch }
 
-export function hasStat(item: Pick<Item, "stats">, stat: StatKey) {
+function hasStat(item: Pick<Item, "stats">, stat: StatKey) {
 	return (item.stats[stat] ?? 0) !== 0
 }
 

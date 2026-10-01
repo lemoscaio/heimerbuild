@@ -4,13 +4,13 @@ import type { ShardStat } from "@schemas/rune"
 import type { ItemInput } from "./compute-stats"
 import { MAX_LEVEL, MIN_LEVEL } from "./growth"
 
-export type AdaptiveType = Champion["adaptiveType"]
+type AdaptiveType = Champion["adaptiveType"]
 
 /**
  * What one point of Adaptive Force gives: 0.6 bonus attack damage or 1 ability power.
  * Not in the game data; source: League of Legends Wiki, "Adaptive force".
  */
-export const ADAPTIVE_FORCE_CONVERSION = {
+const ADAPTIVE_FORCE_CONVERSION = {
 	ad: { stat: "attackDamage", ratio: 0.6 },
 	ap: { stat: "abilityPower", ratio: 1 },
 } as const satisfies Record<AdaptiveType, { stat: StatKey; ratio: number }>

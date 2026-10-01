@@ -10,8 +10,6 @@ export const duration = {
 export const easing = {
 	/** Entrances, exits and size changes: fast start, soft landing. */
 	out: [0.22, 1, 0.36, 1],
-	/** Things moving from one place to another on screen. */
-	inOut: [0.65, 0, 0.35, 1],
 } as const
 
 /** A `Stagger` spreads its items' start times over this window, however many items it has. */

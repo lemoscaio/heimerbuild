@@ -4,10 +4,6 @@ import { cn } from "@/lib/cn"
 
 export const Combobox = ComboboxPrimitive.Root
 
-export function ComboboxValue(props: ComboboxPrimitive.Value.Props) {
-	return <ComboboxPrimitive.Value data-slot="combobox-value" {...props} />
-}
-
 /** The input box that holds the chips (selected values) and the text input. */
 export function ComboboxChips({
 	className,

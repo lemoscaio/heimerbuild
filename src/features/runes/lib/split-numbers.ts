@@ -1,4 +1,4 @@
-export type TextPart = { text: string; isNumber: boolean }
+type TextPart = { text: string; isNumber: boolean }
 
 // A number with an optional sign, decimals, percent and range: "+9", "0.45%", "70 - 240", "1.8-4".
 const NUMBER = /[+-]?\d+(?:\.\d+)?%?(?:\s?[-–]\s?\d+(?:\.\d+)?%?)?/g
