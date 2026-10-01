@@ -3,7 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
 import { ShopStateProvider } from "@/features/item-shop/components/shop-state-provider"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-is-desktop"
 import { track } from "@/lib/analytics/analytics"
 import { isRuneSelectionEmpty } from "@/lib/rune-selection"
 import { ExpandedShopPage } from "./expanded-shop-page"
@@ -13,9 +13,6 @@ import { OverviewPage } from "./overview-page"
 
 // Reads the route by id, so the page never imports the route that lazy-loads it.
 const championRouteApi = getRouteApi("/page-with-header/champions/$key")
-
-// Tailwind's `lg` breakpoint.
-const LG_QUERY = "(min-width: 64rem)"
 
 // Hover waits before the first tooltip, so moving across items does not cover the target;
 // once one is open, the next opens instantly (Base UI groups tooltips under the provider).
@@ -35,7 +32,7 @@ export function ChampionBuildPage() {
 		onSearchChange: (nextSearch, { replace }) =>
 			navigate({ search: nextSearch, replace, resetScroll: false }),
 	})
-	const isDesktop = useMediaQuery(LG_QUERY)
+	const isDesktop = useIsDesktop()
 	const buildHref = router.buildLocation({
 		to: "/champions/$key",
 		params: { key },

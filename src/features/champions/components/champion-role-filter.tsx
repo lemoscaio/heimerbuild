@@ -1,15 +1,13 @@
 import type { ChampionRole } from "@schemas/champion"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { roleLabels } from "../lib/champion-labels"
+import { CHAMPION_ROLES, roleLabels } from "@/lib/champion-roles"
 
 const ALL_ROLES = "ALL"
 
 const roleOptions: { value: ChampionRole | typeof ALL_ROLES; label: string }[] =
 	[
 		{ value: ALL_ROLES, label: "All" },
-		...(
-			["FIGHTER", "MAGE", "ASSASSIN", "MARKSMAN", "TANK", "SUPPORT"] as const
-		).map((role) => ({ value: role, label: roleLabels[role] })),
+		...CHAMPION_ROLES.map((role) => ({ value: role, label: roleLabels[role] })),
 	]
 
 type ChampionRoleFilterProps = {
