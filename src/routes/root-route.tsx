@@ -7,6 +7,7 @@ import {
 	redirect,
 } from "@tanstack/react-router"
 import { RouteFocus } from "@/app/route-focus"
+import { SiteFooter } from "@/components/common/site-footer"
 import { PRODUCT_NAME } from "@/lib/product-name"
 
 export type RouterContext = {
@@ -20,11 +21,12 @@ export const rootRoute = createRootRouteWithContext<RouterContext>()({
 
 function RootLayout() {
 	return (
-		<>
+		<div className="flex min-h-dvh flex-col">
 			<HeadContent />
 			<RouteFocus />
 			<Outlet />
-		</>
+			<SiteFooter />
+		</div>
 	)
 }
 

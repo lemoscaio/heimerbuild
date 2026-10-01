@@ -22,8 +22,8 @@ export function MobileLayout({
 	bottom,
 }: MobileLayoutProps) {
 	return (
-		<main className="min-h-screen bg-primary-3 px-4 pt-[calc(var(--spacing-header)+--spacing(4))] pb-28 text-sm text-white">
-			<div className="flex flex-col gap-4">
+		<main className="flex min-h-screen flex-col bg-primary-3 px-4 pt-[calc(var(--spacing-header)+--spacing(4))] text-sm text-white">
+			<div className="flex flex-1 flex-col gap-4 pb-4">
 				{top}
 				{/* Both panels stay mounted: switching keeps the shop's filters and scroll. */}
 				<Tabs defaultValue="stats">
@@ -53,7 +53,8 @@ export function MobileLayout({
 					<TabsContent value="runes">{runes}</TabsContent>
 				</Tabs>
 			</div>
-			<div className="fixed inset-x-0 bottom-0 z-10 flex flex-col gap-3 border-primary-2 border-t bg-primary-4 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),--spacing(3))]">
+			{/* Sticky, not fixed: it parks at the end of the page, so the site footer below stays visible. */}
+			<div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-primary-2 border-t bg-primary-4 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),--spacing(3))]">
 				{bottom}
 			</div>
 		</main>
