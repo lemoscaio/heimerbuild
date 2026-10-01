@@ -69,7 +69,9 @@ describe("normalizeItems", () => {
 	test("carries Data Dragon metadata", () => {
 		expect(itemOf("3134")).toMatchObject({
 			name: "Serrated Dirk",
-			icon: "3134.png",
+			icon: expect.stringMatching(
+				/^https:\/\/ddragon\.leagueoflegends\.com\/cdn\/[\d.]+\/img\/item\/3134\.png$/,
+			),
 			gold: { base: 300, total: 1000, sell: 700, purchasable: true },
 			tags: ["Damage", "ArmorPenetration"],
 			from: ["1036", "1036"],

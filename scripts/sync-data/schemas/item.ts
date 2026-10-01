@@ -60,8 +60,8 @@ export const ItemSchema = z.strictObject({
 	description: z._default(z.string(), ""),
 	/** Short plain-text summary; empty for some items. */
 	plaintext: z._default(z.string(), ""),
-	/** File name only; the app builds the Data Dragon URL from the patch. */
-	icon: z.string().check(z.minLength(1)),
+	/** Full Data Dragon URL for the file's version, like champion icons. */
+	icon: z.url(),
 	gold: z.strictObject({
 		base: z.number(),
 		total: z.number(),

@@ -3,7 +3,7 @@ import { dirname, join } from "node:path"
 import { fetchWithRetry, HttpError, mapWithConcurrency } from "./http"
 import { toCommunityDragonPatch } from "./version"
 
-const DDRAGON_BASE = "https://ddragon.leagueoflegends.com/cdn"
+export const DDRAGON_BASE = "https://ddragon.leagueoflegends.com/cdn"
 const CDRAGON_BASE = "https://raw.communitydragon.org"
 const CDRAGON_ITEMS_PATH = "game/items.cdtb.bin.json"
 // Client data (stat shards): plain JSON, unlike the game bins.

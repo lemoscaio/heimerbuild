@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
+import { DDRAGON_BASE } from "./download"
 import {
 	type AntiHealMismatch,
 	appliesWounds,
@@ -235,7 +236,7 @@ export function normalizeItems(
 				name: item.name,
 				description: itemMarkupToText(item.description),
 				plaintext: itemMarkupToText(item.plaintext),
-				icon: item.image.full,
+				icon: `${DDRAGON_BASE}/${version}/img/item/${item.image.full}`,
 				gold: item.gold,
 				// The Active tag misses 16 items with an active; `active` replaces it.
 				tags: item.tags.filter((tag) => tag !== "Active"),
