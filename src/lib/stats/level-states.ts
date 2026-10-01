@@ -14,3 +14,13 @@ export function levelStateAt(
 	}
 	return active
 }
+
+/** Melee or ranged at `level`: Kayle is ranged from level 6. */
+export function attackTypeAtLevel(
+	champion: Pick<Champion, "attackType" | "levelStates">,
+	level: number,
+): Champion["attackType"] {
+	return (
+		levelStateAt(champion.levelStates, level).attackType ?? champion.attackType
+	)
+}
