@@ -1,5 +1,5 @@
 import type { Item } from "@schemas/item"
-import { Fragment, useRef, useState } from "react"
+import { Fragment, useRef } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import {
 	Combobox,
@@ -13,8 +13,11 @@ import {
 } from "@/components/ui/combobox"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
+import { useSearchCompletion } from "../hooks/use-search-completion"
 import { useSearchHandoff } from "../hooks/use-search-handoff"
+import { useSearchKeys } from "../hooks/use-search-keys"
 import { useSearchShortcut } from "../hooks/use-search-shortcut"
+import { useSuggestionsPopup } from "../hooks/use-suggestions-popup"
 import { applyMoreFilter, type MoreFilter } from "../lib/more-filters"
 import type { ShopCatalog } from "../lib/shop-catalog"
 import {
@@ -29,6 +32,7 @@ import {
 	suggestionKey,
 	suggestionKindLabel,
 	suggestionText,
+	type TextSuggestion,
 } from "../lib/shop-suggestions"
 import { MoreFiltersMenu } from "./more-filters-menu"
 
@@ -67,10 +71,10 @@ export function ShopSearch({
 }: ShopSearchProps) {
 	const inputRef = useRef<HTMLInputElement>(null)
 	const anchorRef = useRef<HTMLDivElement>(null)
-	const highlightedRef = useRef<Suggestion>(undefined)
-	const [isOpen, setOpen] = useState(false)
+	const popup = useSuggestionsPopup()
+	const completion = useSearchCompletion(inputRef)
 	useSearchShortcut(inputRef)
-	const handoff = useSearchHandoff(inputRef, () => setOpen(true))
+	const handoff = useSearchHandoff(inputRef)
 
 	const { chips, suggestions } = shopSuggestions({
 		query,
@@ -105,13 +109,22 @@ export function ShopSearch({
 			chips,
 			query,
 			filters,
+			catalog,
 		})
-		if (picked && reason === "item-press") trackPick(picked)
+		if (picked && picked.kind !== "text" && reason === "item-press") {
+			trackPick(picked)
+		}
 		if (picked?.kind === "item") onItemPick(picked.item.id)
+		if (picked?.kind === "shortcut") {
+			// A prefix needs its value: typed in, it shows its values with the first highlighted.
+			popup.keepOpenAfterPick()
+			queueMicrotask(() => completion.complete(change.query))
+			return
+		}
 		onSearchChange(change)
 	}
 
-	function trackPick(picked: Suggestion) {
+	function trackPick(picked: PickedSuggestion) {
 		const position =
 			suggestions.findIndex(
 				(suggestion) => suggestionKey(suggestion) === suggestionKey(picked),
@@ -123,29 +136,24 @@ export function ShopSearch({
 	}
 
 	function handleMoreFilter(filter: MoreFilter) {
-		// A filter that needs a value is completed in the search, with its suggestions open.
-		if (filter.kind === "shortcut") handoff.handOff()
-		onSearchChange(applyMoreFilter(filter, { query, filters }))
-	}
-
-	function handleKeyDown(
-		event: React.KeyboardEvent<HTMLInputElement> & {
-			preventBaseUIHandler?: () => void
-		},
-	) {
-		// A first Escape closes the suggestions; with them closed, Escape clears the text only
-		// (the combobox would also clear the tokens) and moves to the items.
-		if (event.key === "Escape" && !isOpen) {
-			event.preventBaseUIHandler?.()
-			event.preventDefault()
-			onEscape()
-		} else if (
-			(event.key === "Enter" && !highlightedRef.current) ||
-			event.key === "Tab"
-		) {
-			commit(query, { includeLastWord: true })
+		const change = applyMoreFilter(filter, { query, filters })
+		// A filter that needs a value is completed in the search, like a picked prefix.
+		if (filter.kind === "shortcut") {
+			handoff.handOff(() => completion.complete(change.query))
+		} else {
+			onSearchChange(change)
 		}
 	}
+
+	const keys = useSearchKeys({
+		isOpen: popup.isOpen,
+		query,
+		filters,
+		onSearchChange,
+		onCommit: () => commit(query, { includeLastWord: true }),
+		onEscape,
+		complete: completion.complete,
+	})
 
 	return (
 		<>
@@ -160,11 +168,9 @@ export function ShopSearch({
 					// Picking a suggestion clears the input; `handleValueChange` already set the text.
 					if (reason !== "item-press" && reason !== "input-clear") commit(text)
 				}}
-				open={isOpen}
-				onOpenChange={setOpen}
-				onItemHighlighted={(suggestion) => {
-					highlightedRef.current = suggestion
-				}}
+				open={popup.isOpen}
+				onOpenChange={popup.onOpenChange}
+				autoHighlight
 				isItemEqualToValue={(a, b) => suggestionKey(a) === suggestionKey(b)}
 				itemToStringLabel={suggestionText}
 			>
@@ -198,7 +204,7 @@ export function ShopSearch({
 							chips.length ? "" : "Search items, ap, role:tank, gold<=1500…"
 						}
 						className="max-lg:h-9"
-						onKeyDown={handleKeyDown}
+						onKeyDown={keys.onKeyDown}
 					/>
 					{!query && !chips.length && (
 						<kbd
@@ -210,8 +216,10 @@ export function ShopSearch({
 					)}
 				</ComboboxChips>
 				<span className="sr-only" aria-live="polite">
-					{!!chips.length &&
-						`Filters: ${chips.map(({ label }) => label).join(", ")}`}
+					{keys.editing
+						? `Editing ${keys.editing}`
+						: !!chips.length &&
+							`Filters: ${chips.map(({ label }) => label).join(", ")}`}
 				</span>
 				<ComboboxContent
 					anchor={anchorRef}
@@ -240,8 +248,11 @@ export function ShopSearch({
 	)
 }
 
+/** A pick analytics records; the name search is the plain Enter it always was. */
+type PickedSuggestion = Exclude<Suggestion, TextSuggestion>
+
 /** What a pick sends to analytics: a token's value, the item id or the shortcut's prefix. */
-function pickedValue(picked: Suggestion) {
+function pickedValue(picked: PickedSuggestion) {
 	switch (picked.kind) {
 		case "item":
 			return { kind: "item" as const, value: picked.item.id }
@@ -265,6 +276,8 @@ function SuggestionRow({ suggestion }: { suggestion: Suggestion }) {
 
 function SuggestionContent({ suggestion }: { suggestion: Suggestion }) {
 	switch (suggestion.kind) {
+		case "text":
+			return <FilterContent label={`Name contains "${suggestion.text}"`} />
 		case "item":
 			return (
 				<>
@@ -300,7 +313,7 @@ function FilterContent({
 }: {
 	icon?: string
 	label: string
-	term: string
+	term?: string
 }) {
 	return (
 		<>
@@ -312,9 +325,11 @@ function FilterContent({
 			{/* On phones the term goes under the label, so long item names stay readable. */}
 			<span className="flex min-w-0 flex-1 items-center max-lg:flex-col max-lg:items-start">
 				<span className="min-w-0 max-w-full truncate">{label}</span>
-				<span className="max-w-full shrink-0 truncate font-mono text-subtle text-xs lg:ml-auto lg:pl-2">
-					{term}
-				</span>
+				{!!term && (
+					<span className="max-w-full shrink-0 truncate font-mono text-subtle text-xs lg:ml-auto lg:pl-2">
+						{term}
+					</span>
+				)}
 			</span>
 		</>
 	)
