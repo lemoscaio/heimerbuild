@@ -66,6 +66,22 @@ export function DropdownMenuLabel({
 	)
 }
 
+export function DropdownMenuItem({
+	className,
+	...props
+}: MenuPrimitive.Item.Props) {
+	return (
+		<MenuPrimitive.Item
+			data-slot="dropdown-menu-item"
+			className={cn(
+				"relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden data-disabled:pointer-events-none data-highlighted:bg-accent data-highlighted:text-accent-foreground data-disabled:opacity-50 max-lg:min-h-11 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+				className,
+			)}
+			{...props}
+		/>
+	)
+}
+
 export function DropdownMenuRadioGroup(props: MenuPrimitive.RadioGroup.Props) {
 	return (
 		<MenuPrimitive.RadioGroup
