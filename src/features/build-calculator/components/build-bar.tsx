@@ -8,6 +8,8 @@ import { LevelStepper } from "./level-stepper"
 
 type BuildBarProps = {
 	champion: Pick<Champion, "name" | "icon" | "resource">
+	/** The selected form's name, over the portrait, for a champion with forms. */
+	formName?: string
 	level: number
 	onLevelChange: (level: number) => void
 	items: readonly Item[]
@@ -20,6 +22,7 @@ type BuildBarProps = {
 /** The expanded shop's bottom bar: champion, level, build slots and key stats. */
 export function BuildBar({
 	champion,
+	formName,
 	level,
 	onLevelChange,
 	items,
@@ -37,6 +40,7 @@ export function BuildBar({
 				<GameIcon
 					src={champion.icon}
 					name={champion.name}
+					caption={formName}
 					className="size-14 rounded-lg border-2 border-gold/70"
 				/>
 				<div className="flex flex-col gap-1">

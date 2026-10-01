@@ -11,17 +11,24 @@ import { ChampionHeaderLayout } from "./champion-header-layout"
 
 type ChampionHeaderProps = {
 	champion: Pick<Champion, "name" | "title" | "icon" | "roles" | "lore">
-	/** Melee or ranged at the selected level (Kayle turns ranged at 6). */
+	/** Melee or ranged at the selected level and form (Kayle turns ranged at 6). */
 	attackType: Champion["attackType"]
+	/** The selected form's name, over the portrait, for a champion with forms. */
+	formName?: string
 }
 
-export function ChampionHeader({ champion, attackType }: ChampionHeaderProps) {
+export function ChampionHeader({
+	champion,
+	attackType,
+	formName,
+}: ChampionHeaderProps) {
 	return (
 		<>
 			<ChampionHeaderLayout>
 				<GameIcon
 					src={champion.icon}
 					name={champion.name}
+					caption={formName}
 					className="size-16 rounded-lg border-2 border-gold/70"
 				/>
 				<div className="flex flex-col gap-0.5 font-display">

@@ -5,6 +5,8 @@ import { iconLabel } from "@/lib/icon-label"
 type GameIconProps = {
 	/** Shown in the tile only when the icon fails to load (Data Dragon down). */
 	name: string
+	/** A label over the icon's bottom edge, such as a champion's form. Decorative. */
+	caption?: string
 } & Omit<React.ComponentProps<"img">, "alt">
 
 type LoadResult = { src: string; status: "loaded" | "failed" }
@@ -20,6 +22,7 @@ function loadStatus(src: string | undefined, result: LoadResult | undefined) {
  */
 export function GameIcon({
 	name,
+	caption,
 	src,
 	className,
 	onLoad,
@@ -60,6 +63,14 @@ export function GameIcon({
 				}}
 				{...props}
 			/>
+			{caption && (
+				<span
+					aria-hidden="true"
+					className="absolute inset-x-0 bottom-0 truncate bg-primary-4/80 px-0.5 text-center font-bold font-display text-[15cqi] text-white leading-normal"
+				>
+					{caption}
+				</span>
+			)}
 		</span>
 	)
 }
