@@ -12,6 +12,7 @@ export type FilterShortcut = {
 	example: string
 }
 
+/** The filters with a fixed prefix that need a value. */
 export const filterShortcuts: readonly FilterShortcut[] = [
 	{
 		text: "group:",

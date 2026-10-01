@@ -1,5 +1,11 @@
 import { expect } from "@playwright/test"
-import { chosenItems, statsPanel, test } from "./fixtures"
+import {
+	chosenItems,
+	currentItems,
+	shopItems,
+	statsPanel,
+	test,
+} from "./fixtures"
 
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
@@ -27,4 +33,18 @@ test("on a phone, an item added from the Shop tab changes the Stats tab", async 
 	await page.getByRole("tab", { name: "Stats" }).click()
 	await expect(stats).toBeVisible()
 	await expect(stats).not.toHaveText(before ?? "")
+})
+
+test("on a phone, More filters in the Shop tab applies a search-only filter", async ({
+	page,
+	request,
+}) => {
+	const items = await currentItems(request)
+	await page.goto("/champions/Heimerdinger")
+	await page.getByRole("tab", { name: "Shop" }).click()
+	await page.getByRole("button", { name: "More filters" }).click()
+	await page.getByRole("menuitem", { name: /Has an active/ }).click()
+	await expect(shopItems(page)).toHaveCount(
+		items.filter((item) => item.active).length,
+	)
 })
