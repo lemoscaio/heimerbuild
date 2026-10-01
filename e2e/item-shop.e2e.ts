@@ -298,3 +298,67 @@ test("More filters lists the search-only filters: one applies as a chip, one nee
 	await page.getByRole("button", { name: /^Remove Builds into/ }).click()
 	await expect(shop).toHaveCount(items.filter((item) => item.antiHeal).length)
 })
+
+test("search keys: Enter and Tab accept the highlighted first suggestion, a prefix keeps the list open on its values, and Tab with the list closed moves on", async ({
+	page,
+}) => {
+	await page.goto("/champions/Heimerdinger")
+	await expect(shopItems(page).first()).toBeVisible()
+	const search = page.getByRole("combobox", { name: "Search items" })
+	const options = page.getByRole("option")
+	async function expectFirstHighlighted() {
+		await expect(options.first()).toBeVisible()
+		await expect(search).toHaveAttribute(
+			"aria-activedescendant",
+			(await options.first().getAttribute("id")) ?? "",
+		)
+	}
+
+	await search.focus()
+	await page.keyboard.type("gro")
+	await expectFirstHighlighted()
+	await page.keyboard.press("Enter")
+	await expect(search).toHaveValue("group:")
+	await expect(options.first()).toHaveAccessibleName(/group/)
+	await expectFirstHighlighted()
+	await page.keyboard.press("Tab")
+	await expect(search).toBeFocused()
+	await expect(search).toHaveValue("")
+	await expect(
+		page.getByRole("button", { name: /^Remove .+ group$/ }),
+	).toBeVisible()
+
+	await page.keyboard.type("gro")
+	await page.keyboard.press("Tab")
+	await expect(search).toHaveValue("group:")
+	await expectFirstHighlighted()
+	await page.keyboard.press("Escape")
+	await expect(page.getByRole("listbox")).toBeHidden()
+	await page.keyboard.press("Tab")
+	await expect(page.getByRole("button", { name: "More filters" })).toBeFocused()
+})
+
+test("Backspace in an empty search edits the last chip: its value goes and its prefix stays, with the suggestions open", async ({
+	page,
+}) => {
+	await page.goto("/champions/Heimerdinger")
+	await expect(shopItems(page).first()).toBeVisible()
+	const search = page.getByRole("combobox", { name: "Search items" })
+	const groupChip = page.getByRole("button", { name: /^Remove .+ group$/ })
+
+	await search.focus()
+	await page.keyboard.type("group:")
+	await page.keyboard.press("Enter")
+	await expect(groupChip).toBeVisible()
+	await page.keyboard.press("Backspace")
+	await expect(groupChip).toBeHidden()
+	await expect(search).toHaveValue("group:")
+	await expect(page.getByRole("option").first()).toBeVisible()
+	await expect(search).toHaveAttribute(
+		"aria-activedescendant",
+		(await page.getByRole("option").first().getAttribute("id")) ?? "",
+	)
+
+	await page.keyboard.press("Backspace")
+	await expect(search).toHaveValue("group")
+})
