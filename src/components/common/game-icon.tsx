@@ -35,7 +35,7 @@ export function GameIcon({
 	return (
 		<span
 			className={cn(
-				"@container relative flex shrink-0 items-center justify-center overflow-hidden bg-primary-2",
+				"@container relative flex shrink-0 items-center justify-center overflow-hidden bg-line",
 				className,
 			)}
 		>
@@ -66,7 +66,7 @@ export function GameIcon({
 			{caption && (
 				<span
 					aria-hidden="true"
-					className="absolute inset-x-0 bottom-0 truncate bg-primary-4/80 px-0.5 text-center font-bold font-display text-[15cqi] text-white leading-normal"
+					className="absolute inset-x-0 bottom-0 truncate bg-surface-sunken/80 px-0.5 text-center font-bold font-display text-[15cqi] text-white leading-normal"
 				>
 					{caption}
 				</span>

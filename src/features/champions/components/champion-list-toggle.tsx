@@ -24,7 +24,7 @@ export function ChampionListToggle({
 			aria-expanded={expanded}
 			aria-controls={controls}
 			className={cn("h-11 rounded-full bg-transparent px-5.5 font-semibold", {
-				"bg-primary-2": expanded,
+				"bg-line": expanded,
 			})}
 			onClick={() => onExpandedChange(!expanded)}
 		>

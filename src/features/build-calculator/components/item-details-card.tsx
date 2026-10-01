@@ -27,7 +27,7 @@ export function ItemDetailsCard({
 	return (
 		<section
 			aria-labelledby={headingId}
-			className="flex flex-col gap-2.5 rounded-xl border border-lilac bg-primary-2 p-4"
+			className="flex flex-col gap-2.5 rounded-xl border border-lilac bg-line p-4"
 		>
 			<ItemSummary item={item} headingId={headingId}>
 				<Button

@@ -37,7 +37,7 @@ export function LevelSelector({ level, onLevelChange }: LevelSelectorProps) {
 			>
 				<div className="flex items-center justify-between gap-2">
 					<SelectLabel className="text-prose">Level</SelectLabel>
-					<SelectTrigger className="h-auto bg-transparent py-0 pr-1 pl-2 font-bold font-display text-3xl hover:bg-primary-2 data-popup-open:bg-primary-2 max-lg:min-h-11 max-lg:text-2xl">
+					<SelectTrigger className="h-auto bg-transparent py-0 pr-1 pl-2 font-bold font-display text-3xl hover:bg-line data-popup-open:bg-line max-lg:min-h-11 max-lg:text-2xl">
 						<SelectValue />
 					</SelectTrigger>
 				</div>

@@ -30,7 +30,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				runes: build.runes,
 				form: build.form,
 			})}
-			className="flex items-center gap-2.5 rounded-xl border border-primary-2 bg-primary-0 px-3.5 py-2.5 transition-colors hover:bg-primary-2"
+			className="flex items-center gap-2.5 rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 transition-colors hover:bg-line"
 		>
 			<GameIcon
 				src={champion?.icon}

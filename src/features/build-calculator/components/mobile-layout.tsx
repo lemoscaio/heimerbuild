@@ -28,7 +28,7 @@ export function MobileLayout({
 	bottom,
 }: MobileLayoutProps) {
 	return (
-		<main className="flex min-h-screen flex-col bg-primary-3 px-4 pt-[calc(var(--spacing-header)+--spacing(4))] text-sm text-white">
+		<main className="flex min-h-screen flex-col bg-surface px-4 pt-[calc(var(--spacing-header)+--spacing(4))] text-sm text-white">
 			<div className="flex flex-1 flex-col gap-4 pb-4">
 				{top}
 				{/* Both panels stay mounted: switching keeps the shop's filters and scroll. */}
@@ -63,7 +63,7 @@ export function MobileLayout({
 				</Tabs>
 			</div>
 			{/* Sticky, not fixed: it parks at the end of the page, so the site footer below stays visible. */}
-			<div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-primary-2 border-t bg-primary-4 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),--spacing(3))]">
+			<div className="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-line border-t bg-surface-sunken px-4 pt-3 pb-[max(env(safe-area-inset-bottom),--spacing(3))]">
 				{bottom}
 			</div>
 		</main>

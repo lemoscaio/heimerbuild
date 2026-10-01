@@ -4,7 +4,7 @@ import type { BuildView } from "../lib/build-search"
 import { WorkbenchPanel } from "./workbench-panel"
 
 const workbench = cva(
-	"min-h-screen bg-primary-3 pt-header text-sm text-white lg:grid lg:h-dvh lg:min-h-0 lg:bg-primary-4",
+	"min-h-screen bg-surface pt-header text-sm text-white lg:grid lg:h-dvh lg:min-h-0 lg:bg-surface-sunken",
 	{
 		variants: {
 			view: {
@@ -17,12 +17,12 @@ const workbench = cva(
 )
 
 const actionsBar = cva(
-	"flex items-start justify-end bg-primary-3 px-4 pt-3 empty:hidden lg:min-h-9 lg:empty:block",
+	"flex items-start justify-end bg-surface px-4 pt-3 empty:hidden lg:min-h-9 lg:empty:block",
 	{
 		variants: {
 			view: {
 				overview: "lg:col-span-3 lg:bg-transparent lg:p-0",
-				shop: "lg:col-span-2 lg:border-primary-2 lg:border-b lg:bg-primary-4 lg:px-5 lg:py-2",
+				shop: "lg:col-span-2 lg:border-line lg:border-b lg:bg-surface-sunken lg:px-5 lg:py-2",
 			} satisfies Record<BuildView, string>,
 		},
 	},
@@ -33,7 +33,7 @@ const shopPanel = cva("flex flex-col lg:min-h-0", {
 	variants: {
 		view: {
 			overview: "",
-			shop: "bg-primary-4 p-0 lg:rounded-none lg:border-0 lg:p-0",
+			shop: "bg-surface-sunken p-0 lg:rounded-none lg:border-0 lg:p-0",
 		} satisfies Record<BuildView, string>,
 	},
 })
@@ -42,7 +42,7 @@ const sideColumn = cva("", {
 	variants: {
 		view: {
 			overview: "",
-			shop: "border-primary-2 px-4 py-5 lg:border-l lg:p-5",
+			shop: "border-line px-4 py-5 lg:border-l lg:p-5",
 		} satisfies Record<BuildView, string>,
 	},
 })

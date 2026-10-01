@@ -16,7 +16,7 @@ export function KeyStats({ stats, resource }: KeyStatsProps) {
 	return (
 		<dl aria-label="Key stats" className="grid grid-cols-4 gap-1.5 text-xs">
 			{keyRows.map(({ stat, label, format, noFixedValue, description }) => (
-				<div key={stat} className="rounded-md bg-primary-3 px-2.5 py-1">
+				<div key={stat} className="rounded-md bg-surface px-2.5 py-1">
 					<dt className="truncate text-subtle">{label}</dt>
 					<dd className="font-medium text-sm tabular-nums">
 						{noFixedValue ? (

@@ -13,7 +13,7 @@ export function ComboboxChips({
 		<ComboboxPrimitive.Chips
 			data-slot="combobox-chips"
 			className={cn(
-				"flex min-h-8 cursor-text flex-wrap items-center gap-1 rounded-md border border-field-border bg-primary-3 px-2 py-1 text-sm transition-colors focus-within:border-lilac",
+				"flex min-h-8 cursor-text flex-wrap items-center gap-1 rounded-md border border-field-border bg-surface px-2 py-1 text-sm transition-colors focus-within:border-lilac",
 				className,
 			)}
 			{...props}
@@ -36,7 +36,7 @@ export function ComboboxChip({
 		<ComboboxPrimitive.Chip
 			data-slot="combobox-chip"
 			className={cn(
-				"flex h-6 w-fit items-center gap-1 whitespace-nowrap rounded-sm border border-lilac bg-primary-2 pl-2 font-semibold text-white text-xs outline-none data-highlighted:bg-primary-1 max-lg:h-8",
+				"flex h-6 w-fit items-center gap-1 whitespace-nowrap rounded-sm border border-lilac bg-line pl-2 font-semibold text-white text-xs outline-none data-highlighted:bg-line-strong max-lg:h-8",
 				className,
 			)}
 			{...props}

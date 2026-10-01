@@ -11,7 +11,7 @@ export function ChampionSearch({
 }: ChampionSearchProps) {
 	return (
 		<Input
-			className="h-12 w-full max-w-140 rounded-xl bg-primary-3 px-4 text-white md:text-base"
+			className="h-12 w-full max-w-140 rounded-xl bg-surface px-4 text-white md:text-base"
 			type="search"
 			placeholder="Search a champion"
 			aria-label="Search a champion"

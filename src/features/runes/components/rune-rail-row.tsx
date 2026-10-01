@@ -15,7 +15,7 @@ export function RuneRailRow({
 	return (
 		<div
 			className={cn(
-				"relative flex flex-col justify-center gap-2 after:absolute after:inset-x-0 after:-bottom-2.25 after:h-px after:bg-primary-2 last:after:hidden",
+				"relative flex flex-col justify-center gap-2 after:absolute after:inset-x-0 after:-bottom-2.25 after:h-px after:bg-line last:after:hidden",
 				className,
 			)}
 			{...props}
@@ -23,7 +23,7 @@ export function RuneRailRow({
 			<span
 				aria-hidden="true"
 				className={cn(
-					"absolute top-1/2 -left-6.5 size-3 -translate-y-1/2 rounded-full border-(--tree) border-2 bg-primary-3",
+					"absolute top-1/2 -left-6.5 size-3 -translate-y-1/2 rounded-full border-(--tree) border-2 bg-surface",
 					{ "bg-(--tree)": isPicked },
 				)}
 			/>

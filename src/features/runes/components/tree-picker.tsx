@@ -39,14 +39,14 @@ export function TreePicker({
 					onPointerEnter={() => onDescribe(tree)}
 					onFocus={() => onDescribe(tree)}
 					className={cn(
-						"size-11 shrink-0 rounded-full border-2 border-primary-2 p-1 opacity-45 transition hover:opacity-100 data-checked:border-(--tree) data-checked:opacity-100 lg:size-7 lg:p-0.5",
+						"size-11 shrink-0 rounded-full border-2 border-line p-1 opacity-45 transition hover:opacity-100 data-checked:border-(--tree) data-checked:opacity-100 lg:size-7 lg:p-0.5",
 						treeAccentClass(tree.key),
 					)}
 				>
 					<GameIcon
 						src={tree.icon}
 						name={tree.name}
-						className="size-full rounded-full bg-primary-4"
+						className="size-full rounded-full bg-surface-sunken"
 					/>
 				</RadioGroupItem>
 			))}

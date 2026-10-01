@@ -8,7 +8,7 @@ export function WorkbenchPanel({
 	return (
 		<div
 			className={cn(
-				"bg-primary-3 px-4 py-3 lg:rounded-xl lg:border lg:border-primary-2 lg:p-4",
+				"bg-surface px-4 py-3 lg:rounded-xl lg:border lg:border-line lg:p-4",
 				className,
 			)}
 			{...props}

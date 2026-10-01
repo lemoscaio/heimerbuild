@@ -41,7 +41,7 @@ export function RuneSummary({
 		<section
 			aria-labelledby="rune-summary-title"
 			className={cn(
-				"flex flex-col gap-2.5 rounded-xl border border-primary-2 bg-primary-3 p-4",
+				"flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4",
 				{ "border-lilac": isEditing },
 				treeAccentClass(primaryTree?.key),
 				className,
@@ -77,10 +77,10 @@ export function RuneSummary({
 					<GameIcon
 						src={keystone.icon}
 						name={keystone.name}
-						className="size-11 rounded-full border-(--tree) border-2 bg-primary-4"
+						className="size-11 rounded-full border-(--tree) border-2 bg-surface-sunken"
 					/>
 				) : (
-					<span className="size-11 shrink-0 rounded-full border-2 border-primary-2 border-dashed" />
+					<span className="size-11 shrink-0 rounded-full border-2 border-line border-dashed" />
 				)}
 				<div className="flex min-w-0 flex-col">
 					<span className="truncate font-semibold text-sm">
@@ -100,7 +100,7 @@ export function RuneSummary({
 							<span
 								// biome-ignore lint/suspicious/noArrayIndexKey: one dot per shard row
 								key={index}
-								className={cn("size-2.5 rounded-full bg-primary-2", {
+								className={cn("size-2.5 rounded-full bg-line", {
 									"bg-gold": selection.shardIds[index] !== undefined,
 								})}
 							/>

@@ -19,7 +19,7 @@ export function RuneRowSkeleton({ count, size }: RuneRowSkeletonProps) {
 					// biome-ignore lint/suspicious/noArrayIndexKey: identical placeholders
 					key={index}
 					className={cn(
-						"shrink-0 rounded-full border-2 border-primary-2 bg-primary-4",
+						"shrink-0 rounded-full border-2 border-line bg-surface-sunken",
 						RUNE_SIZE_CLASSES[size],
 					)}
 				/>

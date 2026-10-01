@@ -31,7 +31,7 @@ export function Slider<Value extends number | readonly number[]>({
 			<SliderPrimitive.Control className="relative flex w-full touch-none select-none items-center py-2 data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col data-disabled:opacity-50 max-lg:py-4.5">
 				<SliderPrimitive.Track
 					data-slot="slider-track"
-					className="relative grow select-none overflow-hidden rounded-full bg-primary-1 data-horizontal:h-2 data-vertical:h-full data-horizontal:w-full data-vertical:w-2"
+					className="relative grow select-none overflow-hidden rounded-full bg-line-strong data-horizontal:h-2 data-vertical:h-full data-horizontal:w-full data-vertical:w-2"
 				>
 					<SliderPrimitive.Indicator
 						data-slot="slider-range"

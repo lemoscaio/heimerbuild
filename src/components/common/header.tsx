@@ -5,7 +5,7 @@ import { PRODUCT_NAME } from "@/lib/product-name"
 
 export function Header() {
 	return (
-		<header className="fixed z-10 flex h-header w-full items-center justify-between bg-primary-4 px-8 text-white shadow-black/40 shadow-md">
+		<header className="fixed z-10 flex h-header w-full items-center justify-between bg-surface-sunken px-8 text-white shadow-black/40 shadow-md">
 			<Link
 				to="/"
 				className="transition-transform duration-100 hover:-rotate-2"
