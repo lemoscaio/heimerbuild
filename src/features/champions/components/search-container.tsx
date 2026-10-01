@@ -10,7 +10,7 @@ export function SearchContainer(props: SearchContainerProps) {
 
 	return (
 		<Input
-			className="h-12 w-full max-w-140 rounded-xl bg-primary-3 px-4 text-white md:text-base dark:bg-primary-3"
+			className="h-12 w-full max-w-140 rounded-xl bg-primary-3 px-4 text-white md:text-base"
 			type="search"
 			placeholder="Search a champion"
 			aria-label="Search a champion"

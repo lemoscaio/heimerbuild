@@ -62,7 +62,7 @@ export function CopyBuildLink({
 			</span>
 			{status === "failed" && (
 				<Input
-					className="h-7 w-full min-w-56 border-none bg-primary-2 text-xs md:text-xs"
+					className="h-7 w-full min-w-56 border-none text-xs md:text-xs"
 					aria-label="Build link"
 					readOnly
 					value={copiedUrl}

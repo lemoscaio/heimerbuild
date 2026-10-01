@@ -23,10 +23,9 @@ export function ChampionListToggle({
 			variant="outline"
 			aria-expanded={expanded}
 			aria-controls={controls}
-			className={cn(
-				"h-11 rounded-full border-lilac bg-transparent px-5.5 font-semibold dark:bg-transparent",
-				{ "bg-primary-2 dark:bg-primary-2": expanded },
-			)}
+			className={cn("h-11 rounded-full bg-transparent px-5.5 font-semibold", {
+				"bg-primary-2": expanded,
+			})}
 			onClick={() => onExpandedChange(!expanded)}
 		>
 			{expanded && "Hide champions"}
