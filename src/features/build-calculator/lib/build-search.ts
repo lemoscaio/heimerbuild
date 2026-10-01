@@ -1,3 +1,4 @@
+import { FORM_ID_PATTERN } from "@schemas/champion"
 import * as z from "zod/mini"
 import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
@@ -38,6 +39,11 @@ export const buildSearchSchema = z.object({
 	view: z.catch(z.optional(z.literal("shop")), undefined),
 	/** Open center tab: the rune page; absent means the items. */
 	tab: z.catch(z.optional(z.literal("runes")), undefined),
+	/** The champion's form (`mega`); an id the champion does not have means its default form. */
+	form: z.catch(
+		z.optional(z.string().check(z.regex(FORM_ID_PATTERN))),
+		undefined,
+	),
 	/** Rune page in the compact form of `serializeRuneSelection`; checked against the data later. */
 	runes: z.catch(
 		z.optional(z.string().check(z.regex(RUNES_PARAM_PATTERN))),
@@ -59,9 +65,11 @@ export type BuildState = {
 	tab?: BuildTab
 	/** `serializeRuneSelection` output; `undefined` for no runes. */
 	runes?: string
+	/** A form other than the champion's default; `undefined` for the default. */
+	form?: string
 }
 
-/** The URL search for a build. Defaults (level 1, no items, overview, items tab, no runes) stay out of the URL. */
+/** The URL search for a build. Defaults (level 1, no items, overview, items tab, no runes, default form) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
@@ -69,6 +77,7 @@ export function toBuildSearch({
 	view,
 	tab,
 	runes,
+	form,
 }: BuildState): BuildSearch {
 	return {
 		lvl: level === MIN_LEVEL ? undefined : level,
@@ -76,6 +85,7 @@ export function toBuildSearch({
 		patch,
 		view: view === "shop" ? view : undefined,
 		tab: tab === "runes" ? tab : undefined,
+		form,
 		runes,
 	}
 }

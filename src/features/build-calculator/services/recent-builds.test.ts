@@ -83,6 +83,18 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })).toEqual([build("Ahri", 3)])
 	})
 
+	test("keep the form, and drop only the form when the stored one is invalid", () => {
+		const storage = memoryStorage()
+		recordRecentBuild({ ...build("Gnar"), form: "mega" }, { storage })
+		expect(readRecentBuilds({ storage })[0]?.form).toBe("mega")
+
+		storage.setItem(
+			"heimerbuild:recent-builds:v1",
+			JSON.stringify([{ ...build("Gnar", 3), form: "<b>" }]),
+		)
+		expect(readRecentBuilds({ storage })).toEqual([build("Gnar", 3)])
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

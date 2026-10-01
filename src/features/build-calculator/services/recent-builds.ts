@@ -1,3 +1,4 @@
+import { FORM_ID_PATTERN } from "@schemas/champion"
 import * as z from "zod/mini"
 import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
@@ -18,6 +19,11 @@ const recentBuildSchema = z.object({
 	/** The rune page as the `runes` URL value. Absent in entries saved before runes; a bad one only loses the runes. */
 	runes: z.catch(
 		z.optional(z.string().check(z.regex(RUNES_PARAM_PATTERN))),
+		undefined,
+	),
+	/** A form other than the default, as the `form` URL value. A bad one only loses the form. */
+	form: z.catch(
+		z.optional(z.string().check(z.regex(FORM_ID_PATTERN))),
 		undefined,
 	),
 })

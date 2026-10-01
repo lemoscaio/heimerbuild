@@ -67,6 +67,13 @@ describe("buildSearchSchema", () => {
 		expect(parse({ runes: "<script>_x_y" }).runes).toBeUndefined()
 	})
 
+	test("accepts a form id and drops anything a form id cannot be", () => {
+		expect(parse({ form: "mega" }).form).toBe("mega")
+		expect(parse({ form: "Mega Gnar" }).form).toBeUndefined()
+		expect(parse({ form: 1 }).form).toBeUndefined()
+		expect(parse({ form: ["mega"] }).form).toBeUndefined()
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
@@ -110,6 +117,7 @@ describe("toBuildSearch", () => {
 			patch: "16.19.1",
 			view: "shop",
 			tab: "runes",
+			form: "mega",
 		})
 		expect(buildSearchSchema.parse(search)).toEqual(search)
 	})

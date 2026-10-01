@@ -10,6 +10,11 @@ import {
 	selectedShards,
 	serializeRuneSelection,
 } from "@/lib/rune-selection"
+import {
+	type FormOptions,
+	formChanges,
+	selectedForm,
+} from "@/lib/stats/champion-forms"
 import { computeStats, type ItemInput } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 import { shardStatsInput } from "@/lib/stats/rune-shards"
@@ -36,7 +41,7 @@ type UseBuildOptions = {
 export type Build = ReturnType<typeof useBuild>
 
 /**
- * Build state kept in the URL search: champion, level, items and runes, plus their stats.
+ * Build state kept in the URL search: champion, form, level, items and runes, plus their stats.
  * No page state: the view and the item selection live in `useBuildPage`.
  */
 export function useBuild({
@@ -63,20 +68,31 @@ export function useBuild({
 	// Until the runes load, keep the link's value so other edits do not drop it.
 	const runes = runesFile ? serializeRuneSelection(runeSelection) : search.runes
 	const shards = runesFile ? selectedShards(runeSelection, runesFile) : []
+	const form = champion && selectedForm(champion.forms, search.form)
+	// Until the champion loads, keep the link's form; then only a form other than the default.
+	const formId = champion
+		? formChanges(champion.forms, search.form)?.id
+		: search.form
 
 	/** Stats of `buildItems` plus the chosen stat shards (Adaptive Force depends on the items). */
-	function statsWith(buildItems: readonly ItemInput[]) {
+	function statsWith(
+		buildItems: readonly ItemInput[],
+		{ form: inForm = formId }: FormOptions = {},
+	) {
 		if (!champion) return undefined
 		const shardInput = shardStatsInput(shards, {
 			level,
 			defaultAdaptiveType: champion.adaptiveType,
 			items: buildItems,
 		})
-		return computeStats(champion, level, [...buildItems, shardInput])
+		return computeStats(champion, level, [...buildItems, shardInput], {
+			form: inForm,
+		})
 	}
 
 	const stats = statsWith(items)
-	const statsWithoutRunes = champion && computeStats(champion, level, items)
+	const statsWithoutRunes =
+		champion && computeStats(champion, level, items, { form: formId })
 	const runesPreview =
 		shards.length && stats ? { label: "stat shards", stats } : undefined
 	const isFull = itemIds.length >= MAX_ITEMS
@@ -88,6 +104,7 @@ export function useBuild({
 			level: number
 			itemIds: readonly string[]
 			runes: string | undefined
+			form: string | undefined
 		},
 		navigation: { replace: boolean },
 	) {
@@ -98,15 +115,37 @@ export function useBuild({
 			itemIds: [...next.itemIds],
 			patch: search.patch,
 			runes: next.runes,
+			form: next.form,
 		})
 	}
 
 	function setLevel(nextLevel: number) {
-		saveBuild({ level: nextLevel, itemIds, runes }, { replace: true })
+		saveBuild(
+			{ level: nextLevel, itemIds, runes, form: formId },
+			{ replace: true },
+		)
 	}
 
 	function setItemIds(nextItemIds: readonly string[]) {
-		saveBuild({ level, itemIds: nextItemIds, runes }, { replace: false })
+		saveBuild(
+			{ level, itemIds: nextItemIds, runes, form: formId },
+			{ replace: false },
+		)
+	}
+
+	// Replaces the history entry, like the level: Back leaves the page, not one switch.
+	function setForm(nextFormId: string) {
+		if (!champion || nextFormId === form?.id) return
+		saveBuild(
+			{
+				level,
+				itemIds,
+				runes,
+				form: formChanges(champion.forms, nextFormId)?.id,
+			},
+			{ replace: true },
+		)
+		track("champion_form_changed", { champion: championKey, form: nextFormId })
 	}
 
 	/** Returns whether the item went in: a full build keeps it out and shows `notice`. */
@@ -129,7 +168,12 @@ export function useBuild({
 	// Each pick replaces the history entry, like the level: Back leaves the page, not one rune.
 	function setRunes(nextSelection: RuneSelection) {
 		saveBuild(
-			{ level, itemIds, runes: serializeRuneSelection(nextSelection) },
+			{
+				level,
+				itemIds,
+				runes: serializeRuneSelection(nextSelection),
+				form: formId,
+			},
 			{ replace: true },
 		)
 	}
@@ -146,6 +190,9 @@ export function useBuild({
 
 	return {
 		champion,
+		/** The selected form, the default one unless the URL names another; undefined without forms. */
+		form,
+		setForm,
 		level,
 		setLevel,
 		items,
@@ -165,11 +212,20 @@ export function useBuild({
 		statsWithoutRunes,
 		/** The totals with `item` added to the build: the preview of a shop item. */
 		statsWithItem: (item: ItemInput) => statsWith([...items, item]),
+		/** `stats` as they would be in another form: the base of the form deltas. */
+		statsInForm: (otherFormId: string) =>
+			statsWith(items, { form: otherFormId }),
 		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
 		runesPreview,
 		/** The build as the URL reads it: known items, checked runes, the link's own patch. */
-		buildSearch: toBuildSearch({ level, itemIds, patch: search.patch, runes }),
+		buildSearch: toBuildSearch({
+			level,
+			itemIds,
+			patch: search.patch,
+			runes,
+			form: formId,
+		}),
 		/** The full build for sharing, pinned to the patch in use. */
-		shareSearch: toBuildSearch({ level, itemIds, patch, runes }),
+		shareSearch: toBuildSearch({ level, itemIds, patch, runes, form: formId }),
 	}
 }

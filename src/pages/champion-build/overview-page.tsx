@@ -1,4 +1,5 @@
 import type { Champion } from "@schemas/champion"
+import { FormToggle } from "@/features/build-calculator/components/form-toggle"
 import { ItemDetailsCard } from "@/features/build-calculator/components/item-details-card"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
 import { LevelSelector } from "@/features/build-calculator/components/level-selector"
@@ -45,8 +46,19 @@ export function OverviewPage({
 					<WorkbenchPanel className="flex flex-col gap-3">
 						<ChampionHeader
 							champion={champion}
-							attackType={attackTypeAtLevel(champion, build.level)}
+							attackType={attackTypeAtLevel(champion, build.level, {
+								form: build.form?.id,
+							})}
+							formName={build.form?.name}
 						/>
+						{champion.forms && build.form && (
+							<FormToggle
+								forms={champion.forms}
+								form={build.form.id}
+								onFormChange={build.setForm}
+								announcement={build.formAnnouncement}
+							/>
+						)}
 						{patchNotice}
 						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
 					</WorkbenchPanel>
@@ -112,6 +124,7 @@ export function OverviewPage({
 									stats={build.statsWithoutRunes}
 									resource={champion.resource}
 									preview={build.runesPreview}
+									formComparison={build.formComparison}
 								>
 									<RunesStatsNote />
 								</StatsPanel>
@@ -120,6 +133,7 @@ export function OverviewPage({
 									stats={build.stats}
 									resource={champion.resource}
 									preview={build.preview}
+									formComparison={build.formComparison}
 								/>
 							))}
 					</WorkbenchPanel>
