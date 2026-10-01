@@ -1,6 +1,7 @@
 import type { Champion, ChampionStats } from "@schemas/champion"
 import { type Item, STAT_UNITS, type StatKey } from "@schemas/item"
 import { attackSpeedAtLevel } from "./attack-speed"
+import { type FormOptions, formStats } from "./champion-forms"
 import { assertChampionLevel, statAtLevel } from "./growth"
 import { levelStateAt } from "./level-states"
 
@@ -20,7 +21,10 @@ export type StatBreakdown = { base: number; bonus: number; total: number }
 
 export type ComputedStats = Record<StatName, StatBreakdown>
 
-export type ChampionInput = Pick<Champion, "resource" | "stats" | "levelStates">
+export type ChampionInput = Pick<
+	Champion,
+	"resource" | "stats" | "levelStates" | "forms"
+>
 export type ItemInput = Pick<Item, "stats">
 
 /** Champion `resource` value of mana users; other resources ignore mana stats on items. */
@@ -55,19 +59,21 @@ function breakdown(base: number, total: number): StatBreakdown {
  * `bonus` is what the items add on top of it. Attack speed is the exception:
  * its level growth is bonus attack speed, as in game. Champions without
  * mana keep their own resource in `mana` and `manaRegen`, with no item bonus.
- * The level states reached at `level` replace the champion's stats they set.
+ * The selected form, then the level states reached at `level`, replace the champion's stats they set.
  */
 export function computeStats(
 	champion: ChampionInput,
 	level: number,
 	items: readonly ItemInput[],
+	options: FormOptions = {},
 ): ComputedStats {
 	assertChampionLevel(level)
-	const { attackRange = champion.stats.attackRange } = levelStateAt(
-		champion.levelStates,
+	const inForm = formStats(champion, options)
+	const { attackRange = inForm.stats.attackRange } = levelStateAt(
+		inForm.levelStates,
 		level,
 	)
-	const stats = { ...champion.stats, attackRange }
+	const stats = { ...inForm.stats, attackRange }
 	const usesMana = champion.resource === MANA_RESOURCE
 	const {
 		attackSpeedPercent,
