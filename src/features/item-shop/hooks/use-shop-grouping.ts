@@ -1,19 +1,22 @@
-import { useState } from "react"
+import * as z from "zod/mini"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 import { track } from "@/lib/analytics/analytics"
+import type { StoredValueOptions } from "@/lib/local-storage"
 import type { ShopGrouping } from "@/types/shop-view"
-import {
-	readShopGrouping,
-	saveShopGrouping,
-} from "../services/shop-grouping-storage"
 
-/** The shop grouping, kept per browser for every champion. */
+const STORAGE_KEY = "heimerbuild:shop-grouping:v1"
+const groupingStorage: StoredValueOptions<ShopGrouping> = {
+	schema: z.enum(["tiers", "compact", "none"]),
+	defaultValue: "tiers",
+}
+
+/** The shop grouping, kept per browser for every champion; the in-game tiers until one is picked. */
 export function useShopGrouping() {
-	const [grouping, setGroupingState] = useState(() => readShopGrouping())
+	const [grouping, saveGrouping] = useLocalStorage(STORAGE_KEY, groupingStorage)
 
 	function setGrouping(next: ShopGrouping) {
 		if (next === grouping) return
-		setGroupingState(next)
-		saveShopGrouping(next)
+		saveGrouping(next)
 		track("shop_view_changed", {
 			setting: "grouping",
 			from: grouping,

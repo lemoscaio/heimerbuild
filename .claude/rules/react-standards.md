@@ -124,6 +124,7 @@ className={cn("size-10 rounded-sm", { "opacity-50": isEmpty })}
 
 - A hook that has state, calls `useQuery`/`useMutation` or branches goes in a co-located `hooks/` folder as `use-*.ts`, even with a single consumer. Never a catch-all `hooks.ts`.
 - Trivial stateless wrappers may stay inline.
+- Values kept in `localStorage` go through `useLocalStorage(key, { schema, defaultValue })` (`src/hooks/`); code outside a component uses `readLocalStorage` / `writeLocalStorage` (`src/lib/local-storage.ts`). Both validate with Zod and never throw.
 - Query options live in one `queryOptions()` factory object per data source, so keys and cache settings live in one place. Hooks, route loaders and prefetches all use the factory; nobody writes a query key by hand. Game data uses `gameDataQueries` in `src/data/queries/`.
 
 ```ts

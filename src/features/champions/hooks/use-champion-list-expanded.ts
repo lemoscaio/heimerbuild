@@ -1,19 +1,10 @@
-import { useState } from "react"
-import {
-	readChampionListExpanded,
-	saveChampionListExpanded,
-} from "../services/champion-list-storage"
+import * as z from "zod/mini"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
-/** Whether the home page shows the full champion list, remembered between visits. */
+const STORAGE_KEY = "heimerbuild:home-champions-expanded:v1"
+const expandedStorage = { schema: z.boolean(), defaultValue: false }
+
+/** Whether the home page shows the full champion list, remembered between visits; collapsed on a first visit. */
 export function useChampionListExpanded() {
-	const [expanded, setExpandedState] = useState(() =>
-		readChampionListExpanded(),
-	)
-
-	function setExpanded(next: boolean) {
-		setExpandedState(next)
-		saveChampionListExpanded(next)
-	}
-
-	return [expanded, setExpanded] as const
+	return useLocalStorage(STORAGE_KEY, expandedStorage)
 }
