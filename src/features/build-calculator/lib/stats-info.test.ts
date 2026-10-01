@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import type { ChampionStats } from "@schemas/champion"
-import { formatStat } from "@/lib/stat-display"
+import { formatStat, resourceDisplay, statDisplay } from "@/lib/stat-display"
 import { computeStats } from "@/lib/stats/compute-stats"
-import { championStatRows, keyStatRows, resourceLabel } from "./stats-info"
+import { championStatRows, keyStatRows } from "./stats-info"
 
 describe("formatStat", () => {
 	test.each([
@@ -28,23 +28,6 @@ describe("formatStat", () => {
 		},
 	] as const)("$case", ({ value, format, shown }) => {
 		expect(formatStat(value, format)).toBe(shown)
-	})
-})
-
-describe("resourceLabel", () => {
-	test.each([
-		["MANA", "Mana"],
-		["ENERGY", "Energy"],
-		["FURY", "Fury"],
-		["FRENZY", "Frenzy"],
-		["BLOOD_WELL", "Blood Well"],
-		["CRIMSON_RUSH", "Crimson Rush"],
-	])("%s is %s", (resource, label) => {
-		expect(resourceLabel(resource)).toBe(label)
-	})
-
-	test("a resource from a later patch still reads as words", () => {
-		expect(resourceLabel("SOUL_FLAME")).toBe("Soul Flame")
 	})
 })
 
@@ -91,6 +74,21 @@ describe("championStatRows", () => {
 			["mana", "Energy"],
 			["manaRegen", "Energy Regen"],
 		])
+	})
+
+	test("both resource rows show the resource's icon", () => {
+		const icons = championStatRows(
+			"ENERGY",
+			statsOf("ENERGY", { mana: 200, manaRegen: 50 }),
+		)
+			.filter(({ stat }) => stat === "mana" || stat === "manaRegen")
+			.map(({ icon }) => icon)
+
+		expect(icons).toEqual([
+			resourceDisplay("ENERGY").icon,
+			resourceDisplay("ENERGY").icon,
+		])
+		expect(icons).not.toContain(statDisplay.mana.icon)
 	})
 
 	test("a resource without regen drops only the regen row", () => {
