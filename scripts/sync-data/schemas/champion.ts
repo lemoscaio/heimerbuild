@@ -43,6 +43,35 @@ export const championStatsSchema = z.strictObject({
 	attackRange: growthStat,
 })
 
+const attackTypeSchema = z.enum(["melee", "ranged"])
+
+/** `perLevel` counts from level 1; `growth: "linear"` adds it once per level instead of following the growth curve. */
+const levelStateStat = z.strictObject({
+	base: z.number(),
+	perLevel: z.number(),
+	growth: z.optional(z.literal("linear")),
+})
+
+/** What a champion becomes from `fromLevel` on, with no player choice (Kayle turns ranged at 6). */
+export const levelStateSchema = z.strictObject({
+	fromLevel: z.int().check(z.gte(1), z.lte(18)),
+	attackType: z.optional(attackTypeSchema),
+	attackRange: z.optional(levelStateStat),
+})
+
+/** Strictly ascending `fromLevel`, so the states reached at a level are a prefix of the list. */
+const levelStatesSchema = z.array(levelStateSchema).check(
+	z.minLength(1),
+	z.refine(
+		(states) =>
+			states.every(
+				(state, index) =>
+					index === 0 || (states[index - 1]?.fromLevel ?? 0) < state.fromLevel,
+			),
+		{ error: "levelStates must have strictly ascending fromLevel" },
+	),
+)
+
 export const championRoleSchema = z.enum([
 	"ASSASSIN",
 	"FIGHTER",
@@ -69,14 +98,17 @@ export const championIndexSchema = z
 export const championSchema = z.strictObject({
 	...championSummarySchema.shape,
 	lore: z.string().check(z.minLength(1)),
-	attackType: z.enum(["melee", "ranged"]),
+	attackType: attackTypeSchema,
 	resource: z.string().check(z.regex(/^[A-Z_]+$/)),
 	/** What Adaptive Force becomes when bonus AD and AP are equal (CommunityDragon `mAdaptiveForceToAbilityPowerWeight`). */
 	adaptiveType: z.enum(["ad", "ap"]),
 	stats: championStatsSchema,
+	/** Applied by the stats engine from the selected level; curated in `overrides/champion-level-states.ts`. */
+	levelStates: z.optional(levelStatesSchema),
 })
 
 export type ChampionStats = z.infer<typeof championStatsSchema>
+export type LevelState = z.infer<typeof levelStateSchema>
 export type ChampionRole = z.infer<typeof championRoleSchema>
 export type ChampionSummary = z.infer<typeof championSummarySchema>
 export type Champion = z.infer<typeof championSchema>
