@@ -6,7 +6,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
-import { itemStatLines } from "@/lib/item-stats"
+import { ItemStatList } from "./item-stat-list"
 
 type ItemButtonProps = {
 	item: Item
@@ -53,23 +53,13 @@ export function ItemButton({
 }
 
 function ItemDetails({ item }: { item: Item }) {
-	const statLines = itemStatLines(item.stats)
-
 	return (
 		<div className="flex flex-col gap-1.5">
 			<p className="font-bold text-sm">{item.name}</p>
 			<p className="text-gold">
 				{item.gold.total.toLocaleString("en-US")} gold
 			</p>
-			{!!statLines.length && (
-				<ul>
-					{statLines.map(({ stat, value, label }) => (
-						<li key={stat}>
-							<span className="font-bold text-success">{value}</span> {label}
-						</li>
-					))}
-				</ul>
-			)}
+			<ItemStatList stats={item.stats} />
 			{item.plaintext && <p className="text-lilac italic">{item.plaintext}</p>}
 			{item.description && (
 				<p className="whitespace-pre-line text-prose">{item.description}</p>
