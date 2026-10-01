@@ -1,4 +1,5 @@
 import { SENTRY_TUNNEL_PATH } from "../src/app/sentry-config"
+import { plainResponse } from "./plain-response"
 import { isPostHogProxyPath, proxyPostHog } from "./posthog-proxy"
 import { forwardEnvelope } from "./sentry-tunnel"
 
@@ -35,12 +36,6 @@ export default {
 			return response
 		}
 
-		return new Response("Not Found", {
-			status: 404,
-			headers: {
-				"Content-Type": "text/plain; charset=utf-8",
-				"Cache-Control": "no-store",
-			},
-		})
+		return plainResponse(404, "Not Found", { "Cache-Control": "no-store" })
 	},
 }
