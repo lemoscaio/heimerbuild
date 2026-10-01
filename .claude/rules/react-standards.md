@@ -19,7 +19,8 @@ Rules marked **(after #N)** apply once that issue lands; until then, follow the 
 
 ## Imports
 
-- A feature never imports another feature (`src/features/a` → `src/features/b`), no exceptions. Features import only `components/`, `lib/`, `hooks/`, `types/` and `data/`. Details: [import boundaries](../../docs/frontend-architecture.md#import-boundaries).
+- Layers import one way: `app → routes → pages → features → shared` ([layers](../../docs/frontend-architecture.md#layers)).
+- A feature never imports another feature (`src/features/a` → `src/features/b`), no exceptions, nor a page or a route. Features import only `components/`, `lib/`, `hooks/`, `types/` and `data/`. Details: [import boundaries](../../docs/frontend-architecture.md#import-boundaries).
 - `@/` resolves to `src/`: import other layers as `@/data/hooks/use-champions`, not with long `../../..` chains.
 - `@schemas/` resolves to `scripts/sync-data/schemas/`: import the game data schemas and their types as `@schemas/item`.
 - Enforced by Biome `noRestrictedImports` overrides in `biome.json`. A new feature folder needs its own override there (see [import boundaries](../../docs/frontend-architecture.md#import-boundaries)).
@@ -200,10 +201,12 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 
 ## Routing
 
-- Route components are thin: read params, compose feature components, nothing else. The one extra they may do is call a feature hook to wire two features together through props and callbacks (champion route: `useBuildPage()` feeds `ItemShop`'s `onItemAdd`).
-- TanStack Router with code-based routes. Each route lives in `src/routes/<name>-route.tsx` (`createRoute` + its page component), and `src/app/router.tsx` assembles the tree.
-- A route whose page is heavy (the champion page) splits in two: `<name>-route.tsx` keeps `createRoute` with search, loader, `head` and the pending/error/not-found components, and `<name>-route.lazy.tsx` holds the page (`createLazyRoute(<full route id>)`), attached with `.lazy()`. Links preload on intent (`defaultPreload: "intent"`).
-- A page with several screens keeps one file per screen next to its route (`src/routes/champion-page/overview-page.tsx`, `expanded-shop-page.tsx`, `mobile-build-page.tsx`); the route only picks one. Screens compose features, so they live under `routes/`, never in a feature.
+- Routes only route: path, search validation, loader, `head`, the pending/error/not-found components and the import of the page. The page itself lives in `src/pages/<page>/` and composes the features ([layers](../../docs/frontend-architecture.md#layers)).
+- TanStack Router with code-based routes. Each route lives in `src/routes/<name>-route.tsx` (`createRoute` + `component: <Page>` from `src/pages/`), and `src/app/router.tsx` assembles the tree.
+- A route whose page is heavy (the champion page) splits in two: `<name>-route.tsx` keeps `createRoute` with search, loader, `head` and the pending/error/not-found components, and `<name>-route.lazy.tsx` only binds the page (`createLazyRoute(<full route id>)({ component })`), attached with `.lazy()`. Links preload on intent (`defaultPreload: "intent"`).
+- A page reads its route's params, search and loader data through `getRouteApi("<full route id>")`, never by importing the route file.
+- A page with several screens keeps one file per screen in its page folder (`src/pages/champion-build/overview-page.tsx`, `expanded-shop-page.tsx`, `mobile-build-page.tsx`); the page component picks one. Screens compose features, so they live in `pages/`, never in a feature or a route.
+- Page-level hooks that compose a feature's data hook with page state (view, selection) live in the page's `hooks/` (`useBuildPage` in `src/pages/champion-build/hooks/`).
 - Loaders load data through the `queryOptions()` factories (`queryClient.ensureQueryData(gameDataQueries...)`); components then read the same queries from the cache.
 - Every data route sets `pendingComponent` and `errorComponent`, and `notFoundComponent` when a param can point at nothing.
 - Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`. Invalid values are dropped with `z.catch()`, so a bad link never shows an error page.

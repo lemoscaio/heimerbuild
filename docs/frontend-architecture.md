@@ -10,7 +10,10 @@ Target structure for `src/`, grouped by feature instead of by file type. Compone
 src/
 ├── main.tsx              Vite entry: starts Sentry and the stale-chunk reload, mounts <App /> and global styles, then starts PostHog; nothing else
 ├── app/                  app shell: App, providers, query client, router (route tree), Sentry and PostHog setup
-├── routes/               TanStack Router code routes: one *-route.tsx per route, a page's screens in <name>-page/
+├── routes/               TanStack Router code routes: one *-route.tsx per route (path, search, loader, head, fallbacks)
+├── pages/                one folder per page: composes features into its screens
+│   ├── home/             champion browser and recent builds
+│   └── champion-build/   the build page: picks the screen (overview, expanded shop, mobile), useBuildPage
 ├── features/             feature slices, never import each other
 │   ├── champions/        champion grid, search, champion header and skills
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
@@ -31,6 +34,29 @@ src/
 └── styles/               app.css: Tailwind entry, theme tokens, base styles
 ```
 
+### Layers
+
+Borrowed from [Feature-Sliced Design](https://feature-sliced.design/docs/get-started/tutorial) (only the layers we need) and [Bulletproof React's one-way dependencies](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md). A layer imports only the layers below it:
+
+```
+app → routes → pages → features → shared (components, hooks, lib, types, data)
+```
+
+- **Routes only route:** path, search validation, loader, `head`, the pending/error/not-found components and the (lazy) import of the page. No screen composition.
+- **Pages compose features** into a screen: `pages/<page>/` holds the page component, its screens and the page-level hooks that wire features together (`useBuildPage`). A page may import features and shared layers, never a route.
+- **Features** never import another feature, a page or a route.
+
+### Page anatomy
+
+```
+pages/<page>/
+├── <page>-page.tsx   the page component the route loads (named export)
+├── <part>.tsx        one file per screen (overview-page.tsx) or page-only layout (home-layout.tsx)
+└── hooks/            page-level hooks that compose feature hooks with page state
+```
+
+A page reads its route through `getRouteApi("<route id>")`, never by importing the route file.
+
 ### Feature anatomy
 
 ```
@@ -49,11 +75,12 @@ features/<feature>/
 
 ### Import boundaries
 
-- **A feature never imports another feature. No exceptions.** Routes compose features; anything two features need is promoted to a shared layer.
-- When two features interact, the route wires them with props and callbacks. Example: the champion route calls `useBuildPage()` (build-calculator) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
-- Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`.
-- Shared layers never import from `features/` or `routes/`.
-- CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override per feature lists the other features, one covers the shared layers. **Adding a feature means adding its override and its name to the other features' lists.**
+- **A feature never imports another feature. No exceptions.** Pages compose features; anything two features need is promoted to a shared layer.
+- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, composing build-calculator's `useBuild`) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
+- Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`. Never `pages/` or `routes/`.
+- Pages may import features and the shared layers, never `routes/`. Routes import pages.
+- Shared layers never import from `features/`, `pages/` or `routes/`.
+- CI enforces this with Biome `noRestrictedImports` overrides in `biome.json`: one override per feature lists the other features plus `pages/` and `routes/`, one covers `pages/`, one covers the shared layers. **Adding a feature means adding its override (with the pages and routes pattern) and its name to the other features' lists.**
 
 ```ts
 // src/features/build-calculator/components/stats-panel.tsx
@@ -82,7 +109,8 @@ import { computeStats } from "@/lib/stats/compute-stats"
 | Game data fetch / hook | `data/` | `data/` | `data/` |
 | Other IO (storage, URL) | `features/<f>/services/` | `lib/` | `lib/` |
 | Types | `features/<f>/types/` | `types/` | `types/` |
-| Route | `routes/` | | |
+| Page: its screens and page-level hooks | `pages/<page>/` | | |
+| Route (path, search, loader, head, fallbacks) | `routes/` | | |
 | Provider, app config | `app/` (feature-scoped providers stay in the feature) | | |
 
 **Promotion rule:** start in the most specific place. When a second feature needs the code, move it to the matching shared layer (`components/common`, `hooks`, `lib`, `types`) in the same PR. Never import it across features instead, and never create shared code for a single consumer.

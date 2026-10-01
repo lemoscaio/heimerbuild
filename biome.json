@@ -103,12 +103,35 @@
 										"group": [
 											"@/features",
 											"@/features/**",
+											"@/pages",
+											"@/pages/**",
 											"@/routes",
 											"@/routes/**",
 											"**/features/**",
+											"**/pages/**",
 											"**/routes/**"
 										],
-										"message": "Shared layers never import from features/ or routes/ (docs/frontend-architecture.md#import-boundaries)."
+										"message": "Shared layers never import from features/, pages/ or routes/ (docs/frontend-architecture.md#import-boundaries)."
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		{
+			"includes": ["src/pages/**"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": {
+							"level": "error",
+							"options": {
+								"patterns": [
+									{
+										"group": ["@/routes", "@/routes/**", "**/routes/**"],
+										"message": "A page never imports a route: routes import pages (docs/frontend-architecture.md#import-boundaries)."
 									}
 								]
 							}
@@ -138,6 +161,17 @@
 											"**/runes/**"
 										],
 										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									},
+									{
+										"group": [
+											"@/pages",
+											"@/pages/**",
+											"**/pages/**",
+											"@/routes",
+											"@/routes/**",
+											"**/routes/**"
+										],
+										"message": "A feature never imports a page or a route: pages compose features, never the other way (docs/frontend-architecture.md#import-boundaries)."
 									}
 								]
 							}
@@ -167,6 +201,17 @@
 											"**/runes/**"
 										],
 										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									},
+									{
+										"group": [
+											"@/pages",
+											"@/pages/**",
+											"**/pages/**",
+											"@/routes",
+											"@/routes/**",
+											"**/routes/**"
+										],
+										"message": "A feature never imports a page or a route: pages compose features, never the other way (docs/frontend-architecture.md#import-boundaries)."
 									}
 								]
 							}
@@ -196,6 +241,17 @@
 											"**/runes/**"
 										],
 										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									},
+									{
+										"group": [
+											"@/pages",
+											"@/pages/**",
+											"**/pages/**",
+											"@/routes",
+											"@/routes/**",
+											"**/routes/**"
+										],
+										"message": "A feature never imports a page or a route: pages compose features, never the other way (docs/frontend-architecture.md#import-boundaries)."
 									}
 								]
 							}
@@ -225,6 +281,17 @@
 											"**/item-shop/**"
 										],
 										"message": "A feature never imports another feature. Move shared code to components/common, hooks, lib, types or data (docs/frontend-architecture.md#import-boundaries)."
+									},
+									{
+										"group": [
+											"@/pages",
+											"@/pages/**",
+											"**/pages/**",
+											"@/routes",
+											"@/routes/**",
+											"**/routes/**"
+										],
+										"message": "A feature never imports a page or a route: pages compose features, never the other way (docs/frontend-architecture.md#import-boundaries)."
 									}
 								]
 							}

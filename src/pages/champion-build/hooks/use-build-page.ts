@@ -1,8 +1,11 @@
 import { useState } from "react"
 import { useItems } from "@/data/hooks/use-items"
+import { useBuild } from "@/features/build-calculator/hooks/use-build"
+import type {
+	BuildSearch,
+	BuildView,
+} from "@/features/build-calculator/lib/build-search"
 import { track } from "@/lib/analytics/analytics"
-import type { BuildSearch, BuildView } from "../lib/build-search"
-import { useBuild } from "./use-build"
 
 type UseBuildPageOptions = Parameters<typeof useBuild>[0]
 

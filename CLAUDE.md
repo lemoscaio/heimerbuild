@@ -49,7 +49,7 @@ CI (`.github/workflows/ci.yml`) runs `biome ci`, typecheck, tests and build on e
 
 - React and TypeScript rules: [`.claude/rules/react-standards.md`](.claude/rules/react-standards.md) (auto-loaded for `src/**`).
 - Where new code goes: [`docs/frontend-architecture.md`](docs/frontend-architecture.md).
-- File and folder names are kebab-case, and a feature never imports another feature; Biome enforces both in CI (`biome.json`). Import other layers through the `@/` alias (`@/data/...`) and the game data schemas through `@schemas/` (`@schemas/item`).
+- File and folder names are kebab-case, and layers import one way (`app → routes → pages → features → shared`: pages compose features, a feature never imports another feature or a page); Biome enforces both in CI (`biome.json`). Import other layers through the `@/` alias (`@/data/...`) and the game data schemas through `@schemas/` (`@schemas/item`).
 - Biome is the only linter and formatter (tabs, double quotes, no semicolons). No ESLint or Prettier.
 - A lefthook pre-commit hook (`lefthook.yml`, installed by `bun install`) runs `biome check --write` on staged files and re-stages them; it never blocks on unfixable errors, so still run `bunx biome ci` before pushing.
 

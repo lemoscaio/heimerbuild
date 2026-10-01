@@ -3,9 +3,9 @@ import { BuildBar } from "@/features/build-calculator/components/build-bar"
 import { ItemDetailsPanel } from "@/features/build-calculator/components/item-details-panel"
 import { ShopViewToggle } from "@/features/build-calculator/components/shop-view-toggle"
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
-import type { BuildPage } from "@/features/build-calculator/hooks/use-build-page"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
+import type { BuildPage } from "./hooks/use-build-page"
 
 type ExpandedShopPageProps = {
 	build: BuildPage
