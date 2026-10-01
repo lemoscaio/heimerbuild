@@ -97,8 +97,30 @@ describe("championStatRows", () => {
 		])
 	})
 
-	test("a resource with no value drops both rows", () => {
-		expect(resourceRows("GRIT", { mana: 0, manaRegen: 0 })).toEqual([])
+	test("a resource with no value keeps its row, without a number, and drops regen", () => {
+		const rows = championStatRows(
+			"GRIT",
+			statsOf("GRIT", { mana: 0, manaRegen: 0 }),
+		).filter(({ stat }) => stat === "mana" || stat === "manaRegen")
+
+		expect(rows).toEqual([
+			expect.objectContaining({
+				stat: "mana",
+				label: "Grit",
+				icon: resourceDisplay("GRIT").icon,
+				noFixedValue: true,
+				description: resourceDisplay("GRIT").description,
+			}),
+		])
+	})
+
+	test("a resource with a value is not marked as having no fixed value", () => {
+		const rows = championStatRows(
+			"ENERGY",
+			statsOf("ENERGY", { mana: 200, manaRegen: 50 }),
+		)
+
+		expect(rows.some(({ noFixedValue }) => noFixedValue)).toBe(false)
 	})
 
 	// Viego's data ships a 10000 mana placeholder with resource NONE.
@@ -148,10 +170,10 @@ describe("keyStatRows", () => {
 		])
 	})
 
-	test("a resource with no value also ends with Ability Haste", () => {
+	test("a resource with no value still ends with its resource", () => {
 		expect(keyStats("FRENZY", { mana: 0, manaRegen: 0 })).toEqual([
 			...fixedStats,
-			"abilityHaste",
+			"mana",
 		])
 	})
 })
