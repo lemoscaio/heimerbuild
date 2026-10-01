@@ -77,6 +77,8 @@ test("the shop is one Tab stop: arrow keys move between items, Enter selects one
 
 	await page.getByRole("combobox", { name: "Search items" }).focus()
 	await page.keyboard.press("Tab")
+	await expect(page.getByRole("button", { name: "More filters" })).toBeFocused()
+	await page.keyboard.press("Tab")
 	await expect(shop.first()).toBeFocused()
 	await page.keyboard.press("ArrowRight")
 	await page.keyboard.press("ArrowRight")
@@ -254,4 +256,45 @@ test("condition tokens narrow the shop: has:active typed, from: picked from the 
 	expect((await itemNames(shop)).sort()).toEqual(
 		withSheen.map((item) => item.name).sort(),
 	)
+})
+
+test("More filters lists the search-only filters: one applies as a chip, one needing a value moves to the search with its suggestions", async ({
+	page,
+	request,
+}) => {
+	const items = await currentItems(request)
+	const byId = new Map(items.map((item) => [item.id, item]))
+	function componentsOf(id: string): string[] {
+		return (byId.get(id)?.from ?? []).flatMap((component) => [
+			component,
+			...componentsOf(component),
+		])
+	}
+	const rabadon = items.find((item) => item.name === "Rabadon's Deathcap")
+	const intoRabadon = new Set(rabadon ? componentsOf(rabadon.id) : [])
+	await page.goto("/champions/Heimerdinger")
+	const shop = shopItems(page)
+	await expect(shop).toHaveCount(items.length)
+	const search = page.getByRole("combobox", { name: "Search items" })
+
+	await page.getByRole("button", { name: "More filters" }).click()
+	await page.getByRole("menuitem", { name: /Builds into an item/ }).click()
+	await expect(search).toBeFocused()
+	await expect(search).toHaveValue("into:")
+	await expect(page.getByRole("option").first()).toBeVisible()
+	await page.keyboard.type("rabadon")
+	await page
+		.getByRole("option", { name: /Builds into Rabadon's Deathcap/ })
+		.click()
+	await page.keyboard.press("Escape")
+	await expect(shop).toHaveCount(intoRabadon.size)
+
+	await page.getByRole("button", { name: "More filters" }).click()
+	await page.getByRole("menuitem", { name: /Anti-heal/ }).click()
+	await expect(page.getByRole("button", { name: "More filters" })).toBeFocused()
+	await expect(
+		page.getByRole("button", { name: /^Remove Anti-heal/ }),
+	).toBeVisible()
+	await page.getByRole("button", { name: /^Remove Builds into/ }).click()
+	await expect(shop).toHaveCount(items.filter((item) => item.antiHeal).length)
 })
