@@ -44,7 +44,7 @@ export function ChampionCard({ champion }: ChampionCardProps) { ... }
 ## Components
 
 - **No render functions.** Extract a component instead; `renderX()` helpers redeclare on every render and hide props.
-- One exported component per file. Small, purely visual helpers without state may live in the same file, unexported.
+- One exported component per file. Small, purely visual helpers without state may live in the same file, unexported. A component's loading skeleton may share its file when both use the same layout (`ChampionCard` + `ChampionCardSkeleton`), unless the skeleton sits in a different chunk on purpose (route pending components).
 - A wrapper element repeated with identical props becomes a named component.
 - A component that grows several independent parts (header, list, footer with their own state) is split with composition.
 
