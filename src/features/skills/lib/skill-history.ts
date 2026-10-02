@@ -1,5 +1,5 @@
 import type { AbilitySlot } from "@schemas/champion"
-import { autoFill, isValidOrder, type SkillOrder } from "./skill-order"
+import { autoFill, isValidOrder, ranksOf, type SkillOrder } from "./skill-order"
 import type { SkillRules } from "./skill-rules"
 
 /**
@@ -54,14 +54,58 @@ export function placePoint(
 	return isValidOrder(next, rules) ? next : undefined
 }
 
-/** `picks` with the first suggested point on `slot`; undefined when every point is picked or the rules forbid it. */
+/**
+ * `picks` with one more point in `slot`: the first suggested point that is another ability's
+ * moves to `slot`. Undefined when no suggested point can move there.
+ */
 export function spendPoint(
 	picks: SkillPicks,
 	{ slot, level, rules }: AtLevel & { slot: AbilitySlot },
 ): SkillPicks | undefined {
-	const picked = Math.min(picks.length, level)
-	if (picked >= level) return undefined
-	return placePoint(picks, { slot, pointLevel: picked + 1, level, rules })
+	for (const [index, point] of skillPointsAt(picks, {
+		level,
+		rules,
+	}).entries()) {
+		if (!point.isAuto || point.slot === slot) continue
+		const next = placePoint(picks, {
+			slot,
+			pointLevel: index + 1,
+			level,
+			rules,
+		})
+		if (next) return next
+	}
+	return undefined
+}
+
+/** Why `slot` cannot take one more point, as the rank-up tooltip explains it. */
+export type SpendBlocker =
+	| { reason: "max-rank" }
+	| { reason: "all-picked" }
+	| { reason: "needs-level"; level: number }
+	| { reason: "needs-ability"; abilities: readonly AbilitySlot[] }
+	| { reason: "no-point" }
+
+export function spendBlocker(
+	picks: SkillPicks,
+	{ slot, level, rules }: AtLevel & { slot: AbilitySlot },
+): SpendBlocker | undefined {
+	if (spendPoint(picks, { slot, level, rules })) return undefined
+	const rule = rules.abilities[slot]
+	const ranks = ranksOf(
+		skillPointsAt(picks, { level, rules }).map((point) => point.slot),
+		rules,
+	)
+	const nextRankLevel = rule.rankLevels[ranks[slot]]
+	if (ranks[slot] >= rule.maxRank) return { reason: "max-rank" }
+	if (Math.min(picks.length, level) >= level) return { reason: "all-picked" }
+	if (rule.requires && !rule.requires.some((required) => ranks[required] > 0)) {
+		return { reason: "needs-ability", abilities: rule.requires }
+	}
+	if (nextRankLevel !== undefined && nextRankLevel > level) {
+		return { reason: "needs-level", level: nextRankLevel }
+	}
+	return { reason: "no-point" }
 }
 
 /**

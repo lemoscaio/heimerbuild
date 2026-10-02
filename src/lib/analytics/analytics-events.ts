@@ -1,4 +1,4 @@
-import type { ChampionRole } from "@schemas/champion"
+import type { AbilitySlot, ChampionRole } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import type { ShopGrouping, ShopMode } from "@/types/shop-view"
 
@@ -84,6 +84,17 @@ export type AnalyticsEvents = {
 	}
 	/** The rune page was reset to empty. */
 	runes_reset: Record<string, never>
+	/**
+	 * A skill point was picked: through the ability (`via: "ability"`, the next point) or a level
+	 * of the order (`via: "order"`); `level` is the point's level.
+	 */
+	skill_point_picked: {
+		slot: AbilitySlot
+		level: number
+		via: "ability" | "order"
+	}
+	/** The skill order went back to the suggested one. */
+	skill_order_reset: Record<string, never>
 	build_link_copied: {
 		champion: string
 		level: number
