@@ -101,6 +101,18 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })).toEqual([build("Gnar", 3)])
 	})
 
+	test("keep the skill points, and drop only them when the stored ones are invalid", () => {
+		const storage = memoryStorage()
+		recordRecentBuild({ ...build("Teemo"), skills: "EQWE" }, { storage })
+		expect(readRecentBuilds({ storage })[0]?.skills).toBe("EQWE")
+
+		storage.setItem(
+			"heimerbuild:recent-builds:v1",
+			JSON.stringify([{ ...build("Teemo", 3), skills: "QX" }]),
+		)
+		expect(readRecentBuilds({ storage })).toEqual([build("Teemo", 3)])
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

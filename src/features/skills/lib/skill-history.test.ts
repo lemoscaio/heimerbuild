@@ -4,6 +4,7 @@ import { skillChampion, TEEMO_ORDER } from "./skill-champions.fixtures"
 import {
 	placePoint,
 	skillPointsAt,
+	spendBlocker,
 	spendPoint,
 	withKeptPicks,
 } from "./skill-history"
@@ -42,20 +43,51 @@ describe("skillPointsAt", () => {
 })
 
 describe("spendPoint", () => {
-	test("puts the first suggested point on the ability", () => {
+	test("moves the first suggested point to the ability", () => {
 		expect(spendPoint(order("QW"), { slot: "Q", level: 5, rules })).toEqual(
 			order("QWQ"),
 		)
+	})
+
+	test("skips suggested points that already are that ability", () => {
+		// Suggested after Q W at level 4: W, then E (Teemo's E Q W E).
+		expect(letters(skillPointsAt(order("QW"), { level: 4, rules }))).toBe(
+			"QWWE",
+		)
+		expect(spendPoint(order("QW"), { slot: "E", level: 4, rules })).toEqual(
+			order("QWE"),
+		)
+		// Level 3 already suggests W, and level 4 cannot take W to rank 3.
+		expect(
+			spendPoint(order("QW"), { slot: "W", level: 4, rules }),
+		).toBeUndefined()
 	})
 
 	test("refuses when every point is picked or the rank is not allowed yet", () => {
 		expect(
 			spendPoint(order("QWE"), { slot: "Q", level: 3, rules }),
 		).toBeUndefined()
-		expect(
-			spendPoint(order("Q"), { slot: "Q", level: 5, rules }),
-		).toBeUndefined()
 		expect(spendPoint([], { slot: "R", level: 5, rules })).toBeUndefined()
+	})
+})
+
+describe("spendBlocker", () => {
+	test("says why an ability cannot take a point", () => {
+		expect(spendBlocker([], { slot: "Q", level: 5, rules })).toBeUndefined()
+		expect(spendBlocker(order("QWE"), { slot: "Q", level: 3, rules })).toEqual({
+			reason: "all-picked",
+		})
+		expect(spendBlocker([], { slot: "R", level: 5, rules })).toEqual({
+			reason: "needs-level",
+			level: 6,
+		})
+		// The suggested point of level 6 already is R: rank 2 is next.
+		expect(
+			spendBlocker(order("QWQEQ"), { slot: "R", level: 6, rules }),
+		).toEqual({ reason: "needs-level", level: 11 })
+		expect(
+			spendBlocker(order("QWQEQRQWQ"), { slot: "Q", level: 10, rules }),
+		).toEqual({ reason: "max-rank" })
 	})
 })
 

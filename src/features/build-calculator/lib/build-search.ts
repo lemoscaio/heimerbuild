@@ -4,6 +4,9 @@ import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { MAX_ITEMS } from "./build-items"
 
+/** One ability letter per level, level 1 first ("EQWE"); checked against the champion's rules later. */
+export const SKILLS_PARAM_PATTERN = /^[QWER]{1,18}$/
+
 // The router JSON-parses each value: `items=3089` arrives as a number,
 // `items=3089,3020` as a string and `items=[3089,3020]` as an array.
 const itemIdsSchema = z.pipe(
@@ -49,6 +52,11 @@ export const buildSearchSchema = z.object({
 		z.optional(z.string().check(z.regex(RUNES_PARAM_PATTERN))),
 		undefined,
 	),
+	/** The picked skill points up to the level; later levels follow the suggested order. */
+	skills: z.catch(
+		z.optional(z.string().check(z.regex(SKILLS_PARAM_PATTERN))),
+		undefined,
+	),
 })
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
@@ -67,9 +75,11 @@ export type BuildState = {
 	runes?: string
 	/** A form other than the champion's default; `undefined` for the default. */
 	form?: string
+	/** The picked skill points; `undefined` for the suggested order. */
+	skills?: string
 }
 
-/** The URL search for a build. Defaults (level 1, no items, overview, items tab, no runes, default form) stay out of the URL. */
+/** The URL search for a build. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
@@ -78,6 +88,7 @@ export function toBuildSearch({
 	tab,
 	runes,
 	form,
+	skills,
 }: BuildState): BuildSearch {
 	return {
 		lvl: level === MIN_LEVEL ? undefined : level,
@@ -87,5 +98,6 @@ export function toBuildSearch({
 		tab: tab === "runes" ? tab : undefined,
 		form,
 		runes,
+		skills,
 	}
 }

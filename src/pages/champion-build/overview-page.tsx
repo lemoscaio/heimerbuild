@@ -16,6 +16,7 @@ import { RuneSummary } from "@/features/runes/components/rune-summary"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
+import { ChampionSkills } from "./champion-skills"
 import type { BuildPage } from "./hooks/use-build-page"
 
 type OverviewPageProps = {
@@ -61,6 +62,7 @@ export function OverviewPage({
 						)}
 						{patchNotice}
 						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
+						<ChampionSkills build={build} champion={champion} />
 					</WorkbenchPanel>
 					<WorkbenchPanel>
 						<ItemSlots

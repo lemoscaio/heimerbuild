@@ -5,6 +5,7 @@ import {
 	placePoint,
 	type SkillPicks,
 	skillPointsAt,
+	spendBlocker,
 	spendPoint,
 	withKeptPicks,
 } from "../lib/skill-history"
@@ -67,9 +68,10 @@ export function useSkills({
 		/** Picks above the current level, restored when the level goes back up. */
 		keptPicks: picks.slice(level),
 		pickedCount: Math.min(picks.length, level),
-		canSpend: (slot: AbilitySlot) =>
-			!!rules && !!spendPoint(picks, { slot, level, rules }),
-		/** Puts the first suggested point on `slot`. */
+		/** Why `slot` cannot take one more point; undefined when it can. */
+		spendBlocker: (slot: AbilitySlot) =>
+			rules ? spendBlocker(picks, { slot, level, rules }) : undefined,
+		/** Moves the first suggested point of another ability to `slot`. */
 		spend: (slot: AbilitySlot) =>
 			rules && commit(spendPoint(picks, { slot, level, rules })),
 		canPlace: (pointLevel: number, slot: AbilitySlot) =>
