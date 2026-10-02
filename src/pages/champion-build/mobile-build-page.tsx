@@ -15,6 +15,7 @@ import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
+import { SkillsTab } from "@/features/skills/components/skills-tab"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { ChampionSkills } from "./champion-skills"
 import type { BuildPage } from "./hooks/use-build-page"
@@ -37,12 +38,16 @@ export function MobileBuildPage({
 }: MobileBuildPageProps) {
 	useAnalyticsContext("shop_mode", "mobile")
 	const preloadRuneImages = useRuneImagePreload(patch)
-	// Only Runes lives in the URL (the overview's tab); Stats and Shop both mean Items there.
-	const [itemsTab, setItemsTab] = useState<Exclude<MobileTab, "runes">>("stats")
+	// Runes and Skills live in the URL (the overview's tabs); Stats and Shop both mean Items there.
+	const [itemsTab, setItemsTab] = useState<"stats" | "shop">("stats")
 
 	function changeTab(nextTab: MobileTab) {
-		if (nextTab !== "runes") setItemsTab(nextTab)
-		build.setTab(nextTab === "runes" ? "runes" : "items")
+		if (nextTab === "stats" || nextTab === "shop") {
+			setItemsTab(nextTab)
+			build.setTab("items")
+		} else {
+			build.setTab(nextTab)
+		}
 	}
 
 	return (
@@ -70,7 +75,7 @@ export function MobileBuildPage({
 					/>
 				</>
 			}
-			tab={build.tab === "runes" ? "runes" : itemsTab}
+			tab={build.tab === "items" ? itemsTab : build.tab}
 			onTabChange={changeTab}
 			stats={
 				build.stats && (
@@ -113,6 +118,13 @@ export function MobileBuildPage({
 						</section>
 					)}
 				</RunePage>
+			}
+			skills={
+				<SkillsTab
+					abilities={champion.abilities}
+					skills={build.skills}
+					layout="list"
+				/>
 			}
 			bottom={
 				<>

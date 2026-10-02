@@ -14,6 +14,7 @@ import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { RuneSummary } from "@/features/runes/components/rune-summary"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
+import { SkillsTab } from "@/features/skills/components/skills-tab"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
 import { ChampionSkills } from "./champion-skills"
@@ -104,6 +105,13 @@ export function OverviewPage({
 							patch={patch}
 							selection={build.runeSelection}
 							onSelectionChange={build.setRunes}
+						/>
+					}
+					skills={
+						<SkillsTab
+							abilities={champion.abilities}
+							skills={build.skills}
+							layout="grid"
 						/>
 					}
 				/>
