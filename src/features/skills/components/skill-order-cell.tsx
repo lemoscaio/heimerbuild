@@ -77,7 +77,8 @@ export function SkillOrderCell({
 								aria-pressed={slot === point.slot}
 								disabled={slot !== point.slot && !canPlace(slot)}
 								focusableWhenDisabled
-								className="justify-start"
+								// Focusable when disabled drops the `disabled` attribute: style the state.
+								className="justify-start data-disabled:cursor-not-allowed data-disabled:opacity-40"
 								onClick={() => choose(slot)}
 							>
 								<span className="w-4 font-bold font-display">{slot}</span>
