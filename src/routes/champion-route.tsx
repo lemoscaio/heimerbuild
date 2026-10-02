@@ -34,9 +34,10 @@ export const championRoute = createRoute({
 			manifest,
 			requestedPatch,
 		)
-		// Items and runes keep their own loading and error state inside the page.
+		// Items, runes and summoner spells keep their own loading and error state inside the page.
 		queryClient.prefetchQuery(gameDataQueries.items(patch))
 		queryClient.prefetchQuery(gameDataQueries.runes(patch))
+		queryClient.prefetchQuery(gameDataQueries.summonerSpells(patch))
 		try {
 			const champion = await queryClient.ensureQueryData(
 				gameDataQueries.champion(patch, key),

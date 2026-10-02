@@ -5,6 +5,7 @@ import {
 	fetchItems,
 	fetchManifest,
 	fetchRunes,
+	fetchSummonerSpells,
 	GameDataUnavailableError,
 } from "../services/game-data"
 
@@ -59,6 +60,13 @@ export const gameDataQueries = {
 			queryKey: [...gameDataQueries.patch(patch), "runes"],
 			queryFn: async ({ client }) =>
 				fetchRunes(patch, await dataFileHashes(client)),
+			...gameDataDefaults,
+		}),
+	summonerSpells: (patch: string) =>
+		queryOptions({
+			queryKey: [...gameDataQueries.patch(patch), "summoner-spells"],
+			queryFn: async ({ client }) =>
+				fetchSummonerSpells(patch, await dataFileHashes(client)),
 			...gameDataDefaults,
 		}),
 }

@@ -2,6 +2,7 @@ import { championIndexSchema, championSchema } from "@schemas/champion"
 import { type Item, type ItemsFile, ItemsFileSchema } from "@schemas/item"
 import { type DataManifest, dataManifestSchema } from "@schemas/manifest"
 import { type RunesFile, runesFileSchema } from "@schemas/rune"
+import { summonerSpellsFileSchema } from "@schemas/summoner-spell"
 import type * as z from "zod/mini"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
@@ -119,5 +120,12 @@ export async function fetchRunes(
 			dataFileUrl([patch, "runes.json"], files),
 			runesFileSchema,
 		),
+	)
+}
+
+export function fetchSummonerSpells(patch: string, files: DataFileHashes) {
+	return fetchGameData(
+		dataFileUrl([patch, "summoner-spells.json"], files),
+		summonerSpellsFileSchema,
 	)
 }

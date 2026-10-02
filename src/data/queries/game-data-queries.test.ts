@@ -10,6 +10,7 @@ describe("gameDataQueries", () => {
 			gameDataQueries.champion("16.19.1", "Ahri").queryKey,
 			gameDataQueries.items("16.19.1").queryKey,
 			gameDataQueries.runes("16.19.1").queryKey,
+			gameDataQueries.summonerSpells("16.19.1").queryKey,
 		]
 		for (const key of keys) {
 			expect(key).toContain("16.19.1")
