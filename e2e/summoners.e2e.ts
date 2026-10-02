@@ -148,11 +148,20 @@ test("runes that react to the chosen spells get a hint without moving any rune r
 test.describe("on a phone", () => {
 	test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
-	test("a slot's picker opens as a bottom sheet", async ({ page }) => {
-		await page.goto("/champions/Teemo")
+	test("a slot's picker opens as a bottom sheet, and a tap picks the tapped spell", async ({
+		page,
+	}) => {
+		// Reacting runes make each spell's description a different height: the grid must stay put.
+		await page.goto(
+			"/champions/Teemo?runes=8200-8229-8275-8210-8237_8300-8306-8347_0-0-0",
+		)
 		await summonerSlot(page, 1).tap()
 		await picker(page, 1).getByRole("option", { name: "Flash" }).tap()
 		await expect(picker(page, 1)).toBeHidden()
 		await expect(page).toHaveURL(summonersParam("4", ""))
+
+		await summonerSlot(page, 2).tap()
+		await picker(page, 2).getByRole("option", { name: "Ghost" }).tap()
+		await expect(page).toHaveURL(summonersParam("4", "6"))
 	})
 })
