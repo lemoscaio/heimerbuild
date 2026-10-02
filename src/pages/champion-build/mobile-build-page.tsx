@@ -16,6 +16,8 @@ import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { SkillsTab } from "@/features/skills/components/skills-tab"
+import { SummonerEffectsNote } from "@/features/summoners/components/summoner-effects-note"
+import { SummonerSlots } from "@/features/summoners/components/summoner-slots"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { ChampionSkills } from "./champion-skills"
 import type { BuildPage } from "./hooks/use-build-page"
@@ -58,6 +60,13 @@ export function MobileBuildPage({
 					<MobileChampionRow
 						champion={champion}
 						formName={championState.form?.name}
+						beside={
+							<SummonerSlots
+								summoners={build.summoners}
+								spellEffects={build.spellEffects}
+								layout="sheet"
+							/>
+						}
 					>
 						<LevelSelector
 							level={championState.level}
@@ -95,7 +104,9 @@ export function MobileBuildPage({
 						resource={champion.resource}
 						preview={build.preview}
 						formComparison={build.formSwitch.comparison}
-					/>
+					>
+						<SummonerEffectsNote spells={build.summoners.slots} />
+					</StatsPanel>
 				)
 			}
 			shop={
@@ -112,6 +123,7 @@ export function MobileBuildPage({
 					patch={patch}
 					selection={build.runePage.selection}
 					onSelectionChange={build.runePage.setSelection}
+					summonerHints={build.summonerHints}
 				>
 					{build.stats && build.statsWithoutRunes && (
 						<section
