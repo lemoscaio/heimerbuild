@@ -47,9 +47,9 @@ export function ChampionBuildPage() {
 			onCopied={() =>
 				track("build_link_copied", {
 					champion: key,
-					level: build.level,
-					itemsCount: build.items.length,
-					hasRunes: !isRuneSelectionEmpty(build.runeSelection),
+					level: build.championState.level,
+					itemsCount: build.items.list.length,
+					hasRunes: !isRuneSelectionEmpty(build.runePage.selection),
 				})
 			}
 		/>

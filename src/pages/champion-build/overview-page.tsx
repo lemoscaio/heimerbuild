@@ -36,6 +36,7 @@ export function OverviewPage({
 	copyLink,
 	patchNotice,
 }: OverviewPageProps) {
+	const { championState, items } = build
 	const isRunesTab = build.tab === "runes"
 	const preloadRuneImages = useRuneImagePreload(patch)
 	useAnalyticsContext("shop_mode", "overview")
@@ -48,34 +49,41 @@ export function OverviewPage({
 					<WorkbenchPanel className="flex flex-col gap-3">
 						<ChampionHeader
 							champion={champion}
-							attackType={attackTypeAtLevel(champion, build.level, {
-								form: build.form?.id,
+							attackType={attackTypeAtLevel(champion, championState.level, {
+								form: championState.form?.id,
 							})}
-							formName={build.form?.name}
+							formName={championState.form?.name}
 						/>
-						{champion.forms && build.form && (
+						{champion.forms && championState.form && (
 							<FormToggle
 								forms={champion.forms}
-								form={build.form.id}
-								onFormChange={build.setForm}
-								announcement={build.formAnnouncement}
+								form={championState.form.id}
+								onFormChange={build.formSwitch.setForm}
+								announcement={build.formSwitch.announcement}
 							/>
 						)}
 						{patchNotice}
-						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
-						<ChampionSkills build={build} champion={champion} />
+						<LevelSelector
+							level={championState.level}
+							onLevelChange={championState.setLevel}
+						/>
+						<ChampionSkills
+							abilities={champion.abilities}
+							skills={build.skills}
+							rankUpStats={build.rankUpStats}
+						/>
 					</WorkbenchPanel>
 					<WorkbenchPanel>
 						<ItemSlots
-							items={build.items}
-							onRemoveItem={build.removeItem}
-							notice={build.notice}
-							announcement={build.announcement}
+							items={items.list}
+							onRemoveItem={items.remove}
+							notice={items.notice}
+							announcement={items.announcement}
 						/>
 					</WorkbenchPanel>
 					<RuneSummary
 						patch={patch}
-						selection={build.runeSelection}
+						selection={build.runePage.selection}
 						isEditing={isRunesTab}
 						onEdit={() => build.setTab("runes")}
 					/>
@@ -103,8 +111,8 @@ export function OverviewPage({
 					runes={
 						<RunePage
 							patch={patch}
-							selection={build.runeSelection}
-							onSelectionChange={build.setRunes}
+							selection={build.runePage.selection}
+							onSelectionChange={build.runePage.setSelection}
 						/>
 					}
 					skills={
@@ -121,7 +129,7 @@ export function OverviewPage({
 					{build.selectedItem && (
 						<ItemDetailsCard
 							item={build.selectedItem}
-							isBuildFull={build.isFull}
+							isBuildFull={items.isFull}
 							onAdd={build.addItem}
 							onClose={build.clearSelection}
 						/>
@@ -134,7 +142,7 @@ export function OverviewPage({
 									stats={build.statsWithoutRunes}
 									resource={champion.resource}
 									preview={build.runesPreview}
-									formComparison={build.formComparison}
+									formComparison={build.formSwitch.comparison}
 								>
 									<RunesStatsNote />
 								</StatsPanel>
@@ -143,7 +151,7 @@ export function OverviewPage({
 									stats={build.stats}
 									resource={champion.resource}
 									preview={build.preview}
-									formComparison={build.formComparison}
+									formComparison={build.formSwitch.comparison}
 								/>
 							))}
 					</WorkbenchPanel>

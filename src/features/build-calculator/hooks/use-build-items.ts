@@ -58,7 +58,8 @@ export function useBuildItems({
 	return {
 		/** The checked ids: known items only, the given ones while the items load. */
 		ids,
-		items,
+		/** The chosen items, in slot order. */
+		list: items,
 		isFull: ids.length >= MAX_ITEMS,
 		add,
 		remove,

@@ -37,7 +37,7 @@ export function useBuildPage({
 	const { view, tab } = source
 	const selectedItem = selectedItemId ? itemsById?.[selectedItemId] : undefined
 	const selectedItemStats =
-		selectedItem && build.whatIf({ items: [...items.items, selectedItem] })
+		selectedItem && build.whatIf({ items: [...items.list, selectedItem] })
 	const preview =
 		selectedItem && selectedItemStats
 			? { label: selectedItem.name, stats: selectedItemStats }
@@ -80,28 +80,16 @@ export function useBuildPage({
 
 	return {
 		champion,
-		level: championState.level,
-		setLevel: championState.setLevel,
-		/** The selected form, the default one unless the build names another; undefined without forms. */
-		form: championState.form,
-		/** Switches the form and announces how many stats changed. */
-		setForm: formSwitch.setForm,
-		/** The selected form's stats against the other form's: the delta chips. */
-		formComparison: formSwitch.comparison,
-		formAnnouncement: formSwitch.announcement,
+		/** Level and form; `formSwitch.setForm` switches the form with its announcement. */
+		championState,
+		/** Switches the form and announces how many stats changed, with the delta chips. */
+		formSwitch,
 		skills,
 		rankUpStats,
-		items: items.items,
+		/** The chosen items; `addItem` adds one from the shop and closes its details. */
+		items,
 		addItem,
-		removeItem: items.remove,
-		/** Why the last item could not be added (full build), until the next change. */
-		notice: items.notice,
-		/** The last item added, for screen readers, until an item is removed. */
-		announcement: items.announcement,
-		isFull: items.isFull,
-		/** The build's rune page, checked against this patch's runes. */
-		runeSelection: runePage.selection,
-		setRunes: runePage.setSelection,
+		runePage,
 		/** Totals with the items, stat shards and ranks. */
 		stats,
 		/** Totals without the stat shards: the base of the runes preview. */
