@@ -14,12 +14,14 @@ import {
 	CHAMPION_OVERRIDES,
 	type ChampionOverride,
 } from "./overrides/champion-overrides"
+import { RANK_STAT_RULES, type RankStatRule } from "./rank-stats"
 import { readJson } from "./read-json"
 import {
 	type Champion,
 	type ChampionSummary,
 	championIndexSchema,
 	championSchema,
+	skillRulesFitAbilities,
 } from "./schemas/champion"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
@@ -151,13 +153,20 @@ export type NormalizedChampion = {
 	skippedAbilityLines: number
 }
 
+export type NormalizeChampionOptions = {
+	/** Every champion's rank stat rules; each champion takes its own. */
+	rankStatRules?: readonly RankStatRule[]
+}
+
 /** Merges Data Dragon `champion/<Id>.json` with the CommunityDragon character bin. */
 export function normalizeChampion(
 	detail: unknown,
 	characterBin: unknown,
 	version: string,
+	options: NormalizeChampionOptions = {},
 ): Champion {
-	return normalizeChampionWithReport(detail, characterBin, version).champion
+	return normalizeChampionWithReport(detail, characterBin, version, options)
+		.champion
 }
 
 /** `normalizeChampion`, plus how many rank-up tooltip lines it could not resolve. */
@@ -165,6 +174,7 @@ export function normalizeChampionWithReport(
 	detail: unknown,
 	characterBin: unknown,
 	version: string,
+	{ rankStatRules = RANK_STAT_RULES }: NormalizeChampionOptions = {},
 ): NormalizedChampion {
 	const champions = Object.values(ddragonDetailSchema.parse(detail).data)
 	const [champion] = champions
@@ -173,7 +183,7 @@ export function normalizeChampionWithReport(
 	}
 	const record = findRootRecord(characterBin)
 	const stats = champion.stats
-	const { abilities, skippedLines } = normalizeAbilities(
+	const { abilities, rankStats, skippedLines } = normalizeAbilities(
 		{
 			partype: champion.partype,
 			passive: champion.passive,
@@ -181,6 +191,11 @@ export function normalizeChampionWithReport(
 		},
 		characterBin as Record<string, unknown>,
 		version,
+		{
+			rankStatRules: rankStatRules.filter(
+				({ championKey }) => championKey === champion.id,
+			),
+		},
 	)
 
 	const normalized = championSchema.parse({
@@ -224,6 +239,7 @@ export function normalizeChampionWithReport(
 			attackRange: { base: stats.attackrange, perLevel: 0 },
 		},
 		abilities,
+		...(rankStats.length ? { rankStats } : {}),
 	})
 	return { champion: normalized, skippedAbilityLines: skippedLines }
 }
@@ -237,7 +253,10 @@ export type ChampionOutputSummary = {
 	overrides: OverrideReport
 }
 
-export type WriteChampionsOptions = { overrides?: readonly ChampionOverride[] }
+export type WriteChampionsOptions = {
+	overrides?: readonly ChampionOverride[]
+	rankStatRules?: readonly RankStatRule[]
+}
 
 /**
  * Normalizes every cached champion, applies the overrides, then writes `champions.json` and
@@ -247,12 +266,20 @@ export async function writeChampions(
 	cacheDir: string,
 	outDir: string,
 	version: string,
-	{ overrides = CHAMPION_OVERRIDES }: WriteChampionsOptions = {},
+	{
+		overrides = CHAMPION_OVERRIDES,
+		rankStatRules = RANK_STAT_RULES,
+	}: WriteChampionsOptions = {},
 ): Promise<ChampionOutputSummary> {
 	const index = buildChampionIndex(
 		await readJson(join(cacheDir, "ddragon/champion.json")),
 		version,
 	)
+	for (const { championKey, slot } of rankStatRules) {
+		if (!index.some(({ key }) => key === championKey)) {
+			throw new Error(`rank stat rule ${championKey} ${slot}: no such champion`)
+		}
+	}
 	const results = await Promise.all(
 		index.map(async ({ key }) => {
 			try {
@@ -260,6 +287,7 @@ export async function writeChampions(
 					await readJson(join(cacheDir, `ddragon/champion/${key}.json`)),
 					await readJson(join(cacheDir, `cdragon/characters/${key}.bin.json`)),
 					version,
+					{ rankStatRules },
 				)
 			} catch (error) {
 				throw new Error(`${key}: ${(error as Error).message}`, {
@@ -278,6 +306,11 @@ export async function writeChampions(
 		const result = championSchema.safeParse(champion)
 		if (!result.success)
 			throw new Error(`${champion.key}: ${result.error.message}`)
+		if (!skillRulesFitAbilities(result.data)) {
+			throw new Error(
+				`${champion.key}: an ability rank has no level to unlock at; add skill rules (overrides/champion-skill-rules.ts)`,
+			)
+		}
 		return result.data
 	})
 

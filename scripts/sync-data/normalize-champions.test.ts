@@ -279,7 +279,9 @@ describe("writeChampions", () => {
 		withDirs(async (cacheDir, outDir) => {
 			await writeList(cacheDir, ["Heimerdinger"])
 
-			const result = await writeChampions(cacheDir, outDir, VERSION)
+			const result = await writeChampions(cacheDir, outDir, VERSION, {
+				rankStatRules: [],
+			})
 
 			expect(result.champions).toBe(1)
 			expect(await readdir(join(outDir, "champions"))).toEqual([
@@ -305,6 +307,7 @@ describe("writeChampions", () => {
 
 			const result = await writeChampions(cacheDir, outDir, VERSION, {
 				overrides: [override],
+				rankStatRules: [],
 			})
 
 			const written = JSON.parse(
@@ -329,18 +332,38 @@ describe("writeChampions", () => {
 			})
 
 			await expect(
-				writeChampions(cacheDir, outDir, VERSION, { overrides: [override] }),
+				writeChampions(cacheDir, outDir, VERSION, {
+					overrides: [override],
+					rankStatRules: [],
+				}),
 			).rejects.toThrow("Heimerdinger:")
 			expect(await readdir(outDir)).toEqual([])
+		}))
+
+	test("fails on a rank stat rule for a champion that is gone", () =>
+		withDirs(async (cacheDir, outDir) => {
+			await writeList(cacheDir, ["Heimerdinger"])
+			const rule = {
+				championKey: "Teemo",
+				slot: "W" as const,
+				stat: "movementSpeedPercent" as const,
+				dataValue: "PassiveMoveSpeedBonus",
+				reason: "test",
+				source: "test",
+			}
+
+			await expect(
+				writeChampions(cacheDir, outDir, VERSION, { rankStatRules: [rule] }),
+			).rejects.toThrow("rank stat rule Teemo W: no such champion")
 		}))
 
 	test("writes nothing when one champion fails", () =>
 		withDirs(async (cacheDir, outDir) => {
 			await writeList(cacheDir, ["Heimerdinger", "Missing"])
 
-			await expect(writeChampions(cacheDir, outDir, VERSION)).rejects.toThrow(
-				"Missing:",
-			)
+			await expect(
+				writeChampions(cacheDir, outDir, VERSION, { rankStatRules: [] }),
+			).rejects.toThrow("Missing:")
 			expect(await readdir(outDir)).toEqual([])
 		}))
 })

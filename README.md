@@ -154,6 +154,16 @@ forms: [
 
 The stats engine applies the selected form first, then the level states. The form `id` is what the share link carries (`?form=mega`).
 
+Skill points follow the game's default rules (one point per level, a basic ability's rank n at level 2n - 1, R at 6/11/16, max ranks from Data Dragon). Champions that differ (Elise starts with an R rank, Udyr's R ranks like a basic ability, Azir's first point is W, Shen's W needs Q first, Aphelios's points raise stats) go in `champion-skill-rules.ts` with `defineSkillRules`, the same way, and the sync writes them to the champion's `skillRules`:
+
+```ts
+skillRules: { innateRanks: { R: 1 }, rankLevels: { R: [1, 6, 11, 16] } }
+```
+
+`rankLevels` lists the champion level each rank needs, rank 1 first, counting innate ranks. The sync fails when an ability has more ranks than levels to unlock them at.
+
+Stats an ability grants by its rank alone (Twisted Fate's Stacked Deck: 15% to 55% attack speed) are not overrides: their values are in the game files. `RANK_STAT_RULES` in `scripts/sync-data/rank-stats.ts` names the spell value for each one (`dataValue`, with a `scale` into the stat's unit, a reason and a wiki source), and the sync writes the per-rank values to the champion's `rankStats`; a renamed value fails the sync. The stats engine adds them as bonus stats from the ability ranks of the skill order.
+
 ## Built with
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)

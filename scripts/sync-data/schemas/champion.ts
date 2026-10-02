@@ -199,6 +199,89 @@ export const championAbilitiesSchema = z.strictObject({
 	recommendedOrder: z.optional(recommendedSkillOrderSchema),
 })
 
+/** A value for some of the four abilities. */
+function perAbility<Schema extends z.ZodMiniType>(schema: Schema) {
+	return z.strictObject({
+		Q: z.optional(schema),
+		W: z.optional(schema),
+		E: z.optional(schema),
+		R: z.optional(schema),
+	})
+}
+
+/**
+ * How a champion's skill points differ from the game's default: one point per level, a basic
+ * ability's rank n at level 2n - 1, R at 6/11/16. Curated in `overrides/champion-skill-rules.ts`.
+ */
+export const skillRulesSchema = z.strictObject({
+	/** Ranks the champion starts with, without spending a point (Elise's R, Yuumi's W). */
+	innateRanks: z.optional(perAbility(z.int().check(z.gte(1), z.lte(6)))),
+	/** The champion level each rank needs, rank 1 first (innate ranks included); replaces the default. */
+	rankLevels: z.optional(
+		perAbility(
+			z.array(z.int().check(z.gte(1), z.lte(18))).check(z.minLength(1)),
+		),
+	),
+	/** Abilities that need a point in one of the listed ones first (Shen's W needs Q). */
+	requires: z.optional(
+		perAbility(z.array(abilitySlotSchema).check(z.minLength(1))),
+	),
+	/** The level 1 point the game spends by itself (Azir's W). */
+	firstPoint: z.optional(abilitySlotSchema),
+	/** The points raise stats, not abilities (Aphelios): the champion has no skill order. */
+	statPoints: z.optional(z.literal(true)),
+})
+
+/** The champion level each rank needs by default, rank 1 first: a basic ability every odd level, R at 6/11/16. */
+export const DEFAULT_RANK_LEVELS = {
+	basic: [1, 3, 5, 7, 9, 11],
+	ultimate: [6, 11, 16],
+} as const
+
+/** The level each rank of `slot` needs, rank 1 first: the champion's rule, else the default. */
+export function rankLevelsOf(
+	skillRules: SkillRules | undefined,
+	slot: AbilitySlot,
+): readonly number[] {
+	return (
+		skillRules?.rankLevels?.[slot] ??
+		(slot === "R" ? DEFAULT_RANK_LEVELS.ultimate : DEFAULT_RANK_LEVELS.basic)
+	)
+}
+
+/** Every rank of every ability has a level to unlock at, and innate ranks fit in the max rank. */
+export function skillRulesFitAbilities({
+	abilities,
+	skillRules,
+}: {
+	abilities: ChampionAbilities
+	skillRules?: SkillRules
+}): boolean {
+	return abilities.spells.every(
+		({ slot, maxRank }) =>
+			(skillRules?.innateRanks?.[slot] ?? 0) <= maxRank &&
+			rankLevelsOf(skillRules, slot).length >= maxRank,
+	)
+}
+
+/** Stats an ability rank can grant; a subset of the item stat keys, with the same units. */
+export const RANK_STATS = [
+	"attackSpeedPercent",
+	"movementSpeedPercent",
+	"armor",
+	"magicResist",
+	"armorPenetrationPercent",
+	"magicPenetrationPercent",
+] as const
+
+/** A stat an ability grants by rank alone (Twisted Fate's E: 15% to 55% attack speed). */
+export const rankStatSchema = z.strictObject({
+	slot: abilitySlotSchema,
+	stat: z.enum(RANK_STATS),
+	/** One per rank, from rank 1; percents are fractions, like the item stats. */
+	values: perRankSchema,
+})
+
 export const championRoleSchema = z.enum([
 	"ASSASSIN",
 	"FIGHTER",
@@ -232,6 +315,10 @@ export const championSchema = z.strictObject({
 	stats: championStatsSchema,
 	/** Passive and Q/W/E/R: names, icons, ranks and per-rank values (no scalings or damage). */
 	abilities: championAbilitiesSchema,
+	/** Applied by the skill order; absent means the default rules. */
+	skillRules: z.optional(skillRulesSchema),
+	/** Applied by the stats engine from the ability ranks; synced by `RANK_STAT_RULES`. */
+	rankStats: z.optional(z.array(rankStatSchema).check(z.minLength(1))),
 	/** Applied by the stats engine from the selected level; curated in `overrides/champion-level-states.ts`. */
 	levelStates: z.optional(levelStatesSchema),
 	/** Picked by the player, applied by the stats engine; curated in `overrides/champion-forms.ts`. */
@@ -245,6 +332,8 @@ export type AbilitySlot = z.infer<typeof abilitySlotSchema>
 export type AbilityRankValue = z.infer<typeof abilityRankValueSchema>
 export type ChampionSpell = z.infer<typeof championSpellSchema>
 export type ChampionAbilities = z.infer<typeof championAbilitiesSchema>
+export type SkillRules = z.infer<typeof skillRulesSchema>
+export type RankStat = z.infer<typeof rankStatSchema>
 export type ChampionRole = z.infer<typeof championRoleSchema>
 export type ChampionSummary = z.infer<typeof championSummarySchema>
 export type Champion = z.infer<typeof championSchema>

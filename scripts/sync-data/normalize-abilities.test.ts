@@ -113,6 +113,44 @@ describe("normalizeAbilities", () => {
 		})
 	})
 
+	test("reads the rank stats a rule names from the game files", () => {
+		const rule = {
+			championKey: "Teemo",
+			slot: "W" as const,
+			stat: "movementSpeedPercent" as const,
+			dataValue: "PassiveMoveSpeedBonus",
+			reason: "test",
+			source: "test",
+		}
+		const { rankStats } = normalizeAbilities(
+			teemoDetail.data.Teemo,
+			teemoBin as Record<string, unknown>,
+			VERSION,
+			{
+				rankStatRules: [
+					rule,
+					{ ...rule, dataValue: "ActiveMoveSpeedBonus", scale: 100 },
+				],
+			},
+		)
+		expect(rankStats).toEqual([
+			{
+				slot: "W",
+				stat: "movementSpeedPercent",
+				values: [0.12, 0.16, 0.2, 0.24, 0.28],
+			},
+			{ slot: "W", stat: "movementSpeedPercent", values: [24, 32, 40, 48, 56] },
+		])
+		expect(() =>
+			normalizeAbilities(
+				teemoDetail.data.Teemo,
+				teemoBin as Record<string, unknown>,
+				VERSION,
+				{ rankStatRules: [{ ...rule, dataValue: "Renamed" }] },
+			),
+		).toThrow('no "Renamed" value per rank')
+	})
+
 	test("fails when the game files lack one of the spells", () => {
 		const bin: Record<string, unknown> = { ...teemoBin }
 		delete bin["Characters/Teemo/Spells/TeemoRAbility/TeemoR"]
