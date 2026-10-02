@@ -36,6 +36,11 @@ type SummonerSpellPickerProps = {
 	spellEffects: SpellRuneEffectsById
 	onPick: (spellId: string) => void
 	onClear: () => void
+	/**
+	 * Where the popup is anchored. The growing description sits on the side away from the anchor,
+	 * so the grid never moves under the pointer: below it in a popover, above it in a bottom sheet.
+	 */
+	anchor: "top" | "bottom"
 }
 
 /**
@@ -49,6 +54,7 @@ export function SummonerSpellPicker({
 	spellEffects,
 	onPick,
 	onClear,
+	anchor,
 }: SummonerSpellPickerProps) {
 	const selected = summoners.slots[slot]
 	const other = summoners.slots[slot === 0 ? 1 : 0]
@@ -58,6 +64,12 @@ export function SummonerSpellPicker({
 		columns: GRID_COLUMNS,
 	})
 	const described = grid.active ?? selected
+	const effects = (
+		<SpellEffects
+			spell={described}
+			effects={described ? (spellEffects.get(described.id) ?? []) : []}
+		/>
+	)
 
 	return (
 		<div className="flex flex-col gap-2.5">
@@ -65,6 +77,7 @@ export function SummonerSpellPicker({
 				{title}
 				<span className="text-[11px] text-subtle">Summoner's Rift</span>
 			</div>
+			{anchor === "bottom" && effects}
 			<div
 				role="listbox"
 				aria-label="Summoner spells"
@@ -86,10 +99,7 @@ export function SummonerSpellPicker({
 					/>
 				))}
 			</div>
-			<SpellEffects
-				spell={described}
-				effects={described ? (spellEffects.get(described.id) ?? []) : []}
-			/>
+			{anchor === "top" && effects}
 			<div className="flex items-center justify-between gap-2">
 				<p className="text-[11px] text-subtle max-lg:invisible">
 					Arrows move · Enter picks · Esc closes

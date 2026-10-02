@@ -49,6 +49,7 @@ export function SummonerSlotPopover({
 					spellEffects={spellEffects}
 					onPick={picker.pick}
 					onClear={picker.clear}
+					anchor="top"
 				/>
 			</PopoverContent>
 		</Popover>

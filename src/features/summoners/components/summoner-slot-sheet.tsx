@@ -41,6 +41,7 @@ export function SummonerSlotSheet({
 					spellEffects={spellEffects}
 					onPick={picker.pick}
 					onClear={picker.clear}
+					anchor="bottom"
 				/>
 			</DrawerContent>
 		</Drawer>
