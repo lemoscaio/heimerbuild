@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { GameIcon } from "@/components/common/game-icon"
+import { Skeleton } from "@/components/ui/skeleton"
 import { track } from "@/lib/analytics/analytics"
-import { ChampionCardShell } from "./champion-card-shell"
 
 type ChampionCardProps = {
 	champion: {
@@ -19,7 +19,7 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 			className="group block min-w-0 rounded-lg"
 			onClick={() => track("champion_selected", { champion: champion.key })}
 		>
-			<ChampionCardShell>
+			<CardCell>
 				<GameIcon
 					src={champion.icon}
 					name={champion.name}
@@ -31,7 +31,24 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 				<span className="w-full truncate text-center text-prose text-xs group-hover:text-white">
 					{champion.name}
 				</span>
-			</ChampionCardShell>
+			</CardCell>
 		</Link>
+	)
+}
+
+/** The card's loading placeholder: the same cell, so the grid keeps its size. */
+export function ChampionCardSkeleton() {
+	return (
+		<CardCell>
+			<Skeleton className="aspect-square w-full rounded-xl" />
+			<Skeleton className="h-3 w-3/4" />
+		</CardCell>
+	)
+}
+
+/** One grid cell: the icon over the name. */
+function CardCell(props: React.ComponentProps<"div">) {
+	return (
+		<div className="flex min-w-0 flex-col items-center gap-1.5" {...props} />
 	)
 }
