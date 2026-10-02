@@ -61,6 +61,8 @@ export function useSkills({
 	return {
 		/** False for a champion whose points raise stats (Aphelios). */
 		hasSkillOrder: !!rules?.hasSkillOrder,
+		/** The game's suggested max order for the automatic points ("R, E, Q, W"). */
+		suggestedPriority: rules?.recommended.priority ?? [],
 		/** The point of each level up to the current one, picked or suggested. */
 		points,
 		/** Each ability's rank at the current level, suggested points included. */
