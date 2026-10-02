@@ -73,14 +73,8 @@ export function fetchChampion(
 
 type ItemsById = Record<string, Item>
 
-/** Keys items by id and turns `icon` into a full Data Dragon URL, like champion icons. */
-export function toItemsById({ version, items }: ItemsFile): ItemsById {
-	return Object.fromEntries(
-		items.map((item) => [
-			item.id,
-			{ ...item, icon: `${DDRAGON_CDN}/${version}/img/item/${item.icon}` },
-		]),
-	)
+export function toItemsById({ items }: ItemsFile): ItemsById {
+	return Object.fromEntries(items.map((item) => [item.id, item]))
 }
 
 export async function fetchItems(

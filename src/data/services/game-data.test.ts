@@ -99,15 +99,13 @@ describe("dataFileUrl", () => {
 })
 
 describe("toItemsById", () => {
-	test("keys items by id with a Data Dragon icon URL for the file version", () => {
-		const item = { id: "1036", icon: "1036.png" } as Parameters<
-			typeof toItemsById
-		>[0]["items"][number]
+	test("keys items by id, as stored", () => {
+		const item = {
+			id: "1036",
+			icon: "https://ddragon.leagueoflegends.com/cdn/16.19.1/img/item/1036.png",
+		} as Parameters<typeof toItemsById>[0]["items"][number]
 		expect(toItemsById({ version: "16.19.1", items: [item] })).toEqual({
-			"1036": {
-				...item,
-				icon: "https://ddragon.leagueoflegends.com/cdn/16.19.1/img/item/1036.png",
-			},
+			"1036": item,
 		})
 	})
 })
