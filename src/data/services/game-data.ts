@@ -16,7 +16,7 @@ export class GameDataUnavailableError extends Error {
 	}
 }
 
-export type FetchGameDataOptions = { fetchFn?: typeof fetch }
+type FetchGameDataOptions = { fetchFn?: typeof fetch }
 
 export async function fetchGameData<T>(
 	path: string,
@@ -71,7 +71,7 @@ export function fetchChampion(
 	)
 }
 
-export type ItemsById = Record<string, Item>
+type ItemsById = Record<string, Item>
 
 /** Keys items by id and turns `icon` into a full Data Dragon URL, like champion icons. */
 export function toItemsById({ version, items }: ItemsFile): ItemsById {

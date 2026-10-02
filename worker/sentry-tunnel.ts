@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { SENTRY_INGEST_HOST, SENTRY_PROJECT_ID } from "../src/app/sentry-config"
+import { plainResponse } from "./plain-response"
 
 // Checked against committed routing constants: wrangler bundles the Worker without the
 // VITE_SENTRY_DSN build variable, and the DSN's public key never mattered for the check.
@@ -35,13 +36,6 @@ function isOwnProject(envelope: Uint8Array): boolean {
 	} catch {
 		return false
 	}
-}
-
-function plainResponse(status: number, body: string, headers?: HeadersInit) {
-	return new Response(body, {
-		status,
-		headers: { "Content-Type": "text/plain; charset=utf-8", ...headers },
-	})
 }
 
 /**

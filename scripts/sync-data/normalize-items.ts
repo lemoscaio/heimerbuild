@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
 import {
@@ -14,6 +14,7 @@ import {
 	type OverrideReport,
 } from "./overrides/apply-overrides"
 import { ITEM_OVERRIDES, type ItemOverride } from "./overrides/item-overrides"
+import { readJson } from "./read-json"
 import { type ChampionRole, championRoleSchema } from "./schemas/champion"
 import {
 	ITEM_EPICNESS,
@@ -294,12 +295,10 @@ export async function syncItems({ cacheDir, outDir }: SyncItemsPaths): Promise<{
 	staleAllowlist: NormalizedItems["staleAllowlist"]
 	overrides: NormalizedItems["overrides"]
 }> {
-	const readJson = async (path: string): Promise<unknown> =>
-		JSON.parse(await readFile(join(cacheDir, path), "utf8"))
 	const { file, removed, staleAllowlist, overrides } = normalizeItems(
-		await readJson("ddragon/item.json"),
-		await readJson("cdragon/items.cdtb.bin.json"),
-		await readJson("cdragon/map11.bin.json"),
+		await readJson(join(cacheDir, "ddragon/item.json")),
+		await readJson(join(cacheDir, "cdragon/items.cdtb.bin.json")),
+		await readJson(join(cacheDir, "cdragon/map11.bin.json")),
 	)
 	const text = JSON.stringify(file)
 	const path = join(outDir, "items.json")

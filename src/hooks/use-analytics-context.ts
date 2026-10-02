@@ -11,17 +11,15 @@ type UseAnalyticsContextOptions = {
 }
 
 /** Adds a piece of the active view to every analytics event while the view is shown. */
-export function useAnalyticsContext(
-	context: AnalyticsContext,
+export function useAnalyticsContext<Key extends keyof AnalyticsContext>(
+	key: Key,
+	value: AnalyticsContext[Key],
 	{ keepAfterUnmount = false }: UseAnalyticsContextOptions = {},
 ) {
-	const key = JSON.stringify(context)
 	useEffect(() => {
-		const current: AnalyticsContext = JSON.parse(key)
-		setAnalyticsContext(current)
+		const context: AnalyticsContext = { [key]: value }
+		setAnalyticsContext(context)
 		if (keepAfterUnmount) return
-		return () => {
-			clearAnalyticsContext(Object.keys(current) as (keyof AnalyticsContext)[])
-		}
-	}, [key, keepAfterUnmount])
+		return () => clearAnalyticsContext([key])
+	}, [key, value, keepAfterUnmount])
 }

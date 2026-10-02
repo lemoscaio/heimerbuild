@@ -21,7 +21,7 @@ export function ExpandedShopPage({
 	patch,
 	copyLink,
 }: ExpandedShopPageProps) {
-	useAnalyticsContext({ shop_mode: "expanded" })
+	useAnalyticsContext("shop_mode", "expanded")
 
 	return (
 		<WorkbenchLayout

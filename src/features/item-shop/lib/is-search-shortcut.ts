@@ -1,11 +1,9 @@
-type ShortcutTarget = { tagName: string; isContentEditable: boolean }
+import { isTypingTarget } from "@/lib/is-typing-target"
 
 type ShortcutKeyEvent = Pick<
 	KeyboardEvent,
 	"key" | "altKey" | "ctrlKey" | "metaKey" | "defaultPrevented"
-> & { target: ShortcutTarget | null }
-
-const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"])
+> & { target: Parameters<typeof isTypingTarget>[0] }
 
 /**
  * `/` pressed outside a text field, without Ctrl, Alt or Meta.
@@ -14,8 +12,5 @@ const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"])
 export function isSearchShortcut(event: ShortcutKeyEvent) {
 	if (event.key !== "/" || event.defaultPrevented) return false
 	if (event.altKey || event.ctrlKey || event.metaKey) return false
-	const { target } = event
-	return (
-		!target || !(TYPING_TAGS.has(target.tagName) || target.isContentEditable)
-	)
+	return !isTypingTarget(event.target)
 }

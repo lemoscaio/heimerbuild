@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent } from "react"
+import { isTypingTarget } from "@/lib/is-typing-target"
 
 /** Calls `onEscape` for Escape pressed anywhere, unless a field or a popup handled it. */
 export function useEscapeKey(onEscape: () => void) {
@@ -8,10 +9,7 @@ export function useEscapeKey(onEscape: () => void) {
 	useEffect(() => {
 		function handleKeyDown(event: KeyboardEvent) {
 			if (event.key !== "Escape" || event.defaultPrevented) return
-			if (
-				event.target instanceof HTMLElement &&
-				event.target.closest("input, textarea, [contenteditable]")
-			) {
+			if (event.target instanceof HTMLElement && isTypingTarget(event.target)) {
 				return
 			}
 			handleEscape()
