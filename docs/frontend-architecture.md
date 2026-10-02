@@ -13,7 +13,7 @@ src/
 ├── routes/               TanStack Router code routes: one *-route.tsx per route (path, search, loader, head, fallbacks)
 ├── pages/                one folder per page: composes features into its screens
 │   ├── home/             champion browser and recent builds
-│   └── champion-build/   the build page: picks the screen (overview, expanded shop, mobile), useBuildPage
+│   └── champion-build/   the build page: picks the screen (overview, expanded shop, mobile), useChampionBuild, useBuildPage
 ├── features/             feature slices, never import each other
 │   ├── champions/        champion grid, search, champion header and skills
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
@@ -77,7 +77,7 @@ features/<feature>/
 ### Import boundaries
 
 - **A feature never imports another feature. No exceptions.** Pages compose features; anything two features need is promoted to a shared layer.
-- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, composing build-calculator's `useBuild`) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
+- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, on top of `useChampionBuild`, which composes the domain hooks of four features; see [Build composition](#build-composition)) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`. Never `pages/` or `routes/`.
 - Pages may import features and the shared layers, never `routes/`. Routes import pages.
 - Shared layers never import from `features/`, `pages/` or `routes/`.
@@ -98,6 +98,31 @@ import { computeStats } from "@/lib/stats/compute-stats"
 
 - `src/data` is the only place that fetches and parses game data (`fetchGameData(path, schema)`) and exposes it through hooks and the `queryOptions()` factories in `src/data/queries/`. Every file under a patch is keyed by that patch and never goes stale (`staleTime: Infinity`). Its URL carries the content hash from the manifest (`?v=<hash>`), so a data fix within a patch is never hidden by the immutable HTTP cache.
 - Schemas stay in `scripts/sync-data/schemas/`, shared with the pipeline. Their inferred types (`Champion`, `Item`, ...) may be imported anywhere, through the `@schemas/` alias (`@schemas/item`).
+
+## Build composition
+
+The build (everything the user builds for a champion) is **composed from one controlled hook per domain**. Domains never import each other: the page layer wires them, and their values only meet in the stats and in each saved edit.
+
+```
+pages/champion-build/hooks/
+├── use-url-build-source.ts   the URL as the build source: writes the search, records recent builds
+├── use-champion-build.ts     data hooks + domain hooks + stats on a build source (the composer)
+└── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch
+```
+
+| Domain | Hook | Feature | Value in the source |
+| --- | --- | --- | --- |
+| Champion state | `useChampionState` (level, form) | `champions` | `level`, `form` |
+| Skills | `useSkills` (ranks, order, kept points) | `skills` | `skills` |
+| Items | `useBuildItems` (chosen items, full-build notice, announcement, item events) | `build-calculator` | `itemIds` |
+| Rune page | `useRunePage` (checked page, stat shards) | `runes` | `runes` |
+
+- **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`); the hook stays thin and is covered by the e2e flows.
+- **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
+- **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills and runes replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores).
+- **Pure stats.** `computeBuildStats({ champion, level, form, items, shards, ranks })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`).
+- **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
+- **Adding a domain** (summoner spells, conditions): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ## Where does new code go
 
