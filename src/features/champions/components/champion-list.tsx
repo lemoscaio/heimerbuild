@@ -1,4 +1,5 @@
 import type { ChampionSummary } from "@schemas/champion"
+import type { QueryStatus } from "@tanstack/react-query"
 import { LoadError } from "@/components/common/load-error"
 import { ChampionCard } from "./champion-card"
 import { ChampionGrid } from "./champion-grid"
@@ -8,24 +9,16 @@ import { ChampionCardReveal, ChampionGridReveal } from "./champion-list.motion"
 type ChampionListProps = {
 	champions: ChampionSummary[] | undefined
 	filteredChampions: ChampionSummary[]
-	isLoadingChampions: boolean
-	failedChampionsLoad: boolean
-	loadChampions: () => void
+	status: QueryStatus
+	onRetry: () => void
 }
 
-export function ChampionList(props: ChampionListProps) {
-	const {
-		champions,
-		filteredChampions,
-		isLoadingChampions,
-		failedChampionsLoad,
-		loadChampions,
-	} = props
-
-	function handleLoadChampionsClick() {
-		loadChampions()
-	}
-
+export function ChampionList({
+	champions,
+	filteredChampions,
+	status,
+	onRetry,
+}: ChampionListProps) {
 	return (
 		<>
 			{champions && (
@@ -43,13 +36,10 @@ export function ChampionList(props: ChampionListProps) {
 					)}
 				</ChampionGridReveal>
 			)}
-			{isLoadingChampions && <ChampionGridSkeleton />}
-			{failedChampionsLoad && (
+			{status === "pending" && <ChampionGridSkeleton />}
+			{status === "error" && (
 				<ChampionGrid>
-					<LoadError
-						className="col-span-full py-8"
-						onRetry={handleLoadChampionsClick}
-					>
+					<LoadError className="col-span-full py-8" onRetry={onRetry}>
 						Could not load the champions. Check your connection.
 					</LoadError>
 				</ChampionGrid>

@@ -154,6 +154,8 @@ export function useChampion(patch: string | undefined, key: string | undefined) 
 ## Async data: React Query only
 
 - All async data goes through TanStack Query: `useQuery` for reads, `useMutation` for writes.
+- That includes client-only actions whose pending, success or error the UI shows (copying a link: `useCopyLink` is a `useMutation`). Never hand-roll async status with `useState`.
+- Several queries behind one view become one `QueryStatus` (`"pending" | "error" | "success"`) for the component, not a set of booleans.
 - Never hand-roll `fetch` + `useState` loading/error flags + `useEffect`. React Query handles loading, errors, retries, dedup and caching.
 - Drive on-demand queries with `enabled`, not imperative calls.
 - One `QueryClient`, created at module level in `src/app/`, never inside a component.
