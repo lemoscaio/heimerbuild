@@ -9,6 +9,7 @@ import {
 import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { MAX_ITEMS } from "../lib/build-items"
+import { SKILLS_PARAM_PATTERN } from "../lib/build-search"
 
 export const MAX_RECENT_BUILDS = 5
 
@@ -30,6 +31,11 @@ const recentBuildSchema = z.object({
 	/** A form other than the default, as the `form` URL value. A bad one only loses the form. */
 	form: z.catch(
 		z.optional(z.string().check(z.regex(FORM_ID_PATTERN))),
+		undefined,
+	),
+	/** The picked skill points, as the `skills` URL value. A bad one only loses the skills. */
+	skills: z.catch(
+		z.optional(z.string().check(z.regex(SKILLS_PARAM_PATTERN))),
 		undefined,
 	),
 })

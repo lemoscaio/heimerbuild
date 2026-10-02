@@ -17,6 +17,7 @@ import {
 } from "@/lib/stats/champion-forms"
 import { computeStats, type ItemInput } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
+import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import { shardStatsInput } from "@/lib/stats/rune-shards"
 import {
 	addItemId,
@@ -36,19 +37,27 @@ type UseBuildOptions = {
 		search: BuildSearch,
 		navigation: { replace: boolean },
 	) => void
+	/** The abilities' ranks from the skill order, for the stats a rank grants. */
+	ranks?: AbilityRanks
+}
+
+type SetLevelOptions = {
+	/** The `skills` value to save with the level; by default the current one. */
+	skills?: string
 }
 
 export type Build = ReturnType<typeof useBuild>
 
 /**
- * Build state kept in the URL search: champion, form, level, items and runes, plus their stats.
- * No page state: the view and the item selection live in `useBuildPage`.
+ * Build state kept in the URL search: champion, form, level, items, runes and the `skills` value,
+ * plus their stats. No page state: the view and the item selection live in `useBuildPage`.
  */
 export function useBuild({
 	patch,
 	championKey,
 	search,
 	onSearchChange,
+	ranks,
 }: UseBuildOptions) {
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
@@ -73,11 +82,15 @@ export function useBuild({
 	const formId = champion
 		? formChanges(champion.forms, search.form)?.id
 		: search.form
+	const skills = search.skills
 
 	/** Stats of `buildItems` plus the chosen stat shards (Adaptive Force depends on the items). */
 	function statsWith(
 		buildItems: readonly ItemInput[],
-		{ form: inForm = formId }: FormOptions = {},
+		{
+			form: inForm = formId,
+			ranks: withRanks = ranks,
+		}: FormOptions & { ranks?: AbilityRanks } = {},
 	) {
 		if (!champion) return undefined
 		const shardInput = shardStatsInput(shards, {
@@ -87,12 +100,13 @@ export function useBuild({
 		})
 		return computeStats(champion, level, [...buildItems, shardInput], {
 			form: inForm,
+			ranks: withRanks,
 		})
 	}
 
 	const stats = statsWith(items)
 	const statsWithoutRunes =
-		champion && computeStats(champion, level, items, { form: formId })
+		champion && computeStats(champion, level, items, { form: formId, ranks })
 	const runesPreview =
 		shards.length && stats ? { label: "stat shards", stats } : undefined
 	const isFull = itemIds.length >= MAX_ITEMS
@@ -105,6 +119,7 @@ export function useBuild({
 			itemIds: readonly string[]
 			runes: string | undefined
 			form: string | undefined
+			skills: string | undefined
 		},
 		navigation: { replace: boolean },
 	) {
@@ -116,20 +131,32 @@ export function useBuild({
 			patch: search.patch,
 			runes: next.runes,
 			form: next.form,
+			skills: next.skills,
 		})
 	}
 
-	function setLevel(nextLevel: number) {
+	function setLevel(
+		nextLevel: number,
+		{ skills: nextSkills = skills }: SetLevelOptions = {},
+	) {
 		saveBuild(
-			{ level: nextLevel, itemIds, runes, form: formId },
+			{ level: nextLevel, itemIds, runes, form: formId, skills: nextSkills },
 			{ replace: true },
 		)
 	}
 
 	function setItemIds(nextItemIds: readonly string[]) {
 		saveBuild(
-			{ level, itemIds: nextItemIds, runes, form: formId },
+			{ level, itemIds: nextItemIds, runes, form: formId, skills },
 			{ replace: false },
+		)
+	}
+
+	// Replaces the history entry, like the level: Back leaves the page, not one point.
+	function setSkills(nextSkills: string | undefined) {
+		saveBuild(
+			{ level, itemIds, runes, form: formId, skills: nextSkills },
+			{ replace: true },
 		)
 	}
 
@@ -142,6 +169,7 @@ export function useBuild({
 				itemIds,
 				runes,
 				form: formChanges(champion.forms, nextFormId)?.id,
+				skills,
 			},
 			{ replace: true },
 		)
@@ -173,6 +201,7 @@ export function useBuild({
 				itemIds,
 				runes: serializeRuneSelection(nextSelection),
 				form: formId,
+				skills,
 			},
 			{ replace: true },
 		)
@@ -195,6 +224,8 @@ export function useBuild({
 		setForm,
 		level,
 		setLevel,
+		/** Saves the `skills` URL value; the skills domain reads and checks it. */
+		setSkills,
 		items,
 		addItem,
 		removeItem,
@@ -215,6 +246,9 @@ export function useBuild({
 		/** `stats` as they would be in another form: the base of the form deltas. */
 		statsInForm: (otherFormId: string) =>
 			statsWith(items, { form: otherFormId }),
+		/** `stats` with other ability ranks: the base of the rank-up preview. */
+		statsWithRanks: (otherRanks: AbilityRanks) =>
+			statsWith(items, { ranks: otherRanks }),
 		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
 		runesPreview,
 		/** The build as the URL reads it: known items, checked runes, the link's own patch. */
@@ -224,8 +258,16 @@ export function useBuild({
 			patch: search.patch,
 			runes,
 			form: formId,
+			skills,
 		}),
 		/** The full build for sharing, pinned to the patch in use. */
-		shareSearch: toBuildSearch({ level, itemIds, patch, runes, form: formId }),
+		shareSearch: toBuildSearch({
+			level,
+			itemIds,
+			patch,
+			runes,
+			form: formId,
+			skills,
+		}),
 	}
 }
