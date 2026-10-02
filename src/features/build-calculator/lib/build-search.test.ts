@@ -74,6 +74,13 @@ describe("buildSearchSchema", () => {
 		expect(parse({ form: ["mega"] }).form).toBeUndefined()
 	})
 
+	test("accepts skill points as ability letters and drops anything else", () => {
+		expect(parse({ skills: "EQWE" }).skills).toBe("EQWE")
+		expect(parse({ skills: "eqwe" }).skills).toBeUndefined()
+		expect(parse({ skills: "QWEQQRQWEWRQEWQERQE" }).skills).toBeUndefined()
+		expect(parse({ skills: 1 }).skills).toBeUndefined()
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
