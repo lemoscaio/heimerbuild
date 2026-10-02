@@ -4,23 +4,24 @@ import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { useBuild } from "@/features/build-calculator/hooks/use-build"
 import type {
-	BuildSearch,
 	BuildTab,
 	BuildView,
 } from "@/features/build-calculator/lib/build-search"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { track } from "@/lib/analytics/analytics"
-import { MIN_LEVEL } from "@/lib/stats/growth"
 import { useFormSwitch } from "./use-form-switch"
+import { useUrlBuildSource } from "./use-url-build-source"
 
-type UseBuildPageOptions = Parameters<typeof useBuild>[0]
+type UseBuildPageOptions = Parameters<typeof useUrlBuildSource>[0] & {
+	patch: string
+}
 
 export type BuildPage = ReturnType<typeof useBuildPage>
 
 /**
- * The build page: `useBuild` and `useSkills` plus the page's own state, the view and the open tab
- * (kept in the URL), the shop item picked for a closer look and the form switch. `addItem` also
- * closes that item's details.
+ * The build page: `useBuild` and `useSkills` on the URL build source, plus the page's own state:
+ * the view and the open tab (kept in the URL), the shop item picked for a closer look and the form
+ * switch. `addItem` also closes that item's details.
  */
 export function useBuildPage({
 	patch,
@@ -29,31 +30,20 @@ export function useBuildPage({
 	onSearchChange,
 }: UseBuildPageOptions) {
 	const { data: champion } = useChampion(patch, championKey)
+	const source = useUrlBuildSource({ championKey, search, onSearchChange })
 	// The skills come first: the build's stats read their ranks.
 	const skills = useSkills({
 		champion,
-		level: search.lvl ?? MIN_LEVEL,
-		value: search.skills,
+		level: source.state.level,
+		value: source.state.skills,
 		onChange: (value) => build.setSkills(value),
 	})
-	// Build edits keep the view and the tab the page is in.
-	const build = useBuild({
-		patch,
-		championKey,
-		search,
-		onSearchChange: (nextSearch, navigation) =>
-			onSearchChange(
-				{ ...nextSearch, view: search.view, tab: search.tab },
-				navigation,
-			),
-		ranks: skills.ranks,
-	})
+	const build = useBuild({ patch, championKey, source, ranks: skills.ranks })
 	const formSwitch = useFormSwitch(build)
 	const { data: itemsById } = useItems(patch)
 	const [selectedItemId, setSelectedItemId] = useState<string>()
 
-	const view: BuildView = search.view ?? "overview"
-	const tab: BuildTab = search.tab ?? "items"
+	const { view, tab } = source
 	const selectedItem = selectedItemId ? itemsById?.[selectedItemId] : undefined
 	const selectedItemStats = selectedItem && build.statsWithItem(selectedItem)
 	const preview =
@@ -63,19 +53,13 @@ export function useBuildPage({
 
 	// Leaving for the expanded shop drops the tab: the overview comes back on Items.
 	function setView(nextView: BuildView) {
-		onSearchChange(
-			{ ...build.buildSearch, view: viewParam(nextView) },
-			{ replace: false },
-		)
+		source.updatePage(build.values, { view: nextView }, { replace: false })
 	}
 
 	// Replaces the history entry, like a level change: Back leaves the page, not a tab.
 	function setTab(nextTab: BuildTab) {
 		if (nextTab === tab) return
-		onSearchChange(
-			{ ...build.buildSearch, view: search.view, tab: tabParam(nextTab) },
-			{ replace: true },
-		)
+		source.updatePage(build.values, { view, tab: nextTab }, { replace: true })
 	}
 
 	function selectItem(itemId: string) {
@@ -127,19 +111,9 @@ export function useBuildPage({
 		/** The stats with the selected item added, while one is selected. */
 		preview,
 		/** The full build for sharing, pinned to the patch in use, in the current view and tab. */
-		shareSearch: {
-			...build.shareSearch,
-			skills: skills.value,
-			view: search.view,
-			tab: search.tab,
-		},
+		shareSearch: source.shareSearch(
+			{ ...build.values, skills: skills.value },
+			patch,
+		),
 	}
-}
-
-function viewParam(view: BuildView): BuildSearch["view"] {
-	return view === "shop" ? view : undefined
-}
-
-function tabParam(tab: BuildTab): BuildSearch["tab"] {
-	return tab === "items" ? undefined : tab
 }

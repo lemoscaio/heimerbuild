@@ -16,7 +16,6 @@ import {
 	computeBuildStats,
 } from "@/lib/stats/compute-build-stats"
 import type { ItemInput } from "@/lib/stats/compute-stats"
-import { MIN_LEVEL } from "@/lib/stats/growth"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import {
 	addItemId,
@@ -24,18 +23,17 @@ import {
 	MAX_ITEMS,
 	removeItemAt,
 } from "../lib/build-items"
-import { type BuildSearch, toBuildSearch } from "../lib/build-search"
-import { recordRecentBuild } from "../services/recent-builds"
+import type {
+	BuildNavigation,
+	BuildSource,
+	BuildValues,
+} from "../types/build-source"
 
 type UseBuildOptions = {
 	patch: string
 	championKey: string
-	/** The build as read from the URL. */
-	search: BuildSearch
-	onSearchChange: (
-		search: BuildSearch,
-		navigation: { replace: boolean },
-	) => void
+	/** Where the build's values live and where its edits are saved. */
+	source: BuildSource
 	/** The abilities' ranks from the skill order, for the stats a rank grants. */
 	ranks?: AbilityRanks
 }
@@ -45,17 +43,25 @@ type SetLevelOptions = {
 	skills?: string
 }
 
+/** Browser history per edit: Back undoes an item edit; every other edit replaces the entry. */
+const EDIT_HISTORY = {
+	level: { replace: true },
+	form: { replace: true },
+	items: { replace: false },
+	runes: { replace: true },
+	skills: { replace: true },
+} as const satisfies Record<string, BuildNavigation>
+
 export type Build = ReturnType<typeof useBuild>
 
 /**
- * Build state kept in the URL search: champion, form, level, items, runes and the `skills` value,
+ * The build read from its source: champion, form, level, items, runes and the `skills` value,
  * plus their stats. No page state: the view and the item selection live in `useBuildPage`.
  */
 export function useBuild({
 	patch,
 	championKey,
-	search,
-	onSearchChange,
+	source,
 	ranks,
 }: UseBuildOptions) {
 	const { data: champion } = useChampion(patch, championKey)
@@ -63,25 +69,27 @@ export function useBuild({
 	const [notice, setNotice] = useState<string>()
 	const [announcement, setAnnouncement] = useState<string>()
 
-	const level = search.lvl ?? MIN_LEVEL
+	const level = source.state.level
 	// Until the items load, keep the ids from the link so a level change does not drop them.
 	const itemIds = itemsById
-		? knownItemIds(search.items, itemsById)
-		: (search.items ?? [])
+		? knownItemIds(source.state.itemIds, itemsById)
+		: source.state.itemIds
 	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
 	const { data: runesFile } = useRunes(patch)
 	const runeSelection = runesFile
-		? parseRuneSelection(search.runes, runesFile)
+		? parseRuneSelection(source.state.runes, runesFile)
 		: EMPTY_RUNE_SELECTION
 	// Until the runes load, keep the link's value so other edits do not drop it.
-	const runes = runesFile ? serializeRuneSelection(runeSelection) : search.runes
+	const runes = runesFile
+		? serializeRuneSelection(runeSelection)
+		: source.state.runes
 	const shards = runesFile ? selectedShards(runeSelection, runesFile) : []
-	const form = champion && selectedForm(champion.forms, search.form)
+	const form = champion && selectedForm(champion.forms, source.state.form)
 	// Until the champion loads, keep the link's form; then only a form other than the default.
 	const formId = champion
-		? formChanges(champion.forms, search.form)?.id
-		: search.form
-	const skills = search.skills
+		? formChanges(champion.forms, source.state.form)?.id
+		: source.state.form
+	const skills = source.state.skills
 
 	/** The build's totals with `change` applied: every preview is one input changed. */
 	function whatIf(change: Partial<BuildStatsInput> = {}) {
@@ -103,67 +111,33 @@ export function useBuild({
 		shards.length && stats ? { label: "stat shards", stats } : undefined
 	const isFull = itemIds.length >= MAX_ITEMS
 
-	// Edits keep the link's own patch: changing it would reload the route mid-edit.
-	// Each edit also lists the build in the home page's recent builds (this browser only).
-	function saveBuild(
-		next: {
-			level: number
-			itemIds: readonly string[]
-			runes: string | undefined
-			form: string | undefined
-			skills: string | undefined
-		},
-		navigation: { replace: boolean },
-	) {
-		onSearchChange(toBuildSearch({ ...next, patch: search.patch }), navigation)
-		recordRecentBuild({
-			championKey,
-			level: next.level,
-			itemIds: [...next.itemIds],
-			patch: search.patch,
-			runes: next.runes,
-			form: next.form,
-			skills: next.skills,
-		})
+	/** The checked values every edit saves next to its own change (the link's while data loads). */
+	const values: BuildValues = { level, itemIds, runes, form: formId, skills }
+
+	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
+		source.update({ ...values, ...change }, navigation)
 	}
 
 	function setLevel(
 		nextLevel: number,
 		{ skills: nextSkills = skills }: SetLevelOptions = {},
 	) {
-		saveBuild(
-			{ level: nextLevel, itemIds, runes, form: formId, skills: nextSkills },
-			{ replace: true },
-		)
+		save({ level: nextLevel, skills: nextSkills }, EDIT_HISTORY.level)
 	}
 
 	function setItemIds(nextItemIds: readonly string[]) {
-		saveBuild(
-			{ level, itemIds: nextItemIds, runes, form: formId, skills },
-			{ replace: false },
-		)
+		save({ itemIds: nextItemIds }, EDIT_HISTORY.items)
 	}
 
-	// Replaces the history entry, like the level: Back leaves the page, not one point.
 	function setSkills(nextSkills: string | undefined) {
-		saveBuild(
-			{ level, itemIds, runes, form: formId, skills: nextSkills },
-			{ replace: true },
-		)
+		save({ skills: nextSkills }, EDIT_HISTORY.skills)
 	}
 
-	// Replaces the history entry, like the level: Back leaves the page, not one switch.
 	function setForm(nextFormId: string) {
 		if (!champion || nextFormId === form?.id) return
-		saveBuild(
-			{
-				level,
-				itemIds,
-				runes,
-				form: formChanges(champion.forms, nextFormId)?.id,
-				skills,
-			},
-			{ replace: true },
+		save(
+			{ form: formChanges(champion.forms, nextFormId)?.id },
+			EDIT_HISTORY.form,
 		)
 		track("champion_form_changed", { champion: championKey, form: nextFormId })
 	}
@@ -185,18 +159,8 @@ export function useBuild({
 		return true
 	}
 
-	// Each pick replaces the history entry, like the level: Back leaves the page, not one rune.
 	function setRunes(nextSelection: RuneSelection) {
-		saveBuild(
-			{
-				level,
-				itemIds,
-				runes: serializeRuneSelection(nextSelection),
-				form: formId,
-				skills,
-			},
-			{ replace: true },
-		)
+		save({ runes: serializeRuneSelection(nextSelection) }, EDIT_HISTORY.runes)
 	}
 
 	function removeItem(slot: number) {
@@ -211,12 +175,12 @@ export function useBuild({
 
 	return {
 		champion,
-		/** The selected form, the default one unless the URL names another; undefined without forms. */
+		/** The selected form, the default one unless the build names another; undefined without forms. */
 		form,
 		setForm,
 		level,
 		setLevel,
-		/** Saves the `skills` URL value; the skills domain reads and checks it. */
+		/** Saves the `skills` value; the skills domain reads and checks it. */
 		setSkills,
 		items,
 		addItem,
@@ -226,7 +190,7 @@ export function useBuild({
 		/** The last item added, for screen readers, until an item is removed. */
 		announcement,
 		isFull,
-		/** The rune page read from the URL, checked against this patch's runes. */
+		/** The build's rune page, checked against this patch's runes. */
 		runeSelection,
 		setRunes,
 		/** Totals with items and stat shards. */
@@ -241,23 +205,7 @@ export function useBuild({
 		statsWithRanks: (otherRanks: AbilityRanks) => whatIf({ ranks: otherRanks }),
 		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
 		runesPreview,
-		/** The build as the URL reads it: known items, checked runes, the link's own patch. */
-		buildSearch: toBuildSearch({
-			level,
-			itemIds,
-			patch: search.patch,
-			runes,
-			form: formId,
-			skills,
-		}),
-		/** The full build for sharing, pinned to the patch in use. */
-		shareSearch: toBuildSearch({
-			level,
-			itemIds,
-			patch,
-			runes,
-			form: formId,
-			skills,
-		}),
+		/** The checked values: known items, checked runes, the default form left out. */
+		values,
 	}
 }
