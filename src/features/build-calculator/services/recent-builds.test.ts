@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test"
+import { BUILD_LINK_VERSION } from "../lib/build-link-migrations"
 import {
 	MAX_RECENT_BUILDS,
+	RECENT_BUILDS_KEY,
 	type RecentBuild,
 	readRecentBuilds,
 	recordRecentBuild,
@@ -54,6 +56,46 @@ describe("recent builds", () => {
 		}
 		recordRecentBuild(heimer, { storage })
 		expect(readRecentBuilds({ storage })).toEqual([heimer])
+	})
+
+	test("store each build as its link, in the current link version", () => {
+		const storage = memoryStorage()
+		recordRecentBuild(
+			{ championKey: "Gnar", level: 11, itemIds: ["1036"], form: "mega" },
+			{ storage },
+		)
+		expect(JSON.parse(storage.getItem(RECENT_BUILDS_KEY) ?? "")).toEqual([
+			{
+				championKey: "Gnar",
+				search: {
+					v: BUILD_LINK_VERSION,
+					lvl: 11,
+					items: ["1036"],
+					form: "mega",
+				},
+			},
+		])
+	})
+
+	test("read a stored link like any link: no version is v1, and a bad value only loses that value", () => {
+		const storage = memoryStorage()
+		storage.setItem(
+			RECENT_BUILDS_KEY,
+			JSON.stringify([
+				{
+					championKey: "Heimerdinger",
+					search: { lvl: 6, items: "3089,3020", skills: "EQWQ", form: "<b>" },
+				},
+			]),
+		)
+		expect(readRecentBuilds({ storage })).toEqual([
+			{
+				championKey: "Heimerdinger",
+				level: 6,
+				itemIds: ["3089", "3020"],
+				skills: "EQWQ",
+			},
+		])
 	})
 
 	test("keep the rune page and hand it back as recorded", () => {
