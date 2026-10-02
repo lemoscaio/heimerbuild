@@ -1,0 +1,322 @@
+{
+	"type": "summoner",
+	"version": "16.19.1",
+	"data": {
+		"SummonerBarrier": {
+			"id": "SummonerBarrier",
+			"name": "Barrier",
+			"description": "Gain a brief Shield.",
+			"tooltip": "Gain a <shield>{{ shieldstrength }} damage Shield</shield> for {{ shieldduration }} seconds.",
+			"cooldown": [180],
+			"key": "21",
+			"modes": [
+				"ARAM",
+				"TUTORIAL",
+				"KIWI",
+				"ULTBOOK",
+				"FIRSTBLOOD",
+				"SWIFTPLAY",
+				"CLASSIC",
+				"PRACTICETOOL",
+				"RUBY",
+				"RUBY_TRIAL_1",
+				"BRAWL",
+				"URF",
+				"KIWI_JADE",
+				"RUBY_TRIAL_3",
+				"ONEFORALL",
+				"ASSASSINATE",
+				"ARSR",
+				"NEXUSBLITZ",
+				"DOOMBOTSTEEMO",
+				"RUBY_TRIAL_2"
+			],
+			"image": {
+				"full": "SummonerBarrier.png"
+			}
+		},
+		"SummonerBoost": {
+			"id": "SummonerBoost",
+			"name": "Cleanse",
+			"description": "Removes all disables (excluding suppression and airborne) and summoner spell debuffs affecting your champion and gives Tenacity.",
+			"tooltip": "Removes all crowd control debuffs (excluding <keyword>Suppression</keyword> and <keyword>Airborne</keyword>) and summoner spell debuffs from you and grants {{ tenacityvalue*100 }}% Tenacity for {{ tenacityduration }} seconds.",
+			"cooldown": [240],
+			"key": "1",
+			"modes": [
+				"ARAM",
+				"TUTORIAL",
+				"KIWI",
+				"ULTBOOK",
+				"FIRSTBLOOD",
+				"SWIFTPLAY",
+				"CLASSIC",
+				"PRACTICETOOL",
+				"RUBY",
+				"RUBY_TRIAL_1",
+				"BRAWL",
+				"URF",
+				"KIWI_JADE",
+				"RUBY_TRIAL_3",
+				"ONEFORALL",
+				"ARSR",
+				"NEXUSBLITZ",
+				"DOOMBOTSTEEMO",
+				"RUBY_TRIAL_2"
+			],
+			"image": {
+				"full": "SummonerBoost.png"
+			}
+		},
+		"SummonerDot": {
+			"id": "SummonerDot",
+			"name": "Ignite",
+			"description": "Deals true damage over time to target enemy champion and reduces healing effects on them for the duration.",
+			"tooltip": "Deals <trueDamage>{{ tooltiptruedamagecalculation }} true damage</trueDamage> to target enemy champion over 5 seconds and applies <keyword>{{ grievousamount*100 }}% Grievous Wounds</keyword> for the duration.<br /><br /><keyword>Wounds</keyword>: Reduces the effectiveness of Healing and Regeneration effects.<br /><br />",
+			"cooldown": [180],
+			"key": "14",
+			"modes": [
+				"ARAM",
+				"TUTORIAL",
+				"KIWI",
+				"ULTBOOK",
+				"FIRSTBLOOD",
+				"SWIFTPLAY",
+				"CLASSIC",
+				"PRACTICETOOL",
+				"RUBY",
+				"RUBY_TRIAL_1",
+				"BRAWL",
+				"URF",
+				"KIWI_JADE",
+				"RUBY_TRIAL_3",
+				"ONEFORALL",
+				"ASSASSINATE",
+				"ARSR",
+				"NEXUSBLITZ",
+				"DOOMBOTSTEEMO",
+				"RUBY_TRIAL_2"
+			],
+			"image": {
+				"full": "SummonerDot.png"
+			}
+		},
+		"SummonerExhaust": {
+			"id": "SummonerExhaust",
+			"name": "Exhaust",
+			"description": "Slows target enemy champion and reduces their damage dealt.",
+			"tooltip": "<keyword>Slows</keyword> target enemy champion by {{ slow }}% and reduces their damage dealt by {{ damagereduction }}% for {{ debuffduration }} seconds.",
+			"cooldown": [240],
+			"key": "3",
+			"modes": [
+				"URF",
+				"PRACTICETOOL",
+				"CLASSIC",
+				"ULTBOOK",
+				"DOOMBOTSTEEMO",
+				"ARAM",
+				"RUBY_TRIAL_3",
+				"NEXUSBLITZ",
+				"SWIFTPLAY",
+				"ONEFORALL",
+				"TUTORIAL",
+				"RUBY",
+				"WIPMODEWIP",
+				"RUBY_TRIAL_2",
+				"WIPMODEWIP3",
+				"RUBY_TRIAL_1",
+				"ARSR"
+			],
+			"image": {
+				"full": "SummonerExhaust.png"
+			}
+		},
+		"SummonerFlash": {
+			"id": "SummonerFlash",
+			"name": "Flash",
+			"description": "Teleports you a short distance toward your cursor.",
+			"tooltip": "Teleports you a short distance toward your cursor.",
+			"cooldown": [300],
+			"key": "4",
+			"modes": [
+				"ARAM",
+				"TUTORIAL",
+				"KIWI",
+				"ULTBOOK",
+				"FIRSTBLOOD",
+				"SWIFTPLAY",
+				"CLASSIC",
+				"PRACTICETOOL",
+				"RUBY",
+				"RUBY_TRIAL_1",
+				"BRAWL",
+				"WIPMODEWIP4",
+				"URF",
+				"SNOWURF",
+				"KIWI_JADE",
+				"RUBY_TRIAL_3",
+				"ONEFORALL",
+				"ARSR",
+				"NEXUSBLITZ",
+				"DOOMBOTSTEEMO",
+				"RUBY_TRIAL_2"
+			],
+			"image": {
+				"full": "SummonerFlash.png"
+			}
+		},
+		"SummonerHaste": {
+			"id": "SummonerHaste",
+			"name": "Ghost",
+			"description": "Gain Move Speed and ignore unit collision for the duration.",
+			"tooltip": "Gain <speed>{{ movespeedmod }} Move Speed</speed> and become <keyword>Ghosted</keyword> for {{ duration }} seconds.<br /><br /><keyword>Ghost</keyword>: Ignore collision with other units.",
+			"cooldown": [240],
+			"key": "6",
+			"modes": [
+				"ARAM",
+				"TUTORIAL_MODULE_1",
+				"TUTORIAL",
+				"KIWI",
+				"ULTBOOK",
+				"FIRSTBLOOD",
+				"SWIFTPLAY",
+				"CLASSIC",
+				"PRACTICETOOL",
+				"RUBY",
+				"RUBY_TRIAL_1",
+				"BRAWL",
+				"URF",
+				"KIWI_JADE",
+				"RUBY_TRIAL_3",
+				"TUTORIAL_MODULE_2",
+				"ONEFORALL",
+				"ASSASSINATE",
+				"ARSR",
+				"NEXUSBLITZ",
+				"DOOMBOTSTEEMO",
+				"RUBY_TRIAL_2"
+			],
+			"image": {
+				"full": "SummonerHaste.png"
+			}
+		},
+		"SummonerHeal": {
+			"id": "SummonerHeal",
+			"name": "Heal",
+			"description": "Restores Health and grants Move Speed to you and target allied champion.",
+			"tooltip": "Restores <healing>{{ totalheal }} Health</healing> and grants <speed>{{ movespeed*100 }}% Move Speed</speed> for {{ movespeedduration }} second to you and target allied champion.<br /><br /><rules>If cast without a target, it will cast on the most wounded allied champion in range.<br />Healing is halved on units recently affected by Summoner Heal.</rules>",
+			"cooldown": [240],
+			"key": "7",
+			"modes": [
+				"ARAM",
+				"TUTORIAL_MODULE_1",
+				"TUTORIAL",
+				"KIWI",
+				"ULTBOOK",
+				"SWIFTPLAY",
+				"CLASSIC",
+				"PRACTICETOOL",
+				"RUBY",
+				"RUBY_TRIAL_1",
+				"BRAWL",
+				"URF",
+				"KIWI_JADE",
+				"RUBY_TRIAL_3",
+				"TUTORIAL_MODULE_2",
+				"ONEFORALL",
+				"ASSASSINATE",
+				"ARSR",
+				"NEXUSBLITZ",
+				"DOOMBOTSTEEMO",
+				"RUBY_TRIAL_2"
+			],
+			"image": {
+				"full": "SummonerHeal.png"
+			}
+		},
+		"SummonerSmite": {
+			"id": "SummonerSmite",
+			"name": "Smite",
+			"description": "Deals true damage to a monster or minion.",
+			"tooltip": "Deals <trueDamage>{{ smitebasedamage }} true damage</trueDamage> to target large monster or lane minion.<br /><br />Deals <trueDamage>{{ firstpvpdamage }} true damage</trueDamage> to champion pets.",
+			"cooldown": [15],
+			"key": "11",
+			"modes": [
+				"DOOMBOTSTEEMO",
+				"PRACTICETOOL",
+				"CLASSIC",
+				"SWIFTPLAY",
+				"URF",
+				"NEXUSBLITZ",
+				"ONEFORALL",
+				"TUTORIAL",
+				"ARSR"
+			],
+			"image": {
+				"full": "SummonerSmite.png"
+			}
+		},
+		"SummonerTeleport": {
+			"id": "SummonerTeleport",
+			"name": "Teleport",
+			"description": "After a brief channel, become untargetable and travel to an allied unit. Upgrades into Unleashed Teleport, which significantly increases travel speed. ",
+			"tooltip": "After channeling for {{ channelduration }} seconds, become <keyword>Untargetable</keyword> and travel to target allied structure, minion, or ward. <br /><br />Upgrades into Unleashed Teleport at {{ upgrademinute }} minutes, which significantly increases travel speed.",
+			"cooldown": [300],
+			"key": "12",
+			"modes": [
+				"CLASSIC",
+				"SWIFTPLAY",
+				"ULTBOOK",
+				"WIPMODEWIP4",
+				"DOOMBOTSTEEMO",
+				"PRACTICETOOL",
+				"ONEFORALL",
+				"RUBY",
+				"ARSR",
+				"RUBY_TRIAL_2",
+				"TUTORIAL",
+				"ASSASSINATE",
+				"RUBY_TRIAL_3",
+				"RUBY_TRIAL_1"
+			],
+			"image": {
+				"full": "SummonerTeleport.png"
+			}
+		},
+		"SummonerMana": {
+			"id": "SummonerMana",
+			"name": "Clarity",
+			"description": "Restores your and ally champion's Mana.",
+			"tooltip": "Restores {{ e1 }}% maximum Mana to your Champion and {{ e2 }}% to nearby allies.",
+			"cooldown": [240],
+			"key": "13",
+			"modes": ["KIWI", "FIRSTBLOOD", "ARAM", "KIWI_JADE"],
+			"image": {
+				"full": "SummonerMana.png"
+			}
+		},
+		"SummonerSmite_Jade": {
+			"id": "SummonerSmite_Jade",
+			"name": "Smite",
+			"description": "Deals true damage to target enemy minion or pet. Summoner's Resolve: Smite grants 10 gold per cast.",
+			"tooltip": "Deals {{ smitedamage }} true damage to target enemy minion or pet.<br /><br />",
+			"cooldown": [70],
+			"key": "711",
+			"modes": ["JADE"],
+			"image": {
+				"full": "SummonerSmite_Jade.png"
+			}
+		},
+		"SummonerCherryFlash": {
+			"id": "SummonerCherryFlash",
+			"name": "Flash",
+			"description": "Teleports your champion a short distance toward your cursor's location.",
+			"tooltip": "Teleports your champion a short distance toward your cursor's location.<br /><br />Cannot be cast again for one full round <rules>(a round consists of both a buy phase and a combat phase).</rules>",
+			"cooldown": [0.25],
+			"key": "2202",
+			"modes": ["CHERRY"],
+			"image": {
+				"full": "SummonerCherryFlash.png"
+			}
+		}
+	}
+}

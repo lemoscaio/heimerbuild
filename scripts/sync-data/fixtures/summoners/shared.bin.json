@@ -1,0 +1,470 @@
+{
+	"Shared/Spells/SummonerBarrier": {
+		"mSpell": {
+			"cooldownTime": [180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0],
+			"DataValues": [
+				{
+					"name": "ShieldDuration",
+					"values": [2.5, 2.5, 2.5, 2.5, 2.5, 2.5, 2.5],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mSpellCalculations": {
+				"ShieldStrength": {
+					"mFormulaParts": [
+						{
+							"mStartValue": 100.0,
+							"mEndValue": 460.0,
+							"__type": "ByCharLevelInterpolationCalculationPart"
+						}
+					],
+					"__type": "GameCalculation"
+				}
+			}
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerBoost": {
+		"mSpell": {
+			"cooldownTime": [240.0, 240.0, 240.0, 240.0, 240.0, 240.0, 240.0],
+			"DataValues": [
+				{
+					"name": "TenacityValue",
+					"values": [0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TenacityDuration",
+					"values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				}
+			]
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerDot": {
+		"mSpell": {
+			"cooldownTime": [180.0, 180.0, 180.0, 180.0, 180.0, 180.0, 180.0],
+			"DataValues": [
+				{
+					"name": "GrievousAmount",
+					"values": [
+						0.4000000059604645, 0.4000000059604645, 0.4000000059604645,
+						0.4000000059604645, 0.4000000059604645, 0.4000000059604645,
+						0.4000000059604645
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SightRadius",
+					"values": [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DotDuration",
+					"values": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "InverseDuration",
+					"values": [
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224
+					],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mSpellCalculations": {
+				"TooltipTrueDamageCalculation": {
+					"mFormulaParts": [
+						{
+							"mLevel1Value": 70.0,
+							"mInitialBonusPerLevel": 20.0,
+							"mBreakpoints": [
+								{
+									"mLevel": 6,
+									"mBonusPerLevelAtAndAfter": 25.0,
+									"__type": "Breakpoint"
+								}
+							],
+							"__type": "ByCharLevelBreakpointsCalculationPart"
+						}
+					],
+					"__type": "GameCalculation"
+				},
+				"DamagePerSecond": {
+					"mMultiplier": {
+						"mDataValue": "InverseDuration",
+						"__type": "NamedDataValueCalculationPart"
+					},
+					"mModifiedGameCalculation": "TooltipTrueDamageCalculation",
+					"__type": "GameCalculationModified"
+				}
+			}
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerExhaust": {
+		"mSpell": {
+			"cooldownTime": [240.0, 240.0, 240.0, 240.0, 240.0, 240.0, 240.0],
+			"DataValues": [
+				{
+					"name": "DebuffDuration",
+					"values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DamageReduction",
+					"values": [35.0, 35.0, 35.0, 35.0, 35.0, 35.0, 35.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "Slow",
+					"values": [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mSpellCalculations": {
+				"DamageReductionTOOLTIP": {
+					"mFormulaParts": [
+						{
+							"mEffectIndex": 2,
+							"__type": "EffectValueCalculationPart"
+						}
+					],
+					"__type": "GameCalculation"
+				}
+			}
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerFlash": {
+		"mSpell": {
+			"cooldownTime": [300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0],
+			"mEffectAmount": [
+				{
+					"value": [400.0, 400.0, 400.0, 400.0, 400.0, 400.0, 400.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				}
+			]
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerHaste": {
+		"mSpell": {
+			"cooldownTime": [240.0, 240.0, 240.0, 240.0, 240.0, 240.0, 240.0],
+			"DataValues": [
+				{
+					"name": "Duration",
+					"values": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mSpellCalculations": {
+				"MoveSpeedMod": {
+					"mFormulaParts": [
+						{
+							"mStartValue": 0.23999999463558197,
+							"mEndValue": 0.47999998927116394,
+							"__type": "ByCharLevelInterpolationCalculationPart"
+						}
+					],
+					"mDisplayAsPercent": true,
+					"__type": "GameCalculation"
+				},
+				"{7bcbbf47}": {
+					"mFormulaParts": [
+						{
+							"mStartValue": 4.0,
+							"mEndValue": 7.0,
+							"__type": "ByCharLevelInterpolationCalculationPart"
+						}
+					],
+					"mPrecision": 1,
+					"__type": "GameCalculation"
+				}
+			}
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerHeal": {
+		"mSpell": {
+			"cooldownTime": [240.0, 240.0, 240.0, 240.0, 240.0, 240.0, 240.0],
+			"DataValues": [
+				{
+					"name": "AllyRange",
+					"values": [900.0, 900.0, 900.0, 900.0, 900.0, 900.0, 900.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MoveSpeed",
+					"values": [
+						0.30000001192092896, 0.30000001192092896, 0.30000001192092896,
+						0.30000001192092896, 0.30000001192092896, 0.30000001192092896,
+						0.30000001192092896
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MoveSpeedDuration",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "StackingHealDebuff",
+					"values": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DebuffDuration",
+					"values": [30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "CursorForgiveness",
+					"values": [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mSpellCalculations": {
+				"TotalHeal": {
+					"mFormulaParts": [
+						{
+							"mStartValue": 80.0,
+							"mEndValue": 318.0,
+							"__type": "ByCharLevelInterpolationCalculationPart"
+						}
+					],
+					"__type": "GameCalculation"
+				}
+			}
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerSmite": {
+		"mSpell": {
+			"cooldownTime": [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0],
+			"DataValues": [
+				{
+					"name": "SmiteBaseDamage",
+					"values": [600.0, 600.0, 600.0, 600.0, 600.0, 600.0, 600.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SmiteUpgradedDamage",
+					"values": [1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "Smite2ndUpgradedDamage",
+					"values": [1400.0, 1400.0, 1400.0, 1400.0, 1400.0, 1400.0, 1400.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "AoESmiteRatio",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SmiteSlowAmount",
+					"values": [
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SmiteSlowDuration",
+					"values": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "FirstPVPDamage",
+					"values": [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SecondPVPDamage",
+					"values": [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SmiteComebackXP",
+					"values": [50.0, 50.0, 50.0, 50.0, 50.0, 50.0, 50.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mEffectAmount": [
+				{
+					"value": [15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				}
+			],
+			"mSpellCalculations": {
+				"PetDPS": {
+					"mExpandedTooltipCalculationDisplay": 6,
+					"mFormulaParts": [
+						{
+							"mStartValue": 20.0,
+							"mEndValue": 150.0,
+							"__type": "ByCharLevelInterpolationCalculationPart"
+						},
+						{
+							"mStat": 2,
+							"mStatFormula": 2,
+							"mCoefficient": 0.10000000149011612,
+							"__type": "StatByCoefficientCalculationPart"
+						},
+						{
+							"mCoefficient": 0.1599999964237213,
+							"__type": "StatByCoefficientCalculationPart"
+						},
+						{
+							"mStat": 12,
+							"mStatFormula": 2,
+							"mCoefficient": 0.03999999910593033,
+							"__type": "StatByCoefficientCalculationPart"
+						},
+						{
+							"mStat": 1,
+							"mStatFormula": 2,
+							"mCoefficient": 0.25,
+							"__type": "StatByCoefficientCalculationPart"
+						},
+						{
+							"mStat": 6,
+							"mStatFormula": 2,
+							"mCoefficient": 0.25,
+							"__type": "StatByCoefficientCalculationPart"
+						}
+					],
+					"__type": "GameCalculation"
+				},
+				"PetHPS": {
+					"mFormulaParts": [
+						{
+							"mLevel1Value": 6.0,
+							"mBreakpoints": [
+								{
+									"mLevel": 4,
+									"mBonusPerLevelAtAndAfter": 2.0,
+									"__type": "Breakpoint"
+								}
+							],
+							"__type": "ByCharLevelBreakpointsCalculationPart"
+						}
+					],
+					"__type": "GameCalculation"
+				}
+			},
+			"mMaxAmmo": [2, 2, 2, 2, 2, 2, 2],
+			"mAmmoRechargeTime": [90.0, 90.0, 90.0, 90.0, 90.0, 90.0, 90.0]
+		},
+		"__type": "SpellObject"
+	},
+	"Shared/Spells/SummonerTeleport": {
+		"mSpell": {
+			"cooldownTime": [300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0],
+			"DataValues": [
+				{
+					"name": "MSDuration",
+					"values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ChannelDuration",
+					"values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MSAmount",
+					"values": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TravelSpeed",
+					"values": [1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 1000.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MaxTravelTime",
+					"values": [8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "UpgradeMinute",
+					"values": [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mSpellCalculations": {
+				"UpgradedCooldown": {
+					"mFormulaParts": [
+						{
+							"mLevel1Value": 240.0,
+							"__type": "ByCharLevelBreakpointsCalculationPart"
+						}
+					],
+					"__type": "GameCalculation"
+				}
+			}
+		},
+		"__type": "SpellObject"
+	}
+}
