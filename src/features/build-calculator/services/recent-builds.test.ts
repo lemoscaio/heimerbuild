@@ -61,7 +61,13 @@ describe("recent builds", () => {
 	test("store each build as its link, in the current link version", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(
-			{ championKey: "Gnar", level: 11, itemIds: ["1036"], form: "mega" },
+			{
+				championKey: "Gnar",
+				level: 11,
+				itemIds: ["1036"],
+				form: "mega",
+				summoners: "14,4",
+			},
 			{ storage },
 		)
 		expect(JSON.parse(storage.getItem(RECENT_BUILDS_KEY) ?? "")).toEqual([
@@ -72,6 +78,7 @@ describe("recent builds", () => {
 					lvl: 11,
 					items: ["1036"],
 					form: "mega",
+					summoners: "14,4",
 				},
 			},
 		])

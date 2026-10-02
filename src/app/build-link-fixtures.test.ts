@@ -55,6 +55,11 @@ const v1Links: LinkFixture[] = [
 			form: "mega",
 		},
 	},
+	{
+		name: "summoner spells",
+		link: "?lvl=9&summoners=14%2C4",
+		build: { v: BUILD_LINK_VERSION, lvl: 9, summoners: "14,4" },
+	},
 ]
 
 function openLink(link: string) {
