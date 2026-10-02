@@ -1,8 +1,8 @@
 import type { Item } from "@schemas/item"
 import { X } from "lucide-react"
 import { useId } from "react"
+import { ItemStatList } from "@/components/common/item-stat-list"
 import { Button } from "@/components/ui/button"
-import { itemStatLines } from "@/lib/item-stats"
 import { useEscapeKey } from "../hooks/use-escape-key"
 import { AddToBuildButton } from "./add-to-build-button"
 import { ItemSummary } from "./item-summary"
@@ -22,7 +22,6 @@ export function ItemDetailsCard({
 	onClose,
 }: ItemDetailsCardProps) {
 	const headingId = useId()
-	const statLines = itemStatLines(item.stats)
 	useEscapeKey(onClose)
 
 	return (
@@ -42,15 +41,7 @@ export function ItemDetailsCard({
 					<X />
 				</Button>
 			</ItemSummary>
-			{!!statLines.length && (
-				<ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs">
-					{statLines.map(({ stat, value, label }) => (
-						<li key={stat}>
-							<span className="font-bold text-success">{value}</span> {label}
-						</li>
-					))}
-				</ul>
-			)}
+			<ItemStatList stats={item.stats} layout="inline" />
 			<AddToBuildButton
 				itemId={item.id}
 				isBuildFull={isBuildFull}

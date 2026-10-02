@@ -1,8 +1,8 @@
 import type { Item } from "@schemas/item"
 import { X } from "lucide-react"
 import { useId } from "react"
+import { ItemStatList } from "@/components/common/item-stat-list"
 import { Button } from "@/components/ui/button"
-import { itemStatLines } from "@/lib/item-stats"
 import type { ComputedStats } from "@/lib/stats/compute-stats"
 import { useEscapeKey } from "../hooks/use-escape-key"
 import { AddToBuildButton } from "./add-to-build-button"
@@ -57,18 +57,7 @@ export function ItemDetailsPanel({
 					<X />
 				</Button>
 			</ItemSummary>
-			{!!item && (
-				<ul className="flex flex-col gap-1.5 rounded-lg bg-primary-2/60 p-3 empty:hidden">
-					{itemStatLines(item.stats).map(({ stat, value, label }) => (
-						<li key={stat} className="flex justify-between gap-2">
-							<span>{label}</span>
-							<span className="font-bold text-success tabular-nums">
-								{value}
-							</span>
-						</li>
-					))}
-				</ul>
-			)}
+			<ItemStatList stats={item.stats} layout="table" />
 			{item.plaintext && <p className="text-lilac italic">{item.plaintext}</p>}
 			{item.description && (
 				<p className="whitespace-pre-line text-prose text-xs leading-relaxed">
