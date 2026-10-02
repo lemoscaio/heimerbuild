@@ -24,17 +24,6 @@ const SUPPORT_QUEST_REWARDS = [
 /** Fixes for bugs in Riot's item data; see "Data overrides" in the README. */
 export const ITEM_OVERRIDES: readonly ItemOverride[] = [
 	defineItemOverride({
-		id: "gunmetal-greaves-boots-tag",
-		itemId: "3172",
-		field: "tags",
-		since: "16.19",
-		reason:
-			"Riot tags it NonbootsMovement (move speed from a non-boots item, as on Phantom Dancer or Zeal) instead of Boots, but it is the Berserker's Greaves upgrade and shares the Boots group limit",
-		source: "https://github.com/lemoscaio/heimerbuild/issues/159",
-		apply: (tags) =>
-			tags.map((tag) => (tag === "NonbootsMovement" ? "Boots" : tag)),
-	}),
-	defineItemOverride({
 		id: "world-atlas-health-regen-tag",
 		itemId: "3865",
 		field: "tags",
