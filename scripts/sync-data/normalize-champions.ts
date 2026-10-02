@@ -2,6 +2,11 @@ import { mkdir, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
 import {
+	ddragonPassiveSchema,
+	ddragonSpellSchema,
+	normalizeAbilities,
+} from "./normalize-abilities"
+import {
 	applyOverrides,
 	type OverrideReport,
 } from "./overrides/apply-overrides"
@@ -64,6 +69,8 @@ const ddragonDetailSchema = z.object({
 			lore: z.string(),
 			partype: z.string(),
 			stats: ddragonStatsSchema,
+			passive: ddragonPassiveSchema,
+			spells: z.array(ddragonSpellSchema),
 		}),
 	),
 })
@@ -138,12 +145,27 @@ export function buildChampionIndex(
 	return championIndexSchema.parse(index)
 }
 
+export type NormalizedChampion = {
+	champion: Champion
+	/** Rank-up tooltip lines left out because the data lacks their values. */
+	skippedAbilityLines: number
+}
+
 /** Merges Data Dragon `champion/<Id>.json` with the CommunityDragon character bin. */
 export function normalizeChampion(
 	detail: unknown,
 	characterBin: unknown,
 	version: string,
 ): Champion {
+	return normalizeChampionWithReport(detail, characterBin, version).champion
+}
+
+/** `normalizeChampion`, plus how many rank-up tooltip lines it could not resolve. */
+export function normalizeChampionWithReport(
+	detail: unknown,
+	characterBin: unknown,
+	version: string,
+): NormalizedChampion {
 	const champions = Object.values(ddragonDetailSchema.parse(detail).data)
 	const [champion] = champions
 	if (!champion || champions.length !== 1) {
@@ -151,8 +173,17 @@ export function normalizeChampion(
 	}
 	const record = findRootRecord(characterBin)
 	const stats = champion.stats
+	const { abilities, skippedLines } = normalizeAbilities(
+		{
+			partype: champion.partype,
+			passive: champion.passive,
+			spells: champion.spells,
+		},
+		characterBin as Record<string, unknown>,
+		version,
+	)
 
-	return championSchema.parse({
+	const normalized = championSchema.parse({
 		key: champion.id,
 		id: Number(champion.key),
 		name: champion.name,
@@ -192,11 +223,15 @@ export function normalizeChampion(
 			movementSpeed: { base: stats.movespeed, perLevel: 0 },
 			attackRange: { base: stats.attackrange, perLevel: 0 },
 		},
+		abilities,
 	})
+	return { champion: normalized, skippedAbilityLines: skippedLines }
 }
 
 export type ChampionOutputSummary = {
 	champions: number
+	/** Rank-up tooltip lines left out because the data lacks their values, over all champions. */
+	skippedAbilityLines: number
 	indexBytes: number
 	totalBytes: number
 	overrides: OverrideReport
@@ -218,10 +253,10 @@ export async function writeChampions(
 		await readJson(join(cacheDir, "ddragon/champion.json")),
 		version,
 	)
-	const normalized = await Promise.all(
+	const results = await Promise.all(
 		index.map(async ({ key }) => {
 			try {
-				return normalizeChampion(
+				return normalizeChampionWithReport(
 					await readJson(join(cacheDir, `ddragon/champion/${key}.json`)),
 					await readJson(join(cacheDir, `cdragon/characters/${key}.bin.json`)),
 					version,
@@ -233,6 +268,7 @@ export async function writeChampions(
 			}
 		}),
 	)
+	const normalized = results.map(({ champion }) => champion)
 	const applied = applyOverrides(normalized, overrides, {
 		version,
 		kind: "champion",
@@ -259,6 +295,10 @@ export async function writeChampions(
 	}
 	return {
 		champions: champions.length,
+		skippedAbilityLines: results.reduce(
+			(sum, { skippedAbilityLines }) => sum + skippedAbilityLines,
+			0,
+		),
 		indexBytes: Buffer.byteLength(indexText),
 		totalBytes,
 		overrides: applied.report,

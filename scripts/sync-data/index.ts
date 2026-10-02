@@ -166,6 +166,9 @@ async function writeOutputs(version: string): Promise<string[]> {
 	console.log(
 		`Wrote public/data/${version}: ${champions.champions} champions, index ${(champions.indexBytes / 1024).toFixed(1)} KB, ${formatBytes(champions.totalBytes)} total in ${Math.round(performance.now() - startedAt)}ms`,
 	)
+	console.log(
+		`  Ability rank-up lines left out (values not in the game files): ${champions.skippedAbilityLines}`,
+	)
 
 	const items = await syncItems({ cacheDir, outDir })
 	const removed = Object.entries(items.removed)
