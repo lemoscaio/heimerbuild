@@ -2,6 +2,7 @@ import type { Champion, ChampionSummary } from "../schemas/champion"
 import type { DataOverride, FieldOverride } from "./apply-overrides"
 import { CHAMPION_FORMS } from "./champion-forms"
 import { CHAMPION_LEVEL_STATES } from "./champion-level-states"
+import { CHAMPION_SKILL_RULES } from "./champion-skill-rules"
 
 /** Summary fields are left out so `champions.json` never disagrees with `champions/<key>.json`. */
 export type ChampionOverrideField = Exclude<
@@ -21,7 +22,7 @@ export function defineChampionOverride<Field extends ChampionOverrideField>({
 	return { ...override, target: championKey }
 }
 
-/** Fixes for bugs in Riot's champion data, then the level states and forms; see "Data overrides" in the README. */
+/** Fixes for bugs in Riot's champion data, then the level states, forms and skill rules; see "Data overrides" in the README. */
 export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 	defineChampionOverride({
 		id: "gnar-ranged-attack-type",
@@ -87,4 +88,5 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 	}),
 	...CHAMPION_LEVEL_STATES,
 	...CHAMPION_FORMS,
+	...CHAMPION_SKILL_RULES,
 ]

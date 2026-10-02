@@ -1,10 +1,12 @@
 import { z } from "zod"
+import { type RankStatRule, rankStatValues } from "./rank-stats"
 import {
 	ABILITY_SLOTS,
 	type AbilityRankValue,
 	type AbilitySlot,
 	type ChampionAbilities,
 	type ChampionSpell,
+	type RankStat,
 } from "./schemas/champion"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
@@ -235,8 +237,15 @@ function recommendedOrder(
 
 export type NormalizedAbilities = {
 	abilities: ChampionAbilities
+	/** The `rankStatRules` resolved against the game files. */
+	rankStats: RankStat[]
 	/** Rank-up tooltip lines left out because the data lacks their values. */
 	skippedLines: number
+}
+
+export type NormalizeAbilitiesOptions = {
+	/** This champion's `RANK_STAT_RULES`. */
+	rankStatRules?: readonly RankStatRule[]
 }
 
 /** Merges Data Dragon's passive and spells with the game files' per-rank values. Pure. */
@@ -244,11 +253,12 @@ export function normalizeAbilities(
 	{ partype, passive, spells }: DdragonAbilities,
 	characterBin: Record<string, unknown>,
 	version: string,
+	{ rankStatRules = [] }: NormalizeAbilitiesOptions = {},
 ): NormalizedAbilities {
 	if (spells.length !== ABILITY_SLOTS.length) {
 		throw new Error(`expected 4 spells, found ${spells.length}`)
 	}
-	const spellObjects = findSpellObjects(characterBin)
+	const valuesBySlot = findSpellObjects(characterBin).map(spellValues)
 	let skippedLines = 0
 	const normalized = ABILITY_SLOTS.map((slot, index): ChampionSpell => {
 		const spell = spells[index] as (typeof spells)[number]
@@ -256,7 +266,7 @@ export function normalizeAbilities(
 			maxRank: spell.maxrank,
 			cooldown: spell.cooldown,
 			cost: spell.cost,
-			values: spellValues(spellObjects[index] as SpellObject),
+			values: valuesBySlot[index] as SpellValues,
 		}
 		const { lines, skipped } = rankValues(spell.leveltip, {
 			...context,
@@ -276,6 +286,18 @@ export function normalizeAbilities(
 		}
 	})
 	const order = recommendedOrder(characterBin)
+	const rankStats = rankStatRules.map((rule): RankStat => {
+		const index = ABILITY_SLOTS.indexOf(rule.slot)
+		return {
+			slot: rule.slot,
+			stat: rule.stat,
+			values: rankStatValues(
+				rule,
+				valuesBySlot[index]?.get(rule.dataValue.toLowerCase()),
+				spells[index]?.maxrank ?? 0,
+			),
+		}
+	})
 	return {
 		abilities: {
 			passive: {
@@ -286,6 +308,7 @@ export function normalizeAbilities(
 			spells: normalized as ChampionAbilities["spells"],
 			...(order ? { recommendedOrder: order } : {}),
 		},
+		rankStats,
 		skippedLines,
 	}
 }
