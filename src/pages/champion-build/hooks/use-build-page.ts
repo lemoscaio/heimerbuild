@@ -1,4 +1,6 @@
+import type { AbilitySlot } from "@schemas/champion"
 import { useState } from "react"
+import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { useBuild } from "@/features/build-calculator/hooks/use-build"
 import type {
@@ -6,7 +8,9 @@ import type {
 	BuildTab,
 	BuildView,
 } from "@/features/build-calculator/lib/build-search"
+import { useSkills } from "@/features/skills/hooks/use-skills"
 import { track } from "@/lib/analytics/analytics"
+import { MIN_LEVEL } from "@/lib/stats/growth"
 import { useFormSwitch } from "./use-form-switch"
 
 type UseBuildPageOptions = Parameters<typeof useBuild>[0]
@@ -14,8 +18,9 @@ type UseBuildPageOptions = Parameters<typeof useBuild>[0]
 export type BuildPage = ReturnType<typeof useBuildPage>
 
 /**
- * The build page: `useBuild` plus the page's own state, the view and the open tab (kept in the
- * URL), the shop item picked for a closer look and the form switch. `addItem` also closes that item's details.
+ * The build page: `useBuild` and `useSkills` plus the page's own state, the view and the open tab
+ * (kept in the URL), the shop item picked for a closer look and the form switch. `addItem` also
+ * closes that item's details.
  */
 export function useBuildPage({
 	patch,
@@ -23,6 +28,14 @@ export function useBuildPage({
 	search,
 	onSearchChange,
 }: UseBuildPageOptions) {
+	const { data: champion } = useChampion(patch, championKey)
+	// The skills come first: the build's stats read their ranks.
+	const skills = useSkills({
+		champion,
+		level: search.lvl ?? MIN_LEVEL,
+		value: search.skills,
+		onChange: (value) => build.setSkills(value),
+	})
 	// Build edits keep the view and the tab the page is in.
 	const build = useBuild({
 		patch,
@@ -33,6 +46,7 @@ export function useBuildPage({
 				{ ...nextSearch, view: search.view, tab: search.tab },
 				navigation,
 			),
+		ranks: skills.ranks,
 	})
 	const formSwitch = useFormSwitch(build)
 	const { data: itemsById } = useItems(patch)
@@ -74,8 +88,26 @@ export function useBuildPage({
 		if (build.addItem(itemId)) setSelectedItemId(undefined)
 	}
 
+	/** The stats now and with one more rank in `slot`, when that ability's rank grants stats. */
+	function rankUpStats(slot: AbilitySlot) {
+		if (!champion?.rankStats?.some((rankStat) => rankStat.slot === slot)) {
+			return undefined
+		}
+		const nextRanks = skills.ranksWithNext(slot)
+		const next = nextRanks && build.statsWithRanks(nextRanks)
+		return build.stats && next ? { stats: build.stats, next } : undefined
+	}
+
+	// Saves the skill points the new level keeps, or brings back the ones it kept.
+	function setLevel(nextLevel: number) {
+		build.setLevel(nextLevel, { skills: skills.valueAtLevel(nextLevel) })
+	}
+
 	return {
 		...build,
+		setLevel,
+		skills,
+		rankUpStats,
 		addItem,
 		/** Switches the form and announces how many stats changed. */
 		setForm: formSwitch.setForm,
@@ -95,7 +127,12 @@ export function useBuildPage({
 		/** The stats with the selected item added, while one is selected. */
 		preview,
 		/** The full build for sharing, pinned to the patch in use, in the current view and tab. */
-		shareSearch: { ...build.shareSearch, view: search.view, tab: search.tab },
+		shareSearch: {
+			...build.shareSearch,
+			skills: skills.value,
+			view: search.view,
+			tab: search.tab,
+		},
 	}
 }
 

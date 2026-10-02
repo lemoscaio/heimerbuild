@@ -16,6 +16,7 @@ import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
+import { ChampionSkills } from "./champion-skills"
 import type { BuildPage } from "./hooks/use-build-page"
 
 type MobileBuildPageProps = {
@@ -60,6 +61,7 @@ export function MobileBuildPage({
 						/>
 					)}
 					{patchNotice}
+					<ChampionSkills build={build} champion={champion} />
 					<ItemSlots
 						items={build.items}
 						onRemoveItem={build.removeItem}
