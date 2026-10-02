@@ -31,7 +31,103 @@
 				"attackspeedperlevel": 1.36,
 				"attackspeed": 0.658
 			},
-			"image": { "full": "Heimerdinger.png" }
+			"image": {
+				"full": "Heimerdinger.png"
+			},
+			"passive": {
+				"name": "Hextech Affinity",
+				"description": "Gain Move Speed while near allied towers and turrets deployed by Heimerdinger.",
+				"image": {
+					"full": "Heimerdinger_Passive.png"
+				}
+			},
+			"spells": [
+				{
+					"id": "HeimerdingerQ",
+					"name": "H-28 G Evolution Turret",
+					"description": "Heimerdinger lays down a rapid-fire cannon turret equipped with a secondary pass-through beam attack (turrets deal half damage to towers).",
+					"maxrank": 5,
+					"cooldown": [1, 1, 1, 1, 1],
+					"cost": [20, 20, 20, 20, 20],
+					"resource": "{{ kitcost }} Turret Kit & {{ cost }} Mana",
+					"leveltip": {
+						"label": ["Cannon Damage", "Beam Damage"],
+						"effect": [
+							"{{ basedamage }} -> {{ basedamageNL }}",
+							"{{ basedamagebeam }} -> {{ basedamagebeamNL }}"
+						]
+					},
+					"image": {
+						"full": "HeimerdingerQ.png"
+					}
+				},
+				{
+					"id": "HeimerdingerW",
+					"name": "Hextech Micro-Rockets",
+					"description": "Heimerdinger fires long-range rockets that converge on his cursor.",
+					"maxrank": 5,
+					"cooldown": [11, 10, 9, 8, 7],
+					"cost": [50, 60, 70, 80, 90],
+					"resource": "{{ cost }} {{ abilityresourcename }}",
+					"leveltip": {
+						"label": ["Cooldown", "Damage", "@AbilityResourceName@ Cost"],
+						"effect": [
+							"{{ cooldown }} -> {{ cooldownNL }}",
+							"{{ basedamage }} -> {{ basedamageNL }}",
+							"{{ cost }} -> {{ costNL }}"
+						]
+					},
+					"image": {
+						"full": "HeimerdingerW.png"
+					}
+				},
+				{
+					"id": "HeimerdingerE",
+					"name": "CH-2 Electron Storm Grenade",
+					"description": "Heimerdinger lobs a grenade at a location, dealing damage to enemy units, as well as stunning anyone directly hit and slowing surrounding units.",
+					"maxrank": 5,
+					"cooldown": [11, 11, 11, 11, 11],
+					"cost": [85, 85, 85, 85, 85],
+					"resource": "{{ cost }} {{ abilityresourcename }}",
+					"leveltip": {
+						"label": ["Damage"],
+						"effect": ["{{ basedamage }} -> {{ basedamageNL }}"]
+					},
+					"image": {
+						"full": "HeimerdingerE.png"
+					}
+				},
+				{
+					"id": "HeimerdingerR",
+					"name": "UPGRADE!!!",
+					"description": "Heimerdinger invents an upgrade, causing his next spell to have increased effects. ",
+					"maxrank": 3,
+					"cooldown": [100, 85, 70],
+					"cost": [100, 100, 100],
+					"resource": "{{ cost }} {{ abilityresourcename }}",
+					"leveltip": {
+						"label": [
+							"Cooldown",
+							"Apex Turret Cannon Damage",
+							"Turret Beam Damage",
+							"Rocket Swarm Damage",
+							"Rocket Swarm Max Damage",
+							"Lightning Grenade Damage"
+						],
+						"effect": [
+							"{{ cooldown }} -> {{ cooldownNL }}",
+							"{{ qultbasedamage }} -> {{ qultbasedamageNL }}",
+							"{{ qultbasedamagebeam }} -> {{ qultbasedamagebeamNL }}",
+							"{{ wultbasedamage }} -> {{ wultbasedamageNL }}",
+							"{{ wulttotalbasedamage }} -> {{ wulttotalbasedamageNL }}",
+							"{{ eultbasedamage }} -> {{ eultbasedamageNL }}"
+						]
+					},
+					"image": {
+						"full": "HeimerdingerR.png"
+					}
+				}
+			]
 		}
 	}
 }

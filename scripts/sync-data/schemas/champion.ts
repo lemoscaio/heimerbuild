@@ -105,6 +105,100 @@ const championFormsSchema = z.array(championFormSchema).check(
 	),
 )
 
+/** The four ranked abilities, in Data Dragon's `spells` order. */
+export const ABILITY_SLOTS = ["Q", "W", "E", "R"] as const
+
+export const abilitySlotSchema = z.enum(ABILITY_SLOTS)
+
+/** A list with one value per rank, from rank 1. */
+const perRankSchema = z.array(z.number()).check(z.minLength(1))
+
+/**
+ * One line of the game's rank-up tooltip ("Damage 80 → 125"), resolved from Data Dragon's
+ * `leveltip` and the CommunityDragon spell values. `unit: "%"` values are already multiplied.
+ */
+export const abilityRankValueSchema = z.strictObject({
+	label: z.string().check(z.minLength(1)),
+	values: perRankSchema,
+	unit: z.optional(z.literal("%")),
+})
+
+/** "70 Mana" per rank (`unit` after the number), or a fixed text such as "No Cost". */
+const abilityCostSchema = z.union([
+	z.strictObject({ values: perRankSchema, unit: z.string() }),
+	z.strictObject({ text: z.string().check(z.minLength(1)) }),
+])
+
+const passiveSchema = z.strictObject({
+	name: z.string().check(z.minLength(1)),
+	/** Plain text: Data Dragon's markup removed, line breaks kept. */
+	description: z.string(),
+	icon: z.url(),
+})
+
+export const championSpellSchema = z
+	.strictObject({
+		slot: abilitySlotSchema,
+		name: z.string().check(z.minLength(1)),
+		/** Plain text: Data Dragon's markup removed, line breaks kept. */
+		description: z.string(),
+		icon: z.url(),
+		maxRank: z.int().check(z.gte(1), z.lte(6)),
+		/** Seconds per rank. */
+		cooldown: perRankSchema,
+		/** Absent when Riot's cost text needs values the data does not have. */
+		cost: z.optional(abilityCostSchema),
+		/** What changes at each rank, as the game's rank-up tooltip lists it. */
+		rankValues: z.array(abilityRankValueSchema),
+	})
+	.check(
+		z.refine(
+			({ maxRank, cooldown, cost, rankValues }) =>
+				[
+					cooldown,
+					cost && "values" in cost ? cost.values : cooldown,
+					...rankValues.map(({ values }) => values),
+				].every((values) => values.length === maxRank),
+			{ error: "per-rank values must have one value per rank" },
+		),
+	)
+
+/**
+ * The game's recommended skill order (CommunityDragon `RecSpellRankUpInfo`): `firstPoints` for
+ * the first levels, then `priority` decides which ability to max (absent when Riot leaves it unset).
+ */
+const recommendedSkillOrderSchema = z.strictObject({
+	firstPoints: z.array(abilitySlotSchema),
+	priority: z.optional(
+		z.array(abilitySlotSchema).check(
+			z.length(ABILITY_SLOTS.length),
+			z.refine((slots) => new Set(slots).size === slots.length, {
+				error: "priority must list each ability once",
+			}),
+		),
+	),
+})
+
+export const championAbilitiesSchema = z.strictObject({
+	passive: passiveSchema,
+	/** Q, W, E and R, in that order. */
+	spells: z
+		.tuple([
+			championSpellSchema,
+			championSpellSchema,
+			championSpellSchema,
+			championSpellSchema,
+		])
+		.check(
+			z.refine(
+				(spells) =>
+					spells.every(({ slot }, index) => slot === ABILITY_SLOTS[index]),
+				{ error: "spells must be Q, W, E and R in order" },
+			),
+		),
+	recommendedOrder: z.optional(recommendedSkillOrderSchema),
+})
+
 export const championRoleSchema = z.enum([
 	"ASSASSIN",
 	"FIGHTER",
@@ -136,6 +230,8 @@ export const championSchema = z.strictObject({
 	/** What Adaptive Force becomes when bonus AD and AP are equal (CommunityDragon `mAdaptiveForceToAbilityPowerWeight`). */
 	adaptiveType: z.enum(["ad", "ap"]),
 	stats: championStatsSchema,
+	/** Passive and Q/W/E/R: names, icons, ranks and per-rank values (no scalings or damage). */
+	abilities: championAbilitiesSchema,
 	/** Applied by the stats engine from the selected level; curated in `overrides/champion-level-states.ts`. */
 	levelStates: z.optional(levelStatesSchema),
 	/** Picked by the player, applied by the stats engine; curated in `overrides/champion-forms.ts`. */
@@ -145,6 +241,10 @@ export const championSchema = z.strictObject({
 export type ChampionStats = z.infer<typeof championStatsSchema>
 export type LevelState = z.infer<typeof levelStateSchema>
 export type ChampionForm = z.infer<typeof championFormSchema>
+export type AbilitySlot = z.infer<typeof abilitySlotSchema>
+export type AbilityRankValue = z.infer<typeof abilityRankValueSchema>
+export type ChampionSpell = z.infer<typeof championSpellSchema>
+export type ChampionAbilities = z.infer<typeof championAbilitiesSchema>
 export type ChampionRole = z.infer<typeof championRoleSchema>
 export type ChampionSummary = z.infer<typeof championSummarySchema>
 export type Champion = z.infer<typeof championSchema>

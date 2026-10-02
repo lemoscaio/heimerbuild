@@ -1,0 +1,284 @@
+{
+	"Characters/Teemo/CharacterRecords/Root": {
+		"mCharacterName": "Teemo",
+		"attackSpeedModifiable": {
+			"baseValue": 0.6899999976158142,
+			"__type": "ModifiableFloat"
+		},
+		"attackSpeedRatioModifiable": {
+			"baseValue": 0.6899999976158142,
+			"__type": "ModifiableFloat"
+		},
+		"damagePerLevelModifiable": {
+			"baseValue": 3.0,
+			"__type": "ModifiableFloat"
+		},
+		"attackRangeModifiable": {
+			"baseValue": 500.0,
+			"__type": "ModifiableFloat"
+		},
+		"purchaseIdentities": ["Ranged"],
+		"mAdaptiveForceToAbilityPowerWeight": 1.0,
+		"__type": "CharacterRecord",
+		"spellNames": [
+			"TeemoQAbility/TeemoQ",
+			"TeemoWAbility/TeemoW",
+			"TeemoEAbility/TeemoE",
+			"TeemoRAbility/TeemoR"
+		]
+	},
+	"Characters/Teemo/Spells/TeemoQAbility/TeemoQ": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BaseDamage",
+					"values": [35.0, 80.0, 125.0, 170.0, 215.0, 260.0, 305.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "APRatio",
+					"values": [
+						0.699999988079071, 0.699999988079071, 0.699999988079071,
+						0.699999988079071, 0.699999988079071, 0.699999988079071,
+						0.699999988079071
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BlindDuration",
+					"values": [1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MissChance",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MinionMonsterDurationMod",
+					"values": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [680.0, 680.0, 680.0, 680.0, 680.0, 680.0, 680.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Teemo/Spells/TeemoWAbility/TeemoW": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "PassiveMoveSpeedBonus",
+					"values": [
+						0.07999999821186066, 0.11999999731779099, 0.1599999964237213,
+						0.20000000298023224, 0.23999999463558197, 0.2800000011920929,
+						0.3199999928474426
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ActiveMoveSpeedBuffDuration",
+					"values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ActiveMoveSpeedBonus",
+					"values": [
+						0.1599999964237213, 0.23999999463558197, 0.3199999928474426,
+						0.4000000059604645, 0.47999998927116394, 0.5600000023841858,
+						0.6399999856948853
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "PassiveCooldownOnDamageTaken",
+					"values": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Teemo/Spells/TeemoEAbility/TeemoE": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "TickBaseDamage",
+					"values": [0.0, 6.0, 12.0, 18.0, 24.0, 30.0, 36.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TickAPRatio",
+					"values": [
+						0.10000000149011612, 0.10000000149011612, 0.10000000149011612,
+						0.10000000149011612, 0.10000000149011612, 0.10000000149011612,
+						0.10000000149011612
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ImpactBaseDamage",
+					"values": [-5.0, 9.0, 23.0, 37.0, 51.0, 65.0, 79.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ImpactAPRatio",
+					"values": [
+						0.30000001192092896, 0.30000001192092896, 0.30000001192092896,
+						0.30000001192092896, 0.30000001192092896, 0.30000001192092896,
+						0.30000001192092896
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "PoisonDuration",
+					"values": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TickFrequency",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MonsterMod",
+					"values": [
+						1.600000023841858, 1.600000023841858, 1.600000023841858,
+						1.600000023841858, 1.600000023841858, 1.600000023841858,
+						1.600000023841858
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TickBonusADRatio",
+					"values": [
+						0.02500000037252903, 0.02500000037252903, 0.02500000037252903,
+						0.02500000037252903, 0.02500000037252903, 0.02500000037252903,
+						0.02500000037252903
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ImpactBonusADRatio",
+					"values": [
+						0.05000000074505806, 0.05000000074505806, 0.05000000074505806,
+						0.05000000074505806, 0.05000000074505806, 0.05000000074505806,
+						0.05000000074505806
+					],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [680.0, 680.0, 680.0, 680.0, 680.0, 680.0, 680.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Teemo/Spells/TeemoRAbility/TeemoR": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "TriggerRadius",
+					"values": [160.0, 160.0, 160.0, 160.0, 160.0, 160.0, 160.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MaxAmmo",
+					"values": [2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MaxBounceDistance",
+					"values": [360.0, 360.0, 440.0, 550.0, 550.0, 550.0, 550.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ArmTime",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MushroomDuration",
+					"values": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseDamage",
+					"values": [75.0, 200.0, 325.0, 450.0, 575.0, 700.0, 825.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SlowAmount",
+					"values": [20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DebuffDuration",
+					"values": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "APRatioPerTick",
+					"values": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ExplosionRadius",
+					"values": [450.0, 450.0, 450.0, 450.0, 450.0, 450.0, 450.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MaxTraps",
+					"values": [
+						25000.0, 25000.0, 25000.0, 25000.0, 25000.0, 25000.0, 25000.0
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MinTossDistanceBounceThreshold",
+					"values": [150.0, 220.0, 500.0, 500.0, 500.0, 500.0, 500.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "VisionRadius",
+					"values": [210.0, 210.0, 210.0, 210.0, 210.0, 210.0, 210.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [600.0, 600.0, 750.0, 900.0, 900.0, 900.0, 900.0],
+			"mAmmoRechargeTime": [0.0, 35.0, 30.0, 25.0, 0.0, 0.0, 0.0],
+			"mMaxAmmo": [3, 3, 4, 5, 3, 3, 3],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"{2501e093}": {
+		"RecSpellRankUpInfos": [
+			{
+				"MapId": 11,
+				"Position": "jungle",
+				"mDefaultPriority": [3, 2, 0, 1],
+				"mEarlyLevelOverrides": [2, 0, 2, 1],
+				"__type": "RecSpellRankUpInfo"
+			},
+			{
+				"MapId": 11,
+				"Position": "Top",
+				"IsDefaultRecommendation": true,
+				"mDefaultPriority": [3, 2, 0, 1],
+				"mEarlyLevelOverrides": [2, 0, 1, 2],
+				"__type": "RecSpellRankUpInfo"
+			},
+			{
+				"MapId": 11,
+				"Position": "utility",
+				"mDefaultPriority": [3, 2, 0, 1],
+				"mEarlyLevelOverrides": [2, 0, 1, 2],
+				"__type": "RecSpellRankUpInfo"
+			}
+		],
+		"__type": "RecSpellRankUpInfoList"
+	}
+}
