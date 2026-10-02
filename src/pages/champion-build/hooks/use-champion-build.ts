@@ -99,7 +99,7 @@ export function useChampionBuild({
 			champion,
 			level: championState.level,
 			form: championState.formValue,
-			items: items.items,
+			items: items.list,
 			shards: runePage.shards,
 			ranks: skills.ranks,
 			...change,

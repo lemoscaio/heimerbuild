@@ -38,6 +38,7 @@ export function MobileBuildPage({
 }: MobileBuildPageProps) {
 	useAnalyticsContext("shop_mode", "mobile")
 	const preloadRuneImages = useRuneImagePreload(patch)
+	const { championState, items } = build
 	// Runes and Skills live in the URL (the overview's tabs); Stats and Shop both mean Items there.
 	const [itemsTab, setItemsTab] = useState<"stats" | "shop">("stats")
 
@@ -54,24 +55,34 @@ export function MobileBuildPage({
 		<MobileLayout
 			top={
 				<>
-					<MobileChampionRow champion={champion} formName={build.form?.name}>
-						<LevelSelector level={build.level} onLevelChange={build.setLevel} />
+					<MobileChampionRow
+						champion={champion}
+						formName={championState.form?.name}
+					>
+						<LevelSelector
+							level={championState.level}
+							onLevelChange={championState.setLevel}
+						/>
 					</MobileChampionRow>
-					{champion.forms && build.form && (
+					{champion.forms && championState.form && (
 						<FormToggle
 							forms={champion.forms}
-							form={build.form.id}
-							onFormChange={build.setForm}
-							announcement={build.formAnnouncement}
+							form={championState.form.id}
+							onFormChange={build.formSwitch.setForm}
+							announcement={build.formSwitch.announcement}
 						/>
 					)}
 					{patchNotice}
-					<ChampionSkills build={build} champion={champion} />
+					<ChampionSkills
+						abilities={champion.abilities}
+						skills={build.skills}
+						rankUpStats={build.rankUpStats}
+					/>
 					<ItemSlots
-						items={build.items}
-						onRemoveItem={build.removeItem}
-						notice={build.notice}
-						announcement={build.announcement}
+						items={items.list}
+						onRemoveItem={items.remove}
+						notice={items.notice}
+						announcement={items.announcement}
 					/>
 				</>
 			}
@@ -83,7 +94,7 @@ export function MobileBuildPage({
 						stats={build.stats}
 						resource={champion.resource}
 						preview={build.preview}
-						formComparison={build.formComparison}
+						formComparison={build.formSwitch.comparison}
 					/>
 				)
 			}
@@ -99,8 +110,8 @@ export function MobileBuildPage({
 			runes={
 				<RunePage
 					patch={patch}
-					selection={build.runeSelection}
-					onSelectionChange={build.setRunes}
+					selection={build.runePage.selection}
+					onSelectionChange={build.runePage.setSelection}
 				>
 					{build.stats && build.statsWithoutRunes && (
 						<section
@@ -131,7 +142,7 @@ export function MobileBuildPage({
 					{build.selectedItem && (
 						<ItemDetailsCard
 							item={build.selectedItem}
-							isBuildFull={build.isFull}
+							isBuildFull={items.isFull}
 							onAdd={build.addItem}
 							onClose={build.clearSelection}
 						/>

@@ -22,6 +22,7 @@ export function ExpandedShopPage({
 	copyLink,
 }: ExpandedShopPageProps) {
 	useAnalyticsContext("shop_mode", "expanded")
+	const { championState, items } = build
 
 	return (
 		<WorkbenchLayout
@@ -44,7 +45,7 @@ export function ExpandedShopPage({
 					item={build.selectedItem}
 					stats={build.stats}
 					next={build.preview?.stats}
-					isBuildFull={build.isFull}
+					isBuildFull={items.isFull}
 					onAdd={build.addItem}
 					onClose={build.clearSelection}
 				/>
@@ -53,13 +54,13 @@ export function ExpandedShopPage({
 				build.stats && (
 					<BuildBar
 						champion={champion}
-						formName={build.form?.name}
-						level={build.level}
-						onLevelChange={build.setLevel}
-						items={build.items}
-						onRemoveItem={build.removeItem}
-						notice={build.notice}
-						announcement={build.announcement}
+						formName={championState.form?.name}
+						level={championState.level}
+						onLevelChange={championState.setLevel}
+						items={items.list}
+						onRemoveItem={items.remove}
+						notice={items.notice}
+						announcement={items.announcement}
 						stats={build.stats}
 					/>
 				)

@@ -1,18 +1,24 @@
-import { ABILITY_SLOTS, type Champion } from "@schemas/champion"
+import { ABILITY_SLOTS, type ChampionAbilities } from "@schemas/champion"
 import { StatChangeList } from "@/features/build-calculator/components/stat-change-list"
 import { SkillsRow } from "@/features/skills/components/skills-row"
+import type { Skills } from "@/features/skills/hooks/use-skills"
 import type { BuildPage } from "./hooks/use-build-page"
 
 type ChampionSkillsProps = {
-	build: BuildPage
-	champion: Champion
+	abilities: ChampionAbilities
+	skills: Skills
+	rankUpStats: BuildPage["rankUpStats"]
 }
 
 /** The skills row, with what one more rank changes on the stats panel in each ability's tooltip. */
-export function ChampionSkills({ build, champion }: ChampionSkillsProps) {
+export function ChampionSkills({
+	abilities,
+	skills,
+	rankUpStats,
+}: ChampionSkillsProps) {
 	const statChanges = Object.fromEntries(
 		ABILITY_SLOTS.flatMap((slot) => {
-			const preview = build.rankUpStats(slot)
+			const preview = rankUpStats(slot)
 			return preview
 				? [
 						[
@@ -30,8 +36,8 @@ export function ChampionSkills({ build, champion }: ChampionSkillsProps) {
 
 	return (
 		<SkillsRow
-			abilities={champion.abilities}
-			skills={build.skills}
+			abilities={abilities}
+			skills={skills}
 			statChanges={statChanges}
 		/>
 	)
