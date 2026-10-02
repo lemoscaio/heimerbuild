@@ -13,6 +13,7 @@ import {
 	isRuneSelectionEmpty,
 	type RuneSelection,
 } from "@/lib/rune-selection"
+import type { RuneSummonerHint } from "@/lib/summoner-rune-interactions"
 import {
 	type PerkDetail,
 	runeDetail,
@@ -37,6 +38,7 @@ import { RuneRailRow } from "./rune-rail-row"
 import { RuneRow } from "./rune-row"
 import { SecondaryTreeSkeleton } from "./secondary-tree-skeleton"
 import { ShardRow } from "./shard-row"
+import { SummonerInteractions } from "./summoner-interactions"
 import { TreeColumn } from "./tree-column"
 import { TreePicker } from "./tree-picker"
 
@@ -44,16 +46,21 @@ type RunePageProps = {
 	patch: string
 	selection: RuneSelection
 	onSelectionChange: (selection: RuneSelection) => void
+	/** The page's runes that react to the chosen summoner spells: badges, tooltips and a summary. */
+	summonerHints?: readonly RuneSummonerHint[]
 	/** Shown under the page, such as the stats the shards change (mobile). */
 	children?: React.ReactNode
 	className?: string
 }
+
+const NO_HINTS: readonly RuneSummonerHint[] = []
 
 /** The rune page editor: primary tree, secondary tree (two runes) and the three stat shards. */
 export function RunePage({
 	patch,
 	selection,
 	onSelectionChange,
+	summonerHints = NO_HINTS,
 	children,
 	className,
 }: RunePageProps) {
@@ -73,6 +80,7 @@ export function RunePage({
 					runes={runesQuery.data}
 					selection={selection}
 					onSelectionChange={onSelectionChange}
+					summonerHints={summonerHints}
 				/>
 			) : (
 				<RunePageSkeleton />
@@ -86,14 +94,17 @@ type RunePageEditorProps = {
 	runes: RunesFile
 	selection: RuneSelection
 	onSelectionChange: (selection: RuneSelection) => void
+	summonerHints: readonly RuneSummonerHint[]
 }
 
 function RunePageEditor({
 	runes,
 	selection,
 	onSelectionChange,
+	summonerHints,
 }: RunePageEditorProps) {
 	const [described, setDescribed] = useState<PerkDetail>()
+	const hintsByRune = new Map(summonerHints.map((hint) => [hint.rune.id, hint]))
 	const { primary, secondary } = selection
 	const primaryTree = runes.trees.find((tree) => tree.id === primary?.treeId)
 	const secondaryTree = runes.trees.find(
@@ -159,6 +170,7 @@ function RunePageEditor({
 							<RuneRailRow isPicked={primary?.keystoneId !== undefined}>
 								<p className={RAIL_LABEL_CLASSES}>Keystones</p>
 								<RuneRow
+									summonerHints={hintsByRune}
 									label={`${primaryTree.name} keystone`}
 									size="keystone"
 									runes={primaryTree.keystones}
@@ -182,6 +194,7 @@ function RunePageEditor({
 									isPicked={primary?.runeIds[index] !== undefined}
 								>
 									<RuneRow
+										summonerHints={hintsByRune}
 										label={`${primaryTree.name} row ${index + 1}`}
 										runes={row}
 										value={primary?.runeIds[index]}
@@ -239,6 +252,7 @@ function RunePageEditor({
 												isPicked={picked !== undefined}
 											>
 												<RuneRow
+													summonerHints={hintsByRune}
 													label={`${secondaryTree.name} row ${index + 1}`}
 													runes={row}
 													value={picked}
@@ -293,6 +307,12 @@ function RunePageEditor({
 					</section>
 				</div>
 				<RuneDetails detail={described} className="lg:col-span-2" />
+				{!!summonerHints.length && (
+					<SummonerInteractions
+						hints={summonerHints}
+						className="lg:col-span-2"
+					/>
+				)}
 			</div>
 		</>
 	)
