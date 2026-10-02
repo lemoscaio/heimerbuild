@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test"
-import { formatAbilityValue, rankUpChanges } from "./ability-values"
+import {
+	formatAbilityValue,
+	rankTableLines,
+	rankUpChanges,
+} from "./ability-values"
 
 // Teemo's R on 16.19.1.
 const noxiousTrap = {
@@ -36,4 +40,18 @@ test("formatAbilityValue keeps up to two decimals and the unit", () => {
 	expect(formatAbilityValue(697.5)).toBe("697.5")
 	expect(formatAbilityValue(12, "%")).toBe("12%")
 	expect(formatAbilityValue(1.333)).toBe("1.33")
+})
+
+test("rankTableLines leaves out the lines that repeat the cooldown or the cost", () => {
+	expect(
+		rankTableLines({
+			cooldown: [12, 11, 10],
+			cost: { values: [50, 60, 70], unit: "Mana" },
+			rankValues: [
+				{ label: "Cooldown", values: [12, 11, 10] },
+				{ label: "Mana Cost", values: [50, 60, 70] },
+				{ label: "Damage", values: [12, 11, 10.5] },
+			],
+		}).map(({ label }) => label),
+	).toEqual(["Damage"])
 })
