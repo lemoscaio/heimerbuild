@@ -1,0 +1,41 @@
+import { describe, expect, test } from "bun:test"
+import { CHAMPION_FORMS } from "../../../../scripts/sync-data/overrides/champion-forms"
+import { readChampionState } from "./champion-state"
+
+const forms = CHAMPION_FORMS.find(({ target }) => target === "Gnar")?.apply(
+	undefined,
+)
+const gnar = { forms }
+const heimerdinger = { forms: undefined }
+
+describe("readChampionState", () => {
+	test("keeps the form value as given until the champion loads", () => {
+		expect(readChampionState(undefined, { level: 7, form: "mega" })).toEqual({
+			level: 7,
+			form: undefined,
+			formValue: "mega",
+		})
+	})
+
+	test("selects the named form and keeps it in the value", () => {
+		const state = readChampionState(gnar, { level: 7, form: "mega" })
+
+		expect(state.form?.id).toBe("mega")
+		expect(state.formValue).toBe("mega")
+	})
+
+	test("the default form, named or not, stays out of the value", () => {
+		for (const form of ["mini", undefined, "cougar"]) {
+			const state = readChampionState(gnar, { level: 1, form })
+
+			expect(state.form?.id).toBe("mini")
+			expect(state.formValue).toBeUndefined()
+		}
+	})
+
+	test("a champion without forms has no form", () => {
+		expect(readChampionState(heimerdinger, { level: 1, form: "mega" })).toEqual(
+			{ level: 1, form: undefined, formValue: undefined },
+		)
+	})
+})
