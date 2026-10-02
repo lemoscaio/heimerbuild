@@ -38,6 +38,7 @@ export function useUrlBuildSource({
 		runes: search.runes,
 		form: search.form,
 		skills: search.skills,
+		summoners: search.summoners,
 	}
 	const page: PageValues = { view: search.view, tab: search.tab }
 
@@ -66,6 +67,7 @@ export function useUrlBuildSource({
 				runes: next.runes,
 				form: next.form,
 				skills: next.skills,
+				summoners: next.summoners,
 			})
 		},
 	}

@@ -113,6 +113,18 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })).toEqual([build("Teemo", 3)])
 	})
 
+	test("keep the summoner spells, and drop only them when the stored ones are invalid", () => {
+		const storage = memoryStorage()
+		recordRecentBuild({ ...build("Teemo"), summoners: "4,14" }, { storage })
+		expect(readRecentBuilds({ storage })[0]?.summoners).toBe("4,14")
+
+		storage.setItem(
+			"heimerbuild:recent-builds:v1",
+			JSON.stringify([{ ...build("Teemo", 3), summoners: "flash" }]),
+		)
+		expect(readRecentBuilds({ storage })).toEqual([build("Teemo", 3)])
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

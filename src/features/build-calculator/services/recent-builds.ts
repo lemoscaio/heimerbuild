@@ -8,6 +8,7 @@ import {
 } from "@/lib/local-storage"
 import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
+import { SUMMONERS_PARAM_PATTERN } from "@/lib/summoner-slots"
 import { MAX_ITEMS } from "../lib/build-items"
 import { SKILLS_PARAM_PATTERN } from "../lib/build-search"
 
@@ -36,6 +37,11 @@ const recentBuildSchema = z.object({
 	/** The picked skill points, as the `skills` URL value. A bad one only loses the skills. */
 	skills: z.catch(
 		z.optional(z.string().check(z.regex(SKILLS_PARAM_PATTERN))),
+		undefined,
+	),
+	/** The summoner spells, as the `summoners` URL value. A bad one only loses them. */
+	summoners: z.catch(
+		z.optional(z.string().check(z.regex(SUMMONERS_PARAM_PATTERN))),
 		undefined,
 	),
 })
