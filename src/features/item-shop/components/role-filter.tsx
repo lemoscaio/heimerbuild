@@ -6,14 +6,11 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useMediaQuery } from "@/hooks/use-media-query"
+import { useIsDesktop } from "@/hooks/use-is-desktop"
 import { cn } from "@/lib/cn"
 import { useTapTooltip } from "../hooks/use-tap-tooltip"
 import type { RoleFilter as Role } from "../lib/filter-items-by-role"
 import { rolesInfo } from "../lib/roles-info"
-
-// Tailwind's `lg` breakpoint: from there on, each role shows its label.
-const LG_QUERY = "(min-width: 64rem)"
 
 type RoleFilterProps = {
 	role: Role
@@ -26,7 +23,8 @@ export function RoleFilter({ role, onRoleChange, className }: RoleFilterProps) {
 	const [tooltip] = useState(createTooltipHandle<string>)
 	const showTooltipOnTap = useTapTooltip(tooltip)
 	const idPrefix = useId()
-	const showsLabels = useMediaQuery(LG_QUERY)
+	// From `lg` on, each role shows its label.
+	const showsLabels = useIsDesktop()
 
 	return (
 		<ToggleGroup

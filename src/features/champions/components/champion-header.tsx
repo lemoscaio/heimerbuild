@@ -6,7 +6,8 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { attackTypeLabels, roleLabels } from "../lib/champion-labels"
+import { roleLabels } from "@/lib/champion-roles"
+import { attackTypeLabels } from "../lib/champion-labels"
 import { ChampionHeaderLayout } from "./champion-header-layout"
 
 type ChampionHeaderProps = {
