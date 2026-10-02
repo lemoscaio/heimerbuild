@@ -179,7 +179,8 @@
 		"16.19.1/champions/Zoe.json": "a6fa95d151",
 		"16.19.1/champions/Zyra.json": "1ef2713a8b",
 		"16.19.1/items.json": "b9f7db93b7",
-		"16.19.1/runes.json": "51aeb100e8"
+		"16.19.1/runes.json": "51aeb100e8",
+		"16.19.1/summoner-spells.json": "8a4cd741cf"
 	},
-	"generatedAt": "2026-10-02T18:53:50.557Z"
+	"generatedAt": "2026-10-02T22:48:35.745Z"
 }
