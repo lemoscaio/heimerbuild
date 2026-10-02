@@ -5,6 +5,8 @@ type MobileChampionRowProps = {
 	champion: Pick<Champion, "name" | "icon">
 	/** The selected form's name, over the portrait, for a champion with forms. */
 	formName?: string
+	/** Next to the portrait, such as the summoner spell slots. */
+	beside?: React.ReactNode
 	/** The level control, under the name. */
 	children: React.ReactNode
 }
@@ -12,6 +14,7 @@ type MobileChampionRowProps = {
 export function MobileChampionRow({
 	champion,
 	formName,
+	beside,
 	children,
 }: MobileChampionRowProps) {
 	return (
@@ -22,6 +25,7 @@ export function MobileChampionRow({
 				caption={formName}
 				className="size-14 rounded-xl border-2 border-gold/70"
 			/>
+			{beside}
 			<div className="flex min-w-0 flex-1 flex-col">
 				<h1 className="truncate font-bold font-display text-xl">
 					{champion.name}
