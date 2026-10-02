@@ -1,4 +1,5 @@
 import { useRef } from "react"
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback"
 import { track } from "@/lib/analytics/analytics"
 
 const LEVEL_TRACK_DELAY_MS = 800
@@ -9,17 +10,10 @@ const LEVEL_TRACK_DELAY_MS = 800
  */
 export function useLevelTracking(level: number) {
 	const trackedLevel = useRef(level)
-	const trackTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-	function trackLevel(nextLevel: number) {
-		clearTimeout(trackTimeout.current)
-		trackTimeout.current = setTimeout(() => {
-			if (nextLevel !== trackedLevel.current) {
-				trackedLevel.current = nextLevel
-				track("level_changed", { level: nextLevel })
-			}
-		}, LEVEL_TRACK_DELAY_MS)
-	}
-
-	return trackLevel
+	return useDebouncedCallback((nextLevel: number) => {
+		if (nextLevel === trackedLevel.current) return
+		trackedLevel.current = nextLevel
+		track("level_changed", { level: nextLevel })
+	}, LEVEL_TRACK_DELAY_MS)
 }
