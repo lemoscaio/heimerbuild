@@ -10,15 +10,14 @@ import {
 	selectedShards,
 	serializeRuneSelection,
 } from "@/lib/rune-selection"
+import { formChanges, selectedForm } from "@/lib/stats/champion-forms"
 import {
-	type FormOptions,
-	formChanges,
-	selectedForm,
-} from "@/lib/stats/champion-forms"
-import { computeStats, type ItemInput } from "@/lib/stats/compute-stats"
+	type BuildStatsInput,
+	computeBuildStats,
+} from "@/lib/stats/compute-build-stats"
+import type { ItemInput } from "@/lib/stats/compute-stats"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
-import { shardStatsInput } from "@/lib/stats/rune-shards"
 import {
 	addItemId,
 	knownItemIds,
@@ -84,29 +83,22 @@ export function useBuild({
 		: search.form
 	const skills = search.skills
 
-	/** Stats of `buildItems` plus the chosen stat shards (Adaptive Force depends on the items). */
-	function statsWith(
-		buildItems: readonly ItemInput[],
-		{
-			form: inForm = formId,
-			ranks: withRanks = ranks,
-		}: FormOptions & { ranks?: AbilityRanks } = {},
-	) {
+	/** The build's totals with `change` applied: every preview is one input changed. */
+	function whatIf(change: Partial<BuildStatsInput> = {}) {
 		if (!champion) return undefined
-		const shardInput = shardStatsInput(shards, {
+		return computeBuildStats({
+			champion,
 			level,
-			defaultAdaptiveType: champion.adaptiveType,
-			items: buildItems,
-		})
-		return computeStats(champion, level, [...buildItems, shardInput], {
-			form: inForm,
-			ranks: withRanks,
+			form: formId,
+			items,
+			shards,
+			ranks,
+			...change,
 		})
 	}
 
-	const stats = statsWith(items)
-	const statsWithoutRunes =
-		champion && computeStats(champion, level, items, { form: formId, ranks })
+	const stats = whatIf()
+	const statsWithoutRunes = whatIf({ shards: [] })
 	const runesPreview =
 		shards.length && stats ? { label: "stat shards", stats } : undefined
 	const isFull = itemIds.length >= MAX_ITEMS
@@ -242,13 +234,11 @@ export function useBuild({
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes,
 		/** The totals with `item` added to the build: the preview of a shop item. */
-		statsWithItem: (item: ItemInput) => statsWith([...items, item]),
+		statsWithItem: (item: ItemInput) => whatIf({ items: [...items, item] }),
 		/** `stats` as they would be in another form: the base of the form deltas. */
-		statsInForm: (otherFormId: string) =>
-			statsWith(items, { form: otherFormId }),
+		statsInForm: (otherFormId: string) => whatIf({ form: otherFormId }),
 		/** `stats` with other ability ranks: the base of the rank-up preview. */
-		statsWithRanks: (otherRanks: AbilityRanks) =>
-			statsWith(items, { ranks: otherRanks }),
+		statsWithRanks: (otherRanks: AbilityRanks) => whatIf({ ranks: otherRanks }),
 		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
 		runesPreview,
 		/** The build as the URL reads it: known items, checked runes, the link's own patch. */
