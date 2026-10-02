@@ -8,6 +8,8 @@ import type {
 	BuildTab,
 	BuildView,
 } from "@/features/build-calculator/lib/build-search"
+import { useChampionState } from "@/features/champions/hooks/use-champion-state"
+import type { ChampionStateValue } from "@/features/champions/lib/champion-state"
 import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { track } from "@/lib/analytics/analytics"
@@ -21,9 +23,9 @@ type UseBuildPageOptions = Parameters<typeof useUrlBuildSource>[0] & {
 export type BuildPage = ReturnType<typeof useBuildPage>
 
 /**
- * The build page: `useBuild`, `useSkills` and `useRunePage` on the URL build source, plus the page's own state:
- * the view and the open tab (kept in the URL), the shop item picked for a closer look and the form
- * switch. `addItem` also closes that item's details.
+ * The build page: the domain hooks (champion state, skills, rune page, `useBuild` for the items)
+ * on the URL build source, plus the page's own state: the view and the open tab (kept in the URL),
+ * the shop item picked for a closer look and the form switch. `addItem` also closes its details.
  */
 export function useBuildPage({
 	patch,
@@ -33,10 +35,15 @@ export function useBuildPage({
 }: UseBuildPageOptions) {
 	const { data: champion } = useChampion(patch, championKey)
 	const source = useUrlBuildSource({ championKey, search, onSearchChange })
+	const championState = useChampionState({
+		champion,
+		value: { level: source.state.level, form: source.state.form },
+		onChange: changeChampionState,
+	})
 	// The skills come first: the build's stats read their ranks.
 	const skills = useSkills({
 		champion,
-		level: source.state.level,
+		level: championState.level,
 		value: source.state.skills,
 		onChange: (value) => build.setSkills(value),
 	})
@@ -51,9 +58,10 @@ export function useBuildPage({
 		championKey,
 		source,
 		ranks: skills.ranks,
+		championState,
 		runes: runePage,
 	})
-	const formSwitch = useFormSwitch(build)
+	const formSwitch = useFormSwitch({ ...build, ...championState })
 	const { data: itemsById } = useItems(patch)
 	const [selectedItemId, setSelectedItemId] = useState<string>()
 
@@ -96,14 +104,21 @@ export function useBuildPage({
 		return build.stats && next ? { stats: build.stats, next } : undefined
 	}
 
-	// Saves the skill points the new level keeps, or brings back the ones it kept.
-	function setLevel(nextLevel: number) {
-		build.setLevel(nextLevel, { skills: skills.valueAtLevel(nextLevel) })
+	// Level → skills: a new level also saves the points it keeps, or brings back the ones it kept.
+	function changeChampionState(change: Partial<ChampionStateValue>) {
+		build.setChampionState(
+			change.level === undefined
+				? change
+				: { ...change, skills: skills.valueAtLevel(change.level) },
+		)
 	}
 
 	return {
 		...build,
-		setLevel,
+		level: championState.level,
+		setLevel: championState.setLevel,
+		/** The selected form, the default one unless the build names another; undefined without forms. */
+		form: championState.form,
 		skills,
 		/** The build's rune page, checked against this patch's runes. */
 		runeSelection: runePage.selection,
