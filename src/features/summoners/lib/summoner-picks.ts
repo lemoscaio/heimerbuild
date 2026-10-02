@@ -13,7 +13,7 @@ type SlotSpells = readonly [
 
 /**
  * The slots a `summoners` value names, checked against this patch's spells: an unknown spell
- * empties its slot, and a spell already in D leaves F empty. Until the spells load, the value
+ * empties its slot, and a spell already in the first slot leaves the second empty. Until the spells load, the value
  * stays as given so an edit elsewhere in the build does not drop it.
  */
 export function readSummoners(
@@ -51,7 +51,12 @@ export function pickSummonerSpell(
 	return slot === 0 ? [spellId, slots[1]] : [slots[0], spellId]
 }
 
-/** Trades the spells of D and F. */
+/** The slot's name everywhere in the UI: "Summoner Spell 1" and "Summoner Spell 2", never a key. */
+export function summonerSlotName(slot: SummonerSlot) {
+	return `Summoner Spell ${slot + 1}`
+}
+
+/** Trades the spells of the two slots. */
 export function swapSummonerSlots([
 	first,
 	second,

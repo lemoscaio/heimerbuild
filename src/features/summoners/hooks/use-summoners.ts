@@ -30,7 +30,7 @@ export function useSummoners({ spells, value, onChange }: UseSummonersOptions) {
 	}
 
 	return {
-		/** The spell in D and in F, checked against this patch; empty while the spells load. */
+		/** The spell in each slot, checked against this patch; empty while the spells load. */
 		slots: summoners.spells,
 		/** The checked `summoners` value; the given one while the spells load. */
 		value: summoners.value,
