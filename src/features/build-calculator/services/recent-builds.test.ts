@@ -13,6 +13,9 @@ function memoryStorage() {
 		setItem: (key: string, value: string) => {
 			values.set(key, value)
 		},
+		removeItem: (key: string) => {
+			values.delete(key)
+		},
 	}
 }
 
@@ -21,6 +24,9 @@ const blockedStorage = {
 		throw new DOMException("Blocked", "SecurityError")
 	},
 	setItem: () => {
+		throw new DOMException("Blocked", "SecurityError")
+	},
+	removeItem: () => {
 		throw new DOMException("Blocked", "SecurityError")
 	},
 }
