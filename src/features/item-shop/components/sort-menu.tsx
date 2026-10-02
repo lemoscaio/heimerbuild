@@ -51,7 +51,7 @@ export function SortMenu({ sort, onSortChange, className }: SortMenuProps) {
 					<IconButton
 						label={`Sort: ${summary}`}
 						className={cn(className, {
-							"border-gold/60 text-gold dark:border-gold/60": !!sort,
+							"border-gold/60 text-gold": !!sort,
 						})}
 					/>
 				}

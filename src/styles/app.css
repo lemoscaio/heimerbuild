@@ -2,8 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
 /* Heimerbuild palette (Paletton, purple identity) and fonts. `static` keeps every token
    emitted, since the shadcn variables below reference them. */
 @theme static {

@@ -1,6 +1,5 @@
 import { Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/cn"
 import type { BuildView } from "../lib/build-search"
 
 type ShopViewToggleProps = {
@@ -21,7 +20,7 @@ export function ShopViewToggle({
 		<Button
 			type="button"
 			variant="outline"
-			className={cn("border-lilac bg-primary-2", className)}
+			className={className}
 			onClick={() => onViewChange(isShop ? "overview" : "shop")}
 			{...props}
 		>
