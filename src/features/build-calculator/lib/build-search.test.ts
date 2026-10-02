@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test"
-import { buildSearchSchema, toBuildSearch } from "./build-search"
+import { BUILD_LINK_VERSION } from "./build-link-migrations"
+import {
+	buildSearchSchema,
+	readBuildSearch,
+	toBuildSearch,
+} from "./build-search"
 
 function parse(search: Record<string, unknown>) {
 	return buildSearchSchema.parse(search)
@@ -103,11 +108,40 @@ describe("buildSearchSchema", () => {
 	})
 })
 
+describe("readBuildSearch", () => {
+	test("reads a link without a version and marks it with the current one", () => {
+		expect(readBuildSearch({ lvl: 9, items: "3089,3020" })).toEqual({
+			v: BUILD_LINK_VERSION,
+			lvl: 9,
+			items: ["3089", "3020"],
+		})
+	})
+
+	test("reads a link of the current version", () => {
+		expect(readBuildSearch({ v: BUILD_LINK_VERSION, lvl: 9 })).toEqual({
+			v: BUILD_LINK_VERSION,
+			lvl: 9,
+		})
+	})
+
+	test("still drops invalid values after reading the version", () => {
+		expect(readBuildSearch({ v: "abc", lvl: 99, items: "3089" })).toEqual({
+			v: BUILD_LINK_VERSION,
+			items: ["3089"],
+		})
+	})
+})
+
 describe("toBuildSearch", () => {
 	test("writes level, items and patch", () => {
 		expect(
 			toBuildSearch({ level: 11, itemIds: ["3089", "3020"], patch: "16.19.1" }),
-		).toEqual({ lvl: 11, items: ["3089", "3020"], patch: "16.19.1" })
+		).toEqual({
+			lvl: 11,
+			items: ["3089", "3020"],
+			patch: "16.19.1",
+			v: BUILD_LINK_VERSION,
+		})
 	})
 
 	test("leaves the default level and an empty build out of the URL", () => {
@@ -115,6 +149,7 @@ describe("toBuildSearch", () => {
 			lvl: undefined,
 			items: undefined,
 			patch: undefined,
+			v: BUILD_LINK_VERSION,
 		})
 	})
 
