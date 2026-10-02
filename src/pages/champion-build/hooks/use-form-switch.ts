@@ -4,13 +4,17 @@ import {
 	type FormComparison,
 	statDeltas,
 } from "@/features/build-calculator/lib/diff-stats"
+import type { ChampionState } from "@/features/champions/hooks/use-champion-state"
 import { comparedForm } from "@/lib/stats/champion-forms"
 
 /**
  * The form selector on the build page: the selected form's stats against the compared form
  * (the delta chips), and a screen-reader message after each switch saying how many stats changed.
  */
-export function useFormSwitch(build: Build) {
+type FormSwitchBuild = Pick<Build, "champion" | "stats" | "statsInForm"> &
+	Pick<ChampionState, "form" | "setForm">
+
+export function useFormSwitch(build: FormSwitchBuild) {
 	const [announcement, setAnnouncement] = useState("")
 	const forms = build.champion?.forms
 	const compared = comparedForm(forms, build.form?.id)

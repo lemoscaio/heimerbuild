@@ -1,7 +1,5 @@
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
-import { track } from "@/lib/analytics/analytics"
-import { formChanges, selectedForm } from "@/lib/stats/champion-forms"
 import {
 	type BuildStatsInput,
 	computeBuildStats,
@@ -22,19 +20,15 @@ type UseBuildOptions = {
 	source: BuildSource
 	/** The abilities' ranks from the skill order, for the stats a rank grants. */
 	ranks?: AbilityRanks
+	/** The champion state's level and checked `form` value. */
+	championState: { level: number; formValue: string | undefined }
 	/** The rune page's checked `runes` value and its stat shards. */
 	runes: { value: string | undefined; shards: BuildStatsInput["shards"] }
 }
 
-type SetLevelOptions = {
-	/** The `skills` value to save with the level; by default the current one. */
-	skills?: string
-}
-
 /** Browser history per edit: Back undoes an item edit; every other edit replaces the entry. */
 const EDIT_HISTORY = {
-	level: { replace: true },
-	form: { replace: true },
+	championState: { replace: true },
 	items: { replace: false },
 	runes: { replace: true },
 	skills: { replace: true },
@@ -43,14 +37,15 @@ const EDIT_HISTORY = {
 export type Build = ReturnType<typeof useBuild>
 
 /**
- * The build read from its source: champion, form, level, items, runes and the `skills` value,
- * plus their stats. No page state: the view and the item selection live in `useBuildPage`.
+ * The build read from its source: the items, plus the checked values of the other domains and
+ * the stats. No page state: the view and the item selection live in `useBuildPage`.
  */
 export function useBuild({
 	patch,
 	championKey,
 	source,
 	ranks,
+	championState,
 	runes: runePage,
 }: UseBuildOptions) {
 	const { data: champion } = useChampion(patch, championKey)
@@ -61,14 +56,9 @@ export function useBuild({
 		onChange: (itemIds) => save({ itemIds }, EDIT_HISTORY.items),
 	})
 
-	const level = source.state.level
+	const { level, formValue: formId } = championState
 	const { ids: itemIds, items } = buildItems
 	const { value: runes, shards } = runePage
-	const form = champion && selectedForm(champion.forms, source.state.form)
-	// Until the champion loads, keep the link's form; then only a form other than the default.
-	const formId = champion
-		? formChanges(champion.forms, source.state.form)?.id
-		: source.state.form
 	const skills = source.state.skills
 
 	/** The build's totals with `change` applied: every preview is one input changed. */
@@ -97,24 +87,15 @@ export function useBuild({
 		source.update({ ...values, ...change }, navigation)
 	}
 
-	function setLevel(
-		nextLevel: number,
-		{ skills: nextSkills = skills }: SetLevelOptions = {},
+	/** Saves a level or form change, with the `skills` value that goes with a new level. */
+	function setChampionState(
+		change: Partial<Pick<BuildValues, "level" | "form" | "skills">>,
 	) {
-		save({ level: nextLevel, skills: nextSkills }, EDIT_HISTORY.level)
+		save(change, EDIT_HISTORY.championState)
 	}
 
 	function setSkills(nextSkills: string | undefined) {
 		save({ skills: nextSkills }, EDIT_HISTORY.skills)
-	}
-
-	function setForm(nextFormId: string) {
-		if (!champion || nextFormId === form?.id) return
-		save(
-			{ form: formChanges(champion.forms, nextFormId)?.id },
-			EDIT_HISTORY.form,
-		)
-		track("champion_form_changed", { champion: championKey, form: nextFormId })
 	}
 
 	function setRunes(nextRunes: string | undefined) {
@@ -123,11 +104,7 @@ export function useBuild({
 
 	return {
 		champion,
-		/** The selected form, the default one unless the build names another; undefined without forms. */
-		form,
-		setForm,
-		level,
-		setLevel,
+		setChampionState,
 		/** Saves the `skills` value; the skills domain reads and checks it. */
 		setSkills,
 		items,
