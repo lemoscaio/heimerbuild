@@ -2,11 +2,13 @@ import type { AbilitySlot } from "@schemas/champion"
 import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
+import { useRunes } from "@/data/hooks/use-runes"
 import { useBuild } from "@/features/build-calculator/hooks/use-build"
 import type {
 	BuildTab,
 	BuildView,
 } from "@/features/build-calculator/lib/build-search"
+import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { track } from "@/lib/analytics/analytics"
 import { useFormSwitch } from "./use-form-switch"
@@ -19,7 +21,7 @@ type UseBuildPageOptions = Parameters<typeof useUrlBuildSource>[0] & {
 export type BuildPage = ReturnType<typeof useBuildPage>
 
 /**
- * The build page: `useBuild` and `useSkills` on the URL build source, plus the page's own state:
+ * The build page: `useBuild`, `useSkills` and `useRunePage` on the URL build source, plus the page's own state:
  * the view and the open tab (kept in the URL), the shop item picked for a closer look and the form
  * switch. `addItem` also closes that item's details.
  */
@@ -38,7 +40,19 @@ export function useBuildPage({
 		value: source.state.skills,
 		onChange: (value) => build.setSkills(value),
 	})
-	const build = useBuild({ patch, championKey, source, ranks: skills.ranks })
+	const { data: runesFile } = useRunes(patch)
+	const runePage = useRunePage({
+		runes: runesFile,
+		value: source.state.runes,
+		onChange: (value) => build.setRunes(value),
+	})
+	const build = useBuild({
+		patch,
+		championKey,
+		source,
+		ranks: skills.ranks,
+		runes: runePage,
+	})
 	const formSwitch = useFormSwitch(build)
 	const { data: itemsById } = useItems(patch)
 	const [selectedItemId, setSelectedItemId] = useState<string>()
@@ -91,6 +105,9 @@ export function useBuildPage({
 		...build,
 		setLevel,
 		skills,
+		/** The build's rune page, checked against this patch's runes. */
+		runeSelection: runePage.selection,
+		setRunes: runePage.setSelection,
 		rankUpStats,
 		addItem,
 		/** Switches the form and announces how many stats changed. */

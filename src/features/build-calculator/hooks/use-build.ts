@@ -1,15 +1,7 @@
 import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
-import { useRunes } from "@/data/hooks/use-runes"
 import { track } from "@/lib/analytics/analytics"
-import {
-	EMPTY_RUNE_SELECTION,
-	parseRuneSelection,
-	type RuneSelection,
-	selectedShards,
-	serializeRuneSelection,
-} from "@/lib/rune-selection"
 import { formChanges, selectedForm } from "@/lib/stats/champion-forms"
 import {
 	type BuildStatsInput,
@@ -36,6 +28,8 @@ type UseBuildOptions = {
 	source: BuildSource
 	/** The abilities' ranks from the skill order, for the stats a rank grants. */
 	ranks?: AbilityRanks
+	/** The rune page's checked `runes` value and its stat shards. */
+	runes: { value: string | undefined; shards: BuildStatsInput["shards"] }
 }
 
 type SetLevelOptions = {
@@ -63,6 +57,7 @@ export function useBuild({
 	championKey,
 	source,
 	ranks,
+	runes: runePage,
 }: UseBuildOptions) {
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
@@ -75,15 +70,7 @@ export function useBuild({
 		? knownItemIds(source.state.itemIds, itemsById)
 		: source.state.itemIds
 	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
-	const { data: runesFile } = useRunes(patch)
-	const runeSelection = runesFile
-		? parseRuneSelection(source.state.runes, runesFile)
-		: EMPTY_RUNE_SELECTION
-	// Until the runes load, keep the link's value so other edits do not drop it.
-	const runes = runesFile
-		? serializeRuneSelection(runeSelection)
-		: source.state.runes
-	const shards = runesFile ? selectedShards(runeSelection, runesFile) : []
+	const { value: runes, shards } = runePage
 	const form = champion && selectedForm(champion.forms, source.state.form)
 	// Until the champion loads, keep the link's form; then only a form other than the default.
 	const formId = champion
@@ -159,8 +146,8 @@ export function useBuild({
 		return true
 	}
 
-	function setRunes(nextSelection: RuneSelection) {
-		save({ runes: serializeRuneSelection(nextSelection) }, EDIT_HISTORY.runes)
+	function setRunes(nextRunes: string | undefined) {
+		save({ runes: nextRunes }, EDIT_HISTORY.runes)
 	}
 
 	function removeItem(slot: number) {
@@ -190,8 +177,7 @@ export function useBuild({
 		/** The last item added, for screen readers, until an item is removed. */
 		announcement,
 		isFull,
-		/** The build's rune page, checked against this patch's runes. */
-		runeSelection,
+		/** Saves the `runes` value; the rune page domain reads and checks it. */
 		setRunes,
 		/** Totals with items and stat shards. */
 		stats,
