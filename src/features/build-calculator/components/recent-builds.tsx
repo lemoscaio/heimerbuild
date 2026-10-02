@@ -2,13 +2,58 @@ import type { ChampionRole } from "@schemas/champion"
 import { Link } from "@tanstack/react-router"
 import { useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useChampions } from "@/data/hooks/use-champions"
 import { useCurrentPatch } from "@/data/hooks/use-current-patch"
 import { cn } from "@/lib/cn"
 import { filterChampions } from "@/lib/filter-champions"
+import { useRecentBuildRunes } from "../hooks/use-recent-build-runes"
 import { useRecentBuilds } from "../hooks/use-recent-builds"
 import { toBuildSearch } from "../lib/build-search"
 import type { RecentBuild } from "../services/recent-builds"
+
+type RecentBuildRunesProps = { build: RecentBuild }
+
+/** The keystone, with the secondary tree as a badge; an empty slot until the runes load. */
+function RecentBuildRunes({ build }: RecentBuildRunesProps) {
+	const { status, data } = useRecentBuildRunes(build)
+	if (status === "pending") {
+		return <Skeleton className="size-7 shrink-0 rounded-full" />
+	}
+	if (!data?.keystone) return null
+	const { keystone, secondaryTree } = data
+
+	return (
+		<span className="relative shrink-0">
+			<span role="img" aria-label={keystone.name}>
+				<GameIcon
+					src={keystone.icon}
+					name={keystone.name}
+					width={28}
+					height={28}
+					loading="lazy"
+					className="size-7 rounded-full bg-surface-sunken"
+				/>
+			</span>
+			{secondaryTree && (
+				<span
+					role="img"
+					aria-label={`${secondaryTree.name} secondary`}
+					className="absolute -right-1 -bottom-1"
+				>
+					<GameIcon
+						src={secondaryTree.icon}
+						name={secondaryTree.name}
+						width={14}
+						height={14}
+						loading="lazy"
+						className="size-3.5 rounded-full bg-surface-sunken ring-1 ring-line"
+					/>
+				</span>
+			)}
+		</span>
+	)
+}
 
 type RecentBuildLinkProps = {
 	build: RecentBuild
@@ -48,6 +93,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 					Lv {build.level} · {itemCount} {itemCount === 1 ? "item" : "items"}
 				</span>
 			</span>
+			{build.runes && <RecentBuildRunes build={build} />}
 		</Link>
 	)
 }
