@@ -19,11 +19,12 @@ src/
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
 │   ├── item-shop/        item grid, role/stat filters, sorting, tooltips
 │   ├── runes/            rune page editor (trees, runes, stat shards) and its summary card
-│   └── skills/           skill points: rank rules, suggested order and history, the skills row and Skills tab
+│   ├── skills/           skill points: rank rules, suggested order and history, the skills row and Skills tab
+│   └── summoners/        the two summoner spell slots: picks, swap, checks against the patch's spells
 ├── data/                 game data loading: fetch + Zod parsing, data hooks, query options
 │   ├── services/         fetchGameData, fetchManifest, fetchChampion, fetchItems
 │   ├── queries/          queryOptions() factories (gameDataQueries)
-│   └── hooks/            use-current-patch.ts, use-champions.ts, use-champion.ts, use-items.ts
+│   └── hooks/            use-current-patch.ts, use-champions.ts, use-champion.ts, use-items.ts, use-runes.ts, use-summoner-spells.ts
 ├── components/
 │   ├── ui/               primitives with no domain knowledge: button, slider, tooltip
 │   ├── motion/           generic motion primitives (Collapse, Stagger) and motion tokens
@@ -77,7 +78,7 @@ features/<feature>/
 ### Import boundaries
 
 - **A feature never imports another feature. No exceptions.** Pages compose features; anything two features need is promoted to a shared layer.
-- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, on top of `useChampionBuild`, which composes the domain hooks of four features; see [Build composition](#build-composition)) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
+- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, on top of `useChampionBuild`, which composes the domain hooks of five features; see [Build composition](#build-composition)) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`. Never `pages/` or `routes/`.
 - Pages may import features and the shared layers, never `routes/`. Routes import pages.
 - Shared layers never import from `features/`, `pages/` or `routes/`.
@@ -116,13 +117,14 @@ pages/champion-build/hooks/
 | Skills | `useSkills` (ranks, order, kept points) | `skills` | `skills` |
 | Items | `useBuildItems` (chosen items, full-build notice, announcement, item events) | `build-calculator` | `itemIds` |
 | Rune page | `useRunePage` (checked page, stat shards) | `runes` | `runes` |
+| Summoner spells | `useSummoners` (the D and F slots, pick, swap, clear) | `summoners` | `summoners` |
 
-- **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`); the hook stays thin and is covered by the e2e flows.
+- **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`, `readSummoners`); the hook stays thin and is covered by the e2e flows.
 - **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
-- **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills and runes replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores).
+- **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills, runes and summoner spells replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores).
 - **Pure stats.** `computeBuildStats({ champion, level, form, items, shards, ranks })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`).
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
-- **Adding a domain** (summoner spells, conditions): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
+- **Adding a domain** (conditions, as summoner spells did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ## Where does new code go
 

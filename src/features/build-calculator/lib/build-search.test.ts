@@ -82,6 +82,18 @@ describe("buildSearchSchema", () => {
 		expect(parse({ skills: 1 }).skills).toBeUndefined()
 	})
 
+	test("accepts summoner spells in their slot form and drops anything else", () => {
+		expect(parse({ summoners: "4,14" }).summoners).toBe("4,14")
+		expect(parse({ summoners: ",14" }).summoners).toBe(",14")
+		expect(parse({ summoners: "flash,ignite" }).summoners).toBeUndefined()
+		expect(parse({ summoners: "4,14,6" }).summoners).toBeUndefined()
+	})
+
+	test("reads a single summoner spell id, which the router parses as a number, as the D slot", () => {
+		expect(parse({ summoners: 4 }).summoners).toBe("4,")
+		expect(parse({ summoners: -4 }).summoners).toBeUndefined()
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
@@ -126,6 +138,7 @@ describe("toBuildSearch", () => {
 			view: "shop",
 			tab: "runes",
 			form: "mega",
+			summoners: ",4",
 		})
 		expect(buildSearchSchema.parse(search)).toEqual(search)
 	})

@@ -1,6 +1,7 @@
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { useRunes } from "@/data/hooks/use-runes"
+import { useSummonerSpells } from "@/data/hooks/use-summoner-spells"
 import { useBuildItems } from "@/features/build-calculator/hooks/use-build-items"
 import type {
 	BuildNavigation,
@@ -11,6 +12,7 @@ import { useChampionState } from "@/features/champions/hooks/use-champion-state"
 import type { ChampionStateValue } from "@/features/champions/lib/champion-state"
 import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
+import { useSummoners } from "@/features/summoners/hooks/use-summoners"
 import {
 	type BuildStatsInput,
 	computeBuildStats,
@@ -29,13 +31,14 @@ const EDIT_HISTORY = {
 	skills: { replace: true },
 	items: { replace: false },
 	runes: { replace: true },
+	summoners: { replace: true },
 } as const satisfies Record<string, BuildNavigation>
 
 export type ChampionBuild = ReturnType<typeof useChampionBuild>
 
 /**
  * A champion's build, composed from one hook per domain on a build source: champion state, skills,
- * items and rune page. Their values only come together in the stats and in each saved edit.
+ * items, rune page and summoner spells. Their values only come together in the stats and in each saved edit.
  */
 export function useChampionBuild({
 	patch,
@@ -45,6 +48,7 @@ export function useChampionBuild({
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
 	const { data: runes } = useRunes(patch)
+	const { data: summonerSpells } = useSummonerSpells(patch)
 	const { state } = source
 
 	const championState = useChampionState({
@@ -68,6 +72,11 @@ export function useChampionBuild({
 		value: state.runes,
 		onChange: (value) => save({ runes: value }, EDIT_HISTORY.runes),
 	})
+	const summoners = useSummoners({
+		spells: summonerSpells,
+		value: state.summoners,
+		onChange: (value) => save({ summoners: value }, EDIT_HISTORY.summoners),
+	})
 
 	/** The checked values every edit saves next to its own change (the link's while data loads). */
 	const values: BuildValues = {
@@ -76,6 +85,7 @@ export function useChampionBuild({
 		runes: runePage.value,
 		form: championState.formValue,
 		skills: state.skills,
+		summoners: summoners.value,
 	}
 
 	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
@@ -112,12 +122,13 @@ export function useChampionBuild({
 		skills,
 		items,
 		runePage,
+		summoners,
 		/** Totals with the items, stat shards and ranks. */
 		stats: whatIf(),
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes: whatIf({ shards: [] }),
 		whatIf,
-		/** The checked values: known items, checked runes, the default form left out. */
+		/** The checked values: known items, checked runes and summoner spells, the default form left out. */
 		values,
 	}
 }
