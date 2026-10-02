@@ -25,7 +25,7 @@ export function RadioGroupItem<Value>({
 		<RadioPrimitive.Root
 			data-slot="radio-group-item"
 			className={cn(
-				"cursor-default select-none outline-none focus-visible:ring-2 focus-visible:ring-lilac focus-visible:ring-offset-2 focus-visible:ring-offset-primary-3 data-disabled:pointer-events-none data-disabled:opacity-40",
+				"cursor-default select-none outline-none focus-visible:ring-2 focus-visible:ring-lilac focus-visible:ring-offset-2 focus-visible:ring-offset-surface data-disabled:pointer-events-none data-disabled:opacity-40",
 				className,
 			)}
 			{...props}

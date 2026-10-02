@@ -32,7 +32,7 @@ export function IconButton({
 						size={size}
 						aria-label={label}
 						className={cn(
-							"border-primary-2 bg-primary-0 text-prose hover:bg-primary-2 hover:text-white aria-expanded:text-white",
+							"border-line bg-surface-raised text-prose hover:bg-line hover:text-white aria-expanded:text-white",
 							className,
 						)}
 						{...props}

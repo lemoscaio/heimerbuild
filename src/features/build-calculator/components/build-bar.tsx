@@ -34,7 +34,7 @@ export function BuildBar({
 	return (
 		<section
 			aria-label="Build"
-			className="flex flex-wrap items-center gap-x-6 gap-y-3 border-primary-2 border-t bg-primary-4 px-5 py-3 text-white"
+			className="flex flex-wrap items-center gap-x-6 gap-y-3 border-line border-t bg-surface-sunken px-5 py-3 text-white"
 		>
 			<div className="flex items-center gap-3">
 				<GameIcon

@@ -17,7 +17,7 @@ export function TabsList({ className, ...props }: TabsPrimitive.List.Props) {
 		<TabsPrimitive.List
 			data-slot="tabs-list"
 			className={cn(
-				"inline-flex w-fit items-center justify-center gap-1 rounded-lg bg-primary-4 p-1 text-subtle",
+				"inline-flex w-fit items-center justify-center gap-1 rounded-lg bg-surface-sunken p-1 text-subtle",
 				className,
 			)}
 			{...props}
@@ -30,7 +30,7 @@ export function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
 		<TabsPrimitive.Tab
 			data-slot="tabs-trigger"
 			className={cn(
-				"inline-flex h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 font-semibold text-sm transition-colors hover:text-white disabled:pointer-events-none disabled:opacity-50 data-active:bg-lilac data-active:text-primary-4 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+				"inline-flex h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 font-semibold text-sm transition-colors hover:text-white disabled:pointer-events-none disabled:opacity-50 data-active:bg-lilac data-active:text-surface-sunken [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
 				className,
 			)}
 			{...props}

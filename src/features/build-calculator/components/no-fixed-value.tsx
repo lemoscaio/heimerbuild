@@ -24,7 +24,7 @@ export function NoFixedValue({ label, description }: NoFixedValueProps) {
 				openOnHover
 				delay={0}
 				aria-label={`No fixed value, about ${label}`}
-				className="-m-1 inline-flex cursor-help items-center gap-1 rounded-sm px-1 py-1 outline-ring hover:bg-primary-2 focus-visible:outline-2 aria-expanded:bg-primary-2"
+				className="-m-1 inline-flex cursor-help items-center gap-1 rounded-sm px-1 py-1 outline-ring hover:bg-line focus-visible:outline-2 aria-expanded:bg-line"
 			>
 				<span aria-hidden="true">—</span>
 				<Info aria-hidden="true" className="size-3.5 text-subtle" />

@@ -98,7 +98,7 @@ export function MobileBuildPage({
 					{build.stats && build.statsWithoutRunes && (
 						<section
 							aria-label="Stat shard effect"
-							className="flex flex-col gap-2 rounded-xl bg-primary-4 p-3"
+							className="flex flex-col gap-2 rounded-xl bg-surface-sunken p-3"
 						>
 							<h3 className="font-bold font-display text-sm">
 								Stats with shards

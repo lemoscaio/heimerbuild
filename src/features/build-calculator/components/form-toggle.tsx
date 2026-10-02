@@ -31,7 +31,7 @@ export function FormToggle({
 			</span>
 			<ToggleGroup
 				aria-labelledby={labelId}
-				className="gap-0.5 rounded-lg border border-primary-2 bg-primary-4 p-0.75"
+				className="gap-0.5 rounded-lg border border-line bg-surface-sunken p-0.75"
 				value={[form]}
 				// Pressing the selected form again would leave none: one form is always selected.
 				onValueChange={([next]) => next && onFormChange(next)}
@@ -40,7 +40,7 @@ export function FormToggle({
 					<ToggleGroupItem
 						key={id}
 						value={id}
-						className="h-auto min-h-9 flex-1 rounded-md px-3.5 font-semibold text-prose data-pressed:inset-ring-0 data-pressed:bg-lilac data-pressed:text-primary-4 max-lg:min-h-11"
+						className="h-auto min-h-9 flex-1 rounded-md px-3.5 font-semibold text-prose data-pressed:inset-ring-0 data-pressed:bg-lilac data-pressed:text-surface-sunken max-lg:min-h-11"
 					>
 						{name}
 					</ToggleGroupItem>

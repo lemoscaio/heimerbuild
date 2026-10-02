@@ -6,7 +6,7 @@ import type { StatRowInfo } from "../lib/stats-info"
 import { NoFixedValue } from "./no-fixed-value"
 
 const deltaChipVariants = cva(
-	"rounded-full bg-primary-4 px-1.5 font-semibold text-[0.625rem] leading-4",
+	"rounded-full bg-surface-sunken px-1.5 font-semibold text-[0.625rem] leading-4",
 	{
 		variants: {
 			direction: {
@@ -59,7 +59,7 @@ export function StatRow({
 	return (
 		<li
 			className={cn(
-				"flex items-center gap-2 rounded-md bg-primary-2/40 px-2 py-0.75 text-xs leading-4",
+				"flex items-center gap-2 rounded-md bg-line/40 px-2 py-0.75 text-xs leading-4",
 				{ "bg-lilac/25": next !== undefined },
 				className,
 			)}

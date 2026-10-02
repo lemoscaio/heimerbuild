@@ -41,7 +41,7 @@ export function ShardRow({
 						title={shard.name}
 						onPointerEnter={() => onDescribe(shard)}
 						onFocus={() => onDescribe(shard)}
-						className="size-11 shrink-0 rounded-full border-2 border-primary-2 bg-primary-4 p-1.5 opacity-55 transition hover:opacity-90 data-checked:border-gold data-checked:bg-primary-2 data-checked:opacity-100 lg:size-7.5 lg:p-1"
+						className="size-11 shrink-0 rounded-full border-2 border-line bg-surface-sunken p-1.5 opacity-55 transition hover:opacity-90 data-checked:border-gold data-checked:bg-line data-checked:opacity-100 lg:size-7.5 lg:p-1"
 					>
 						<GameIcon
 							src={shard.icon}

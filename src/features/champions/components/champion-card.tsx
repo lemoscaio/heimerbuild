@@ -26,7 +26,7 @@ export function ChampionCard({ champion }: ChampionCardProps) {
 					width={120}
 					height={120}
 					loading="lazy"
-					className="aspect-square w-full rounded-xl ring-1 ring-primary-2 transition group-hover:scale-105 group-hover:ring-lilac"
+					className="aspect-square w-full rounded-xl ring-1 ring-line transition group-hover:scale-105 group-hover:ring-lilac"
 				/>
 				<span className="w-full truncate text-center text-prose text-xs group-hover:text-white">
 					{champion.name}

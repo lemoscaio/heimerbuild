@@ -13,7 +13,7 @@ export function RuneDetails({ detail, className, ...props }: RuneDetailsProps) {
 		<section
 			aria-label="Rune details"
 			className={cn(
-				"flex min-h-20 items-start gap-3.5 rounded-xl bg-primary-0 px-4 py-3.5",
+				"flex min-h-20 items-start gap-3.5 rounded-xl bg-surface-raised px-4 py-3.5",
 				detail?.accentClass,
 				className,
 			)}
@@ -24,7 +24,7 @@ export function RuneDetails({ detail, className, ...props }: RuneDetailsProps) {
 					<GameIcon
 						src={detail.icon}
 						name={detail.name}
-						className="size-11 rounded-full border-(--tree) border-2 bg-primary-4"
+						className="size-11 rounded-full border-(--tree) border-2 bg-surface-sunken"
 					/>
 					<div className="flex min-w-0 flex-col gap-1.5">
 						<div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">

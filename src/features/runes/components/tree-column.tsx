@@ -47,7 +47,7 @@ export function TreeColumn({
 							src={tree.icon}
 							name={tree.name}
 							className={cn(
-								"border-(--tree) border-3 bg-primary-4 shadow-(--tree)/35 shadow-[0_0_18px]",
+								"border-(--tree) border-3 bg-surface-sunken shadow-(--tree)/35 shadow-[0_0_18px]",
 								emblemClassName,
 							)}
 						/>
@@ -55,7 +55,7 @@ export function TreeColumn({
 						<span
 							aria-hidden="true"
 							className={cn(
-								"border-2 border-primary-2 border-dashed",
+								"border-2 border-line border-dashed",
 								emblemClassName,
 							)}
 						/>

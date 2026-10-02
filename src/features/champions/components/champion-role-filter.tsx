@@ -34,7 +34,7 @@ export function ChampionRoleFilter({
 				<ToggleGroupItem
 					key={value}
 					value={value}
-					className="h-8.5 rounded-full border border-primary-2 px-3.5 font-normal text-prose data-pressed:inset-ring-0 data-pressed:border-lilac data-pressed:bg-primary-2 data-pressed:text-white"
+					className="h-8.5 rounded-full border border-line px-3.5 font-normal text-prose data-pressed:inset-ring-0 data-pressed:border-lilac data-pressed:bg-line data-pressed:text-white"
 				>
 					{label}
 				</ToggleGroupItem>

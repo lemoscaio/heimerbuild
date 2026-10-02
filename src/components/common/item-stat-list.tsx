@@ -10,7 +10,7 @@ const statList = cva("", {
 			/** Stats side by side, wrapping (shop details card). */
 			inline: "flex flex-wrap gap-x-3 gap-y-0.5 text-xs",
 			/** Label left, value right (expanded shop details panel). */
-			table: "flex flex-col gap-1.5 rounded-lg bg-primary-2/60 p-3",
+			table: "flex flex-col gap-1.5 rounded-lg bg-line/60 p-3",
 		},
 	},
 	defaultVariants: { layout: "list" },

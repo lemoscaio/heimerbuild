@@ -35,7 +35,7 @@ export function StatMatchToggle({
 	return (
 		<ToggleGroup
 			aria-label="Match selected stats"
-			className="grid grid-cols-2 gap-0 rounded-sm border border-primary-1 p-0.5 max-lg:grid-cols-1"
+			className="grid grid-cols-2 gap-0 rounded-sm border border-line-strong p-0.5 max-lg:grid-cols-1"
 			value={[match]}
 			// Pressing the selected mode again would leave none: one mode is always selected.
 			onValueChange={([next]) => next && onMatchChange(next)}

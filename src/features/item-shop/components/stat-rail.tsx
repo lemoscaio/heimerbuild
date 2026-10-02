@@ -60,7 +60,7 @@ export function StatRail({
 					<fieldset
 						key={group}
 						aria-label={label}
-						className="grid min-w-0 grid-cols-1 gap-0.5 border-primary-2 border-t pt-1.5 lg:grid-cols-2"
+						className="grid min-w-0 grid-cols-1 gap-0.5 border-line border-t pt-1.5 lg:grid-cols-2"
 					>
 						{groupStats.map(({ stat, label: statLabel, icon, aliases }) => (
 							<TooltipTrigger
@@ -75,7 +75,7 @@ export function StatRail({
 										aria-label={statLabel}
 										pressed={stats.includes(stat)}
 										onPressedChange={(pressed) => toggle(stat, pressed)}
-										className="size-8 min-w-0 p-0 data-pressed:inset-ring-gold data-pressed:bg-primary-2 max-lg:size-11"
+										className="size-8 min-w-0 p-0 data-pressed:inset-ring-gold data-pressed:bg-line max-lg:size-11"
 										{...getItemProps(stat)}
 									/>
 								}

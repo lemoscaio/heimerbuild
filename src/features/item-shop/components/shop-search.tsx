@@ -209,7 +209,7 @@ export function ShopSearch({
 					{!query && !chips.length && (
 						<kbd
 							aria-hidden
-							className="pointer-events-none rounded-sm border border-primary-1 px-1.5 font-mono text-subtle text-xs max-lg:hidden"
+							className="pointer-events-none rounded-sm border border-line-strong px-1.5 font-mono text-subtle text-xs max-lg:hidden"
 						>
 							/
 						</kbd>

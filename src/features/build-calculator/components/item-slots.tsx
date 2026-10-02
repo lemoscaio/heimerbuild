@@ -104,7 +104,7 @@ export function ItemSlots({
 						return (
 							<div
 								key={`empty-${slot}`}
-								className="aspect-square rounded-md border-2 border-primary-1 border-dashed bg-primary-4/60"
+								className="aspect-square rounded-md border-2 border-line-strong border-dashed bg-surface-sunken/60"
 							/>
 						)
 					}
@@ -112,7 +112,7 @@ export function ItemSlots({
 						<ItemButton
 							key={`${slot}-${item.id}`}
 							item={item}
-							className="aspect-square overflow-hidden rounded-md border-2 border-gold/70 bg-primary-2"
+							className="aspect-square overflow-hidden rounded-md border-2 border-gold/70 bg-line"
 							aria-label={`Remove ${item.name}`}
 							onClick={(event) => handleRemove(slot, event)}
 						>

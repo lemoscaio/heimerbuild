@@ -51,7 +51,7 @@ const statRail = cva(
 		variants: {
 			layout: {
 				compact: "",
-				expanded: "lg:border-primary-2 lg:border-r lg:pr-3",
+				expanded: "lg:border-line lg:border-r lg:pr-3",
 			} satisfies Record<ShopLayout, string>,
 		},
 	},

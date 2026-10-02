@@ -51,14 +51,14 @@ export function RuneRow({
 					onPointerEnter={() => onDescribe(rune)}
 					onFocus={() => onDescribe(rune)}
 					className={cn(
-						"group/rune relative shrink-0 rounded-full border-2 border-primary-2 p-0.5 opacity-55 transition hover:opacity-90 data-checked:border-(--tree) data-checked:opacity-100",
+						"group/rune relative shrink-0 rounded-full border-2 border-line p-0.5 opacity-55 transition hover:opacity-90 data-checked:border-(--tree) data-checked:opacity-100",
 						RUNE_SIZE_CLASSES[size],
 					)}
 				>
 					<GameIcon
 						src={rune.icon}
 						name={rune.name}
-						className="size-full rounded-full bg-primary-4 grayscale group-data-checked/rune:grayscale-0"
+						className="size-full rounded-full bg-surface-sunken grayscale group-data-checked/rune:grayscale-0"
 					/>
 					<span id={`${id}-${rune.id}`} hidden>
 						{rune.description}

@@ -3,11 +3,11 @@ import { cn } from "./cn"
 
 describe("cn", () => {
 	test("keeps the last of two conflicting classes", () => {
-		expect(cn("bg-primary-2 p-2", "bg-primary-1")).toBe("p-2 bg-primary-1")
+		expect(cn("bg-line p-2", "bg-line-strong")).toBe("p-2 bg-line-strong")
 	})
 
 	test("keeps a palette text color next to a font size", () => {
-		expect(cn("text-sm", "text-primary-1")).toBe("text-sm text-primary-1")
+		expect(cn("text-sm", "text-line-strong")).toBe("text-sm text-line-strong")
 	})
 
 	test("adds object keys only when their value is true", () => {
