@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { addItemId, knownItemIds, MAX_ITEMS, removeItemAt } from "./build-items"
+import {
+	addItemId,
+	knownItemIds,
+	MAX_ITEMS,
+	readBuildItems,
+	removeItemAt,
+} from "./build-items"
 
 const itemsById = { "1036": {}, "3089": {}, "3020": {}, "3006": {} }
 
@@ -57,5 +63,26 @@ describe("knownItemIds", () => {
 	test("never returns more than the item slots", () => {
 		const many = Array.from({ length: MAX_ITEMS + 1 }, () => "1036")
 		expect(knownItemIds(many, itemsById)).toHaveLength(MAX_ITEMS)
+	})
+})
+
+describe("readBuildItems", () => {
+	test("keeps the link's ids, unknown ones included, until the items load", () => {
+		expect(readBuildItems(["9999", "1036"], undefined)).toEqual({
+			ids: ["9999", "1036"],
+			items: [],
+		})
+	})
+
+	test("reads the known items in link order once they load", () => {
+		const byId = {
+			"1036": { name: "Long Sword" },
+			"3089": { name: "Rabadon's" },
+		}
+
+		expect(readBuildItems(["3089", "9999", "1036"], byId)).toEqual({
+			ids: ["3089", "1036"],
+			items: [{ name: "Rabadon's" }, { name: "Long Sword" }],
+		})
 	})
 })

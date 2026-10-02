@@ -19,3 +19,16 @@ export function knownItemIds(
 		.filter((id) => Object.hasOwn(itemsById, id))
 		.slice(0, MAX_ITEMS)
 }
+
+/**
+ * The build's items from a link's ids: the known ones once the items load. Until then the ids stay
+ * as given, so an edit elsewhere in the build does not drop them.
+ */
+export function readBuildItems<Item>(
+	itemIds: readonly string[],
+	itemsById: Readonly<Record<string, Item>> | undefined,
+): { ids: readonly string[]; items: Item[] } {
+	if (!itemsById) return { ids: itemIds, items: [] }
+	const ids = knownItemIds(itemIds, itemsById)
+	return { ids, items: ids.map((id) => itemsById[id]) }
+}
