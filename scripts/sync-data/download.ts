@@ -12,7 +12,7 @@ const CDRAGON_CLIENT_DATA_PATH =
 
 export const MANIFEST_FILE = "manifest.json"
 /** Bump when the set of cached files changes, so older caches are re-downloaded. */
-export const CACHE_LAYOUT = 4
+export const CACHE_LAYOUT = 5
 
 export type DownloadOptions = {
 	fetchFn?: typeof fetch
@@ -109,10 +109,11 @@ export async function downloadRawData(
 		return json
 	}
 
-	const [championList, , , communityDragonItems] = await Promise.all([
+	const [championList, , , , communityDragonItems] = await Promise.all([
 		download("ddragon/champion.json", `${ddragon}/champion.json`),
 		download("ddragon/item.json", `${ddragon}/item.json`),
 		download("ddragon/runesReforged.json", `${ddragon}/runesReforged.json`),
+		download("ddragon/summoner.json", `${ddragon}/summoner.json`),
 		fetchCommunityDragonItems(version, fetchFn),
 	])
 	await save(
@@ -141,6 +142,8 @@ export async function downloadRawData(
 		],
 		["cdragon/perks.json", `${cdragonClientData}/perks.json`],
 		["cdragon/perkstyles.json", `${cdragonClientData}/perkstyles.json`],
+		// Summoner spell values (Shared/Spells/Summoner*).
+		["cdragon/shared.cdtb.bin.json", `${cdragonGame}/shared.cdtb.bin.json`],
 	] as const
 	await mapWithConcurrency(cdragonFiles, concurrency, ([path, url]) =>
 		download(path, url),

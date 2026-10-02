@@ -20,6 +20,7 @@ import { writeManifest } from "./manifest"
 import { writeChampions } from "./normalize-champions"
 import { syncItems } from "./normalize-items"
 import { writeRunes } from "./normalize-runes"
+import { writeSummonerSpells } from "./normalize-summoner-spells"
 import {
 	type OverrideReport,
 	staleOverrideLines,
@@ -189,6 +190,11 @@ async function writeOutputs(version: string): Promise<string[]> {
 	const runes = await writeRunes(cacheDir, outDir, version)
 	console.log(
 		`Wrote public/data/${version}/runes.json (${runes.trees} trees, ${runes.runes} runes, ${runes.shards} stat shards, ${(runes.bytes / 1024).toFixed(1)} KB)`,
+	)
+
+	const summonerSpells = await writeSummonerSpells(cacheDir, outDir, version)
+	console.log(
+		`Wrote public/data/${version}/summoner-spells.json (${summonerSpells.spells} Summoner's Rift spells, ${(summonerSpells.bytes / 1024).toFixed(1)} KB)`,
 	)
 
 	const staleOverrides = reportOverrides([champions.overrides, items.overrides])
