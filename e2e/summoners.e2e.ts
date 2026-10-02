@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test"
+import { expect, type Page } from "@playwright/test"
 import { levelSlider, test } from "./fixtures"
 
 /** The `summoners` value in a URL or href; the comma may be percent-encoded. */
@@ -26,4 +26,133 @@ test("a link's summoner spells stay through an edit and a reload, and reach the 
 	await expect(recentBuild).toHaveAttribute("href", summonersParam("14", "4"))
 	await recentBuild.click()
 	await expect(page).toHaveURL(summonersParam("14", "4"))
+})
+
+function summonerSlot(page: Page, slot: 1 | 2) {
+	return page
+		.getByRole("group", { name: "Summoner spells" })
+		.getByRole("button", { name: new RegExp(`^Summoner Spell ${slot}:`) })
+}
+
+function picker(page: Page, slot: 1 | 2) {
+	return page.getByRole("dialog", { name: `Summoner Spell ${slot}` })
+}
+
+/** Each row's box from the rune page's top left, so scrolling the tab does not count as moving. */
+async function rowBoxes(page: Page, rows: readonly string[]) {
+	const origin = await page
+		.getByRole("region", { name: "Rune page" })
+		.evaluate((section) => {
+			const { left, top } = section.getBoundingClientRect()
+			return { left, top }
+		})
+	return Promise.all(
+		rows.map((name) =>
+			page
+				.getByRole("radiogroup", { name, exact: true })
+				.evaluate((row, { left, top }) => {
+					const { x, y, width, height } = row.getBoundingClientRect()
+					return { x: x - left, y: y - top, width, height }
+				}, origin),
+		),
+	)
+}
+
+test("the slots pick with the mouse or the keyboard, swap by picking the other slot's spell, and clear", async ({
+	page,
+}) => {
+	await page.goto("/champions/Teemo")
+
+	await summonerSlot(page, 1).click()
+	await picker(page, 1).getByRole("option", { name: "Flash" }).click()
+	await expect(picker(page, 1)).toBeHidden()
+	await expect(summonerSlot(page, 1)).toHaveAccessibleName(
+		"Summoner Spell 1: Flash",
+	)
+	await expect(page).toHaveURL(summonersParam("4", ""))
+
+	// Keyboard: focus starts on the first spell; two rows down is Ignite, Enter picks it.
+	await summonerSlot(page, 2).click()
+	await expect(
+		picker(page, 2).getByRole("option", { name: "Barrier" }),
+	).toBeFocused()
+	await page.keyboard.press("ArrowDown")
+	await page.keyboard.press("ArrowDown")
+	await expect(
+		picker(page, 2).getByRole("option", { name: "Ignite" }),
+	).toBeFocused()
+	await page.keyboard.press("Enter")
+	await expect(page).toHaveURL(summonersParam("4", "14"))
+
+	// Flash is in the other slot: picking it there swaps the two.
+	await summonerSlot(page, 2).click()
+	await picker(page, 2).getByRole("option", { name: "Flash" }).click()
+	await expect(page).toHaveURL(summonersParam("14", "4"))
+	await expect(summonerSlot(page, 1)).toHaveAccessibleName(
+		"Summoner Spell 1: Ignite",
+	)
+
+	await summonerSlot(page, 1).click()
+	await page.keyboard.press("Escape")
+	await expect(picker(page, 1)).toBeHidden()
+	await expect(page).toHaveURL(summonersParam("14", "4"))
+
+	await summonerSlot(page, 1).click()
+	await picker(page, 1).getByRole("button", { name: "Clear" }).click()
+	await expect(summonerSlot(page, 1)).toHaveAccessibleName(
+		"Summoner Spell 1: empty",
+	)
+	await expect(page).toHaveURL(summonersParam("", "4"))
+})
+
+test("runes that react to the chosen spells get a hint without moving any rune row", async ({
+	page,
+}) => {
+	await page.goto("/champions/Teemo?tab=runes&summoners=4,14")
+	await page
+		.getByRole("radiogroup", { name: "Primary tree", exact: true })
+		.getByRole("radio", { name: "Sorcery", exact: true })
+		.click()
+	const rows = [
+		"Sorcery keystone",
+		"Sorcery row 1",
+		"Sorcery row 2",
+		"Sorcery row 3",
+	]
+	const before = await rowBoxes(page, rows)
+
+	const nimbusCloak = page
+		.getByRole("radiogroup", { name: "Sorcery row 1", exact: true })
+		.getByRole("radio", { name: "Nimbus Cloak", exact: true })
+	await nimbusCloak.click()
+	const interactions = page.getByRole("region", {
+		name: "Summoner spell interactions",
+	})
+	await expect(
+		interactions.getByRole("listitem").filter({ hasText: "Nimbus Cloak" }),
+	).toBeVisible()
+	expect(await rowBoxes(page, rows)).toEqual(before)
+
+	// The hint is also the rune's tooltip, on the next hover.
+	await interactions.hover()
+	await nimbusCloak.hover()
+	await expect(page.getByRole("tooltip")).toBeVisible()
+
+	// A new spell changes the hint, never the rows.
+	await summonerSlot(page, 1).click()
+	await picker(page, 1).getByRole("option", { name: "Ghost" }).click()
+	await expect(page).toHaveURL(summonersParam("6", "14"))
+	expect(await rowBoxes(page, rows)).toEqual(before)
+})
+
+test.describe("on a phone", () => {
+	test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+	test("a slot's picker opens as a bottom sheet", async ({ page }) => {
+		await page.goto("/champions/Teemo")
+		await summonerSlot(page, 1).tap()
+		await picker(page, 1).getByRole("option", { name: "Flash" }).tap()
+		await expect(picker(page, 1)).toBeHidden()
+		await expect(page).toHaveURL(summonersParam("4", ""))
+	})
 })
