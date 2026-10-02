@@ -126,6 +126,15 @@ pages/champion-build/hooks/
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
 - **Adding a domain** (conditions, as summoner spells did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
+### Link format
+
+Shared links must keep opening the same build, so the link format has a version: `v=1`. A link without `v` predates versions and is read as v1.
+
+- **Reading** goes through `readBuildSearch` (`features/build-calculator/lib/build-search.ts`), the route's `validateSearch`: it reads `v`, applies the migrations from that version on, in order (`v1 → v2 → …`, `migrateBuildLink` in `build-link-migrations.ts`), then checks the result with `buildSearchSchema`, the current format. **Writing** (`toBuildSearch`) always emits the latest `v`.
+- **Recent builds** store each build as its link search (`{ championKey, search }`) and read it back through `readBuildSearch`, so they migrate like links. Entries saved before versions are read as v1.
+- **Needs a bump:** renaming or removing a param, or changing what a value means or how it is encoded (the rune page string, the skill letters, item ids). Add one pure migration to `BUILD_LINK_MIGRATIONS` (that raises `BUILD_LINK_VERSION`) and a fixture with a real link from the older version to `src/app/build-link-fixtures.test.ts`, which must keep opening the same build.
+- **No bump:** a new optional param (old links simply lack it, and its absence means its default) or a new accepted value of an existing param. Experimental domains can live in a non-URL build source until their format is stable, then join the link.
+
 ## Where does new code go
 
 | What | One feature | 2+ features | Generic, no domain |

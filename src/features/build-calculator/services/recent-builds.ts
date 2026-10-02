@@ -1,4 +1,3 @@
-import { FORM_ID_PATTERN } from "@schemas/champion"
 import * as z from "zod/mini"
 import {
 	readLocalStorage,
@@ -6,47 +5,67 @@ import {
 	type StoredValueOptions,
 	writeLocalStorage,
 } from "@/lib/local-storage"
-import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
-import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
-import { SUMMONERS_PARAM_PATTERN } from "@/lib/summoner-slots"
-import { MAX_ITEMS } from "../lib/build-items"
-import { SKILLS_PARAM_PATTERN } from "../lib/build-search"
+import { MIN_LEVEL } from "@/lib/stats/growth"
+import {
+	type BuildState,
+	readBuildSearch,
+	toBuildSearch,
+} from "../lib/build-search"
 
 export const MAX_RECENT_BUILDS = 5
 
 export const RECENT_BUILDS_KEY = "heimerbuild:recent-builds:v1"
 
-const recentBuildSchema = z.object({
-	championKey: z.string().check(z.regex(/^\w+$/)),
-	level: z.int().check(z.gte(MIN_LEVEL), z.lte(MAX_LEVEL)),
-	itemIds: z
-		.array(z.string().check(z.regex(/^\d+$/)))
-		.check(z.maxLength(MAX_ITEMS)),
+export type RecentBuild = Omit<BuildState, "patch" | "view" | "tab"> & {
+	championKey: string
 	/** The patch pinned in the build's link, if any. */
-	patch: z.optional(z.string().check(z.regex(/^\d+\.\d+\.\d+$/))),
-	/** The rune page as the `runes` URL value. Absent in entries saved before runes; a bad one only loses the runes. */
-	runes: z.catch(
-		z.optional(z.string().check(z.regex(RUNES_PARAM_PATTERN))),
-		undefined,
-	),
-	/** A form other than the default, as the `form` URL value. A bad one only loses the form. */
-	form: z.catch(
-		z.optional(z.string().check(z.regex(FORM_ID_PATTERN))),
-		undefined,
-	),
-	/** The picked skill points, as the `skills` URL value. A bad one only loses the skills. */
-	skills: z.catch(
-		z.optional(z.string().check(z.regex(SKILLS_PARAM_PATTERN))),
-		undefined,
-	),
-	/** The summoner spells, as the `summoners` URL value. A bad one only loses them. */
-	summoners: z.catch(
-		z.optional(z.string().check(z.regex(SUMMONERS_PARAM_PATTERN))),
-		undefined,
-	),
+	patch?: string
+}
+
+const championKeySchema = z.string().check(z.regex(/^\w+$/))
+
+/** An entry as stored: the champion and its build as link search, read back like any link. */
+const storedRecentBuildSchema = z.object({
+	championKey: championKeySchema,
+	search: z.record(z.string(), z.unknown()),
 })
 
-export type RecentBuild = z.infer<typeof recentBuildSchema>
+/** Entries saved before links had a version keep the values as fields, under their v1 link names. */
+const unversionedRecentBuildSchema = z.pipe(
+	z.object({
+		championKey: championKeySchema,
+		level: z.unknown(),
+		itemIds: z.unknown(),
+		patch: z.optional(z.unknown()),
+		runes: z.optional(z.unknown()),
+		form: z.optional(z.unknown()),
+		skills: z.optional(z.unknown()),
+		summoners: z.optional(z.unknown()),
+	}),
+	z.transform(({ championKey, level, itemIds, ...search }) => ({
+		championKey,
+		search: { lvl: level, items: itemIds, ...search },
+	})),
+)
+
+// A bad value only loses that value, as in a link.
+const recentBuildSchema = z.pipe(
+	z.union([storedRecentBuildSchema, unversionedRecentBuildSchema]),
+	z.transform(({ championKey, search }): RecentBuild => {
+		const { lvl, items, patch, runes, form, skills, summoners } =
+			readBuildSearch(search)
+		return {
+			championKey,
+			level: lvl ?? MIN_LEVEL,
+			itemIds: items ?? [],
+			patch,
+			runes,
+			form,
+			skills,
+			summoners,
+		}
+	}),
+)
 
 export const recentBuildsStorage: StoredValueOptions<RecentBuild[]> = {
 	schema: z.array(recentBuildSchema),
@@ -71,7 +90,12 @@ export function recordRecentBuild(
 		...readRecentBuilds(options).filter(
 			({ championKey }) => championKey !== build.championKey,
 		),
-	].slice(0, MAX_RECENT_BUILDS)
+	]
+		.slice(0, MAX_RECENT_BUILDS)
+		.map(({ championKey, ...values }) => ({
+			championKey,
+			search: toBuildSearch({ ...values, patch: values.patch }),
+		}))
 	// Full or blocked storage: recent builds are a convenience, the build page works without them.
 	writeLocalStorage(RECENT_BUILDS_KEY, builds, options)
 }

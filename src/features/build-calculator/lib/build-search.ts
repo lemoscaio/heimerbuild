@@ -4,6 +4,12 @@ import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { SUMMONERS_PARAM_PATTERN } from "@/lib/summoner-slots"
 import { MAX_ITEMS } from "./build-items"
+import {
+	BUILD_LINK_MIGRATIONS,
+	BUILD_LINK_VERSION,
+	migrateBuildLink,
+	type RawBuildSearch,
+} from "./build-link-migrations"
 
 /** One ability letter per level, level 1 first ("EQWE"); checked against the champion's rules later. */
 export const SKILLS_PARAM_PATTERN = /^[QWER]{1,18}$/
@@ -37,8 +43,10 @@ const summonersSchema = z.union([
 	),
 ])
 
-/** Shareable build in the champion page URL. Invalid values are dropped, never an error page. */
+/** Shareable build in the champion page URL, in the latest link format. Invalid values are dropped, never an error page. */
 export const buildSearchSchema = z.object({
+	/** The link format version; read links are migrated to it first (`readBuildSearch`). */
+	v: z.catch(z.optional(z.literal(BUILD_LINK_VERSION)), undefined),
 	lvl: z.catch(
 		z.optional(z.int().check(z.gte(MIN_LEVEL), z.lte(MAX_LEVEL))),
 		undefined,
@@ -73,6 +81,13 @@ export const buildSearchSchema = z.object({
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
 
+/** Reads a build link of any version: migrates it to the latest format, then checks it. */
+export function readBuildSearch(search: RawBuildSearch): BuildSearch {
+	return buildSearchSchema.parse(
+		migrateBuildLink(search, BUILD_LINK_MIGRATIONS),
+	)
+}
+
 export type BuildView = "overview" | "shop"
 
 export type BuildTab = "items" | "runes" | "skills"
@@ -93,7 +108,7 @@ export type BuildState = {
 	summoners?: string
 }
 
-/** The URL search for a build. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells) stay out of the URL. */
+/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
@@ -115,5 +130,6 @@ export function toBuildSearch({
 		runes,
 		skills,
 		summoners,
+		v: BUILD_LINK_VERSION,
 	}
 }

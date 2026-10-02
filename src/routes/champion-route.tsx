@@ -9,7 +9,7 @@ import { StatsPanelSkeleton } from "@/features/build-calculator/components/stats
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
 import { WorkbenchPanel } from "@/features/build-calculator/components/workbench-panel"
 import { resolveBuildPatch } from "@/features/build-calculator/lib/build-patch"
-import { buildSearchSchema } from "@/features/build-calculator/lib/build-search"
+import { readBuildSearch } from "@/features/build-calculator/lib/build-search"
 import { ChampionHeaderSkeleton } from "@/features/champions/components/champion-header-skeleton"
 import { ItemGridSkeleton } from "@/features/item-shop/components/item-grid-skeleton"
 import { ItemList } from "@/features/item-shop/components/item-list"
@@ -20,7 +20,7 @@ import { pageWithHeaderRoute } from "./page-with-header-route"
 export const championRoute = createRoute({
 	getParentRoute: () => pageWithHeaderRoute,
 	path: "/champions/$key",
-	validateSearch: buildSearchSchema,
+	validateSearch: readBuildSearch,
 	loaderDeps: ({ search }) => ({ patch: search.patch }),
 	loader: async ({
 		context: { queryClient },
