@@ -85,6 +85,15 @@
 
 /* Purple scrollbar for the page and the item shop. Browsers without the WebKit
    pseudo-elements (Firefox) get the standard colours instead. */
+/* A level an ability cannot take in the skill order grid (R before 6, a maxed rank). */
+@utility bg-hatched {
+	background-image: repeating-linear-gradient(
+		135deg,
+		var(--color-line) 0 2px,
+		transparent 2px 7px
+	);
+}
+
 @utility scrollbar-purple {
 	&::-webkit-scrollbar {
 		width: --spacing(3);

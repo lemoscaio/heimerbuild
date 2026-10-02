@@ -4,10 +4,10 @@ import { track } from "@/lib/analytics/analytics"
 import type { Skills } from "./use-skills"
 
 /**
- * The skills row's actions: each one changes the skill order, tells screen readers what changed
- * and is tracked.
+ * The skill order actions of the skills row and tab: each one changes the order, tells screen
+ * readers what changed and is tracked.
  */
-export function useSkillsRow(skills: Skills, abilities: ChampionAbilities) {
+export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
 	const [announcement, setAnnouncement] = useState("")
 
 	function spellName(slot: AbilitySlot) {

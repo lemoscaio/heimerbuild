@@ -3,8 +3,8 @@ import { useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { cn } from "@/lib/cn"
+import { useSkillActions } from "../hooks/use-skill-actions"
 import type { Skills } from "../hooks/use-skills"
-import { useSkillsRow } from "../hooks/use-skills-row"
 import { AbilityRankButton } from "./ability-rank-button"
 import { SkillOrderStrip } from "./skill-order-strip"
 
@@ -24,7 +24,7 @@ export function SkillsRow({
 	...props
 }: SkillsRowProps) {
 	const titleId = useId()
-	const row = useSkillsRow(skills, abilities)
+	const row = useSkillActions(skills, abilities)
 	const autoCount = skills.points.filter((point) => point.isAuto).length
 
 	return (

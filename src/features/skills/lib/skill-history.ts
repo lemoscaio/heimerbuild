@@ -12,6 +12,8 @@ export type SkillPoint = {
 	slot: AbilitySlot
 	/** Filled by the suggested order, not picked. */
 	isAuto: boolean
+	/** The rank this point takes its ability to. */
+	rank: number
 }
 
 type AtLevel = { level: number; rules: SkillRules }
@@ -22,9 +24,11 @@ export function skillPointsAt(
 	{ level, rules }: AtLevel,
 ): SkillPoint[] {
 	const visible = picks.slice(0, level)
-	return autoFill(visible, { level, rules }).map((slot, index) => ({
+	const order = autoFill(visible, { level, rules })
+	return order.map((slot, index) => ({
 		slot,
 		isAuto: index >= visible.length,
+		rank: ranksOf(order.slice(0, index + 1), rules)[slot],
 	}))
 }
 

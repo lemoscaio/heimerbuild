@@ -117,7 +117,7 @@ export function useBuildPage({
 		/** The overview workbench or the expanded shop, kept in the URL. */
 		view,
 		setView,
-		/** The open center tab, Items or Runes, kept in the URL. */
+		/** The open center tab, Items, Runes or Skills, kept in the URL. */
 		tab,
 		setTab,
 		/** The shop item picked for a closer look, not in the build yet. */
@@ -141,5 +141,5 @@ function viewParam(view: BuildView): BuildSearch["view"] {
 }
 
 function tabParam(tab: BuildTab): BuildSearch["tab"] {
-	return tab === "runes" ? tab : undefined
+	return tab === "items" ? undefined : tab
 }

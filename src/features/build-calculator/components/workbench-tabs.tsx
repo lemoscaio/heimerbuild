@@ -6,16 +6,18 @@ type WorkbenchTabsProps = {
 	onTabChange: (tab: BuildTab) => void
 	items: React.ReactNode
 	runes: React.ReactNode
+	skills: React.ReactNode
 	/** Hover, focus or touch on the Runes tab, before it opens (preloads its images). */
 	onRunesIntent?: () => void
 }
 
-/** The overview's center column: Items | Runes. */
+/** The overview's center column: Items | Runes | Skills. */
 export function WorkbenchTabs({
 	tab,
 	onTabChange,
 	items,
 	runes,
+	skills,
 	onRunesIntent,
 }: WorkbenchTabsProps) {
 	return (
@@ -37,6 +39,9 @@ export function WorkbenchTabs({
 				>
 					Runes
 				</TabsTrigger>
+				<TabsTrigger value="skills" className="px-5">
+					Skills
+				</TabsTrigger>
 			</TabsList>
 			{/* The shop stays mounted: switching keeps its filters and scroll. */}
 			<TabsContent value="items" keepMounted className="flex min-h-0 flex-col">
@@ -47,6 +52,12 @@ export function WorkbenchTabs({
 				className="scrollbar-purple min-h-0 overflow-y-auto pr-1"
 			>
 				{runes}
+			</TabsContent>
+			<TabsContent
+				value="skills"
+				className="scrollbar-purple min-h-0 overflow-y-auto pr-1"
+			>
+				{skills}
 			</TabsContent>
 		</Tabs>
 	)

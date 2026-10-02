@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export type MobileTab = "stats" | "shop" | "runes"
+export type MobileTab = "stats" | "shop" | "runes" | "skills"
 
 type MobileLayoutProps = {
 	/** Champion, level and build slots, above the tabs. */
@@ -10,13 +10,14 @@ type MobileLayoutProps = {
 	stats: React.ReactNode
 	shop: React.ReactNode
 	runes: React.ReactNode
+	skills: React.ReactNode
 	/** Touch or focus on the Runes tab, before it opens (preloads its images). */
 	onRunesIntent?: () => void
 	/** Pinned to the bottom of the screen: item details and page actions. */
 	bottom: React.ReactNode
 }
 
-/** The champion page below `lg`: the build on top, then Stats | Shop | Runes tabs. */
+/** The champion page below `lg`: the build on top, then Stats | Shop | Runes | Skills tabs. */
 export function MobileLayout({
 	top,
 	tab,
@@ -24,6 +25,7 @@ export function MobileLayout({
 	stats,
 	shop,
 	runes,
+	skills,
 	onRunesIntent,
 	bottom,
 }: MobileLayoutProps) {
@@ -36,7 +38,7 @@ export function MobileLayout({
 					value={tab}
 					onValueChange={(value: MobileTab) => onTabChange(value)}
 				>
-					<TabsList className="grid w-full grid-cols-3">
+					<TabsList className="grid w-full grid-cols-4">
 						<TabsTrigger value="stats" className="h-11">
 							Stats
 						</TabsTrigger>
@@ -52,6 +54,9 @@ export function MobileLayout({
 						>
 							Runes
 						</TabsTrigger>
+						<TabsTrigger value="skills" className="h-11">
+							Skills
+						</TabsTrigger>
 					</TabsList>
 					<TabsContent value="stats" keepMounted>
 						{stats}
@@ -60,6 +65,7 @@ export function MobileLayout({
 						{shop}
 					</TabsContent>
 					<TabsContent value="runes">{runes}</TabsContent>
+					<TabsContent value="skills">{skills}</TabsContent>
 				</Tabs>
 			</div>
 			{/* Sticky, not fixed: it parks at the end of the page, so the site footer below stays visible. */}
