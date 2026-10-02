@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { track } from "@/lib/analytics/analytics"
@@ -9,17 +8,12 @@ import {
 } from "@/lib/stats/compute-build-stats"
 import type { ItemInput } from "@/lib/stats/compute-stats"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
-import {
-	addItemId,
-	knownItemIds,
-	MAX_ITEMS,
-	removeItemAt,
-} from "../lib/build-items"
 import type {
 	BuildNavigation,
 	BuildSource,
 	BuildValues,
 } from "../types/build-source"
+import { useBuildItems } from "./use-build-items"
 
 type UseBuildOptions = {
 	patch: string
@@ -61,15 +55,14 @@ export function useBuild({
 }: UseBuildOptions) {
 	const { data: champion } = useChampion(patch, championKey)
 	const { data: itemsById } = useItems(patch)
-	const [notice, setNotice] = useState<string>()
-	const [announcement, setAnnouncement] = useState<string>()
+	const buildItems = useBuildItems({
+		itemsById,
+		value: source.state.itemIds,
+		onChange: (itemIds) => save({ itemIds }, EDIT_HISTORY.items),
+	})
 
 	const level = source.state.level
-	// Until the items load, keep the ids from the link so a level change does not drop them.
-	const itemIds = itemsById
-		? knownItemIds(source.state.itemIds, itemsById)
-		: source.state.itemIds
-	const items = itemsById ? itemIds.map((id) => itemsById[id]) : []
+	const { ids: itemIds, items } = buildItems
 	const { value: runes, shards } = runePage
 	const form = champion && selectedForm(champion.forms, source.state.form)
 	// Until the champion loads, keep the link's form; then only a form other than the default.
@@ -96,7 +89,6 @@ export function useBuild({
 	const statsWithoutRunes = whatIf({ shards: [] })
 	const runesPreview =
 		shards.length && stats ? { label: "stat shards", stats } : undefined
-	const isFull = itemIds.length >= MAX_ITEMS
 
 	/** The checked values every edit saves next to its own change (the link's while data loads). */
 	const values: BuildValues = { level, itemIds, runes, form: formId, skills }
@@ -112,10 +104,6 @@ export function useBuild({
 		save({ level: nextLevel, skills: nextSkills }, EDIT_HISTORY.level)
 	}
 
-	function setItemIds(nextItemIds: readonly string[]) {
-		save({ itemIds: nextItemIds }, EDIT_HISTORY.items)
-	}
-
 	function setSkills(nextSkills: string | undefined) {
 		save({ skills: nextSkills }, EDIT_HISTORY.skills)
 	}
@@ -129,35 +117,8 @@ export function useBuild({
 		track("champion_form_changed", { champion: championKey, form: nextFormId })
 	}
 
-	/** Returns whether the item went in: a full build keeps it out and shows `notice`. */
-	function addItem(itemId: string) {
-		if (!itemsById) return false
-		const nextItemIds = addItemId(itemIds, itemId)
-		if (!nextItemIds) {
-			setNotice(`All ${MAX_ITEMS} item slots are full. Remove an item first.`)
-			return false
-		}
-		setNotice(undefined)
-		setAnnouncement(
-			`Added ${itemsById[itemId]?.name}, ${nextItemIds.length} of ${MAX_ITEMS} item slots filled`,
-		)
-		setItemIds(nextItemIds)
-		track("item_added", { itemId })
-		return true
-	}
-
 	function setRunes(nextRunes: string | undefined) {
 		save({ runes: nextRunes }, EDIT_HISTORY.runes)
-	}
-
-	function removeItem(slot: number) {
-		const itemId = itemIds[slot]
-		setNotice(undefined)
-		setAnnouncement(undefined)
-		setItemIds(removeItemAt(itemIds, slot))
-		if (itemId) {
-			track("item_removed", { itemId })
-		}
 	}
 
 	return {
@@ -170,13 +131,13 @@ export function useBuild({
 		/** Saves the `skills` value; the skills domain reads and checks it. */
 		setSkills,
 		items,
-		addItem,
-		removeItem,
+		addItem: buildItems.add,
+		removeItem: buildItems.remove,
 		/** Why the last item could not be added (full build), until the next change. */
-		notice,
+		notice: buildItems.notice,
 		/** The last item added, for screen readers, until an item is removed. */
-		announcement,
-		isFull,
+		announcement: buildItems.announcement,
+		isFull: buildItems.isFull,
 		/** Saves the `runes` value; the rune page domain reads and checks it. */
 		setRunes,
 		/** Totals with items and stat shards. */
