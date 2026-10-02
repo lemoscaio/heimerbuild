@@ -1,4 +1,4 @@
-import type { RunesFile, RuneTree, Shard } from "@schemas/rune"
+import type { Rune, RunesFile, RuneTree, Shard } from "@schemas/rune"
 
 /** A rune page, possibly incomplete. Ids are Data Dragon / CommunityDragon perk ids. */
 export type RuneSelection = {
@@ -144,4 +144,18 @@ export function selectedShards(
 		const shard = runes.shards.find((entry) => entry.id === id)
 		return shard ? [shard] : []
 	})
+}
+
+/** What tells rune pages apart at a glance: the keystone and the secondary tree, when chosen. */
+export function runePageHighlights(
+	selection: RuneSelection,
+	runes: RunesFile,
+): { keystone: Rune | undefined; secondaryTree: RuneTree | undefined } {
+	const primaryTree = findTree(runes, selection.primary?.treeId)
+	return {
+		keystone: primaryTree?.keystones.find(
+			(rune) => rune.id === selection.primary?.keystoneId,
+		),
+		secondaryTree: findTree(runes, selection.secondary?.treeId),
+	}
 }

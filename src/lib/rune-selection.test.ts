@@ -7,6 +7,7 @@ import {
 	EMPTY_RUNE_SELECTION,
 	parseRuneSelection,
 	type RuneSelection,
+	runePageHighlights,
 	selectedShards,
 	serializeRuneSelection,
 } from "./rune-selection"
@@ -97,5 +98,22 @@ describe("selectedShards", () => {
 		expect(
 			selectedShards(COMET_PAGE, runes).map((shard) => shard.name),
 		).toEqual(["Adaptive Force", "Adaptive Force", "Health"])
+	})
+})
+
+describe("runePageHighlights", () => {
+	test("names the keystone and the secondary tree of a page", () => {
+		const { keystone, secondaryTree } = runePageHighlights(COMET_PAGE, runes)
+		expect(keystone?.name).toBe("Arcane Comet")
+		expect(secondaryTree?.name).toBe("Inspiration")
+	})
+
+	test("has neither before they are chosen", () => {
+		expect(
+			runePageHighlights(
+				{ primary: { treeId: 8200, runeIds: [] }, shardIds: [] },
+				runes,
+			),
+		).toEqual({ keystone: undefined, secondaryTree: undefined })
 	})
 })
