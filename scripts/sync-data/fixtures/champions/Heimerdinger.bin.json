@@ -19,6 +19,352 @@
 		},
 		"purchaseIdentities": ["Ranged"],
 		"__type": "CharacterRecord",
-		"mAdaptiveForceToAbilityPowerWeight": 1.0
+		"mAdaptiveForceToAbilityPowerWeight": 1.0,
+		"spellNames": [
+			"HeimerdingerQAbility/HeimerdingerQ",
+			"HeimerdingerWAbility/HeimerdingerW",
+			"HeimerdingerEAbility/HeimerdingerE",
+			"HeimerdingerRAbility/HeimerdingerR"
+		]
+	},
+	"Characters/Heimerdinger/Spells/HeimerdingerQAbility/HeimerdingerQ": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "MaxTurrets",
+					"values": [0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MaxKits",
+					"values": [0.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "KitCost",
+					"values": [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DistanceToHeimer",
+					"values": [0.0, 900.0, 900.0, 900.0, 900.0, 900.0, 900.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseDamage",
+					"values": [3.0, 7.0, 11.0, 15.0, 19.0, 23.0, 27.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseDamageBeam",
+					"values": [20.0, 40.0, 60.0, 80.0, 100.0, 120.0, 140.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TurretAPRatio",
+					"values": [
+						0.3499999940395355, 0.3499999940395355, 0.3499999940395355,
+						0.3499999940395355, 0.3499999940395355, 0.3499999940395355,
+						0.3499999940395355
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BeamAPRatio",
+					"values": [
+						0.550000011920929, 0.550000011920929, 0.550000011920929,
+						0.550000011920929, 0.550000011920929, 0.550000011920929,
+						0.550000011920929
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TurretHealthMod",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mEffectAmount": [
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [900.0, 900.0, 900.0, 900.0, 900.0, 900.0, 900.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				}
+			],
+			"castRange": [350.0, 350.0, 350.0, 350.0, 350.0, 350.0, 350.0],
+			"mAmmoRechargeTime": [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0],
+			"mMaxAmmo": [3, 3, 3, 3, 3, 3, 3],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Heimerdinger/Spells/HeimerdingerWAbility/HeimerdingerW": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "Rockets",
+					"values": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseDamage",
+					"values": [25.0, 50.0, 75.0, 100.0, 125.0, 150.0, 175.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ExtraHitBaseDamage",
+					"values": [5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TotalBaseDamage",
+					"values": [45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "InitialDamageAPRatio",
+					"values": [
+						0.550000011920929, 0.550000011920929, 0.550000011920929,
+						0.550000011920929, 0.550000011920929, 0.550000011920929,
+						0.550000011920929
+					],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mEffectAmount": [
+				{
+					"value": [30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [6.0, 12.0, 18.0, 24.0, 30.0, 36.0, 42.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [54.0, 108.0, 162.0, 216.0, 270.0, 324.0, 378.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				}
+			],
+			"castRange": [
+				25000.0, 25000.0, 25000.0, 25000.0, 25000.0, 25000.0, 25000.0
+			],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Heimerdinger/Spells/HeimerdingerEAbility/HeimerdingerE": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BaseDamage",
+					"values": [20.0, 60.0, 100.0, 140.0, 180.0, 220.0, 260.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SlowDuration",
+					"values": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SlowPercent",
+					"values": [
+						0.3499999940395355, 0.3499999940395355, 0.3499999940395355,
+						0.3499999940395355, 0.3499999940395355, 0.3499999940395355,
+						0.3499999940395355
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "StunDuration",
+					"values": [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [925.0, 925.0, 925.0, 925.0, 925.0, 925.0, 925.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Heimerdinger/Spells/HeimerdingerRAbility/HeimerdingerR": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "QUltBaseDamage",
+					"values": [60.0, 80.0, 100.0, 120.0, 140.0, 160.0, 180.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "QUltBaseDamageBeam",
+					"values": [60.0, 100.0, 140.0, 180.0, 220.0, 260.0, 300.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "WUltBaseDamage",
+					"values": [90.0, 135.0, 180.0, 225.0, 270.0, 315.0, 360.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "WUltExtraHitBaseDamage",
+					"values": [19.0, 32.0, 45.0, 58.0, 71.0, 84.0, 97.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "WUltTotalBaseDamage",
+					"values": [0.0, 503.0, 697.5, 892.0, 1086.5, 1281.0, 1475.5],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "EUltBaseDamage",
+					"values": [0.0, 100.0, 200.0, 300.0, 400.0, 500.0, 600.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "WUltSecondaryAPRatio",
+					"values": [
+						0.0, 0.11999999731779099, 0.11999999731779099, 0.11999999731779099,
+						0.0, 0.0, 0.0
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "WUltPrimaryAPRatio",
+					"values": [
+						0.0, 0.44999998807907104, 0.44999998807907104, 0.44999998807907104,
+						0.0, 0.0, 0.0
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "WUltPrimaryBaseDamage",
+					"values": [0.0, 135.0, 180.0, 225.0, 0.0, 0.0, 0.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "WUltSecondaryBaseDamage",
+					"values": [0.0, 28.0, 39.0, 49.0, 0.0, 0.0, 0.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mEffectAmount": [
+				{
+					"value": [0.0, 100.0, 140.0, 180.0, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [0.0, 80.0, 80.0, 80.0, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [0.0, 1.5, 1.5, 1.5, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [
+						0.0, 0.11999999731779099, 0.11999999731779099, 0.11999999731779099,
+						0.0, 0.0, 0.0
+					],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [0.0, 500.0, 690.0, 865.0, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [
+						0.0, 0.44999998807907104, 0.44999998807907104, 0.44999998807907104,
+						0.0, 0.0, 0.0
+					],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [0.0, 80.0, 100.0, 120.0, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [0.0, 135.0, 180.0, 225.0, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [0.0, 28.0, 39.0, 49.0, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [0.0, 150.0, 250.0, 350.0, 0.0, 0.0, 0.0],
+					"__type": "SpellEffectAmount"
+				}
+			],
+			"castRange": [280.0, 280.0, 280.0, 280.0, 280.0, 280.0, 280.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"{6dbabf8e}": {
+		"RecSpellRankUpInfos": [
+			{
+				"MapId": 11,
+				"Position": "middle",
+				"mEarlyLevelOverrides": [0, 2, 1, 0],
+				"__type": "RecSpellRankUpInfo"
+			},
+			{
+				"MapId": 11,
+				"Position": "Top",
+				"IsDefaultRecommendation": true,
+				"mEarlyLevelOverrides": [0, 2, 1, 0],
+				"__type": "RecSpellRankUpInfo"
+			}
+		],
+		"__type": "RecSpellRankUpInfoList"
 	}
 }

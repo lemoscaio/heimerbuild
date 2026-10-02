@@ -33,7 +33,102 @@
 			},
 			"image": {
 				"full": "Kennen.png"
-			}
+			},
+			"passive": {
+				"name": "Mark of the Storm",
+				"description": "Kennen stuns enemies he hits 3 times with his abilities.",
+				"image": {
+					"full": "Kennen_Passive.png"
+				}
+			},
+			"spells": [
+				{
+					"id": "KennenShurikenHurlMissile1",
+					"name": "Thundering Shuriken",
+					"description": "Kennen throws a fast moving shuriken towards a location, causing damage and adding a Mark of the Storm to any opponent that it hits.",
+					"maxrank": 5,
+					"cooldown": [7, 6.25, 5.5, 4.75, 4],
+					"cost": [60, 55, 50, 45, 40],
+					"resource": "{{ cost }} {{ abilityresourcename }}",
+					"leveltip": {
+						"label": ["Cooldown", "@AbilityResourceName@ Cost", "Damage"],
+						"effect": [
+							"{{ cooldown }} -> {{ cooldownNL }}",
+							"{{ cost }} -> {{ costNL }}",
+							"{{ basedamage }} -> {{ basedamageNL }}"
+						]
+					},
+					"image": {
+						"full": "KennenShurikenHurlMissile1.png"
+					}
+				},
+				{
+					"id": "KennenBringTheLight",
+					"name": "Electrical Surge",
+					"description": "Kennen passively deals extra damage and adds a Mark of the Storm to his target every few attacks, and he can activate this ability to damage and add another Mark of the Storm to targets who are already marked.",
+					"maxrank": 5,
+					"cooldown": [13, 11.25, 9.5, 7.75, 6],
+					"cost": [40, 40, 40, 40, 40],
+					"resource": "{{ cost }} {{ abilityresourcename }}",
+					"leveltip": {
+						"label": [
+							"Cooldown",
+							"Bonus AD Ratio",
+							"Damage (passive)",
+							"Damage (active)"
+						],
+						"effect": [
+							"{{ cooldown }} -> {{ cooldownNL }}",
+							"{{ badratio*100.000000 }}% -> {{ badrationl*100.000000 }}%",
+							"{{ baseonhitdamage }} -> {{ baseonhitdamageNL }}",
+							"{{ e1 }} -> {{ e1NL }}"
+						]
+					},
+					"image": {
+						"full": "KennenBringTheLight.png"
+					}
+				},
+				{
+					"id": "KennenLightningRush",
+					"name": "Lightning Rush",
+					"description": "Kennen morphs into a lightning form, enabling him to pass through units and apply a Mark of the Storm. Kennen gains Move Speed when entering this form, and attack speed when leaving it.",
+					"maxrank": 5,
+					"cooldown": [10, 9, 8, 7, 6],
+					"cost": [80, 80, 80, 80, 80],
+					"resource": "{{ cost }} {{ abilityresourcename }}",
+					"leveltip": {
+						"label": ["Cooldown", "Damage", "Attack Speed"],
+						"effect": [
+							"{{ cooldown }} -> {{ cooldownNL }}",
+							"{{ basedamage }} -> {{ basedamageNL }}",
+							"{{ totalas*100.000000 }}% -> {{ totalasnl*100.000000 }}%"
+						]
+					},
+					"image": {
+						"full": "KennenLightningRush.png"
+					}
+				},
+				{
+					"id": "KennenShurikenStorm",
+					"name": "Slicing Maelstrom",
+					"description": "Kennen summons a storm that strikes at nearby enemy champions for magical damage.",
+					"maxrank": 3,
+					"cooldown": [120, 120, 120],
+					"cost": [0, 0, 0],
+					"resource": "No Cost",
+					"leveltip": {
+						"label": ["Damage", "Armor Bonus", "Magic Resist Bonus"],
+						"effect": [
+							"{{ basedamage }} -> {{ basedamageNL }}",
+							"{{ kennenrdefenses }} -> {{ kennenrdefensesNL }}",
+							"{{ kennenrdefenses }} -> {{ kennenrdefensesNL }}"
+						]
+					},
+					"image": {
+						"full": "KennenShurikenStorm.png"
+					}
+				}
+			]
 		}
 	}
 }

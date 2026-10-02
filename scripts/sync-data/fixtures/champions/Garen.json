@@ -33,7 +33,99 @@
 			},
 			"image": {
 				"full": "Garen.png"
-			}
+			},
+			"passive": {
+				"name": "Perseverance",
+				"description": "If Garen has not recently been struck by damage or enemy abilities, he regenerates a percentage of his total health each second.",
+				"image": {
+					"full": "Garen_Passive.png"
+				}
+			},
+			"spells": [
+				{
+					"id": "GarenQ",
+					"name": "Decisive Strike",
+					"description": "Garen gains a burst of Move Speed, breaking free of all slows affecting him. His next attack strikes a vital area of his foe, dealing bonus damage and silencing them.",
+					"maxrank": 5,
+					"cooldown": [8, 8, 8, 8, 8],
+					"cost": [0, 0, 0, 0, 0],
+					"resource": "No Cost",
+					"leveltip": {
+						"label": ["Damage", "Move Speed Duration"],
+						"effect": [
+							"{{ basedamage }} -> {{ basedamageNL }}",
+							"{{ movementspeedduration }} -> {{ movementspeeddurationNL }}"
+						]
+					},
+					"image": {
+						"full": "GarenQ.png"
+					}
+				},
+				{
+					"id": "GarenW",
+					"name": "Courage",
+					"description": "Garen passively increases his Armor and Magic Resist by killing enemies. He may also activate this ability to give him a shield and tenacity for a brief moment followed by a lesser amount of damage reduction for a longer duration.",
+					"maxrank": 5,
+					"cooldown": [22, 19.5, 17, 14.5, 12],
+					"cost": [0, 0, 0, 0, 0],
+					"resource": "No Cost",
+					"leveltip": {
+						"label": ["Shield Amount", "Damage Reduction", "Cooldown"],
+						"effect": [
+							"{{ baseshield }} -> {{ baseshieldNL }}",
+							"{{ drpercent*100.000000 }}% -> {{ drpercentnl*100.000000 }}%",
+							"{{ cooldown }} -> {{ cooldownNL }}"
+						]
+					},
+					"image": {
+						"full": "GarenW.png"
+					}
+				},
+				{
+					"id": "GarenE",
+					"name": "Judgment",
+					"description": "Garen rapidly spins his sword around his body, dealing physical damage to nearby enemies.",
+					"maxrank": 5,
+					"cooldown": [9, 8.25, 7.5, 6.75, 6],
+					"cost": [0, 0, 0, 0, 0],
+					"resource": "No Cost",
+					"leveltip": {
+						"label": [
+							"Base Damage Per Spin",
+							"Attack Damage Scaling Per Spin",
+							"Cooldown"
+						],
+						"effect": [
+							"{{ basedamagepertick }} -> {{ basedamagepertickNL }}",
+							"{{ adratiopertick*100.000000 }}% -> {{ adratioperticknl*100.000000 }}%",
+							"{{ cooldown }} -> {{ cooldownNL }}"
+						]
+					},
+					"image": {
+						"full": "GarenE.png"
+					}
+				},
+				{
+					"id": "GarenR",
+					"name": "Demacian Justice",
+					"description": "Garen calls upon the might of Demacia to attempt to execute an enemy champion.",
+					"maxrank": 3,
+					"cooldown": [120, 100, 80],
+					"cost": [0, 0, 0],
+					"resource": "No Cost",
+					"leveltip": {
+						"label": ["Cooldown", "Damage", "Percent Missing Health Damage"],
+						"effect": [
+							"{{ cooldown }} -> {{ cooldownNL }}",
+							"{{ basedamage }} -> {{ basedamageNL }}",
+							"{{ executedamage*100.000000 }}% -> {{ executedamagenl*100.000000 }}%"
+						]
+					},
+					"image": {
+						"full": "GarenR.png"
+					}
+				}
+			]
 		}
 	}
 }

@@ -19,6 +19,274 @@
 		},
 		"purchaseIdentities": ["Ranged"],
 		"__type": "CharacterRecord",
-		"mAdaptiveForceToAbilityPowerWeight": 1.0
+		"mAdaptiveForceToAbilityPowerWeight": 1.0,
+		"spellNames": [
+			"KennenShurikenHurlMissile1Ability/KennenShurikenHurlMissile1",
+			"KennenBringTheLightAbility/KennenBringTheLight",
+			"KennenLightningRushAbility/KennenLightningRush",
+			"KennenShurikenStormAbility/KennenShurikenStorm"
+		]
+	},
+	"Characters/Kennen/Spells/KennenShurikenHurlMissile1Ability/KennenShurikenHurlMissile1": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BaseDamage",
+					"values": [25.0, 75.0, 125.0, 175.0, 225.0, 275.0, 325.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [1050.0, 1050.0, 1050.0, 1050.0, 1050.0, 1050.0, 1050.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Kennen/Spells/KennenBringTheLightAbility/KennenBringTheLight": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "bADRatio",
+					"values": [
+						0.699999988079071, 0.800000011920929, 0.8999999761581421, 1.0,
+						1.100000023841858, 1.2000000476837158, 1.2999999523162842
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseOnHitDamage",
+					"values": [25.0, 35.0, 45.0, 55.0, 65.0, 75.0, 85.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseDamageActive",
+					"values": [45.0, 70.0, 95.0, 120.0, 145.0, 170.0, 195.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "APRatioActive",
+					"values": [
+						0.800000011920929, 0.800000011920929, 0.800000011920929,
+						0.800000011920929, 0.800000011920929, 0.800000011920929,
+						0.800000011920929
+					],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mEffectAmount": [
+				{
+					"value": [70.0, 70.0, 95.0, 120.0, 145.0, 170.0, 170.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [25.0, 25.0, 25.0, 25.0, 25.0, 25.0, 25.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [
+						0.699999988079071, 0.699999988079071, 0.699999988079071,
+						0.699999988079071, 0.699999988079071, 0.699999988079071,
+						0.699999988079071
+					],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				}
+			],
+			"castRange": [725.0, 725.0, 725.0, 725.0, 725.0, 725.0, 725.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Kennen/Spells/KennenLightningRushAbility/KennenLightningRush": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BaseDamage",
+					"values": [40.0, 80.0, 120.0, 160.0, 200.0, 240.0, 280.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "EnergyRefund",
+					"values": [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "defenses",
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MovementSpeed",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DurationAsBall",
+					"values": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "TotalAS",
+					"values": [
+						0.30000001192092896, 0.4000000059604645, 0.5, 0.6000000238418579,
+						0.699999988079071, 0.800000011920929, 0.8999999761581421
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DurationAfterBall",
+					"values": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DamageToMinions",
+					"values": [
+						0.6499999761581421, 0.6499999761581421, 0.6499999761581421,
+						0.6499999761581421, 0.6499999761581421, 0.6499999761581421,
+						0.6499999761581421
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DamageRadius",
+					"values": [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "linger",
+					"values": [
+						0.15000000596046448, 0.15000000596046448, 0.15000000596046448,
+						0.15000000596046448, 0.15000000596046448, 0.15000000596046448,
+						0.15000000596046448
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "CritDurationBonus",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"mEffectAmount": [
+				{
+					"value": [85.0, 85.0, 125.0, 165.0, 205.0, 245.0, 285.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [10.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"value": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				},
+				{
+					"__type": "SpellEffectAmount"
+				}
+			],
+			"castRange": [200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Kennen/Spells/KennenShurikenStormAbility/KennenShurikenStorm": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BaseDamage",
+					"values": [0.0, 40.0, 80.0, 120.0, 160.0, 200.0, 240.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "APRatio",
+					"values": [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DamageAmp",
+					"values": [
+						0.10000000149011612, 0.10000000149011612, 0.10000000149011612,
+						0.10000000149011612, 0.10000000149011612, 0.10000000149011612,
+						0.10000000149011612
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "KennenRTickRate",
+					"values": [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "KennenRDefenses",
+					"values": [0.0, 25.0, 50.0, 75.0, 100.0, 125.0, 150.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "KennenRDuration",
+					"values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [550.0, 550.0, 550.0, 550.0, 550.0, 550.0, 550.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"{b7be9ebc}": {
+		"RecSpellRankUpInfos": [
+			{
+				"MapId": 11,
+				"Position": "middle",
+				"mEarlyLevelOverrides": [0, 1, 2, 0],
+				"__type": "RecSpellRankUpInfo"
+			},
+			{
+				"MapId": 11,
+				"Position": "Top",
+				"IsDefaultRecommendation": true,
+				"mEarlyLevelOverrides": [0, 1, 2, 0],
+				"__type": "RecSpellRankUpInfo"
+			}
+		],
+		"__type": "RecSpellRankUpInfoList"
 	}
 }

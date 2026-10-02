@@ -27,7 +27,10 @@ function heimerdinger() {
 }
 
 function withRecord(changes: Record<string, unknown>) {
-	return { [ROOT]: { ...heimerdingerBin[ROOT], ...changes } }
+	return {
+		...heimerdingerBin,
+		[ROOT]: { ...heimerdingerBin[ROOT], ...changes },
+	}
 }
 
 describe("buildChampionIndex", () => {
@@ -171,14 +174,12 @@ describe("normalizeChampion", () => {
 	})
 
 	test("falls back to Data Dragon when the game file omits a stat", () => {
-		const record = {
-			...heimerdingerBin[ROOT],
-			attackSpeedRatioModifiable: undefined,
-			damagePerLevelModifiable: undefined,
-		}
 		const { stats } = normalizeChampion(
 			heimerdingerDetail,
-			{ [ROOT]: record },
+			withRecord({
+				attackSpeedRatioModifiable: undefined,
+				damagePerLevelModifiable: undefined,
+			}),
 			VERSION,
 		)
 		expect(stats.attackSpeed.ratio).toBe(0.658)
@@ -207,6 +208,17 @@ describe("normalizeChampion", () => {
 			data: { Heimerdinger: { ...detail.data.Heimerdinger, stats } },
 		}
 		expect(() => normalizeChampion(broken, heimerdingerBin, VERSION)).toThrow()
+	})
+
+	test("adds the abilities from both sources", () => {
+		const { abilities } = heimerdinger()
+		expect(abilities.passive.name).toBe("Hextech Affinity")
+		expect(abilities.spells.map(({ slot }) => slot)).toEqual([
+			"Q",
+			"W",
+			"E",
+			"R",
+		])
 	})
 
 	test("rejects a character bin without a root record", () => {

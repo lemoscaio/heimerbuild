@@ -18,6 +18,256 @@
 			"__type": "ModifiableFloat"
 		},
 		"purchaseIdentities": ["Melee"],
-		"__type": "CharacterRecord"
+		"__type": "CharacterRecord",
+		"spellNames": [
+			"GarenQAbility/GarenQ",
+			"GarenWAbility/GarenW",
+			"GarenEAbility/GarenE",
+			"GarenRAbility/GarenR"
+		]
+	},
+	"Characters/Garen/Spells/GarenQAbility/GarenQ": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BaseDamage",
+					"values": [0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 180.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "SilenceDuration",
+					"values": [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MovementSpeedDuration",
+					"values": [
+						0.8500000238418579, 1.399999976158142, 1.9500000476837158, 2.5,
+						3.049999952316284, 3.5999999046325684, 4.150000095367432
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "MovementSpeedAmount",
+					"values": [
+						0.3499999940395355, 0.3499999940395355, 0.3499999940395355,
+						0.3499999940395355, 0.3499999940395355, 0.3499999940395355,
+						0.3499999940395355
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "AttackWindow",
+					"values": [4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "tADRatio",
+					"values": [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [300.0, 300.0, 300.0, 300.0, 300.0, 300.0, 300.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Garen/Spells/GarenWAbility/GarenW": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BuffCounterPerKill",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ResistGainOnKill",
+					"values": [
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ResistGainOnKillTooltip",
+					"values": [
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224, 0.20000000298023224, 0.20000000298023224,
+						0.20000000298023224
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ResistMax",
+					"values": [30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DRPercent",
+					"values": [
+						0.20999999344348907, 0.25, 0.28999999165534973, 0.33000001311302185,
+						0.3700000047683716, 0.4099999964237213, 0.44999998807907104
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "DRDuration",
+					"values": [4.0, 4.0, 4.0, 4.0, 4.0, 4.0, 4.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "UpfrontTenacity",
+					"values": [
+						0.6000000238418579, 0.6000000238418579, 0.6000000238418579,
+						0.6000000238418579, 0.6000000238418579, 0.6000000238418579,
+						0.6000000238418579
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "UpfrontDuration",
+					"values": [0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 0.75],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "LargeMonsterStacks",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "EpicMonsterStacks",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ShieldHealthRatio",
+					"values": [
+						0.18000000715255737, 0.18000000715255737, 0.18000000715255737,
+						0.18000000715255737, 0.18000000715255737, 0.18000000715255737,
+						0.18000000715255737
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseShield",
+					"values": [45.0, 65.0, 85.0, 105.0, 125.0, 145.0, 165.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "NormalResistKillValue",
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Garen/Spells/GarenEAbility/GarenE": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "NumTicks",
+					"values": [7.0, 7.0, 7.0, 7.0, 7.0, 7.0, 7.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ASPerTick",
+					"values": [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "BaseDamagePerTick",
+					"values": [1.0, 4.0, 7.0, 10.0, 13.0, 16.0, 19.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ADRatioPerTick",
+					"values": [
+						0.3700000047683716, 0.4000000059604645, 0.4300000071525574,
+						0.46000000834465027, 0.49000000953674316, 0.5199999809265137,
+						0.550000011920929
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ShredDuration",
+					"values": [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "StacksToShred",
+					"values": [6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "Duration",
+					"values": [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ShredAmount",
+					"values": [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "NearestEnemyBonus",
+					"values": [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "CritMod",
+					"values": [
+						0.30000001192092896, 0.30000001192092896, 0.30000001192092896,
+						0.30000001192092896, 0.30000001192092896, 0.30000001192092896,
+						0.30000001192092896
+					],
+					"__type": "SpellDataValue"
+				}
+			],
+			"castRange": [660.0, 660.0, 660.0, 660.0, 660.0, 660.0, 660.0],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"Characters/Garen/Spells/GarenRAbility/GarenR": {
+		"mSpell": {
+			"DataValues": [
+				{
+					"name": "BaseDamage",
+					"values": [50.0, 125.0, 200.0, 275.0, 350.0, 425.0, 500.0],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "ExecuteDamage",
+					"values": [
+						0.20000000298023224, 0.25, 0.30000001192092896, 0.3499999940395355,
+						0.4000000059604645, 0.44999998807907104, 0.5
+					],
+					"__type": "SpellDataValue"
+				},
+				{
+					"name": "RevealDuration",
+					"values": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+					"__type": "SpellDataValue"
+				}
+			],
+			"__type": "SpellDataResource"
+		},
+		"__type": "SpellObject"
+	},
+	"{6c03c94a}": {
+		"RecSpellRankUpInfos": [
+			{
+				"MapId": 11,
+				"Position": "Top",
+				"IsDefaultRecommendation": true,
+				"mDefaultPriority": [3, 2, 0, 1],
+				"mEarlyLevelOverrides": [2, 0, 1, 2],
+				"__type": "RecSpellRankUpInfo"
+			}
+		],
+		"__type": "RecSpellRankUpInfoList"
 	}
 }
