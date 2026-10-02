@@ -12,7 +12,7 @@ Rules marked **(after #N)** apply once that issue lands; until then, follow the 
 
 ## File names
 
-- Files and folders are **kebab-case**: `champion-choose/`, `filter-champions.ts`, `champion-card.tsx`, `use-build.ts`.
+- Files and folders are **kebab-case**: `champion-choose/`, `filter-champions.ts`, `champion-card.tsx`, `use-build-items.ts`.
 - Component and type names inside the file stay PascalCase: `export function ChampionCard()`.
 - Tests sit next to the file: `filter-champions.test.ts`.
 - Enforced by Biome `style/useFilenamingConvention` (kebab-case). Biome checks file names only; folder names are kebab-case by review.
@@ -52,7 +52,7 @@ export function ChampionCard({ champion }: ChampionCardProps) { ... }
 
 - A `.tsx` component **assembles and presents** the components it is made of. It does not carry feature logic.
 - A **real feature** (rules of its own: parsing, suggestion building, stat math) lives in its own hook (`use-*.ts`) or pure `lib/` file, where it can be read and tested alone.
-- **Data hooks never know presentation.** A hook that carries a domain concept (`useBuild`: build state and data) returns state and actions only: no component-shaped prop bundles, no UI state. When a screen needs UI state (view, selection, layout), a new hook composes the data hook with it (`useBuildPage` = `useBuild` + view and selection). One concept per hook, assembled like lego.
+- **Data hooks never know presentation.** A hook that carries a domain concept (`useBuildItems`: the chosen items) returns state and actions only: no component-shaped prop bundles, no UI state. When a screen needs UI state (view, selection, layout), a new hook composes the data hook with it (`useBuildPage` = `useChampionBuild` + view and selection). One concept per hook, assembled like lego.
 - **Don't extract the trivial.** A one-line derivation, a single `useState` or a helper with one caller that reads fine inline stays inline.
 - **More files is not more complexity.** Split when each piece reads on its own; judge readability, not line or file counts.
 
@@ -151,6 +151,15 @@ export function useChampion(patch: string | undefined, key: string | undefined) 
 
 - No wrapper hooks around `useQuery` that reshape its result (custom `isLoading`/`refetch` facades). Return the query result as is.
 
+## Build composition
+
+The champion build is composed from one hook per domain ([Build composition](../../docs/frontend-architecture.md#build-composition)).
+
+- A **domain hook** (`useChampionState`, `useSkills`, `useBuildItems`, `useRunePage`) is controlled: `value` + `onChange`, with its data injected. It never reads the URL, records history or recent builds, or imports another domain; a dependency between domains is passed in by the composer.
+- Only the **build source** writes the URL and records recent builds (`useUrlBuildSource`); only the **composer** (`useChampionBuild`) decides the browser history of an edit and links domains (level → skills).
+- Stats come only from `computeBuildStats`; a preview is `whatIf(change)`, never a new stats helper.
+- The build is grouped by domain (`build.items.add`). Screens take the page object; feature components take slices as props, never the whole build.
+
 ## Async data: React Query only
 
 - All async data goes through TanStack Query: `useQuery` for reads, `useMutation` for writes.
@@ -209,7 +218,7 @@ export function BuildProvider({ children }: React.PropsWithChildren) {
 - A route whose page is heavy (the champion page) splits in two: `<name>-route.tsx` keeps `createRoute` with search, loader, `head` and the pending/error/not-found components, and `<name>-route.lazy.tsx` only binds the page (`createLazyRoute(<full route id>)({ component })`), attached with `.lazy()`. Links preload on intent (`defaultPreload: "intent"`).
 - A page reads its route's params, search and loader data through `getRouteApi("<full route id>")`, never by importing the route file.
 - A page with several screens keeps one file per screen in its page folder (`src/pages/champion-build/overview-page.tsx`, `expanded-shop-page.tsx`, `mobile-build-page.tsx`); the page component picks one. Screens compose features, so they live in `pages/`, never in a feature or a route.
-- Page-level hooks that compose a feature's data hook with page state (view, selection) live in the page's `hooks/` (`useBuildPage` in `src/pages/champion-build/hooks/`).
+- Page-level hooks that compose features' hooks, and add page state (view, selection), live in the page's `hooks/` (`useChampionBuild` and `useBuildPage` in `src/pages/champion-build/hooks/`).
 - Loaders load data through the `queryOptions()` factories (`queryClient.ensureQueryData(gameDataQueries...)`); components then read the same queries from the cache.
 - Every data route sets `pendingComponent` and `errorComponent`, and `notFoundComponent` when a param can point at nothing.
 - Search params (shareable builds, filters) are validated with a Zod schema in `validateSearch`. Invalid values are dropped with `z.catch()`, so a bad link never shows an error page.
