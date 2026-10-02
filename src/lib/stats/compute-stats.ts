@@ -4,6 +4,7 @@ import { attackSpeedAtLevel } from "./attack-speed"
 import { type FormOptions, formStats } from "./champion-forms"
 import { assertChampionLevel, statAtLevel } from "./growth"
 import { levelStateAt } from "./level-states"
+import { type AbilityRanks, rankStatsInput } from "./rank-stats"
 
 /** Item stats that modify a champion stat instead of being reported on their own. */
 type FoldedItemStat =
@@ -23,7 +24,7 @@ export type ComputedStats = Record<StatName, StatBreakdown>
 
 export type ChampionInput = Pick<
 	Champion,
-	"resource" | "stats" | "levelStates" | "forms"
+	"resource" | "stats" | "levelStates" | "forms" | "rankStats"
 >
 export type ItemInput = Pick<Item, "stats">
 
@@ -54,18 +55,24 @@ function breakdown(base: number, total: number): StatBreakdown {
 	return { base, bonus: total - base, total }
 }
 
+export type ComputeStatsOptions = FormOptions & {
+	/** The abilities' ranks, for the stats a rank grants; absent means no ability ranked. */
+	ranks?: AbilityRanks
+}
+
 /**
  * `base` is the champion alone at `level` (1 to 18, growth included);
  * `bonus` is what the items add on top of it. Attack speed is the exception:
  * its level growth is bonus attack speed, as in game. Champions without
  * mana keep their own resource in `mana` and `manaRegen`, with no item bonus.
  * The selected form, then the level states reached at `level`, replace the champion's stats they set.
+ * The stats the ability ranks grant are bonus, like the items'.
  */
 export function computeStats(
 	champion: ChampionInput,
 	level: number,
 	items: readonly ItemInput[],
-	options: FormOptions = {},
+	{ ranks, ...options }: ComputeStatsOptions = {},
 ): ComputedStats {
 	assertChampionLevel(level)
 	const inForm = formStats(champion, options)
@@ -83,7 +90,9 @@ export function computeStats(
 		baseHealthRegenPercent,
 		baseManaRegenPercent,
 		...itemStats
-	} = sumItemStats(items)
+	} = sumItemStats(
+		ranks ? [...items, rankStatsInput(champion.rankStats, ranks)] : items,
+	)
 
 	const computed = {} as ComputedStats
 	for (const [stat, value] of Object.entries(itemStats)) {

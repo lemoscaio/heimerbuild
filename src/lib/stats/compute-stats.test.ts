@@ -361,3 +361,66 @@ describe("computeStats", () => {
 		})
 	})
 })
+
+describe("computeStats with ability ranks", () => {
+	const NO_RANKS = { Q: 0, W: 0, E: 0, R: 0 }
+	// Twisted Fate's E and Olaf's R values, patch 16.19.1, on Heimerdinger's stats.
+	const champion: Pick<Champion, "resource" | "stats" | "rankStats"> = {
+		...heimerdinger,
+		rankStats: [
+			{
+				slot: "E",
+				stat: "attackSpeedPercent",
+				values: [0.15, 0.25, 0.35, 0.45, 0.55],
+			},
+			{ slot: "R", stat: "armor", values: [10, 15, 20] },
+			{ slot: "R", stat: "magicResist", values: [10, 15, 20] },
+		],
+	}
+
+	test("adds the stats each rank grants as bonus", () => {
+		const stats = computeStats(champion, 11, [], {
+			ranks: { ...NO_RANKS, E: 3, R: 2 },
+		})
+		const bare = computeStats(champion, 11, [])
+
+		expect(stats.armor.bonus).toBe(15)
+		expect(stats.magicResist.bonus).toBe(15)
+		expect(stats.attackSpeed.total).toBeCloseTo(
+			bare.attackSpeed.total + 0.625 * 0.35,
+			10,
+		)
+	})
+
+	test("an ability without a point grants nothing", () => {
+		expect(computeStats(champion, 11, [], { ranks: NO_RANKS })).toEqual(
+			computeStats(champion, 11, []),
+		)
+	})
+
+	test("the next rank is the same call with the rank raised by one", () => {
+		const ranks = { ...NO_RANKS, R: 1 }
+		const now = computeStats(champion, 11, [], { ranks })
+		const next = computeStats(champion, 11, [], {
+			ranks: { ...ranks, R: ranks.R + 1 },
+		})
+		expect(next.armor.total - now.armor.total).toBe(5)
+	})
+
+	test("adds a percent movement speed bonus like an item's", () => {
+		const teemoW = {
+			...heimerdinger,
+			rankStats: [
+				{
+					slot: "W" as const,
+					stat: "movementSpeedPercent" as const,
+					values: [0.12, 0.16, 0.2, 0.24, 0.28],
+				},
+			],
+		}
+		const stats = computeStats(teemoW, 1, [], {
+			ranks: { ...NO_RANKS, W: 1 },
+		})
+		expect(stats.movementSpeed.total).toBeCloseTo(340 * 1.12, 10)
+	})
+})
