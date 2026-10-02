@@ -113,18 +113,18 @@ The `Sync game data` workflow (`.github/workflows/sync-data.yml`) runs daily and
 
 #### Data overrides
 
-When Riot's data is wrong (Gunmetal Greaves missing its `Boots` tag, for example), fix it with an override instead of editing `public/data/` by hand. Overrides live in `scripts/sync-data/overrides/`: items in `item-overrides.ts`, champions in `champion-overrides.ts` (detail fields only, so `champions.json` and `champions/<key>.json` never disagree). Each one changes a single field of a single item or champion:
+When Riot's data is wrong (Titanic Hydra tagged `HealthRegen` without any health regen, for example), fix it with an override instead of editing `public/data/` by hand. Overrides live in `scripts/sync-data/overrides/`: items in `item-overrides.ts`, champions in `champion-overrides.ts` (detail fields only, so `champions.json` and `champions/<key>.json` never disagree). Each one changes a single field of a single item or champion:
 
 ```ts
 defineItemOverride({
-	id: "gunmetal-greaves-boots-tag", // unique, kebab-case
-	itemId: "3172",
+	id: "titanic-hydra-no-health-regen-tag", // unique, kebab-case
+	itemId: "3748",
 	field: "tags",
 	since: "16.19", // first patch it applies to (major.minor)
 	until: undefined, // optional last patch; open-ended by default
-	reason: "Riot data has no Boots tag; it is the Berserker's Greaves upgrade",
-	source: "https://github.com/lemoscaio/heimerbuild/issues/159", // optional
-	apply: (tags) => [...tags, "Boots"],
+	reason: "Riot tags it HealthRegen, a leftover from an older version",
+	source: "https://wiki.leagueoflegends.com/en-us/Titanic_Hydra", // optional
+	apply: (tags) => tags.filter((tag) => tag !== "HealthRegen"),
 })
 ```
 
