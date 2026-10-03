@@ -6,17 +6,19 @@ import type { Condition } from "../lib/conditions"
 import { type EffectCard as Card, effectCards } from "../lib/effect-cards"
 import {
 	conditionText,
-	grantText,
 	partLabel,
 	stackedOutText,
+	valuesText,
 } from "../lib/effect-text"
 
-type HealthProps = {
+type ConditionInputs = {
 	/** The current health input (`CurrentHealthInput`), shown on the rows whose effect reads it. */
 	healthInput?: React.ReactNode
+	/** The game time input (`GameTimeInput`), shown on the rows whose effect reads it. */
+	gameTimeInput?: React.ReactNode
 }
 
-type EffectsListProps = HealthProps & {
+type EffectsListProps = ConditionInputs & {
 	/** The build's effects; nothing shows without any. */
 	conditions: readonly Condition[]
 	onToggle: (id: string, on: boolean) => void
@@ -24,12 +26,12 @@ type EffectsListProps = HealthProps & {
 
 /**
  * Under the stats: the build's effects, one card per source. A conditional part has its switch; an
- * always-on one only informs. A part that reads the current health carries its input.
+ * always-on one only informs. A part that reads a condition value (current health, game time) carries its input.
  */
 export function EffectsList({
 	conditions,
 	onToggle,
-	...health
+	...inputs
 }: EffectsListProps) {
 	const headingId = useId()
 	if (!conditions.length) return null
@@ -48,7 +50,7 @@ export function EffectsList({
 						key={card.key}
 						card={card}
 						onToggle={onToggle}
-						{...health}
+						{...inputs}
 					/>
 				))}
 			</ul>
@@ -56,12 +58,12 @@ export function EffectsList({
 	)
 }
 
-type EffectCardProps = HealthProps & {
+type EffectCardProps = ConditionInputs & {
 	card: Card
 	onToggle: (id: string, on: boolean) => void
 }
 
-function EffectCard({ card, onToggle, ...health }: EffectCardProps) {
+function EffectCard({ card, onToggle, ...inputs }: EffectCardProps) {
 	const titleId = useId()
 
 	return (
@@ -77,7 +79,7 @@ function EffectCard({ card, onToggle, ...health }: EffectCardProps) {
 						condition={condition}
 						titleId={titleId}
 						onToggle={(on) => onToggle(condition.effect.id, on)}
-						{...health}
+						{...inputs}
 					/>
 				))}
 			</div>
@@ -103,7 +105,7 @@ const effectValues = cva("font-medium tabular-nums", {
 	},
 })
 
-type EffectRowProps = HealthProps & {
+type EffectRowProps = ConditionInputs & {
 	condition: Condition
 	/** The card's title, which starts the row's name. */
 	titleId: string
@@ -115,12 +117,13 @@ function EffectRow({
 	titleId,
 	onToggle,
 	healthInput,
+	gameTimeInput,
 }: EffectRowProps) {
 	const partId = useId()
 	const whenId = useId()
 	const valuesId = useId()
 	const reasonId = useId()
-	const { isOn, isSwitchable, grants } = condition
+	const { isOn, isSwitchable } = condition
 	const part = partLabel(condition)
 	const reason = stackedOutText(condition)
 	const isApplied = isOn && !reason
@@ -152,7 +155,7 @@ function EffectRow({
 					id={valuesId}
 					className={effectValues({ state: isApplied ? "applied" : "off" })}
 				>
-					{grants.map(grantText).join(" · ")}
+					{valuesText(condition)}
 				</span>
 				{reason && (
 					<span id={reasonId} className="text-warning">
@@ -160,6 +163,7 @@ function EffectRow({
 					</span>
 				)}
 				{condition.readsCurrentHealth && healthInput}
+				{condition.readsGameTime && gameTimeInput}
 			</div>
 			{isSwitchable && (
 				<Switch

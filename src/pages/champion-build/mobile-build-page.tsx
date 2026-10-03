@@ -12,14 +12,13 @@ import {
 import { RunesStatsNote } from "@/features/build-calculator/components/runes-stats-note"
 import { StatChangeList } from "@/features/build-calculator/components/stat-change-list"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
-import { CurrentHealthInput } from "@/features/conditions/components/current-health-input"
-import { EffectsList } from "@/features/conditions/components/effects-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { SkillsTab } from "@/features/skills/components/skills-tab"
 import { SummonerSlots } from "@/features/summoners/components/summoner-slots"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
+import { BuildEffectsList } from "./build-effects-list"
 import { ChampionSkills } from "./champion-skills"
 import type { BuildPage } from "./hooks/use-build-page"
 
@@ -106,16 +105,7 @@ export function MobileBuildPage({
 						preview={build.preview}
 						formComparison={build.formSwitch.comparison}
 					>
-						<EffectsList
-							conditions={build.conditions.list}
-							onToggle={build.conditions.setOn}
-							healthInput={
-								<CurrentHealthInput
-									value={build.conditions.currentHealth}
-									onValueChange={build.conditions.setCurrentHealth}
-								/>
-							}
-						/>
+						<BuildEffectsList conditions={build.conditions} />
 					</StatsPanel>
 				)
 			}
