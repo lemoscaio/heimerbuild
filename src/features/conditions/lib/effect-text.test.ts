@@ -24,6 +24,8 @@ function condition(
 	return {
 		effect: { id: "test", effect, name: "Test", icon: "", spell: fields.spell },
 		isOn: false,
+		isSwitchable: true,
+		readsCurrentHealth: false,
 		grants: [],
 		duration: fields.duration,
 	}
@@ -63,6 +65,25 @@ describe("grantText", () => {
 		expect(grantText({ kind: "shield", value: 269.4118 })).toBe("269 shield")
 		expect(grantText({ kind: "heal", value: 192 })).toBe("192 heal")
 	})
+
+	test("says which stat a stat-dependent bonus reads", () => {
+		expect(
+			grantText({
+				kind: "stat",
+				stat: "armor",
+				value: 24.6,
+				basis: { stat: "armor", ratio: 0.3 },
+			}),
+		).toBe("+24.6 Armor (30% of Armor)")
+		expect(
+			grantText({
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				value: 0.06,
+				basis: { stat: "abilityPower", ratio: 0.0002 },
+			}),
+		).toBe("+6% Move Speed (2% per 100 Ability Power)")
+	})
 })
 
 describe("partLabel and stackedOutText", () => {
@@ -87,6 +108,8 @@ describe("partLabel and stackedOutText", () => {
 		return {
 			effect: bind(effect),
 			isOn: true,
+			isSwitchable: true,
+			readsCurrentHealth: false,
 			grants: [],
 			stackedOutBy: stackedOutBy && bind(stackedOutBy),
 		}

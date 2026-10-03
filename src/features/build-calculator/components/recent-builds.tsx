@@ -77,6 +77,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				skills: build.skills,
 				summoners: build.summoners,
 				effects: build.effects,
+				currentHealth: build.currentHealth,
 			})}
 			className="flex items-center gap-2.5 rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 transition-colors hover:bg-line"
 		>

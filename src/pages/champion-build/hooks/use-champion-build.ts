@@ -19,6 +19,7 @@ import { selectedRunes } from "@/lib/rune-selection"
 import {
 	type BuildStatsInput,
 	computeBuildStats,
+	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
 
 type UseChampionBuildOptions = {
@@ -92,15 +93,21 @@ export function useChampionBuild({
 					runes: selectedRunes(runePage.selection, runes),
 				})
 			: undefined
+	const basisInput = statsInput()
 	const conditions = useConditions({
 		effects,
 		context: {
 			level: championState.level,
 			ranks: skills.ranks,
 			rankStats: champion?.rankStats,
+			totals: basisInput && statBonusBasis(basisInput),
 		},
-		value: state.effects ?? {},
-		onChange: (value) => save({ effects: value }, EDIT_HISTORY.effects),
+		value: { effects: state.effects ?? {}, currentHealth: state.currentHealth },
+		onChange: (value) =>
+			save(
+				{ effects: value.effects, currentHealth: value.currentHealth },
+				EDIT_HISTORY.effects,
+			),
 	})
 
 	/** The checked values every edit saves next to its own change (the link's while data loads). */
@@ -111,7 +118,8 @@ export function useChampionBuild({
 		form: championState.formValue,
 		skills: state.skills,
 		summoners: summoners.value,
-		effects: conditions.value,
+		effects: conditions.value.effects,
+		currentHealth: conditions.value.currentHealth,
 	}
 
 	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
@@ -128,10 +136,15 @@ export function useChampionBuild({
 		)
 	}
 
-	/** The build's totals with `change` applied: every preview is the same call with one input changed. */
-	function whatIf(change: Partial<BuildStatsInput> = {}) {
+	/**
+	 * The build's stats input with `change` applied. It reads the link's conditions, which give the
+	 * same active effects as the checked ones: checking only drops choices that change nothing.
+	 */
+	function statsInput(
+		change: Partial<BuildStatsInput> = {},
+	): BuildStatsInput | undefined {
 		if (!champion) return undefined
-		return computeBuildStats({
+		return {
 			champion,
 			patch,
 			level: championState.level,
@@ -139,9 +152,16 @@ export function useChampionBuild({
 			items: items.list,
 			shards: runePage.shards,
 			ranks: skills.ranks,
-			effects: { available: effects ?? [], overrides: conditions.value },
+			effects: { available: effects ?? [], overrides: state.effects ?? {} },
+			currentHealth: state.currentHealth,
 			...change,
-		})
+		}
+	}
+
+	/** The build's totals with `change` applied: every preview is the same call with one input changed. */
+	function whatIf(change: Partial<BuildStatsInput> = {}) {
+		const input = statsInput(change)
+		return input && computeBuildStats(input)
 	}
 
 	return {

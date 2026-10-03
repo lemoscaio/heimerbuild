@@ -10,6 +10,7 @@ import { WorkbenchLayout } from "@/features/build-calculator/components/workbenc
 import { WorkbenchPanel } from "@/features/build-calculator/components/workbench-panel"
 import { WorkbenchTabs } from "@/features/build-calculator/components/workbench-tabs"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
+import { CurrentHealthInput } from "@/features/conditions/components/current-health-input"
 import { EffectsList } from "@/features/conditions/components/effects-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
@@ -159,6 +160,12 @@ export function OverviewPage({
 									<EffectsList
 										conditions={build.conditions.list}
 										onToggle={build.conditions.setOn}
+										healthInput={
+											<CurrentHealthInput
+												value={build.conditions.currentHealth}
+												onValueChange={build.conditions.setCurrentHealth}
+											/>
+										}
 									/>
 								</StatsPanel>
 							) : (
@@ -171,6 +178,12 @@ export function OverviewPage({
 									<EffectsList
 										conditions={build.conditions.list}
 										onToggle={build.conditions.setOn}
+										healthInput={
+											<CurrentHealthInput
+												value={build.conditions.currentHealth}
+												onValueChange={build.conditions.setCurrentHealth}
+											/>
+										}
 									/>
 								</StatsPanel>
 							))}

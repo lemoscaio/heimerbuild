@@ -128,7 +128,7 @@ export const RANK_STAT_RULES: readonly RankStatRule[] = [
 		stat: "movementSpeedPercent",
 		dataValue: "MSPercent",
 		reason:
-			"Zephyr passively grants bonus movement speed (its +2% per 100 AP is a scaling, not applied)",
+			"Zephyr passively grants bonus movement speed; the app applies it, with its +2% per 100 AP, as the janna-w-passive effect",
 		source: `${WIKI}Janna/Zephyr`,
 	},
 	{
