@@ -2,7 +2,12 @@ import { describe, expect, test } from "bun:test"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import type { Effect, Trigger } from "@/lib/effects/effect"
 import type { Condition } from "./conditions"
-import { conditionText, grantText } from "./effect-text"
+import {
+	conditionText,
+	grantText,
+	partLabel,
+	stackedOutText,
+} from "./effect-text"
 
 function condition(
 	trigger: Trigger,
@@ -56,5 +61,43 @@ describe("grantText", () => {
 		).toBe("+35.3% Move Speed")
 		expect(grantText({ kind: "shield", value: 269.4118 })).toBe("269 shield")
 		expect(grantText({ kind: "heal", value: 192 })).toBe("192 heal")
+	})
+})
+
+describe("partLabel and stackedOutText", () => {
+	const passive: Effect = {
+		id: "teemo-w-passive",
+		source: { kind: "ability", championKey: "Teemo", slot: "W" },
+		trigger: { kind: "while", condition: "not-damaged-recently" },
+		part: "passive",
+		grants: [],
+		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Teemo",
+	}
+	const active = { ...passive, id: "teemo-w-active", part: "active" as const }
+
+	function row(effect: Effect, stackedOutBy?: Effect): Condition {
+		const bind = (entry: Effect) => ({
+			id: entry.id,
+			effect: entry,
+			name: "Move Quick",
+			icon: "",
+		})
+		return {
+			effect: bind(effect),
+			isOn: true,
+			grants: [],
+			stackedOutBy: stackedOutBy && bind(stackedOutBy),
+		}
+	}
+
+	test("labels an ability's part, and nothing for an effect without parts", () => {
+		expect(partLabel(row(passive))).toBe("Passive")
+		expect(partLabel(row(active))).toBe("Active")
+		expect(partLabel(condition({ kind: "after-use" }))).toBeUndefined()
+	})
+
+	test("says which part stands in for a stacked-out row", () => {
+		expect(stackedOutText(row(passive, active))).toBe("Replaced by the active")
+		expect(stackedOutText(row(passive))).toBeUndefined()
 	})
 })

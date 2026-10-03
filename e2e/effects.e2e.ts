@@ -84,7 +84,7 @@ test("turning Move Quick's passive off lowers the movement speed", async ({
 	page,
 }) => {
 	await page.goto(TEEMO)
-	const passive = effectSwitch(page, /^Move Quick Not hit/)
+	const passive = effectSwitch(page, /^Move Quick \(W\) Passive/)
 	await expect(passive).toBeChecked()
 	const before = await movementSpeed(page)
 
@@ -102,4 +102,25 @@ test("Barrier and Heal show their shield and heal values", async ({ page }) => {
 	await expect(effectSwitch(page, /^Heal/)).toHaveAccessibleDescription(
 		/^\d+ heal/,
 	)
+})
+
+test("Move Quick's passive and active share a card; the active on dims the passive it replaces", async ({
+	page,
+}) => {
+	await page.goto(TEEMO)
+	const passive = effectSwitch(page, /^Move Quick \(W\) Passive/)
+	const active = effectSwitch(page, /^Move Quick \(W\) Active/)
+	await expect(passive).toBeEnabled()
+	const before = await movementSpeed(page)
+
+	await active.click()
+	await expect(active).toBeChecked()
+	await expect(passive).toBeChecked()
+	await expect(passive).toBeDisabled()
+	await expect(passive).toHaveAccessibleDescription(/^Replaced by the active/)
+	await expect.poll(() => movementSpeed(page)).toBeGreaterThan(before)
+
+	await active.click()
+	await expect(passive).toBeEnabled()
+	await expect.poll(() => movementSpeed(page)).toBe(before)
 })
