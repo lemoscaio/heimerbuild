@@ -40,7 +40,9 @@ test("a build starts with no skill points; the suggestion is never counted", asy
 	)
 })
 
-test("spent points follow the game's rules", async ({ page }) => {
+test("spent points follow the game's rules, leaving the levels they skip unspent", async ({
+	page,
+}) => {
 	await page.goto("/champions/Teemo?lvl=3")
 	await expect(ability(page, "Noxious Trap")).toHaveAttribute(
 		"aria-disabled",
@@ -49,15 +51,35 @@ test("spent points follow the game's rules", async ({ page }) => {
 
 	await ability(page, "Blinding Dart").click()
 	await expect(page).toHaveURL(/[?&]skills=Q\b/)
-	// The level 2 point cannot take Q to rank 2.
+	// Rank 2 needs level 3: the point goes there, and level 2 stays unspent.
+	await ability(page, "Blinding Dart").click()
+	await expect(page).toHaveURL(/[?&]skills=Q_Q\b/)
 	await expect(ability(page, "Blinding Dart")).toHaveAttribute(
 		"aria-disabled",
 		"true",
 	)
 	await ability(page, "Move Quick").click()
-	await expect(page).toHaveURL(/[?&]skills=QW\b/)
-	await ability(page, "Blinding Dart").click()
 	await expect(page).toHaveURL(/[?&]skills=QWQ\b/)
+})
+
+test("at level 9, Q then Q lands on levels 1 and 3, and the gap survives a reload", async ({
+	page,
+}) => {
+	await page.goto("/champions/Teemo?lvl=9")
+	await ability(page, "Blinding Dart").click()
+	await ability(page, "Blinding Dart").click()
+	await expect(page).toHaveURL(/[?&]skills=Q_Q\b/)
+
+	await page.reload()
+	await expect(orderLevel(page, 1)).toHaveAccessibleName(/Q, spent/)
+	await expect(orderLevel(page, 2)).toHaveAccessibleName(/point to spend/)
+	await expect(orderLevel(page, 3)).toHaveAccessibleName(/Q, spent/)
+	await expect(ability(page, "Blinding Dart")).toHaveAccessibleName(/rank 2 /)
+
+	// An unspent level takes a point directly.
+	await orderLevel(page, 5).click()
+	await page.getByRole("button", { name: /^W / }).click()
+	await expect(page).toHaveURL(/[?&]skills=Q_Q_W\b/)
 })
 
 test("use recommended order fills the points left, and lowering the level keeps them for when it rises", async ({
