@@ -4,6 +4,7 @@ import {
 	conditionList,
 	readConditions,
 	readCurrentHealth,
+	readGameTime,
 	setCondition,
 } from "./conditions"
 
@@ -61,6 +62,25 @@ const bloodlust = bind({
 	sourceUrl: `${WIKI}Tryndamere`,
 })
 const effects = [passive, barrier]
+const gatheringStorm: BuildEffect = {
+	id: "gathering-storm",
+	name: "Gathering Storm",
+	icon: "",
+	effect: {
+		id: "gathering-storm",
+		source: { kind: "rune", runeKey: "GatheringStorm" },
+		trigger: { kind: "always" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "adaptiveForce",
+				amount: { by: "gameTime", every: 10, growth: "triangular", step: 8 },
+			},
+		],
+		since: "16.19",
+		sourceUrl: `${WIKI}Gathering_Storm`,
+	},
+}
 
 describe("readConditions", () => {
 	test("keeps the choices that differ from an available effect's default", () => {
@@ -104,6 +124,40 @@ describe("readCurrentHealth", () => {
 	})
 })
 
+describe("readGameTime", () => {
+	test("keeps the game time while an effect reads it", () => {
+		expect(readGameTime(30, [passive, gatheringStorm])).toBe(30)
+	})
+
+	test("drops it at the game's start or when no effect reads it", () => {
+		expect(readGameTime(0, [gatheringStorm])).toBeUndefined()
+		expect(readGameTime(30, effects)).toBeUndefined()
+	})
+
+	test("keeps it as given while the effects load", () => {
+		expect(readGameTime(30, undefined)).toBe(30)
+	})
+})
+
+describe("conditionList, game time", () => {
+	test("gives an effect that grows with the game time its value now and at the next step", () => {
+		const [storm] = conditionList(
+			[gatheringStorm],
+			{},
+			{ level: 1, gameTime: 25, adaptiveType: "ap" },
+		)
+
+		expect(storm?.readsGameTime).toBe(true)
+		expect(storm?.grants).toEqual([
+			{ kind: "stat", stat: "abilityPower", value: 24 },
+		])
+		expect(storm?.next).toEqual({
+			gameTime: 30,
+			grants: [{ kind: "stat", stat: "abilityPower", value: 48 }],
+		})
+	})
+})
+
 describe("setCondition", () => {
 	test("records a switch that leaves the default, and forgets one that returns to it", () => {
 		const on = setCondition({}, barrier, true)
@@ -136,16 +190,20 @@ describe("conditionList", () => {
 				isOn: true,
 				isSwitchable: true,
 				readsCurrentHealth: false,
+				readsGameTime: false,
 				grants: [{ kind: "stat", stat: "movementSpeedPercent", value: 0.16 }],
 				duration: undefined,
+				next: undefined,
 			},
 			{
 				effect: barrier,
 				isOn: true,
 				isSwitchable: true,
 				readsCurrentHealth: false,
+				readsGameTime: false,
 				grants: [{ kind: "shield", value: 280 }],
 				duration: 2.5,
+				next: undefined,
 			},
 		])
 	})

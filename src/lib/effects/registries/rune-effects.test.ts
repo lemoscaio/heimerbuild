@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import type { Rune } from "@schemas/rune"
+import { type Rune, runesFileSchema } from "@schemas/rune"
+import heimerBin from "../../../../scripts/sync-data/fixtures/champions/Heimerdinger.bin.json"
+import heimerDetail from "../../../../scripts/sync-data/fixtures/champions/Heimerdinger.json"
 import teemoBin from "../../../../scripts/sync-data/fixtures/champions/Teemo.bin.json"
 import teemoDetail from "../../../../scripts/sync-data/fixtures/champions/Teemo.json"
 import perks from "../../../../scripts/sync-data/fixtures/runes/perks.json"
@@ -11,6 +13,7 @@ import { normalizeChampion } from "../../../../scripts/sync-data/normalize-champ
 import { normalizeRunes } from "../../../../scripts/sync-data/normalize-runes"
 import { normalizeSummonerSpells } from "../../../../scripts/sync-data/normalize-summoner-spells"
 import { computeBuildStats } from "../../stats/compute-build-stats"
+import type { ItemInput } from "../../stats/compute-stats"
 import { softCapMovementSpeed } from "../../stats/movement-speed"
 import { availableEffects } from "../available-effects"
 import { resolveGrants } from "../evaluate"
@@ -106,6 +109,106 @@ describe("Nimbus Cloak with Heal", () => {
 				teemo.stats.movementSpeed.base * (1 + 0.3 + 0.35),
 				PATCH,
 			),
+		)
+	})
+})
+
+/** A rune as the current patch's data serves it (public/data). */
+async function currentRune(key: string): Promise<Rune> {
+	const { currentPatch } = await Bun.file(
+		new URL("../../../../public/data/manifest.json", import.meta.url),
+	).json()
+	const { trees } = runesFileSchema.parse(
+		await Bun.file(
+			new URL(
+				`../../../../public/data/${currentPatch}/runes.json`,
+				import.meta.url,
+			),
+		).json(),
+	)
+	const found = trees
+		.flatMap((tree) => [tree.keystones, ...tree.rows].flat())
+		.find((rune) => rune.key === key)
+	if (!found) throw new Error(`No rune ${key} in the current patch`)
+	return found
+}
+
+function stormAt(
+	gameTime: number,
+	adaptiveType: "ad" | "ap" = "ap",
+	rune: Rune = findRune("GatheringStorm"),
+) {
+	const [storm] = availableEffects({
+		patch: PATCH,
+		champion: { key: "Teemo", abilities: { spells: [] } },
+		ranks: { Q: 0, W: 0, E: 0, R: 0 },
+		spells: [],
+		runes: [rune],
+	})
+	return storm && resolveGrants(storm, { level: 1, gameTime, adaptiveType })[0]
+}
+
+describe("Gathering Storm", () => {
+	test("matches every step the current patch's rune text lists, AP and rounded AD", async () => {
+		const rune = await currentRune("GatheringStorm")
+		const lines = rune.longDescription
+			.flat()
+			.map((line) => line.map(({ text }) => text).join(""))
+		const steps = lines.flatMap((line) => {
+			const match = /^(\d+) min: \+ (\d+) AP or (\d+) AD$/.exec(line)
+			return match ? [match.slice(1).map(Number)] : []
+		})
+
+		expect(steps.map(([minutes]) => minutes)).toEqual([10, 20, 30, 40, 50, 60])
+		for (const [minutes = 0, ap, ad] of steps) {
+			expect(stormAt(minutes, "ap", rune)?.value).toBe(ap)
+			expect(Math.round(stormAt(minutes, "ad", rune)?.value ?? 0)).toBe(ad)
+		}
+	})
+
+	// Wiki: 0 / 8 / 24 / 48 / 80 / 120 / 168 / 224 AP or 0 / 4.8 / 14.4 / 28.8… AD, no cap.
+	test("grows every 10 minutes with no cap, as AP or AD", () => {
+		expect(stormAt(0)).toEqual({ kind: "stat", stat: "abilityPower", value: 0 })
+		expect(stormAt(19)?.value).toBe(8)
+		expect(stormAt(70)?.value).toBe(224)
+		expect(stormAt(120)?.value).toBe(624)
+		expect(stormAt(30, "ad")).toEqual({
+			kind: "stat",
+			stat: "attackDamage",
+			value: expect.closeTo(28.8),
+		})
+	})
+
+	test("follows the build's adaptive type like the stat shards: AD items make it AD", () => {
+		const heimerdinger = normalizeChampion(heimerDetail, heimerBin, "16.19.1")
+		const ranks = { Q: 0, W: 0, E: 0, R: 0 }
+		const available = availableEffects({
+			patch: PATCH,
+			champion: heimerdinger,
+			ranks,
+			spells: [],
+			runes: [findRune("GatheringStorm")],
+		})
+		const build = {
+			champion: heimerdinger,
+			patch: PATCH,
+			level: 1,
+			shards: [],
+			ranks,
+			effects: { available, overrides: {} },
+		}
+		const longSword = { stats: { attackDamage: 10 } }
+		const at = (gameTime: number, items: readonly ItemInput[] = []) =>
+			computeBuildStats({ ...build, items, gameTime })
+
+		expect(heimerdinger.adaptiveType).toBe("ap")
+		expect(at(30).abilityPower.total - at(0).abilityPower.total).toBe(48)
+		expect(
+			at(30, [longSword]).attackDamage.total -
+				at(0, [longSword]).attackDamage.total,
+		).toBeCloseTo(28.8)
+		expect(at(30, [longSword]).abilityPower.total).toBe(
+			at(0, [longSword]).abilityPower.total,
 		)
 	})
 })

@@ -116,6 +116,15 @@ describe("buildSearchSchema", () => {
 		}
 	})
 
+	test("accepts a game time from 0 to 120 minutes and drops anything else", () => {
+		expect(parse({ min: 30 }).min).toBe(30)
+		expect(parse({ min: 0 }).min).toBe(0)
+		expect(parse({ min: 120 }).min).toBe(120)
+		for (const min of [-1, 121, 12.5, "late"]) {
+			expect(parse({ min }).min).toBeUndefined()
+		}
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
@@ -166,6 +175,18 @@ describe("toBuildSearch", () => {
 		expect(toBuildSearch({ ...build, currentHealth: 40 }).hp).toBe(40)
 		expect(toBuildSearch({ ...build, currentHealth: 100 }).hp).toBeUndefined()
 		expect(toBuildSearch(build).hp).toBeUndefined()
+	})
+
+	test("writes the game time, and nothing at the game's start", () => {
+		const build = { level: 1, itemIds: [], patch: undefined }
+		expect(toBuildSearch({ ...build, gameTime: 30 }).min).toBe(30)
+		expect(toBuildSearch({ ...build, gameTime: 0 }).min).toBeUndefined()
+		expect(toBuildSearch(build).min).toBeUndefined()
+	})
+
+	test("reads back the game time it writes", () => {
+		const build = { level: 1, itemIds: [], patch: undefined, gameTime: 45 }
+		expect(readBuildSearch(toBuildSearch(build)).min).toBe(45)
 	})
 
 	test("writes level, items and patch", () => {

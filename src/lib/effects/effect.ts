@@ -30,12 +30,25 @@ export type TableAmount =
 /**
  * A table amount, or one that reads the build beyond it: `stat` is `ratio` of another stat's
  * total before the stat-dependent bonuses (evaluation step 4); `missingHealth` grows from 0 at full
- * health to `max` at `fullAt` percent missing health, read from the current health condition.
+ * health to `max` at `fullAt` percent missing health, read from the current health condition;
+ * `gameTime` grows every `every` minutes of the game time condition (see `GameTimeAmount`).
  */
 export type Amount =
 	| TableAmount
 	| { by: "stat"; stat: StatName; ratio: TableAmount }
 	| { by: "missingHealth"; max: TableAmount; fullAt: number }
+	| GameTimeAmount
+
+/**
+ * Grows once per full `every` minutes. `triangular`: step n adds n × `step`, so the total after n
+ * steps is `step` × n(n+1)/2 (Gathering Storm: 8, 24, 48, 80 AP).
+ */
+export type GameTimeAmount = {
+	by: "gameTime"
+	every: number
+	growth: "triangular"
+	step: TableAmount
+}
 
 export type DamageType = "physical" | "magic" | "true"
 
@@ -44,9 +57,12 @@ export type DamageRatios = Partial<
 	Record<"baseAttackDamage" | "abilityPower", number>
 >
 
+/** A stat, or Adaptive Force: AD or AP by the build's adaptive type, like the stat shards. */
+export type GrantStat = StatKey | "adaptiveForce"
+
 /** Stats fold into the totals; shields and heals are values of their own; damage waits for the combo timeline. */
 export type Grant =
-	| { kind: "stat"; stat: StatKey; amount: Amount }
+	| { kind: "stat"; stat: GrantStat; amount: Amount }
 	| { kind: "shield"; amount: Amount }
 	| { kind: "heal"; amount: Amount }
 	| { kind: "damage"; damageType: DamageType; ratios: DamageRatios }

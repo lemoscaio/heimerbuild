@@ -76,3 +76,15 @@ export function grantText(grant: ResolvedGrant): string {
 			return `${Math.round(grant.value)} ${grant.kind}`
 	}
 }
+
+function grantsText(grants: readonly ResolvedGrant[]) {
+	return grants.map(grantText).join(" · ")
+}
+
+/** What the row's effect gives, and from when it grows: "+24 Ability Power (next: +48 Ability Power at 30 min)". */
+export function valuesText({ grants, next }: Condition): string {
+	const now = grantsText(grants)
+	return next
+		? `${now} (next: ${grantsText(next.grants)} at ${next.gameTime} min)`
+		: now
+}

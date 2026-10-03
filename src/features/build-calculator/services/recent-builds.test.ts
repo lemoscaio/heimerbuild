@@ -198,6 +198,12 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })[0]?.currentHealth).toBe(40)
 	})
 
+	test("keep the game time", () => {
+		const storage = memoryStorage()
+		recordRecentBuild({ ...build("Ahri"), gameTime: 30 }, { storage })
+		expect(readRecentBuilds({ storage })[0]?.gameTime).toBe(30)
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

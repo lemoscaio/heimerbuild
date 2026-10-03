@@ -1,5 +1,6 @@
 import type { Champion, RankStat } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
+import { type AdaptiveType, adaptiveForceStat } from "../stats/adaptive-force"
 import type { ComputedStats, ItemInput, StatName } from "../stats/compute-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { spellCooldown } from "../summoner-rune-interactions"
@@ -11,8 +12,10 @@ import type {
 	CooldownBracket,
 	EffectOverrides,
 	Grant,
+	GrantStat,
 	TableAmount,
 } from "./effect"
+import { GAME_START, gameTimeSteps, triangularSteps } from "./game-time"
 import { resolveStacking, type StackingResult } from "./stacking"
 
 /** The build's state the amounts are read at. */
@@ -23,6 +26,10 @@ export type EffectContext = {
 	rankStats?: Champion["rankStats"]
 	/** Percent of maximum health the champion is at, 1 to 100; absent means full health. */
 	currentHealth?: number
+	/** Whole minutes into the game, which `gameTime` amounts read; absent means its start. */
+	gameTime?: number
+	/** What Adaptive Force grants become; without it, they have no value. */
+	adaptiveType?: AdaptiveType
 	/** The totals `stat` amounts read: the build's before the stat-dependent bonuses. */
 	totals?: ComputedStats
 }
@@ -92,6 +99,11 @@ export function resolveAmount(
 				? undefined
 				: max * Math.min(1, missing / amount.fullAt)
 		}
+		case "gameTime": {
+			const step = resolveTableAmount(amount.step, effect, context)
+			const steps = gameTimeSteps(amount.every, context.gameTime ?? GAME_START)
+			return step === undefined ? undefined : step * triangularSteps(steps)
+		}
 		default:
 			return resolveTableAmount(amount, effect, context)
 	}
@@ -108,6 +120,17 @@ function statBasis(
 	return ratio === undefined ? undefined : { stat: amount.stat, ratio }
 }
 
+/** The stat a grant's value goes to: Adaptive Force becomes AD or AP by the build's adaptive type. */
+function grantStat(
+	stat: GrantStat,
+	value: number | undefined,
+	{ adaptiveType }: EffectContext,
+): { stat: StatKey; value: number } | undefined {
+	if (value === undefined) return undefined
+	if (stat !== "adaptiveForce") return { stat, value }
+	return adaptiveType && adaptiveForceStat(value, adaptiveType)
+}
+
 function resolveGrant(
 	grant: Grant,
 	effect: BuildEffect,
@@ -115,11 +138,10 @@ function resolveGrant(
 ): ResolvedGrant[] {
 	switch (grant.kind) {
 		case "stat": {
-			const value = resolveAmount(grant.amount, effect, context)
+			const amount = resolveAmount(grant.amount, effect, context)
+			const stat = grantStat(grant.stat, amount, context)
 			const basis = statBasis(grant.amount, effect, context)
-			return value === undefined
-				? []
-				: [{ kind: "stat", stat: grant.stat, value, ...(basis && { basis }) }]
+			return stat ? [{ kind: "stat", ...stat, ...(basis && { basis }) }] : []
 		}
 		case "shield":
 		case "heal": {

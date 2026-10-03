@@ -42,6 +42,7 @@ export function useUrlBuildSource({
 		summoners: search.summoners,
 		effects: parseEffectOverrides(search.effects),
 		currentHealth: search.hp,
+		gameTime: search.min,
 	}
 	const page: PageValues = { view: search.view, tab: search.tab }
 
@@ -73,6 +74,7 @@ export function useUrlBuildSource({
 				summoners: next.summoners,
 				effects: next.effects,
 				currentHealth: next.currentHealth,
+				gameTime: next.gameTime,
 			})
 		},
 	}

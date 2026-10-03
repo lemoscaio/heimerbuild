@@ -10,8 +10,6 @@ import { WorkbenchLayout } from "@/features/build-calculator/components/workbenc
 import { WorkbenchPanel } from "@/features/build-calculator/components/workbench-panel"
 import { WorkbenchTabs } from "@/features/build-calculator/components/workbench-tabs"
 import { ChampionHeader } from "@/features/champions/components/champion-header"
-import { CurrentHealthInput } from "@/features/conditions/components/current-health-input"
-import { EffectsList } from "@/features/conditions/components/effects-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { RuneSummary } from "@/features/runes/components/rune-summary"
@@ -20,6 +18,7 @@ import { SkillsTab } from "@/features/skills/components/skills-tab"
 import { SummonerSlots } from "@/features/summoners/components/summoner-slots"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
+import { BuildEffectsList } from "./build-effects-list"
 import { ChampionSkills } from "./champion-skills"
 import type { BuildPage } from "./hooks/use-build-page"
 
@@ -157,16 +156,7 @@ export function OverviewPage({
 									formComparison={build.formSwitch.comparison}
 								>
 									<RunesStatsNote />
-									<EffectsList
-										conditions={build.conditions.list}
-										onToggle={build.conditions.setOn}
-										healthInput={
-											<CurrentHealthInput
-												value={build.conditions.currentHealth}
-												onValueChange={build.conditions.setCurrentHealth}
-											/>
-										}
-									/>
+									<BuildEffectsList conditions={build.conditions} />
 								</StatsPanel>
 							) : (
 								<StatsPanel
@@ -175,16 +165,7 @@ export function OverviewPage({
 									preview={build.preview}
 									formComparison={build.formSwitch.comparison}
 								>
-									<EffectsList
-										conditions={build.conditions.list}
-										onToggle={build.conditions.setOn}
-										healthInput={
-											<CurrentHealthInput
-												value={build.conditions.currentHealth}
-												onValueChange={build.conditions.setCurrentHealth}
-											/>
-										}
-									/>
+									<BuildEffectsList conditions={build.conditions} />
 								</StatsPanel>
 							))}
 					</WorkbenchPanel>
