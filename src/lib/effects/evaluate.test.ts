@@ -275,6 +275,50 @@ describe("resolveAmount, amounts that read the build", () => {
 		expect(at(10)).toBe(80)
 		expect(at(1)).toBe(80)
 	})
+
+	test("a triangular game time amount adds one more step every 10 minutes, with no cap", () => {
+		// Gathering Storm: 8 × n(n+1)/2 after n full 10-minute steps.
+		const amount = {
+			by: "gameTime",
+			every: 10,
+			growth: "triangular",
+			step: 8,
+		} as const
+		const at = (gameTime?: number) =>
+			resolveAmount(amount, malphiteW, { ...context, gameTime })
+
+		expect(at()).toBe(0)
+		expect(at(9)).toBe(0)
+		expect(at(10)).toBe(8)
+		expect(at(20)).toBe(24)
+		expect(at(30)).toBe(48)
+		expect(at(60)).toBe(168)
+		expect(at(75)).toBe(224)
+	})
+})
+
+describe("resolveGrants, Adaptive Force", () => {
+	const storm = bind({
+		id: "gathering-storm",
+		source: { kind: "rune", runeKey: "GatheringStorm" },
+		trigger: { kind: "always" },
+		grants: [{ kind: "stat", stat: "adaptiveForce", amount: 48 }],
+		since: "16.19",
+		sourceUrl: `${WIKI}Gathering_Storm`,
+	})
+
+	test("becomes ability power or 0.6 attack damage per point, by the build's adaptive type", () => {
+		expect(resolveGrants(storm, { ...context, adaptiveType: "ap" })).toEqual([
+			{ kind: "stat", stat: "abilityPower", value: 48 },
+		])
+		expect(resolveGrants(storm, { ...context, adaptiveType: "ad" })).toEqual([
+			{ kind: "stat", stat: "attackDamage", value: expect.closeTo(28.8) },
+		])
+	})
+
+	test("has no value without an adaptive type", () => {
+		expect(resolveGrants(storm, context)).toEqual([])
+	})
 })
 
 describe("resolveGrants", () => {

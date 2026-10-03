@@ -1,19 +1,12 @@
-import type { Champion } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import type { ShardStat } from "@schemas/rune"
+import {
+	type AdaptiveType,
+	adaptiveForceStat,
+	itemsAdaptiveType,
+} from "./adaptive-force"
 import type { ItemInput } from "./compute-stats"
 import { MAX_LEVEL, MIN_LEVEL } from "./growth"
-
-type AdaptiveType = Champion["adaptiveType"]
-
-/**
- * What one point of Adaptive Force gives: 0.6 bonus attack damage or 1 ability power.
- * Not in the game data; source: League of Legends Wiki, "Adaptive force".
- */
-const ADAPTIVE_FORCE_CONVERSION = {
-	ad: { stat: "attackDamage", ratio: 0.6 },
-	ap: { stat: "abilityPower", ratio: 1 },
-} as const satisfies Record<AdaptiveType, { stat: StatKey; ratio: number }>
 
 /** `min` at level 1, `max` at level 18, linear in between (Health Scaling: 10 per level). */
 export function shardStatAtLevel(
@@ -21,16 +14,6 @@ export function shardStatAtLevel(
 	level: number,
 ) {
 	return min + ((max - min) * (level - MIN_LEVEL)) / (MAX_LEVEL - MIN_LEVEL)
-}
-
-/** AP when bonus AP is higher, AD when bonus AD is higher, the champion's default on a tie. */
-export function resolveAdaptiveType(
-	defaultType: AdaptiveType,
-	bonus: { attackDamage: number; abilityPower: number },
-): AdaptiveType {
-	if (bonus.abilityPower > bonus.attackDamage) return "ap"
-	if (bonus.attackDamage > bonus.abilityPower) return "ad"
-	return defaultType
 }
 
 type ShardStatsOptions = {
@@ -46,21 +29,14 @@ export function shardStatsInput(
 	shards: readonly { stats: readonly ShardStat[] }[],
 	{ level, defaultAdaptiveType, items }: ShardStatsOptions,
 ): ItemInput {
-	const bonus = { attackDamage: 0, abilityPower: 0 }
-	for (const { stats } of items) {
-		bonus.attackDamage += stats.attackDamage ?? 0
-		bonus.abilityPower += stats.abilityPower ?? 0
-	}
-	const adaptive =
-		ADAPTIVE_FORCE_CONVERSION[resolveAdaptiveType(defaultAdaptiveType, bonus)]
-
+	const adaptiveType = itemsAdaptiveType(defaultAdaptiveType, items)
 	const stats: Partial<Record<StatKey, number>> = {}
 	for (const shardStat of shards.flatMap((shard) => shard.stats)) {
 		const value = shardStatAtLevel(shardStat, level)
-		const [stat, amount] =
+		const { stat, value: amount } =
 			shardStat.stat === "adaptiveForce"
-				? [adaptive.stat, value * adaptive.ratio]
-				: [shardStat.stat, value]
+				? adaptiveForceStat(value, adaptiveType)
+				: { stat: shardStat.stat, value }
 		stats[stat] = (stats[stat] ?? 0) + amount
 	}
 	return { stats }

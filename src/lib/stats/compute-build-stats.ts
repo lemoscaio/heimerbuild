@@ -4,8 +4,10 @@ import type { BuildEffect, EffectOverrides } from "../effects/effect"
 import {
 	activeEffects,
 	alwaysOnRankStats,
+	type EffectContext,
 	effectStatsInput,
 } from "../effects/evaluate"
+import { itemsAdaptiveType } from "./adaptive-force"
 import {
 	type ChampionInput,
 	type ComputedStats,
@@ -38,6 +40,8 @@ export type BuildStatsInput = {
 	effects?: BuildEffectsInput
 	/** Percent of maximum health the champion is at (1 to 100), which some effects read; absent means full. */
 	currentHealth?: number
+	/** Whole minutes into the game, which some effects read; absent means its start. */
+	gameTime?: number
 }
 
 const NO_EFFECTS: BuildEffectsInput = { available: [], overrides: {} }
@@ -52,14 +56,22 @@ function evaluateBuild({
 	ranks,
 	effects = NO_EFFECTS,
 	currentHealth,
+	gameTime,
 }: BuildStatsInput) {
-	// Adaptive Force becomes AD or AP from the items, so the shards read them.
+	// Adaptive Force becomes AD or AP from the items, so the shards and effects read them.
 	const shardInput = shardStatsInput(shards, {
 		level,
 		defaultAdaptiveType: champion.adaptiveType,
 		items,
 	})
-	const context = { level, ranks, rankStats: champion.rankStats, currentHealth }
+	const context: EffectContext = {
+		level,
+		ranks,
+		rankStats: champion.rankStats,
+		currentHealth,
+		gameTime,
+		adaptiveType: itemsAdaptiveType(champion.adaptiveType, items),
+	}
 	const active = activeEffects(effects.available, effects.overrides, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)
 	const sources = [...items, shardInput, effectStatsInput(active, context)]

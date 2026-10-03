@@ -1,10 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { ShardStat } from "@schemas/rune"
-import {
-	resolveAdaptiveType,
-	shardStatAtLevel,
-	shardStatsInput,
-} from "./rune-shards"
+import { resolveAdaptiveType } from "./adaptive-force"
+import { shardStatAtLevel, shardStatsInput } from "./rune-shards"
 
 function shard(...stats: ShardStat[]) {
 	return { stats }
