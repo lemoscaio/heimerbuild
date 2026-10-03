@@ -105,7 +105,11 @@ export function MobileBuildPage({
 						preview={build.preview}
 						formComparison={build.formSwitch.comparison}
 					>
-						<BuildEffectsList conditions={build.conditions} />
+						<BuildEffectsList
+							conditions={build.conditions}
+							championState={build.championState}
+							matchState={build.matchState}
+						/>
 					</StatsPanel>
 				)
 			}

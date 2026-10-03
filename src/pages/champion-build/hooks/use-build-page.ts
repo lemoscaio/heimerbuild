@@ -92,7 +92,7 @@ export function useBuildPage({
 
 	return {
 		champion,
-		/** Level and form; `formSwitch.setForm` switches the form with its announcement. */
+		/** Level, form and current health; `formSwitch.setForm` switches the form with its announcement. */
 		championState,
 		/** Switches the form and announces how many stats changed, with the delta chips. */
 		formSwitch,
@@ -104,6 +104,8 @@ export function useBuildPage({
 		runePage,
 		/** The two summoner spell slots; `pick`, `swap` and `clear` edit them. */
 		summoners,
+		/** The match's game time. */
+		matchState: build.matchState,
 		/** The build's conditional effects with their switches; `setOn` turns one on or off. */
 		conditions: build.conditions,
 		/** The page's runes that react to the chosen summoner spells, with what happens. */
