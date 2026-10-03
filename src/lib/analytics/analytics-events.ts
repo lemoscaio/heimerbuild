@@ -93,6 +93,8 @@ export type AnalyticsEvents = {
 		level: number
 		via: "ability" | "order"
 	}
+	/** A spent skill point was removed from the order, leaving its level unspent. */
+	skill_point_removed: { slot: AbilitySlot; level: number }
 	/** Every point left to spend was spent with the recommended order. */
 	skill_order_recommended: { points: number }
 	/** Every skill point was cleared. */

@@ -68,6 +68,8 @@ export function SkillsRow({
 						spells={abilities.spells}
 						canPlace={skills.canPlace}
 						onPlace={row.place}
+						removeBlocker={skills.removeBlocker}
+						onRemove={row.remove}
 					>
 						<SkillPointActions
 							size="compact"
@@ -78,8 +80,8 @@ export function SkillsRow({
 						/>
 					</SkillOrderStrip>
 					<p className="text-subtle text-xs leading-snug">
-						Press an ability to spend a point, or a level to choose its point. A
-						dashed outline is only a suggestion.
+						Press an ability to spend a point, or a level to choose or remove
+						its point. A dashed outline is only a suggestion.
 					</p>
 				</>
 			) : (

@@ -14,6 +14,7 @@ export type SkillOrderGridProps = {
 	ranks: AbilityRanks
 	canPlace: (pointLevel: number, slot: AbilitySlot) => boolean
 	onPlace: (pointLevel: number, slot: AbilitySlot) => void
+	onRemove: (pointLevel: number) => void
 }
 
 /** The game's skill order grid: a row per ability, a column per level (one toggle group each). */
@@ -24,6 +25,7 @@ export function SkillOrderGrid({
 	ranks,
 	canPlace,
 	onPlace,
+	onRemove,
 }: SkillOrderGridProps) {
 	return (
 		<div className="scrollbar-purple flex gap-1 overflow-x-auto pb-2">
@@ -75,6 +77,7 @@ export function SkillOrderGrid({
 						<SkillLevelCells
 							point={point}
 							onPlace={(slot) => onPlace(point.level, slot)}
+							onRemove={() => onRemove(point.level)}
 							className="flex-col items-stretch gap-1"
 							orientation="vertical"
 						>

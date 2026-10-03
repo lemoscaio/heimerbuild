@@ -5,7 +5,7 @@ import {
 } from "@schemas/champion"
 import { RotateCcw } from "lucide-react"
 import { useId } from "react"
-import type { LevelPoint } from "../lib/skill-history"
+import type { LevelPoint, RemoveBlocker } from "../lib/skill-history"
 import { orderCellVariants, SkillOrderCell } from "./skill-order-cell"
 
 type SkillOrderStripProps = {
@@ -13,16 +13,20 @@ type SkillOrderStripProps = {
 	spells: readonly ChampionSpell[]
 	canPlace: (pointLevel: number, slot: AbilitySlot) => boolean
 	onPlace: (pointLevel: number, slot: AbilitySlot) => void
+	removeBlocker: (pointLevel: number) => RemoveBlocker | undefined
+	onRemove: (pointLevel: number) => void
 	/** The order's actions, next to its label. */
 	children?: React.ReactNode
 }
 
-/** The point of each level 1 to 18: spent, unspent (chosen when pressed), kept above the level, or not reached. */
+/** The point of each level 1 to 18: spent (changed or removed when pressed), unspent (chosen when pressed), kept above the level, or not reached. */
 export function SkillOrderStrip({
 	levels,
 	spells,
 	canPlace,
 	onPlace,
+	removeBlocker,
+	onRemove,
 	children,
 }: SkillOrderStripProps) {
 	const labelId = useId()
@@ -43,6 +47,8 @@ export function SkillOrderStrip({
 							spells={spells}
 							canPlace={(slot) => canPlace(point.level, slot)}
 							onPlace={(slot) => onPlace(point.level, slot)}
+							removeBlocker={removeBlocker(point.level)}
+							onRemove={() => onRemove(point.level)}
 						/>
 					</li>
 				))}

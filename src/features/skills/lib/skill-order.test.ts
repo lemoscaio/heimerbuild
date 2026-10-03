@@ -4,6 +4,7 @@ import { CHAMPION_SKILL_RULES } from "../../../../scripts/sync-data/overrides/ch
 import { skillChampion, TEEMO_ORDER } from "./skill-champions.fixtures"
 import {
 	canRankUp,
+	firstInvalidLevel,
 	isValidOrder,
 	parseOrder,
 	ranksOf,
@@ -48,6 +49,13 @@ describe("skill point rules", () => {
 		expect(isValidOrder(order("_____R"), standard)).toBe(true)
 		expect(isValidOrder(order("____R"), standard)).toBe(false)
 		expect(validPrefix(order("Q_Q_QQ"), standard)).toEqual(order("Q_Q_Q"))
+	})
+
+	test("names the level of the first point the rules reject", () => {
+		expect(firstInvalidLevel(order("Q_Q_QQ"), standard)).toBe(6)
+		expect(firstInvalidLevel(order("____R"), standard)).toBe(5)
+		expect(firstInvalidLevel(order("Q_Q"), standard)).toBeUndefined()
+		expect(firstInvalidLevel([], standard)).toBeUndefined()
 	})
 
 	test("a basic ability stops at rank 5", () => {
