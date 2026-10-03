@@ -16,6 +16,8 @@ import { availableEffects } from "../available-effects"
 import { resolveGrants } from "../evaluate"
 import { RUNE_EFFECTS } from "./rune-effects"
 
+const PATCH = "16.19.1"
+
 const runes = normalizeRunes(runesReforged, perks, perkStyles, "16.19.1")
 const { spells } = normalizeSummonerSpells(summonerJson, sharedBin, "16.19.1")
 function findRune(key: string): Rune {
@@ -31,6 +33,7 @@ const nimbusCloak = findRune("NimbusCloak")
 function nimbusSpeedAfter(name: string) {
 	const spell = spells.find((entry) => entry.name === name)
 	const [effect] = availableEffects({
+		patch: PATCH,
 		champion: { key: "Teemo", abilities: { spells: [] } },
 		ranks: { Q: 0, W: 0, E: 0, R: 0 },
 		spells: spell ? [spell] : [],
@@ -74,12 +77,20 @@ describe("Nimbus Cloak with Heal", () => {
 		const heal = spells.find(({ name }) => name === "Heal")
 		const ranks = { Q: 0, W: 0, E: 0, R: 0 }
 		const available = availableEffects({
+			patch: PATCH,
 			champion: teemo,
 			ranks,
 			spells: heal ? [heal] : [],
 			runes: [nimbusCloak],
 		})
-		const build = { champion: teemo, level: 1, items: [], shards: [], ranks }
+		const build = {
+			champion: teemo,
+			patch: PATCH,
+			level: 1,
+			items: [],
+			shards: [],
+			ranks,
+		}
 
 		const stats = computeBuildStats({
 			...build,
@@ -91,7 +102,10 @@ describe("Nimbus Cloak with Heal", () => {
 
 		expect(available.map(({ id }) => id)).toEqual(["heal", "nimbus-cloak-heal"])
 		expect(stats.movementSpeed.total).toBeCloseTo(
-			softCapMovementSpeed(teemo.stats.movementSpeed.base * (1 + 0.3 + 0.35)),
+			softCapMovementSpeed(
+				teemo.stats.movementSpeed.base * (1 + 0.3 + 0.35),
+				PATCH,
+			),
 		)
 	})
 })

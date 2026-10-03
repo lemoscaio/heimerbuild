@@ -8,6 +8,8 @@ import { softCapMovementSpeed } from "../../stats/movement-speed"
 import { availableEffects } from "../available-effects"
 import { resolveGrants } from "../evaluate"
 
+const PATCH = "16.19.1"
+
 // Real 16.19.1 pipeline output for Teemo, rank stats included.
 const teemo: Champion = normalizeChampion(teemoDetail, teemoBin, "16.19.1")
 const BOOTS = { stats: { movementSpeedFlat: 25 } }
@@ -18,6 +20,7 @@ function ranksWithW(W: number) {
 
 function teemoEffects(W: number) {
 	return availableEffects({
+		patch: PATCH,
 		champion: teemo,
 		ranks: ranksWithW(W),
 		spells: [],
@@ -67,6 +70,7 @@ describe("Teemo's Move Quick", () => {
 			for (const items of [[], [BOOTS]]) {
 				const build = {
 					champion: teemo,
+					patch: PATCH,
 					level: 11,
 					items,
 					shards: [],
@@ -85,6 +89,7 @@ describe("Teemo's Move Quick", () => {
 	test("turning the passive off takes its speed away; the active doubles it", () => {
 		const build = {
 			champion: teemo,
+			patch: PATCH,
 			level: 11,
 			items: [],
 			shards: [],
@@ -98,8 +103,8 @@ describe("Teemo's Move Quick", () => {
 		const base = teemo.stats.movementSpeed.base
 
 		expect(speed({ "teemo-w-passive": false })).toBe(base)
-		expect(speed({})).toBeCloseTo(softCapMovementSpeed(base * 1.28))
-		const doubled = softCapMovementSpeed(base * 1.56)
+		expect(speed({})).toBeCloseTo(softCapMovementSpeed(base * 1.28, PATCH))
+		const doubled = softCapMovementSpeed(base * 1.56, PATCH)
 		expect(speed({ "teemo-w-active": true })).toBeCloseTo(doubled)
 		expect(
 			speed({ "teemo-w-passive": false, "teemo-w-active": true }),

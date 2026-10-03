@@ -1,4 +1,9 @@
 import { describe, expect, test } from "bun:test"
+import {
+	assertValidPatchRange,
+	type PatchRange,
+	patchRangesOverlap,
+} from "@schemas/patch-range"
 import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import {
@@ -7,6 +12,8 @@ import {
 	type EffectsBuild,
 } from "./available-effects"
 import type { Effect } from "./effect"
+
+const PATCH = "16.19.1"
 
 function spell(key: string, name: string): SummonerSpell {
 	return {
@@ -33,6 +40,7 @@ const NIMBUS: Rune = {
 }
 
 const build: EffectsBuild = {
+	patch: PATCH,
 	champion: {
 		key: "Teemo",
 		abilities: {
@@ -102,14 +110,64 @@ describe("availableEffects", () => {
 	})
 })
 
+describe("availableEffects by patch", () => {
+	const ghostSource = { kind: "summoner", spellKey: "SummonerHaste" } as const
+	function ghostVersion(range: PatchRange, amount: number): Effect {
+		return {
+			id: "ghost",
+			...range,
+			source: ghostSource,
+			trigger: { kind: "after-use" },
+			grants: [{ kind: "stat", stat: "movementSpeedPercent", amount }],
+			sourceUrl: "https://wiki.leagueoflegends.com/en-us/Ghost",
+		}
+	}
+	const old = ghostVersion({ since: "16.19", until: "16.20" }, 0.2)
+	const current = ghostVersion({ since: "16.21" }, 0.3)
+	const registries = [[old, current]]
+
+	function effectsOn(patch: string) {
+		return availableEffects({ ...build, patch }, registries).map(
+			({ effect }) => effect,
+		)
+	}
+
+	test("a build gets the version in force on its patch", () => {
+		expect(effectsOn("16.19.1")).toEqual([old])
+		expect(effectsOn("16.20.4")).toEqual([old])
+		expect(effectsOn("16.21.1")).toEqual([current])
+	})
+
+	test("an effect stops applying after its until", () => {
+		expect(effectsOn("16.21.1")).not.toContain(old)
+	})
+
+	test("an effect does not apply before its since", () => {
+		expect(effectsOn("16.18.1")).toEqual([])
+		expect(effectsOn("16.20.1")).not.toContain(current)
+	})
+})
+
 describe("the registries", () => {
 	const effects: Effect[] = EFFECT_REGISTRIES.flat()
 
-	test("every effect has a unique, link-safe id and a source page", () => {
-		expect(new Set(effects.map(({ id }) => id)).size).toBe(effects.length)
-		for (const { id, sourceUrl } of effects) {
-			expect(id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)
-			expect(sourceUrl).toMatch(/^https:\/\//)
+	test("every effect has a link-safe id, a valid patch range and a source page", () => {
+		for (const effect of effects) {
+			expect(effect.id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/)
+			expect(effect.sourceUrl).toMatch(/^https:\/\//)
+			expect(() => assertValidPatchRange(effect)).not.toThrow()
+		}
+	})
+
+	test("versions of one effect never overlap, so a patch has one at most", () => {
+		for (const [index, effect] of effects.entries()) {
+			const overlapping = effects
+				.slice(index + 1)
+				.filter(
+					(other) =>
+						other.id === effect.id && patchRangesOverlap(effect, other),
+				)
+			expect(overlapping).toEqual([])
 		}
 	})
 

@@ -7,6 +7,8 @@ import { availableEffects } from "../available-effects"
 import type { BuildEffect } from "../effect"
 import { resolveAmount, resolveGrants } from "../evaluate"
 
+const PATCH = "16.19.1"
+
 const { spells } = normalizeSummonerSpells(summonerJson, sharedBin, "16.19.1")
 
 function spell(name: string): SummonerSpell {
@@ -17,6 +19,7 @@ function spell(name: string): SummonerSpell {
 
 function effectOf(name: string): BuildEffect {
 	const [effect] = availableEffects({
+		patch: PATCH,
 		champion: { key: "Teemo", abilities: { spells: [] } },
 		ranks: { Q: 0, W: 0, E: 0, R: 0 },
 		spells: [spell(name)],
