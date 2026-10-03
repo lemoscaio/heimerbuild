@@ -119,7 +119,7 @@ pages/champion-build/hooks/
 | Items | `useBuildItems` (chosen items, full-build notice, announcement, item events) | `build-calculator` | `itemIds` |
 | Rune page | `useRunePage` (checked page, stat shards) | `runes` | `runes` |
 | Summoner spells | `useSummoners` (the two slots, pick, swap, clear) | `summoners` | `summoners` |
-| Conditions | `useConditions` (the effects turned on or off, with their values) | `conditions` | `effects` |
+| Conditions | `useConditions` (the effects turned on or off, with their values; the current health) | `conditions` | `effects`, `currentHealth` |
 
 - **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`, `readSummoners`); the hook stays thin and is covered by the e2e flows.
 - **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
@@ -127,7 +127,7 @@ pages/champion-build/hooks/
 - **Pure stats.** `computeBuildStats({ champion, patch, level, form, items, shards, ranks, effects })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`), an effect turned on (`effects`; see [Effects](#effects)).
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
 - **Hints between domains** are page wiring too: the runes that react to the chosen summoner spells come from `lib/summoner-rune-interactions.ts` (typed rules, numbers read from the patch's runes), computed in `useBuildPage` and passed to the rune page (`summonerHints`) and the spell picker (`spellEffects`). Neither feature imports the other.
-- **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` and into the stats (`effects: { available, overrides }`). Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices stay as given.
+- **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` and into the stats (`effects: { available, overrides }`, `currentHealth`). Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step), so each row shows the bonus the stats add.
 - **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
@@ -139,6 +139,7 @@ Shared links must keep opening the same build, so the link format has a version:
 - **Needs a bump:** renaming or removing a param, or changing what a value means or how it is encoded (the rune page string, the skill letters, item ids). Add one pure migration to `BUILD_LINK_MIGRATIONS` (that raises `BUILD_LINK_VERSION`) and a fixture with a real link from the older version to `src/app/build-link-fixtures.test.ts`, which must keep opening the same build.
 - **No bump:** a new optional param (old links simply lack it, and its absence means its default) or a new accepted value of an existing param. Experimental domains can live in a non-URL build source until their format is stable, then join the link.
 - **`effects`** holds only the choices that differ from each effect's default, by effect id: `ghost` turns Ghost on, `-teemo-w-passive` turns Move Quick's passive off (`effects=ghost,-teemo-w-passive`, `serializeEffectOverrides` in `lib/effects/effect-overrides.ts`). No choice means no param. A choice for an effect the build no longer has (Ghost swapped for Flash) is dropped on the next edit. It came as a new optional param of v1 (no bump).
+- **`hp`** is the current health in percent of maximum health, 1 to 100 (`hp=40`), which health-dependent effects read (Tryndamere's Bloodlust). Full health means no param, and it is dropped on the next edit when no effect of the build reads it, like an `effects` choice. It came as a new optional param of v1 (no bump).
 - **`skills`** holds one letter per level (`Q`, `W`, `E`, `R`), level 1 first, with `_` (`UNSPENT_LEVEL_MARK`, `lib/skill-order-param.ts`) for a level whose point is unspent: `Q_Q` is Q at levels 1 and 3. Levels after the last letter are unspent, so trailing `_` are never written. The `_` came as a new accepted value of v1 (no bump): older links never contain it and read as before.
 
 ## Effects
@@ -148,7 +149,8 @@ Conditional effects (an ability's passive that holds only while not hit, a summo
 ```
 lib/effects/
 ├── effect.ts               Effect, Grant, Trigger, Amount, BuildEffect, EffectOverrides
-├── defaults.ts             isOnByDefault: a lookup on the trigger kind
+├── defaults.ts             isOnByDefault and isSwitchable: lookups on the trigger kind
+├── current-health.ts       the current health condition: its range, readsCurrentHealth
 ├── evaluate.ts             activeEffects, stackEffects, resolveGrants, effectStatsInput, alwaysOnRankStats
 ├── stacking.ts             resolveStacking: one pure function for the stacking groups
 ├── available-effects.ts    availableEffects(build): the effects whose source is in the build
@@ -160,10 +162,17 @@ lib/effects/
 - **Amounts** are a number or a table read at the build's state:
   - `level`: the summoner spell's synced value by champion level;
   - `rank`: the ability's synced rank stat by its rank, with a `scale`;
+  - `rankValue`: the ability's synced tooltip line by its label and rank, with a `scale` (Malphite's W "Armor", 10 to 30 %);
   - `summonerCooldown`: brackets of the spell's cooldown.
+
+  Two kinds read the build beyond the tables:
+  - `stat`: a `ratio` (a number or a table) of another stat's total, read before the stat-dependent bonuses (evaluation step 4): Malphite's W is `{ by: "stat", stat: "armor", ratio: <"Armor" line> }`;
+  - `missingHealth`: grows from 0 at full health to `max` at `fullAt` percent missing health, read from the current health condition (Tryndamere's Q: 80 bonus AD at 90% missing).
 
   Numbers come from the synced data whenever it has them. A hand-written number (Nimbus Cloak's brackets, spellblade ratios) cites its page in `sourceUrl` and has a test against it.
 - **Defaults come from the trigger.** `always` and `while: <condition>` are on: the stats show a champion at rest. `after-use`, `after-summoner`, `on-hit` and `after-ability` are off. `defaultOn` overrides it as data.
+- **Always-on passives inform.** An `always` effect (Malphite's W, Janna's W) has no switch (`isSwitchable`): its row in the Effects list shows what it adds, so a bonus never appears from nowhere, and a link choice for it is ignored and dropped.
+- **Condition values** are build state that effects read, kept by the conditions domain and the link. The **current health** (percent of maximum health, 1 to 100, default 100; link `hp`) is the first: `missingHealth` amounts read it, and every row whose effect reads it carries the `CurrentHealthInput` slider (`readsCurrentHealth`). The combo timeline and later health-dependent effects read the same value.
 - **Which effects a build has:** `availableEffects` keeps:
   - an ability effect whose champion is the build's and whose ability has a rank;
   - a summoner effect whose spell is chosen;
@@ -181,7 +190,7 @@ lib/effects/
 
   The Effects list shows a stacked-out effect that is on dimmed, with its switch disabled and the reason ("Replaced by the active").
 - **Patch validity.** Every effect and every hand-written rule (the movement speed soft caps in `MOVEMENT_SPEED_SOFT_CAPS`, Nimbus Cloak's brackets, the stacking groups) has a patch range with the data overrides' convention: `since` and an optional `until`, as `major.minor`, inclusive (`PatchRange` and `isInPatchRange` in `scripts/sync-data/schemas/patch-range.ts`). The build's patch picks the version in force: `availableEffects({ patch, … })` drops effect versions outside it, and `computeBuildStats({ patch, … })` applies that patch's soft caps. So a link pinned to an older patch keeps that patch's rules. Brackets and stacking groups are fields of an effect, so they follow its range.
-- **A rank stat an effect reads belongs to that effect.** Teemo's W rank stat is synced like any other, but `alwaysOnRankStats` leaves it to the `teemo-w-passive` effect. On by default, it keeps the old totals.
+- **A rank stat an effect reads belongs to that effect.** Teemo's W rank stat is synced like any other, but `alwaysOnRankStats` leaves it to the `teemo-w-passive` effect. On by default, it keeps the old totals. Janna's W rank stat went the same way into `janna-w-passive`, next to its AP part.
 
 ### Evaluation order
 
@@ -190,17 +199,22 @@ lib/effects/
 1. the champion's base stats at its level and form;
 2. items, stat shards and rank stats;
 3. the active effects' stats, as one more stat source (they add to the item bonuses);
-4. stat-dependent bonuses (issue 266: they read the totals so far);
+4. stat-dependent bonuses: the active effects' `stat` amounts, all reading the totals of steps 1 to 3, so no bonus feeds another or itself (Malphite's 30% of armor adds 30% once);
 5. the movement speed soft caps (`lib/stats/movement-speed.ts`; wiki "Movement speed");
 6. the outputs: shields and heals, from `resolveGrants` per effect. The Effects list shows them on each row, on or off.
 
 ### Adding an effect
 
 1. Find its numbers in the synced data (`summoner-spells.json` values, a champion's `rankStats`), or on the wiki or CommunityDragon when the data lacks them.
-2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default, its `sourceUrl` and `since`: the patch you checked the numbers on (`VERIFIED_ON` for the stage-1 effects). A new kind of trigger, grant or amount is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id.
+2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default, its `sourceUrl` and `since`: the patch you checked the numbers on (`VERIFIED_ON` for the stage-1 effects). Pick its amount:
+   - a per-rank number the tooltip shows: `rankValue` with the line's label (`scale: 0.01` for a percent line);
+   - a bonus that is a share of another stat: `stat` with that stat and the `ratio` (a number, or a `rankValue` per rank). It applies in step 4, after the other effects;
+   - a value that follows the current health: `missingHealth`. Its row gets the health input by itself.
+
+   An always-on passive gets the `always` trigger: an informational row without a switch. A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins `ConditionsValue`, the link (a new optional param) and the recent builds, like `currentHealth`.
 3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.
 4. When a later patch changes it, never edit the entry in place: give the old one an `until` (the last patch it held) and add a new entry with the same `id` and the new `since`. Ranges of one id must not overlap (a registry test checks it). The same goes for the soft caps, a new version in `MOVEMENT_SPEED_SOFT_CAPS`. Checking at sync time whether a rule is stale is a separate issue.
-5. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank).
+5. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank). An amount read from a tooltip line is tested against the current patch's data (`public/data`), so a sync that renames or changes the line fails the tests.
 6. Nothing else: the Effects list, the link and the stats pick it up.
 
 ### Stage 2: the combo timeline (design)
