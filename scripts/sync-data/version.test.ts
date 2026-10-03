@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test"
 import {
-	compareVersions,
 	resolveLatestVersion,
 	toCommunityDragonPatch,
 	VERSIONS_URL,
@@ -65,15 +64,5 @@ describe("toCommunityDragonPatch", () => {
 		expect(() => toCommunityDragonPatch("16.19")).toThrow(
 			"Invalid Data Dragon version",
 		)
-	})
-})
-
-describe("compareVersions", () => {
-	test("compares numerically, not lexically", () => {
-		expect(["16.9.1", "16.19.1", "16.10.1"].sort(compareVersions)).toEqual([
-			"16.9.1",
-			"16.10.1",
-			"16.19.1",
-		])
 	})
 })

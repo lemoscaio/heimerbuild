@@ -25,11 +25,8 @@ import {
 	type OverrideReport,
 	staleOverrideLines,
 } from "./overrides/apply-overrides"
-import {
-	assertValidVersion,
-	compareVersions,
-	resolveLatestVersion,
-} from "./version"
+import { compareVersions } from "./schemas/patch-range"
+import { assertValidVersion, resolveLatestVersion } from "./version"
 
 // The shared schemas use zod/mini, which loads no locale: keep validation failures readable.
 z.config(z.locales.en())
