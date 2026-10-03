@@ -66,6 +66,7 @@ const passive: Effect = {
 	id: "teemo-w-passive",
 	source: { kind: "ability", championKey: "Teemo", slot: "W" },
 	trigger: { kind: "while", condition: "not-damaged-recently" },
+	stacking: { group: "teemo-w", rule: "replace", priority: 0 },
 	grants: [
 		{
 			kind: "stat",
@@ -79,7 +80,7 @@ const active: Effect = {
 	...passive,
 	id: "teemo-w-active",
 	trigger: { kind: "after-use" },
-	replaces: ["teemo-w-passive"],
+	stacking: { group: "teemo-w", rule: "replace", priority: 1 },
 	grants: [
 		{
 			kind: "stat",
@@ -125,18 +126,26 @@ describe("activeEffects", () => {
 	const available = [teemoPassive, ghostEffect]
 
 	test("with no choices, each effect follows its trigger's default", () => {
-		expect(activeEffects(available, {})).toEqual([teemoPassive])
+		expect(activeEffects(available, {}, context)).toEqual([teemoPassive])
 	})
 
 	test("the user's choices turn effects on and off", () => {
 		expect(
-			activeEffects(available, { ghost: true, "teemo-w-passive": false }),
+			activeEffects(
+				available,
+				{ ghost: true, "teemo-w-passive": false },
+				context,
+			),
 		).toEqual([ghostEffect])
 	})
 
-	test("an effect on replaces the effects it stands in for", () => {
+	test("in a replace group, the higher priority applies", () => {
 		expect(
-			activeEffects([teemoPassive, teemoActive], { "teemo-w-active": true }),
+			activeEffects(
+				[teemoPassive, teemoActive],
+				{ "teemo-w-active": true },
+				context,
+			),
 		).toEqual([teemoActive])
 	})
 })

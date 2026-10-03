@@ -159,6 +159,23 @@ describe("computeBuildStats with effects", () => {
 		).toBeCloseTo(340 * 1.2)
 	})
 
+	test("effects without a stacking group add up before the soft caps", () => {
+		const boost: BuildEffect = {
+			...sprintEffect,
+			id: "boost",
+			effect: { ...sprint, id: "boost" },
+		}
+		const stats = computeBuildStats({
+			...build,
+			effects: {
+				available: [sprintEffect, boost],
+				overrides: { sprint: true, boost: true },
+			},
+		})
+
+		expect(stats.movementSpeed.total).toBeCloseTo(340 * 1.4 * 0.8 + 83)
+	})
+
 	test("effect stats add to the item bonuses before the soft caps", () => {
 		const stats = computeBuildStats({
 			...build,
