@@ -21,6 +21,7 @@ const passive = bind({
 			amount: { by: "rank", rankStat: "movementSpeedPercent" },
 		},
 	],
+	since: "16.19",
 	sourceUrl: `${WIKI}Teemo`,
 })
 const barrier = bind({
@@ -29,6 +30,7 @@ const barrier = bind({
 	trigger: { kind: "after-use" },
 	duration: 2.5,
 	grants: [{ kind: "shield", amount: 280 }],
+	since: "16.19",
 	sourceUrl: `${WIKI}Barrier`,
 })
 const active = bind({
