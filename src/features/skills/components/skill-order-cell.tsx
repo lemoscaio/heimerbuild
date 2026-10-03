@@ -4,7 +4,8 @@ import {
 	type ChampionSpell,
 } from "@schemas/champion"
 import { cva } from "class-variance-authority"
-import { useState } from "react"
+import { CircleMinus } from "lucide-react"
+import { useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
 	Popover,
@@ -13,7 +14,8 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/cn"
-import type { LevelPoint } from "../lib/skill-history"
+import { removeBlockerMessage } from "../lib/remove-blocker-message"
+import type { LevelPoint, RemoveBlocker } from "../lib/skill-history"
 
 export const orderCellVariants = cva(
 	"flex h-9 items-center justify-center rounded-md border font-bold font-display text-xs",
@@ -42,14 +44,19 @@ type SkillOrderCellProps = {
 	spells: readonly ChampionSpell[]
 	canPlace: (slot: AbilitySlot) => boolean
 	onPlace: (slot: AbilitySlot) => void
+	/** Why a spent point cannot be removed: a later point needs it. */
+	removeBlocker: RemoveBlocker | undefined
+	onRemove: () => void
 }
 
-/** A level of the order: opens a choice of the four abilities for that level's point. */
+/** A level of the order: opens a choice of the four abilities for that level's point, or its removal. */
 export function SkillOrderCell({
 	point,
 	spells,
 	canPlace,
 	onPlace,
+	removeBlocker,
+	onRemove,
 }: SkillOrderCellProps) {
 	const [open, setOpen] = useState(false)
 	const chosen = point.state === "spent" ? point.slot : undefined
@@ -57,6 +64,11 @@ export function SkillOrderCell({
 
 	function choose(slot: AbilitySlot) {
 		onPlace(slot)
+		setOpen(false)
+	}
+
+	function remove() {
+		onRemove()
 		setOpen(false)
 	}
 
@@ -100,14 +112,51 @@ export function SkillOrderCell({
 						)
 					})}
 				</div>
+				{!!chosen && (
+					<RemovePointButton blocker={removeBlocker} onRemove={remove} />
+				)}
 			</PopoverContent>
 		</Popover>
 	)
 }
 
+/** Removes the level's point, leaving it unspent; disabled with the reason when a later point needs it. */
+function RemovePointButton({
+	blocker,
+	onRemove,
+}: {
+	blocker: RemoveBlocker | undefined
+	onRemove: () => void
+}) {
+	const reasonId = useId()
+
+	return (
+		<div className="mt-1 flex flex-col gap-1 border-line border-t pt-1.5">
+			<Button
+				type="button"
+				variant="ghost"
+				size="sm"
+				disabled={!!blocker}
+				focusableWhenDisabled
+				aria-describedby={blocker ? reasonId : undefined}
+				className="justify-start data-disabled:cursor-not-allowed data-disabled:opacity-40"
+				onClick={onRemove}
+			>
+				<CircleMinus aria-hidden="true" />
+				Remove point
+			</Button>
+			{!!blocker && (
+				<p id={reasonId} className="text-prose">
+					{removeBlockerMessage(blocker)}
+				</p>
+			)}
+		</div>
+	)
+}
+
 function triggerLabel(point: EditableLevelPoint) {
 	if (point.state === "spent") {
-		return `Level ${point.level}: ${point.slot}, spent. Change`
+		return `Level ${point.level}: ${point.slot}, spent. Change or remove`
 	}
 	const hint = point.suggestion ? `, suggested ${point.suggestion}` : ""
 	return `Level ${point.level}: point to spend${hint}. Choose`

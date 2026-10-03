@@ -10,6 +10,7 @@ export function SkillOrderList({
 	ranks,
 	canPlace,
 	onPlace,
+	onRemove,
 }: SkillOrderGridProps) {
 	const rows = levels.filter((point) => point.state !== "future")
 
@@ -41,6 +42,7 @@ export function SkillOrderList({
 					<SkillLevelCells
 						point={point}
 						onPlace={(slot) => onPlace(point.level, slot)}
+						onRemove={() => onRemove(point.level)}
 						className="grid grid-cols-4 gap-1.5"
 					>
 						{spells.map((spell) => (

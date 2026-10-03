@@ -1,5 +1,5 @@
 import type { ChampionAbilities } from "@schemas/champion"
-import { RotateCcw } from "lucide-react"
+import { CircleAlert, RotateCcw } from "lucide-react"
 import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { useSkillActions } from "../hooks/use-skill-actions"
@@ -38,8 +38,8 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 					{skills.hasSkillOrder && (
 						<p className="text-subtle text-xs">
 							Level {level} · {skills.spentCount} spent, {skills.unspentCount}{" "}
-							to spend. Pick a cell to put that level's point there; a dashed
-							cell is only a suggestion.
+							to spend. Pick a cell to put that level's point there, or press a
+							spent cell again to remove it; a dashed cell is only a suggestion.
 						</p>
 					)}
 				</div>
@@ -67,7 +67,17 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 						ranks={skills.ranks}
 						canPlace={skills.canPlace}
 						onPlace={actions.place}
+						onRemove={actions.remove}
 					/>
+					{!!actions.refusal && (
+						<p className="flex items-start gap-2 rounded-lg border border-line-strong p-3 text-prose text-xs leading-snug">
+							<CircleAlert
+								aria-hidden="true"
+								className="mt-0.5 size-3.5 shrink-0 text-warning"
+							/>
+							{actions.refusal}
+						</p>
+					)}
 					{!!skills.keptCount && (
 						<p className="flex items-start gap-2 rounded-lg border border-line p-3 text-prose text-xs leading-snug">
 							<RotateCcw
