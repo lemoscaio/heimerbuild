@@ -20,7 +20,8 @@ src/
 │   ├── item-shop/        item grid, role/stat filters, sorting, tooltips
 │   ├── runes/            rune page editor (trees, runes, stat shards) and its summary card
 │   ├── skills/           skill points: rank rules, suggested order and history, the skills row and Skills tab
-│   └── summoners/        the two summoner spell slots: picks, swap, checks against the patch's spells
+│   ├── summoners/        the two summoner spell slots: picks, swap, checks against the patch's spells
+│   └── conditions/       the conditional effects turned on or off (useConditions) and the Effects list
 ├── data/                 game data loading: fetch + Zod parsing, data hooks, query options
 │   ├── services/         fetchGameData, fetchManifest, fetchChampion, fetchItems
 │   ├── queries/          queryOptions() factories (gameDataQueries)
@@ -29,7 +30,7 @@ src/
 │   ├── ui/               primitives with no domain knowledge: button, slider, tooltip
 │   ├── motion/           generic motion primitives (Collapse, Stagger) and motion tokens
 │   └── common/           shared app UI: header, logo, app name
-├── lib/                  pure, React-free code: stats engine, cn(), formatters, analytics (track, flags)
+├── lib/                  pure, React-free code: stats engine, effect model (lib/effects), cn(), formatters, analytics (track, flags)
 ├── hooks/                hooks used by 2+ features, and generic ones (use-feature-flag.ts)
 ├── types/                types used by 2+ features (not derivable from a schema)
 ├── assets/               images imported by code
@@ -78,7 +79,7 @@ features/<feature>/
 ### Import boundaries
 
 - **A feature never imports another feature. No exceptions.** Pages compose features; anything two features need is promoted to a shared layer.
-- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, on top of `useChampionBuild`, which composes the domain hooks of five features; see [Build composition](#build-composition)) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
+- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, on top of `useChampionBuild`, which composes the domain hooks of six features; see [Build composition](#build-composition)) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`. Never `pages/` or `routes/`.
 - Pages may import features and the shared layers, never `routes/`. Routes import pages.
 - Shared layers never import from `features/`, `pages/` or `routes/`.
@@ -118,14 +119,16 @@ pages/champion-build/hooks/
 | Items | `useBuildItems` (chosen items, full-build notice, announcement, item events) | `build-calculator` | `itemIds` |
 | Rune page | `useRunePage` (checked page, stat shards) | `runes` | `runes` |
 | Summoner spells | `useSummoners` (the two slots, pick, swap, clear) | `summoners` | `summoners` |
+| Conditions | `useConditions` (the effects turned on or off, with their values) | `conditions` | `effects` |
 
 - **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`, `readSummoners`); the hook stays thin and is covered by the e2e flows.
 - **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
 - **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills, runes and summoner spells replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores).
-- **Pure stats.** `computeBuildStats({ champion, level, form, items, shards, ranks })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`).
+- **Pure stats.** `computeBuildStats({ champion, level, form, items, shards, ranks, effects })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`), an effect turned on (`effects`; see [Effects](#effects)).
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
 - **Hints between domains** are page wiring too: the runes that react to the chosen summoner spells come from `lib/summoner-rune-interactions.ts` (typed rules, numbers read from the patch's runes), computed in `useBuildPage` and passed to the rune page (`summonerHints`) and the spell picker (`spellEffects`). Neither feature imports the other.
-- **Adding a domain** (conditions, as summoner spells did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
+- **Conditions read the other domains.** The composer builds `availableEffects({ champion, ranks, spells, runes })` from the skills, summoner spells and rune page, and injects it into `useConditions` and into the stats (`effects: { available, overrides }`). Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices stay as given.
+- **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
 
@@ -135,7 +138,67 @@ Shared links must keep opening the same build, so the link format has a version:
 - **Recent builds** store each build as its link search (`{ championKey, search }`) and read it back through `readBuildSearch`, so they migrate like links. Entries saved before versions are read as v1.
 - **Needs a bump:** renaming or removing a param, or changing what a value means or how it is encoded (the rune page string, the skill letters, item ids). Add one pure migration to `BUILD_LINK_MIGRATIONS` (that raises `BUILD_LINK_VERSION`) and a fixture with a real link from the older version to `src/app/build-link-fixtures.test.ts`, which must keep opening the same build.
 - **No bump:** a new optional param (old links simply lack it, and its absence means its default) or a new accepted value of an existing param. Experimental domains can live in a non-URL build source until their format is stable, then join the link.
+- **`effects`** holds only the choices that differ from each effect's default, by effect id: `ghost` turns Ghost on, `-teemo-w-passive` turns Move Quick's passive off (`effects=ghost,-teemo-w-passive`, `serializeEffectOverrides` in `lib/effects/effect-overrides.ts`). No choice means no param. A choice for an effect the build no longer has (Ghost swapped for Flash) is dropped on the next edit. It came as a new optional param of v1 (no bump).
 - **`skills`** holds one letter per level (`Q`, `W`, `E`, `R`), level 1 first, with `_` (`UNSPENT_LEVEL_MARK`, `lib/skill-order-param.ts`) for a level whose point is unspent: `Q_Q` is Q at levels 1 and 3. Levels after the last letter are unspent, so trailing `_` are never written. The `_` came as a new accepted value of v1 (no bump): older links never contain it and read as before.
+
+## Effects
+
+Conditional effects (an ability's passive that holds only while not hit, a summoner spell, a rune that triggers after one) are **typed, sourced data**, never an `if` in the stats code. One evaluator applies them; it knows trigger and grant kinds, never a champion or a spell.
+
+```
+lib/effects/
+├── effect.ts               Effect, Grant, Trigger, Amount, BuildEffect, EffectOverrides
+├── defaults.ts             isOnByDefault: a lookup on the trigger kind
+├── evaluate.ts             activeEffects, resolveGrants, effectStatsInput, alwaysOnRankStats
+├── available-effects.ts    availableEffects(build): the effects whose source is in the build
+├── effect-overrides.ts     the `effects` link param
+└── registries/             one registry per source: ability, summoner, rune, item effects
+```
+
+- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn` and `replaces`, and it always has a `sourceUrl`.
+- **Amounts** are a number or a table read at the build's state:
+  - `level`: the summoner spell's synced value by champion level;
+  - `rank`: the ability's synced rank stat by its rank, with a `scale`;
+  - `summonerCooldown`: brackets of the spell's cooldown.
+
+  Numbers come from the synced data whenever it has them. A hand-written number (Nimbus Cloak's brackets, spellblade ratios) cites its page in `sourceUrl` and has a test against it.
+- **Defaults come from the trigger.** `always` and `while: <condition>` are on: the stats show a champion at rest. `after-use`, `after-summoner`, `on-hit` and `after-ability` are off. `defaultOn` overrides it as data.
+- **Which effects a build has:** `availableEffects` keeps:
+  - an ability effect whose champion is the build's and whose ability has a rank;
+  - a summoner effect whose spell is chosen;
+  - a rune effect whose rune is on the page.
+
+  An `after-summoner` effect becomes one effect per chosen spell (`nimbus-cloak-flash`), since its value depends on the spell cast. Item effects are not listed yet (stage 1).
+- **Active** = available, filtered by the user's choice or else the default, minus the effects an active one `replaces` (Move Quick's active doubles the passive, so it stands in for it).
+- **A rank stat an effect reads belongs to that effect.** Teemo's W rank stat is synced like any other, but `alwaysOnRankStats` leaves it to the `teemo-w-passive` effect. On by default, it keeps the old totals.
+
+### Evaluation order
+
+`computeBuildStats` applies, in order:
+
+1. the champion's base stats at its level and form;
+2. items, stat shards and rank stats;
+3. the active effects' stats, as one more stat source (they add to the item bonuses);
+4. stat-dependent bonuses (issue 266: they read the totals so far);
+5. the movement speed soft caps (`lib/stats/movement-speed.ts`; wiki "Movement speed");
+6. the outputs: shields and heals, from `resolveGrants` per effect. The Effects list shows them on each row, on or off.
+
+### Adding an effect
+
+1. Find its numbers in the synced data (`summoner-spells.json` values, a champion's `rankStats`), or on the wiki or CommunityDragon when the data lacks them.
+2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default and its `sourceUrl`. A new kind of trigger, grant or amount is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id.
+3. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank).
+4. Nothing else: the Effects list, the link and the stats pick it up.
+
+### Stage 2: the combo timeline (design)
+
+The combo builder (issue 69) simulates a sequence of actions: basic attacks, Q/W/E/R, summoner spells and waits. It reuses this model unchanged:
+
+- **State:** time, the active effects with their end times, marks on the target, cooldowns and stacks.
+- **Events:** each action emits events (`on-cast`, `on-hit`, `after-ability`, `after-summoner`, `target-marked`, `mark-consumed`). An effect whose trigger matches an event starts with its `duration`. An effect with `endsOn` stops when its event happens. `cooldown` and `stacks` gate it.
+- **Each step's stats** are `computeBuildStats` with the effects active at that moment. Active comes from the event history instead of the switches; it is the same evaluator.
+- **Damage** grants (spellblade, already registered) resolve their `ratios` against that step's stats.
+- New trigger kinds (`on-cast`, `target-marked`, `mark-consumed`) and the simulator, another pure function, are the only additions.
 
 ## Where does new code go
 
