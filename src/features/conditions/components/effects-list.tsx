@@ -11,14 +11,26 @@ import {
 	stackedOutText,
 } from "../lib/effect-text"
 
-type EffectsListProps = {
-	/** The build's conditional effects; nothing shows without any. */
+type HealthProps = {
+	/** The current health input (`CurrentHealthInput`), shown on the rows whose effect reads it. */
+	healthInput?: React.ReactNode
+}
+
+type EffectsListProps = HealthProps & {
+	/** The build's effects; nothing shows without any. */
 	conditions: readonly Condition[]
 	onToggle: (id: string, on: boolean) => void
 }
 
-/** Under the stats: the build's conditional effects, one card per source, each part with its switch. */
-export function EffectsList({ conditions, onToggle }: EffectsListProps) {
+/**
+ * Under the stats: the build's effects, one card per source. A conditional part has its switch; an
+ * always-on one only informs. A part that reads the current health carries its input.
+ */
+export function EffectsList({
+	conditions,
+	onToggle,
+	...health
+}: EffectsListProps) {
 	const headingId = useId()
 	if (!conditions.length) return null
 
@@ -32,19 +44,24 @@ export function EffectsList({ conditions, onToggle }: EffectsListProps) {
 			</h3>
 			<ul className="flex flex-col gap-0.5">
 				{effectCards(conditions).map((card) => (
-					<EffectCard key={card.key} card={card} onToggle={onToggle} />
+					<EffectCard
+						key={card.key}
+						card={card}
+						onToggle={onToggle}
+						{...health}
+					/>
 				))}
 			</ul>
 		</section>
 	)
 }
 
-type EffectCardProps = {
+type EffectCardProps = HealthProps & {
 	card: Card
 	onToggle: (id: string, on: boolean) => void
 }
 
-function EffectCard({ card, onToggle }: EffectCardProps) {
+function EffectCard({ card, onToggle, ...health }: EffectCardProps) {
 	const titleId = useId()
 
 	return (
@@ -60,6 +77,7 @@ function EffectCard({ card, onToggle }: EffectCardProps) {
 						condition={condition}
 						titleId={titleId}
 						onToggle={(on) => onToggle(condition.effect.id, on)}
+						{...health}
 					/>
 				))}
 			</div>
@@ -85,26 +103,43 @@ const effectValues = cva("font-medium tabular-nums", {
 	},
 })
 
-type EffectRowProps = {
+type EffectRowProps = HealthProps & {
 	condition: Condition
-	/** The card's title, which starts the switch's name. */
+	/** The card's title, which starts the row's name. */
 	titleId: string
 	onToggle: (on: boolean) => void
 }
 
-function EffectRow({ condition, titleId, onToggle }: EffectRowProps) {
+function EffectRow({
+	condition,
+	titleId,
+	onToggle,
+	healthInput,
+}: EffectRowProps) {
 	const partId = useId()
 	const whenId = useId()
 	const valuesId = useId()
 	const reasonId = useId()
-	const { isOn, grants } = condition
+	const { isOn, isSwitchable, grants } = condition
 	const part = partLabel(condition)
 	const reason = stackedOutText(condition)
 	const isApplied = isOn && !reason
+	const name = {
+		"aria-labelledby": [titleId, part && partId, whenId]
+			.filter(Boolean)
+			.join(" "),
+		"aria-describedby": [reason && reasonId, valuesId]
+			.filter(Boolean)
+			.join(" "),
+	}
 
 	return (
-		<div className={effectRow({ stackedOut: !!reason })}>
-			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+		<div
+			className={effectRow({ stackedOut: !!reason })}
+			// An always-on row has no switch to carry its name, so the row carries it.
+			{...(!isSwitchable && { role: "group", ...name })}
+		>
+			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
 				{part && (
 					<span id={partId} className="font-semibold text-prose">
 						{part}
@@ -124,18 +159,16 @@ function EffectRow({ condition, titleId, onToggle }: EffectRowProps) {
 						{reason}
 					</span>
 				)}
-			</span>
-			<Switch
-				checked={isOn}
-				onCheckedChange={onToggle}
-				disabled={!!reason}
-				aria-labelledby={[titleId, part && partId, whenId]
-					.filter(Boolean)
-					.join(" ")}
-				aria-describedby={[reason && reasonId, valuesId]
-					.filter(Boolean)
-					.join(" ")}
-			/>
+				{condition.readsCurrentHealth && healthInput}
+			</div>
+			{isSwitchable && (
+				<Switch
+					checked={isOn}
+					onCheckedChange={onToggle}
+					disabled={!!reason}
+					{...name}
+				/>
+			)}
 		</div>
 	)
 }
