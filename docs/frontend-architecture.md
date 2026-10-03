@@ -124,10 +124,10 @@ pages/champion-build/hooks/
 - **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`, `readSummoners`); the hook stays thin and is covered by the e2e flows.
 - **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
 - **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills, runes and summoner spells replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores).
-- **Pure stats.** `computeBuildStats({ champion, level, form, items, shards, ranks, effects })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`), an effect turned on (`effects`; see [Effects](#effects)).
+- **Pure stats.** `computeBuildStats({ champion, patch, level, form, items, shards, ranks, effects })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`), an effect turned on (`effects`; see [Effects](#effects)).
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
 - **Hints between domains** are page wiring too: the runes that react to the chosen summoner spells come from `lib/summoner-rune-interactions.ts` (typed rules, numbers read from the patch's runes), computed in `useBuildPage` and passed to the rune page (`summonerHints`) and the spell picker (`spellEffects`). Neither feature imports the other.
-- **Conditions read the other domains.** The composer builds `availableEffects({ champion, ranks, spells, runes })` from the skills, summoner spells and rune page, and injects it into `useConditions` and into the stats (`effects: { available, overrides }`). Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices stay as given.
+- **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` and into the stats (`effects: { available, overrides }`). Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices stay as given.
 - **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
@@ -153,10 +153,10 @@ lib/effects/
 ├── stacking.ts             resolveStacking: one pure function for the stacking groups
 ├── available-effects.ts    availableEffects(build): the effects whose source is in the build
 ├── effect-overrides.ts     the `effects` link param
-└── registries/             one registry per source: ability, summoner, rune, item effects
+└── registries/             one registry per source: ability, summoner, rune, item effects; VERIFIED_ON
 ```
 
-- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group and a `part` (`passive` or `active`, the row label in its ability's card), and it always has a `sourceUrl`.
+- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It holds for a patch range (`since`, optional `until`). It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group and a `part` (`passive` or `active`, the row label in its ability's card), and it always has a `sourceUrl`.
 - **Amounts** are a number or a table read at the build's state:
   - `level`: the summoner spell's synced value by champion level;
   - `rank`: the ability's synced rank stat by its rank, with a `scale`;
@@ -180,6 +180,7 @@ lib/effects/
   | `unique` | the first one, once | a unique item passive held twice |
 
   The Effects list shows a stacked-out effect that is on dimmed, with its switch disabled and the reason ("Replaced by the active").
+- **Patch validity.** Every effect and every hand-written rule (the movement speed soft caps in `MOVEMENT_SPEED_SOFT_CAPS`, Nimbus Cloak's brackets, the stacking groups) has a patch range with the data overrides' convention: `since` and an optional `until`, as `major.minor`, inclusive (`PatchRange` and `isInPatchRange` in `scripts/sync-data/schemas/patch-range.ts`). The build's patch picks the version in force: `availableEffects({ patch, … })` drops effect versions outside it, and `computeBuildStats({ patch, … })` applies that patch's soft caps. So a link pinned to an older patch keeps that patch's rules. Brackets and stacking groups are fields of an effect, so they follow its range.
 - **A rank stat an effect reads belongs to that effect.** Teemo's W rank stat is synced like any other, but `alwaysOnRankStats` leaves it to the `teemo-w-passive` effect. On by default, it keeps the old totals.
 
 ### Evaluation order
@@ -196,10 +197,11 @@ lib/effects/
 ### Adding an effect
 
 1. Find its numbers in the synced data (`summoner-spells.json` values, a champion's `rankStats`), or on the wiki or CommunityDragon when the data lacks them.
-2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default and its `sourceUrl`. A new kind of trigger, grant or amount is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id.
+2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default, its `sourceUrl` and `since`: the patch you checked the numbers on (`VERIFIED_ON` for the stage-1 effects). A new kind of trigger, grant or amount is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id.
 3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.
-4. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank).
-5. Nothing else: the Effects list, the link and the stats pick it up.
+4. When a later patch changes it, never edit the entry in place: give the old one an `until` (the last patch it held) and add a new entry with the same `id` and the new `since`. Ranges of one id must not overlap (a registry test checks it). The same goes for the soft caps, a new version in `MOVEMENT_SPEED_SOFT_CAPS`. Checking at sync time whether a rule is stale is a separate issue.
+5. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank).
+6. Nothing else: the Effects list, the link and the stats pick it up.
 
 ### Stage 2: the combo timeline (design)
 
