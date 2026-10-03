@@ -16,6 +16,7 @@ import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
 import { availableEffects } from "@/lib/effects/available-effects"
 import { selectedRunes } from "@/lib/rune-selection"
+import { itemsAdaptiveType } from "@/lib/stats/adaptive-force"
 import {
 	type BuildStatsInput,
 	computeBuildStats,
@@ -100,12 +101,22 @@ export function useChampionBuild({
 			level: championState.level,
 			ranks: skills.ranks,
 			rankStats: champion?.rankStats,
+			adaptiveType:
+				champion && itemsAdaptiveType(champion.adaptiveType, items.list),
 			totals: basisInput && statBonusBasis(basisInput),
 		},
-		value: { effects: state.effects ?? {}, currentHealth: state.currentHealth },
+		value: {
+			effects: state.effects ?? {},
+			currentHealth: state.currentHealth,
+			gameTime: state.gameTime,
+		},
 		onChange: (value) =>
 			save(
-				{ effects: value.effects, currentHealth: value.currentHealth },
+				{
+					effects: value.effects,
+					currentHealth: value.currentHealth,
+					gameTime: value.gameTime,
+				},
 				EDIT_HISTORY.effects,
 			),
 	})
@@ -120,6 +131,7 @@ export function useChampionBuild({
 		summoners: summoners.value,
 		effects: conditions.value.effects,
 		currentHealth: conditions.value.currentHealth,
+		gameTime: conditions.value.gameTime,
 	}
 
 	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
@@ -154,6 +166,7 @@ export function useChampionBuild({
 			ranks: skills.ranks,
 			effects: { available: effects ?? [], overrides: state.effects ?? {} },
 			currentHealth: state.currentHealth,
+			gameTime: state.gameTime,
 			...change,
 		}
 	}

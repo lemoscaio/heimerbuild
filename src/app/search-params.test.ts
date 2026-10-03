@@ -29,6 +29,13 @@ describe("stringifySearch", () => {
 		expect(buildSearchSchema.parse(defaultParseSearch(search))).toEqual(build)
 	})
 
+	test("round-trips the game time", () => {
+		const build = { lvl: 11, min: 30 }
+		const search = stringifySearch(build)
+		expect(search).toContain("min=30")
+		expect(buildSearchSchema.parse(defaultParseSearch(search))).toEqual(build)
+	})
+
 	test("round-trips a single item", () => {
 		const build = { items: ["3089"] }
 		expect(
