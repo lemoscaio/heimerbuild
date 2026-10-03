@@ -50,11 +50,13 @@ export function isValidOrder(order: SkillOrder, rules: SkillRules): boolean {
 	return validPrefix(order, rules).length === order.length
 }
 
-/** The point the game would suggest at `level`: the recommended first points, then the max priority. */
-function suggestedPoint(
+/**
+ * The ability the recommended order suggests for the point of `level`, after `order`: Riot's first
+ * points, then its max priority. Only a hint: it never counts until spent.
+ */
+export function suggestedPoint(
 	order: SkillOrder,
-	rules: SkillRules,
-	level: number,
+	{ level, rules }: { level: number; rules: SkillRules },
 ): AbilitySlot | undefined {
 	const ranks = ranksOf(order, rules)
 	const candidates = [
@@ -67,18 +69,18 @@ function suggestedPoint(
 	)
 }
 
-/** `picks` (a valid order) followed by the suggested points up to `level`. */
-export function autoFill(
-	picks: SkillOrder,
+/** `order` followed by the recommended points up to `level`: "Use recommended order". */
+export function withRecommended(
+	order: SkillOrder,
 	{ level, rules }: { level: number; rules: SkillRules },
 ): SkillOrder {
-	const order = [...picks.slice(0, level)]
-	while (order.length < level) {
-		const next = suggestedPoint(order, rules, order.length + 1)
+	const filled = [...order.slice(0, level)]
+	while (filled.length < level) {
+		const next = suggestedPoint(filled, { level: filled.length + 1, rules })
 		if (!next) break
-		order.push(next)
+		filled.push(next)
 	}
-	return order
+	return filled
 }
 
 /** `order` as the `skills` URL value ("EQWE"); undefined when empty. */

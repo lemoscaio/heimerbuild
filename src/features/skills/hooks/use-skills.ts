@@ -2,9 +2,11 @@ import type { AbilitySlot, Champion } from "@schemas/champion"
 import { useState } from "react"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import {
+	fillRecommended,
+	levelPoints,
+	nextSuggestion,
 	placePoint,
 	type SkillPicks,
-	skillPointsAt,
 	spendBlocker,
 	spendPoint,
 	withKeptPicks,
@@ -15,7 +17,7 @@ import { skillRulesOf } from "../lib/skill-rules"
 type UseSkillsOptions = {
 	champion: Pick<Champion, "key" | "abilities" | "skillRules"> | undefined
 	level: number
-	/** The picked points as the `skills` URL value ("EQWE"): only the points up to `level`. */
+	/** The spent points as the `skills` URL value ("EQWE"): only the points up to `level`. */
 	value: string | undefined
 	onChange: (value: string | undefined) => void
 }
@@ -25,8 +27,8 @@ type RememberedPicks = { championKey: string; picks: SkillPicks }
 export type Skills = ReturnType<typeof useSkills>
 
 /**
- * The champion's skill points, controlled by `value`. It also remembers the picks above `level`
- * so raising the level brings them back; the value never carries them.
+ * The champion's skill points, controlled by `value`: only spent points count. It also remembers
+ * the points above `level` so raising the level brings them back; the value never carries them.
  */
 export function useSkills({
 	champion,
@@ -42,15 +44,9 @@ export function useSkills({
 		linkPicks,
 		level,
 	)
-	const points = rules?.hasSkillOrder
-		? skillPointsAt(picks, { level, rules })
-		: []
-	const ranks =
-		rules &&
-		ranksOf(
-			points.map(({ slot }) => slot),
-			rules,
-		)
+	const spent = picks.slice(0, level)
+	const ranks = rules && ranksOf(spent, rules)
+	const hasSkillOrder = !!rules?.hasSkillOrder
 
 	function commit(next: SkillPicks | undefined) {
 		if (!champion || !next) return
@@ -60,32 +56,42 @@ export function useSkills({
 
 	return {
 		/** False for a champion whose points raise stats (Aphelios). */
-		hasSkillOrder: !!rules?.hasSkillOrder,
-		/** The game's suggested max order for the automatic points ("R, E, Q, W"). */
+		hasSkillOrder,
+		/** The recommended max order ("R, E, Q, W"). */
 		suggestedPriority: rules?.recommended.priority ?? [],
-		/** The point of each level up to the current one, picked or suggested. */
-		points,
-		/** Each ability's rank at the current level, suggested points included. */
+		/** What each level 1 to 18 holds: spent, next, still to spend, kept or not reached. */
+		levels: rules && hasSkillOrder ? levelPoints(picks, { level, rules }) : [],
+		/** Each ability's rank from the spent points; suggestions never count. */
 		ranks,
-		/** Picks above the current level, restored when the level goes back up. */
+		spentCount: spent.length,
+		/** Points up to the current level not spent yet. */
+		unspentCount: hasSkillOrder ? level - spent.length : 0,
+		/** The recommended ability for the next point: only a hint. */
+		suggestion:
+			rules && hasSkillOrder
+				? nextSuggestion(picks, { level, rules })
+				: undefined,
+		/** Points above the current level, restored when the level goes back up. */
 		keptPicks: picks.slice(level),
-		pickedCount: Math.min(picks.length, level),
-		/** Why `slot` cannot take one more point; undefined when it can. */
+		/** Why `slot` cannot take the next point; undefined when it can. */
 		spendBlocker: (slot: AbilitySlot) =>
 			rules ? spendBlocker(picks, { slot, level, rules }) : undefined,
-		/** Moves the first suggested point of another ability to `slot`. */
+		/** Spends the next point on `slot`. */
 		spend: (slot: AbilitySlot) =>
 			rules && commit(spendPoint(picks, { slot, level, rules })),
 		canPlace: (pointLevel: number, slot: AbilitySlot) =>
 			!!rules && !!placePoint(picks, { slot, pointLevel, level, rules }),
-		/** Puts the point of `pointLevel` on `slot`. */
+		/** Puts the point of `pointLevel` on `slot`: changes a spent point or spends the next one. */
 		place: (pointLevel: number, slot: AbilitySlot) =>
 			rules && commit(placePoint(picks, { slot, pointLevel, level, rules })),
-		/** Back to the suggested order: drops every pick, kept ones included. */
+		/** Spends every point left with the recommended order. */
+		fillRecommended: () =>
+			rules && commit(fillRecommended(picks, { level, rules })),
+		/** Clears every point, kept ones included. */
 		reset: () => commit([]),
 		/**
-		 * Remembers the picks for a level change and returns the `value` at `nextLevel`, to save with
-		 * the new level: lowering keeps the picks above it, raising brings them back.
+		 * Remembers the points for a level change and returns the `value` at `nextLevel`, to save with
+		 * the new level: lowering keeps the points above it, raising brings them back.
 		 */
 		valueAtLevel(nextLevel: number) {
 			if (champion && picks.length > Math.min(level, nextLevel)) {
@@ -96,7 +102,7 @@ export function useSkills({
 		/** `ranks` with `slot` one rank higher: the base of the rank-up preview. */
 		ranksWithNext: (slot: AbilitySlot): AbilityRanks | undefined =>
 			ranks && { ...ranks, [slot]: ranks[slot] + 1 },
-		/** The picks up to the current level, cleaned of invalid points: the value for links. */
-		value: serializeOrder(picks.slice(0, level)),
+		/** The spent points up to the current level, cleaned of invalid ones: the value for links. */
+		value: serializeOrder(spent),
 	}
 }

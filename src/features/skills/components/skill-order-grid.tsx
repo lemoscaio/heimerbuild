@@ -1,18 +1,16 @@
 import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
 import { GameIcon } from "@/components/common/game-icon"
-import { ToggleGroup } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/cn"
-import { MAX_LEVEL } from "@/lib/stats/growth"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
-import type { SkillPoint } from "../lib/skill-history"
+import type { LevelPoint } from "../lib/skill-history"
 import { SkillGridCell } from "./skill-grid-cell"
-
-const LEVELS = Array.from({ length: MAX_LEVEL }, (_, index) => index + 1)
+import { SkillLevelCells } from "./skill-level-cells"
 
 export type SkillOrderGridProps = {
 	spells: readonly ChampionSpell[]
-	points: readonly SkillPoint[]
-	keptPicks: readonly AbilitySlot[]
+	levels: readonly LevelPoint[]
+	/** The current champion level. */
+	level: number
 	ranks: AbilityRanks
 	canPlace: (pointLevel: number, slot: AbilitySlot) => boolean
 	onPlace: (pointLevel: number, slot: AbilitySlot) => void
@@ -21,14 +19,12 @@ export type SkillOrderGridProps = {
 /** The game's skill order grid: a row per ability, a column per level (one toggle group each). */
 export function SkillOrderGrid({
 	spells,
-	points,
-	keptPicks,
+	levels,
+	level,
 	ranks,
 	canPlace,
 	onPlace,
 }: SkillOrderGridProps) {
-	const level = points.length
-
 	return (
 		<div className="scrollbar-purple flex gap-1 overflow-x-auto pb-2">
 			<div className="flex w-32 shrink-0 flex-col gap-1">
@@ -51,50 +47,39 @@ export function SkillOrderGrid({
 					</div>
 				))}
 			</div>
-			{LEVELS.map((columnLevel) => {
-				const point = points[columnLevel - 1]
-				const kept = keptPicks[columnLevel - level - 1]
+			{levels.map((point) => {
 				const cells = spells.map((spell) => (
 					<SkillGridCell
 						key={spell.slot}
 						spell={spell}
-						level={columnLevel}
 						point={point}
-						canPlace={!!point && canPlace(columnLevel, spell.slot)}
-						isKept={kept === spell.slot}
+						canPlace={canPlace(point.level, spell.slot)}
 					/>
 				))
 				return (
 					<div
-						key={columnLevel}
+						key={point.level}
 						className={cn("flex min-w-6 flex-1 flex-col gap-1", {
-							"border-lilac border-r-2 pr-1": columnLevel === level,
+							"border-lilac border-r-2 pr-1": point.level === level,
 						})}
 					>
 						<span
 							className={cn(
 								"h-5 text-center font-bold text-[11px] text-subtle tabular-nums",
-								{ "text-white": columnLevel <= level },
+								{ "text-white": point.level <= level },
 							)}
 						>
 							<span className="sr-only">Level </span>
-							{columnLevel}
+							{point.level}
 						</span>
-						{point ? (
-							<ToggleGroup
-								aria-label={`Level ${columnLevel} point`}
-								orientation="vertical"
-								className="flex-col items-stretch gap-1"
-								value={[point.slot]}
-								onValueChange={([next]) =>
-									next && next !== point.slot && onPlace(columnLevel, next)
-								}
-							>
-								{cells}
-							</ToggleGroup>
-						) : (
-							cells
-						)}
+						<SkillLevelCells
+							point={point}
+							onPlace={(slot) => onPlace(point.level, slot)}
+							className="flex-col items-stretch gap-1"
+							orientation="vertical"
+						>
+							{cells}
+						</SkillLevelCells>
 					</div>
 				)
 			})}

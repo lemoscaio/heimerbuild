@@ -2,12 +2,12 @@ import type { ChampionAbilities } from "@schemas/champion"
 import { RotateCcw } from "lucide-react"
 import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
-import { Button } from "@/components/ui/button"
 import { useSkillActions } from "../hooks/use-skill-actions"
 import type { Skills } from "../hooks/use-skills"
 import { AbilityDetails } from "./ability-details"
 import { SkillOrderGrid } from "./skill-order-grid"
 import { SkillOrderList } from "./skill-order-list"
+import { SkillPointActions } from "./skill-point-actions"
 
 const ORDER_LAYOUTS = { grid: SkillOrderGrid, list: SkillOrderList }
 
@@ -23,8 +23,7 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 	const titleId = useId()
 	const actions = useSkillActions(skills, abilities)
 	const OrderView = ORDER_LAYOUTS[layout]
-	const level = skills.points.length
-	const autoCount = skills.points.filter((point) => point.isAuto).length
+	const level = skills.spentCount + skills.unspentCount
 
 	return (
 		<section
@@ -38,25 +37,24 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 					</h2>
 					{skills.hasSkillOrder && (
 						<p className="text-subtle text-xs">
-							Level {level} · {skills.pickedCount} picked, {autoCount}{" "}
-							automatic. Pick a cell to put that level's point there.
+							Level {level} · {skills.spentCount} spent, {skills.unspentCount}{" "}
+							to spend. Pick a cell to put that level's point there; a dashed
+							cell is only a suggestion.
 						</p>
 					)}
 				</div>
 				{skills.hasSkillOrder && (
-					<div className="flex items-center gap-2 text-xs">
-						<span className="text-subtle">
-							Suggested max: {skills.suggestedPriority.join(" › ")}
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
+						<span className="whitespace-nowrap text-subtle">
+							Recommended max: {skills.suggestedPriority.join(" › ")}
 						</span>
-						<Button
-							type="button"
-							variant="outline"
-							size="sm"
-							disabled={!skills.pickedCount && !skills.keptPicks.length}
-							onClick={actions.reset}
-						>
-							Reset to auto
-						</Button>
+						<SkillPointActions
+							size="regular"
+							canFill={!!skills.unspentCount}
+							canReset={!!skills.spentCount || !!skills.keptPicks.length}
+							onFill={actions.fillRecommended}
+							onReset={actions.reset}
+						/>
 					</div>
 				)}
 			</div>
@@ -64,8 +62,8 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 				<>
 					<OrderView
 						spells={abilities.spells}
-						points={skills.points}
-						keptPicks={skills.keptPicks}
+						levels={skills.levels}
+						level={level}
 						ranks={skills.ranks}
 						canPlace={skills.canPlace}
 						onPlace={actions.place}
@@ -104,10 +102,13 @@ function OrderLegend() {
 	return (
 		<ul className="flex flex-wrap gap-x-4 gap-y-1 text-subtle text-xs">
 			<LegendItem swatch="size-3 rounded-sm bg-gold">
-				Picked (number = rank)
+				Spent (number = rank)
 			</LegendItem>
 			<LegendItem swatch="size-3 rounded-sm border border-gold border-dashed">
-				Automatic
+				Suggested next point (not counted)
+			</LegendItem>
+			<LegendItem swatch="size-3 rounded-sm border border-line/60 bg-surface-sunken/40">
+				To spend later
 			</LegendItem>
 			<LegendItem swatch="size-3 rounded-sm border border-line-strong border-dashed">
 				Kept above the level

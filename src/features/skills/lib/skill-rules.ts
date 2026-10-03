@@ -20,7 +20,7 @@ export type SkillRules = {
 	firstPoint?: AbilitySlot
 	/** False when the points raise stats instead (Aphelios): no skill order at all. */
 	hasSkillOrder: boolean
-	/** The game's suggestion for the automatic points: the first points, then which ability to max. */
+	/** The recommended order, only ever a suggestion: the first points, then which ability to max. */
 	recommended: {
 		firstPoints: readonly AbilitySlot[]
 		priority: readonly AbilitySlot[]

@@ -15,19 +15,29 @@ import type { SpendBlocker } from "../lib/skill-history"
 const rankPipVariants = cva("h-1.5 flex-1 rounded-full", {
 	variants: {
 		state: {
-			picked: "bg-gold",
-			auto: "border border-gold border-dashed",
+			spent: "bg-gold",
+			suggested: "border border-gold border-dashed",
 			empty: "bg-line",
+		},
+	},
+})
+
+const abilityIconVariants = cva("size-11 rounded-lg border-2", {
+	variants: {
+		state: {
+			blocked: "border-line",
+			open: "border-lilac",
+			suggested: "border-gold border-dashed",
 		},
 	},
 })
 
 type AbilityRankButtonProps = {
 	spell: ChampionSpell
-	/** The rank at the current level, suggested points included. */
+	/** The rank from the spent points. */
 	rank: number
-	/** How many of those ranks come from suggested points. */
-	autoRanks: number
+	/** The recommended order suggests the next point here: a hint, never counted. */
+	isSuggested: boolean
 	/** Why it cannot take one more point; undefined when it can. */
 	blocker: SpendBlocker | undefined
 	onSpend: () => void
@@ -35,11 +45,11 @@ type AbilityRankButtonProps = {
 	statChanges?: React.ReactNode
 }
 
-/** One ability: its icon and rank pips. Pressing it puts one more point in it; the tooltip shows what the next rank changes. */
+/** One ability: its icon and rank pips. Pressing it spends the next point on it; the tooltip shows what the next rank changes. */
 export function AbilityRankButton({
 	spell,
 	rank,
-	autoRanks,
+	isSuggested,
 	blocker,
 	onSpend,
 	statChanges,
@@ -54,7 +64,7 @@ export function AbilityRankButton({
 				<TooltipTrigger
 					type="button"
 					closeOnClick={false}
-					aria-label={`${spell.name} (${spell.slot}), rank ${rank} of ${spell.maxRank}`}
+					aria-label={`${spell.name} (${spell.slot}), rank ${rank} of ${spell.maxRank}${isSuggested ? ", suggested next point" : ""}`}
 					aria-describedby={open ? tooltipId : undefined}
 					aria-disabled={!canSpend}
 					className={cn("relative block rounded-lg p-0 outline-offset-2", {
@@ -69,8 +79,8 @@ export function AbilityRankButton({
 					<GameIcon
 						src={spell.icon}
 						name={spell.name}
-						className={cn("size-11 rounded-lg border-2 border-line", {
-							"border-gold": canSpend,
+						className={abilityIconVariants({
+							state: !canSpend ? "blocked" : isSuggested ? "suggested" : "open",
 						})}
 					/>
 					<span
@@ -92,12 +102,17 @@ export function AbilityRankButton({
 					<RankUpDetails
 						spell={spell}
 						rank={rank}
+						isSuggested={isSuggested}
 						blocker={blocker}
 						statChanges={statChanges}
 					/>
 				</TooltipContent>
 			</Tooltip>
-			<RankPips maxRank={spell.maxRank} rank={rank} autoRanks={autoRanks} />
+			<RankPips
+				maxRank={spell.maxRank}
+				rank={rank}
+				isSuggested={isSuggested && canSpend}
+			/>
 		</div>
 	)
 }
@@ -105,11 +120,11 @@ export function AbilityRankButton({
 function RankPips({
 	maxRank,
 	rank,
-	autoRanks,
+	isSuggested,
 }: {
 	maxRank: number
 	rank: number
-	autoRanks: number
+	isSuggested: boolean
 }) {
 	return (
 		<span aria-hidden="true" className="flex w-11 gap-0.5">
@@ -119,11 +134,11 @@ function RankPips({
 					key={index}
 					className={rankPipVariants({
 						state:
-							index >= rank
-								? "empty"
-								: index >= rank - autoRanks
-									? "auto"
-									: "picked",
+							index < rank
+								? "spent"
+								: index === rank && isSuggested
+									? "suggested"
+									: "empty",
 					})}
 				/>
 			))}
@@ -135,14 +150,16 @@ function blockerMessage(blocker: SpendBlocker): string {
 	switch (blocker.reason) {
 		case "max-rank":
 			return "Max rank."
-		case "all-picked":
-			return "Every point up to this level is picked. Raise the level, or change a level in the order."
+		case "no-points":
+			return "No points to spend. Raise the level, or change a level in the order."
+		case "first-point":
+			return `The level 1 point always goes to ${blocker.ability}.`
 		case "needs-level":
 			return `The next rank needs level ${blocker.level}.`
 		case "needs-ability":
 			return `Needs a point in ${blocker.abilities.join(" or ")} first.`
-		case "no-point":
-			return "No point up to this level can move here."
+		case "earlier-point":
+			return `The next rank needs level ${blocker.rankLevel}: spend the level ${blocker.pointLevel} point on another ability first.`
 	}
 }
 
@@ -150,9 +167,10 @@ function blockerMessage(blocker: SpendBlocker): string {
 function RankUpDetails({
 	spell,
 	rank,
+	isSuggested,
 	blocker,
 	statChanges,
-}: Omit<AbilityRankButtonProps, "autoRanks" | "onSpend">) {
+}: Omit<AbilityRankButtonProps, "onSpend">) {
 	const changes = blocker ? [] : rankUpChanges(spell, rank)
 
 	return (
@@ -191,7 +209,10 @@ function RankUpDetails({
 						</ul>
 					)}
 					{statChanges}
-					<p className="text-subtle">Press to put the next point here.</p>
+					{isSuggested && (
+						<p className="text-gold">Suggested by the recommended order.</p>
+					)}
+					<p className="text-subtle">Press to spend a point here.</p>
 				</>
 			)}
 		</div>
