@@ -189,6 +189,15 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })).toEqual([build("Teemo", 3)])
 	})
 
+	test("keep the current health", () => {
+		const storage = memoryStorage()
+		recordRecentBuild(
+			{ ...build("Tryndamere"), currentHealth: 40 },
+			{ storage },
+		)
+		expect(readRecentBuilds({ storage })[0]?.currentHealth).toBe(40)
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

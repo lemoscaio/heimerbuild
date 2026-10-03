@@ -15,6 +15,8 @@ function condition(id: string, fields: Partial<BuildEffect>): Condition {
 	return {
 		effect: { id, effect, name: id, icon: `${id}.png`, ...fields },
 		isOn: false,
+		isSwitchable: true,
+		readsCurrentHealth: false,
 		grants: [],
 	}
 }

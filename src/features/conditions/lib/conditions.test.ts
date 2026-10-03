@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import type { BuildEffect, Effect } from "@/lib/effects/effect"
-import { conditionList, readConditions, setCondition } from "./conditions"
+import {
+	conditionList,
+	readConditions,
+	readCurrentHealth,
+	setCondition,
+} from "./conditions"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
 
@@ -40,6 +45,21 @@ const active = bind({
 	part: "active",
 	stacking: { group: "teemo-w-speed", rule: "replace", priority: 1 },
 })
+const bloodlust = bind({
+	id: "tryndamere-q-passive",
+	source: { kind: "ability", championKey: "Tryndamere", slot: "Q" },
+	trigger: { kind: "always" },
+	part: "passive",
+	grants: [
+		{
+			kind: "stat",
+			stat: "attackDamage",
+			amount: { by: "missingHealth", max: 80, fullAt: 90 },
+		},
+	],
+	since: "16.19",
+	sourceUrl: `${WIKI}Tryndamere`,
+})
 const effects = [passive, barrier]
 
 describe("readConditions", () => {
@@ -58,8 +78,29 @@ describe("readConditions", () => {
 		).toEqual({})
 	})
 
+	test("drops a choice for an always-on effect, which has no switch", () => {
+		expect(
+			readConditions({ "tryndamere-q-passive": false }, [bloodlust]),
+		).toEqual({})
+	})
+
 	test("keeps every choice while the effects load", () => {
 		expect(readConditions({ ghost: true }, undefined)).toEqual({ ghost: true })
+	})
+})
+
+describe("readCurrentHealth", () => {
+	test("keeps the current health while an effect reads it", () => {
+		expect(readCurrentHealth(40, [passive, bloodlust])).toBe(40)
+	})
+
+	test("drops it at full health or when no effect reads it", () => {
+		expect(readCurrentHealth(100, [bloodlust])).toBeUndefined()
+		expect(readCurrentHealth(40, effects)).toBeUndefined()
+	})
+
+	test("keeps it as given while the effects load", () => {
+		expect(readCurrentHealth(40, undefined)).toBe(40)
 	})
 })
 
@@ -93,16 +134,39 @@ describe("conditionList", () => {
 			{
 				effect: passive,
 				isOn: true,
+				isSwitchable: true,
+				readsCurrentHealth: false,
 				grants: [{ kind: "stat", stat: "movementSpeedPercent", value: 0.16 }],
 				duration: undefined,
 			},
 			{
 				effect: barrier,
 				isOn: true,
+				isSwitchable: true,
+				readsCurrentHealth: false,
 				grants: [{ kind: "shield", value: 280 }],
 				duration: 2.5,
 			},
 		])
+	})
+
+	test("an always-on effect has no switch; one that reads the current health says so", () => {
+		const [row] = conditionList(
+			[bloodlust],
+			{},
+			{
+				level: 9,
+				ranks: { Q: 5, W: 0, E: 0, R: 0 },
+				currentHealth: 55,
+			},
+		)
+
+		expect(row).toMatchObject({
+			isOn: true,
+			isSwitchable: false,
+			readsCurrentHealth: true,
+		})
+		expect(row?.grants[0]?.value).toBeCloseTo(40)
 	})
 
 	test("marks an effect on that another of its stacking group stands in for", () => {

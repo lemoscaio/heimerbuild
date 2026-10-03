@@ -108,6 +108,14 @@ describe("buildSearchSchema", () => {
 		expect(parse({ effects: 4 }).effects).toBeUndefined()
 	})
 
+	test("accepts a current health from 1 to 100 percent and drops anything else", () => {
+		expect(parse({ hp: 40 }).hp).toBe(40)
+		expect(parse({ hp: 1 }).hp).toBe(1)
+		for (const hp of [0, 101, 40.5, "low"]) {
+			expect(parse({ hp }).hp).toBeUndefined()
+		}
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
@@ -151,6 +159,13 @@ describe("toBuildSearch", () => {
 			}).effects,
 		).toBe("ghost,-teemo-w-passive")
 		expect(toBuildSearch({ ...build, effects: {} }).effects).toBeUndefined()
+	})
+
+	test("writes the current health, and nothing at full health", () => {
+		const build = { level: 1, itemIds: [], patch: undefined }
+		expect(toBuildSearch({ ...build, currentHealth: 40 }).hp).toBe(40)
+		expect(toBuildSearch({ ...build, currentHealth: 100 }).hp).toBeUndefined()
+		expect(toBuildSearch(build).hp).toBeUndefined()
 	})
 
 	test("writes level, items and patch", () => {
