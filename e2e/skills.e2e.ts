@@ -149,3 +149,40 @@ test("a link's invalid points are left to spend, and reset clears every point", 
 	await expect(page).not.toHaveURL(/[?&]skills=/)
 	await expect(orderLevel(page, 1)).toHaveAccessibleName(/point to spend/)
 })
+
+test("removing a spent point leaves its level unspent, in the stats and the link", async ({
+	page,
+}) => {
+	// Twisted Fate's E (Stacked Deck) grants attack speed per rank.
+	await page.goto("/champions/TwistedFate?lvl=3&skills=QEW")
+	const stats = statsPanel(page)
+	await expect(stats).toBeVisible()
+	const before = await stats.textContent()
+
+	await orderLevel(page, 2).click()
+	await page.getByRole("button", { name: "Remove point" }).click()
+	await expect(page).toHaveURL(/[?&]skills=Q_W\b/)
+	await expect(orderLevel(page, 2)).toHaveAccessibleName(/point to spend/)
+	await expect(orderLevel(page, 3)).toHaveAccessibleName(/W, spent/)
+	await expect(stats).not.toHaveText(before ?? "")
+
+	await page.reload()
+	await expect(orderLevel(page, 2)).toHaveAccessibleName(/point to spend/)
+})
+
+test("a point a later one needs cannot be removed, and says why", async ({
+	page,
+}) => {
+	// Shen's W needs a point in Q first.
+	await page.goto("/champions/Shen?lvl=2&skills=QW")
+	await orderLevel(page, 1).click()
+	const remove = page.getByRole("button", { name: "Remove point" })
+	await expect(remove).toHaveAttribute("aria-disabled", "true")
+	await expect(remove).toHaveAccessibleDescription(/level 2/)
+	await page.keyboard.press("Escape")
+	await expect(remove).toBeHidden()
+
+	await orderLevel(page, 2).click()
+	await page.getByRole("button", { name: "Remove point" }).click()
+	await expect(page).toHaveURL(/[?&]skills=Q\b/)
+})

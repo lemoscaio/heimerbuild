@@ -35,6 +35,29 @@ test("the Skills tab spends any unspent level, edits a spent one and lists each 
 	).toBeVisible()
 })
 
+test("pressing a spent cell again removes its point, unless a later point needs it", async ({
+	page,
+}) => {
+	await page.goto("/champions/Teemo?lvl=9&skills=Q_Q_W&tab=skills")
+	await levelPoint(page, 3)
+		.getByRole("button", { name: /^Q /, pressed: true })
+		.click()
+	await expect(page).toHaveURL(/[?&]skills=Q___W\b/)
+	await expect(
+		levelPoint(page, 3).getByRole("button", { pressed: true }),
+	).toHaveCount(0)
+
+	// Shen's W needs a point in Q first: the level 1 Q stays.
+	await page.goto("/champions/Shen?lvl=2&skills=QW&tab=skills")
+	await levelPoint(page, 1)
+		.getByRole("button", { name: /^Q /, pressed: true })
+		.click()
+	await expect(
+		levelPoint(page, 1).getByRole("button", { name: /^Q /, pressed: true }),
+	).toBeVisible()
+	await expect(page).toHaveURL(/[?&]skills=QW\b/)
+})
+
 test.describe("on a phone", () => {
 	test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 

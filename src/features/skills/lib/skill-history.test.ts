@@ -7,6 +7,8 @@ import {
 	levelPoints,
 	nextSuggestion,
 	placePoint,
+	removeBlocker,
+	removePoint,
 	type SkillPicks,
 	spendBlocker,
 	spendLevel,
@@ -249,6 +251,113 @@ describe("placePoint", () => {
 			expect(
 				placePoint(withGaps, { slot: "Q", pointLevel: 3, level: 9, rules }),
 			).toBe(withGaps)
+		})
+	})
+})
+
+describe("removePoint", () => {
+	test("leaves the level unspent and never moves another point", () => {
+		expect(
+			removePoint(order("QWQEQ"), { pointLevel: 2, level: 5, rules }),
+		).toEqual(order("Q_QEQ"))
+		expect(
+			removePoint(order("Q_Q_W"), { pointLevel: 3, level: 9, rules }),
+		).toEqual(order("Q___W"))
+	})
+
+	test("drops the trailing unspent levels it leaves", () => {
+		expect(
+			removePoint(order("Q_W"), { pointLevel: 3, level: 3, rules }),
+		).toEqual(order("Q"))
+		expect(removePoint(order("Q"), { pointLevel: 1, level: 1, rules })).toEqual(
+			[],
+		)
+	})
+
+	test("the later points of the same ability lose a rank and stay valid", () => {
+		const next = removePoint(order("Q_Q_Q"), { pointLevel: 1, level: 5, rules })
+		expect(next).toEqual(order("__Q_Q"))
+		expect(levelPoints(next ?? [], { level: 5, rules }).slice(2, 5)).toEqual([
+			{ level: 3, state: "spent", slot: "Q", rank: 1 },
+			{ level: 4, state: "free", suggestion: undefined },
+			{ level: 5, state: "spent", slot: "Q", rank: 2 },
+		])
+	})
+
+	test("refuses a level that is unspent, above the current level or out of range", () => {
+		const picks = order("Q_Q")
+		expect(
+			removePoint(picks, { pointLevel: 2, level: 9, rules }),
+		).toBeUndefined()
+		expect(
+			removePoint(picks, { pointLevel: 3, level: 2, rules }),
+		).toBeUndefined()
+		expect(
+			removePoint(picks, { pointLevel: 0, level: 9, rules }),
+		).toBeUndefined()
+		expect(
+			removePoint(picks, { pointLevel: 10, level: 9, rules }),
+		).toBeUndefined()
+	})
+
+	test("lets the game's first point go too, leaving level 1 unspent", () => {
+		const azir = overrideRules("azir-skill-rules")
+		expect(
+			removePoint(order("WQ"), { pointLevel: 1, level: 2, rules: azir }),
+		).toEqual(order("_Q"))
+	})
+
+	test("is a change at or below the level: it drops the points kept above it", () => {
+		// Q at 1 and 3, then W (10) and R (11) kept above level 9.
+		const withGaps = order("Q_Q" + "______" + "WR")
+		expect(removePoint(withGaps, { pointLevel: 3, level: 9, rules })).toEqual(
+			order("Q"),
+		)
+	})
+
+	describe("a later point that needs the removed one", () => {
+		const shen = overrideRules("shen-skill-rules")
+
+		test("refuses the removal and names the level that needs it", () => {
+			// Shen's W needs a Q first: without the level 1 Q, the level 2 W breaks.
+			const picks = order("QWQ")
+			expect(
+				removePoint(picks, { pointLevel: 1, level: 3, rules: shen }),
+			).toBeUndefined()
+			expect(
+				removeBlocker(picks, { pointLevel: 1, level: 3, rules: shen }),
+			).toEqual({ level: 2, slot: "W" })
+		})
+
+		test("allows it once another point still covers the later one", () => {
+			// The level 1 Q still comes before the W.
+			expect(
+				removePoint(order("Q_QW"), { pointLevel: 3, level: 4, rules: shen }),
+			).toEqual(order("Q__W"))
+			// Zilean's W needs Q or E: the E still covers it.
+			expect(
+				removePoint(order("QEW"), {
+					pointLevel: 1,
+					level: 3,
+					rules: overrideRules("zilean-skill-rules"),
+				}),
+			).toEqual(order("_EW"))
+		})
+
+		test("only spent points up to the level count: kept points never block", () => {
+			// Level 2 holds the W, but the level is 1: the W is kept above it and dropped.
+			expect(
+				removeBlocker(order("QW"), { pointLevel: 1, level: 1, rules: shen }),
+			).toBeUndefined()
+			expect(
+				removePoint(order("QW"), { pointLevel: 1, level: 1, rules: shen }),
+			).toEqual([])
+		})
+
+		test("says nothing when the removal is allowed", () => {
+			expect(
+				removeBlocker(order("QWQ"), { pointLevel: 3, level: 3, rules: shen }),
+			).toBeUndefined()
 		})
 	})
 })
