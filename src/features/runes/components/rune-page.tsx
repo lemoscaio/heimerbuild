@@ -306,13 +306,15 @@ function RunePageEditor({
 						</RuneRail>
 					</section>
 				</div>
-				<RuneDetails detail={described} className="lg:col-span-2" />
-				{!!summonerHints.length && (
-					<SummonerInteractions
-						hints={summonerHints}
-						className="lg:col-span-2"
-					/>
-				)}
+				{/* Side by side once the panel is wide enough; the details take the full width alone. */}
+				<div className="@container lg:col-span-2">
+					<div className="grid @xl:auto-cols-fr @xl:grid-flow-col gap-4">
+						<RuneDetails detail={described} />
+						{!!summonerHints.length && (
+							<SummonerInteractions hints={summonerHints} />
+						)}
+					</div>
+				</div>
 			</div>
 		</>
 	)
