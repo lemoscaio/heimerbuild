@@ -12,6 +12,8 @@ const passive = bind({
 	id: "teemo-w-passive",
 	source: { kind: "ability", championKey: "Teemo", slot: "W" },
 	trigger: { kind: "while", condition: "not-damaged-recently" },
+	part: "passive",
+	stacking: { group: "teemo-w-speed", rule: "replace", priority: 0 },
 	grants: [
 		{
 			kind: "stat",
@@ -28,6 +30,13 @@ const barrier = bind({
 	duration: 2.5,
 	grants: [{ kind: "shield", amount: 280 }],
 	sourceUrl: `${WIKI}Barrier`,
+})
+const active = bind({
+	...passive.effect,
+	id: "teemo-w-active",
+	trigger: { kind: "after-use" },
+	part: "active",
+	stacking: { group: "teemo-w-speed", rule: "replace", priority: 1 },
 })
 const effects = [passive, barrier]
 
@@ -92,5 +101,20 @@ describe("conditionList", () => {
 				duration: 2.5,
 			},
 		])
+	})
+
+	test("marks an effect on that another of its stacking group stands in for", () => {
+		const context = { level: 9 }
+		const [passiveRow, activeRow] = conditionList(
+			[passive, active],
+			{ "teemo-w-active": true },
+			context,
+		)
+
+		expect(passiveRow).toMatchObject({ isOn: true, stackedOutBy: active })
+		expect(activeRow?.stackedOutBy).toBeUndefined()
+		expect(
+			conditionList([passive, active], {}, context)[0]?.stackedOutBy,
+		).toBeUndefined()
 	})
 })
