@@ -17,6 +17,7 @@ function condition(id: string, fields: Partial<BuildEffect>): Condition {
 		isOn: false,
 		isSwitchable: true,
 		readsCurrentHealth: false,
+		readsGameTime: false,
 		grants: [],
 	}
 }

@@ -7,6 +7,7 @@ import {
 	grantText,
 	partLabel,
 	stackedOutText,
+	valuesText,
 } from "./effect-text"
 
 function condition(
@@ -26,6 +27,7 @@ function condition(
 		isOn: false,
 		isSwitchable: true,
 		readsCurrentHealth: false,
+		readsGameTime: false,
 		grants: [],
 		duration: fields.duration,
 	}
@@ -86,6 +88,23 @@ describe("grantText", () => {
 	})
 })
 
+describe("valuesText", () => {
+	const ap = (value: number) =>
+		({ kind: "stat", stat: "abilityPower", value }) as const
+
+	test("joins the grants, and adds the next game time step when there is one", () => {
+		const row = condition({ kind: "always" })
+		expect(valuesText({ ...row, grants: [ap(24)] })).toBe("+24 Ability Power")
+		expect(
+			valuesText({
+				...row,
+				grants: [ap(24)],
+				next: { gameTime: 30, grants: [ap(48)] },
+			}),
+		).toBe("+24 Ability Power (next: +48 Ability Power at 30 min)")
+	})
+})
+
 describe("partLabel and stackedOutText", () => {
 	const passive: Effect = {
 		id: "teemo-w-passive",
@@ -110,6 +129,7 @@ describe("partLabel and stackedOutText", () => {
 			isOn: true,
 			isSwitchable: true,
 			readsCurrentHealth: false,
+			readsGameTime: false,
 			grants: [],
 			stackedOutBy: stackedOutBy && bind(stackedOutBy),
 		}

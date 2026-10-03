@@ -9,6 +9,11 @@ import {
 	resolveGrants,
 	stackEffects,
 } from "@/lib/effects/evaluate"
+import {
+	GAME_START,
+	nextGameTimeStep,
+	readsGameTime,
+} from "@/lib/effects/game-time"
 
 /** One effect of the build with its switch and what it gives at the build's level and ranks. */
 export type Condition = {
@@ -18,7 +23,11 @@ export type Condition = {
 	isSwitchable: boolean
 	/** Its value follows the current health, so its row carries the health input. */
 	readsCurrentHealth: boolean
+	/** Its value follows the game time, so its row carries the game time input. */
+	readsGameTime: boolean
 	grants: readonly ResolvedGrant[]
+	/** What it grants from the next game time step on, for an effect that grows with the game time. */
+	next?: { gameTime: number; grants: readonly ResolvedGrant[] }
 	/** Seconds it lasts, when it says. */
 	duration?: number
 	/** The effect of its stacking group that applies instead, while this one is on. */
@@ -30,6 +39,8 @@ export type ConditionsValue = {
 	effects: EffectOverrides
 	/** Percent of maximum health, 1 to 99; absent means full health. */
 	currentHealth?: number
+	/** Whole minutes into the game, 1 to 120; absent means its start. */
+	gameTime?: number
 }
 
 /**
@@ -63,6 +74,32 @@ export function readCurrentHealth(
 		: undefined
 }
 
+/** The game time checked like the current health: dropped at the game's start or when no effect reads it. */
+export function readGameTime(
+	gameTime: number | undefined,
+	effects: readonly BuildEffect[] | undefined,
+): number | undefined {
+	if (gameTime === GAME_START) return undefined
+	if (!effects) return gameTime
+	return effects.some(({ effect }) => readsGameTime(effect))
+		? gameTime
+		: undefined
+}
+
+/** The effect's grants at its next game time step, when its value follows the game time. */
+function nextStep(
+	effect: BuildEffect,
+	context: EffectContext,
+): Condition["next"] {
+	const gameTime = nextGameTimeStep(
+		effect.effect,
+		context.gameTime ?? GAME_START,
+	)
+	return gameTime === undefined
+		? undefined
+		: { gameTime, grants: resolveGrants(effect, { ...context, gameTime }) }
+}
+
 /** The choices with `effect` turned on or off; back to its default, it leaves the choices. */
 export function setCondition(
 	value: EffectOverrides,
@@ -87,7 +124,9 @@ export function conditionList(
 		isOn: isEffectOn(effect, value),
 		isSwitchable: isSwitchable(effect.effect),
 		readsCurrentHealth: readsCurrentHealth(effect.effect),
+		readsGameTime: readsGameTime(effect.effect),
 		grants: resolveGrants(effect, context),
+		next: nextStep(effect, context),
 		duration: effectDuration(effect, context),
 		stackedOutBy: stackedOut.get(effect.id),
 	}))
