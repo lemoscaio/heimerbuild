@@ -53,7 +53,7 @@ const unversionedRecentBuildSchema = z.pipe(
 const recentBuildSchema = z.pipe(
 	z.union([storedRecentBuildSchema, unversionedRecentBuildSchema]),
 	z.transform(({ championKey, search }): RecentBuild => {
-		const { lvl, items, patch, runes, form, skills, summoners, effects } =
+		const { lvl, items, patch, runes, form, skills, summoners, effects, hp } =
 			readBuildSearch(search)
 		return {
 			championKey,
@@ -65,6 +65,7 @@ const recentBuildSchema = z.pipe(
 			skills,
 			summoners,
 			effects: parseEffectOverrides(effects),
+			currentHealth: hp,
 		}
 	}),
 )

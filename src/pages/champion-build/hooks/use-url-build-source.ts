@@ -41,6 +41,7 @@ export function useUrlBuildSource({
 		skills: search.skills,
 		summoners: search.summoners,
 		effects: parseEffectOverrides(search.effects),
+		currentHealth: search.hp,
 	}
 	const page: PageValues = { view: search.view, tab: search.tab }
 
@@ -71,6 +72,7 @@ export function useUrlBuildSource({
 				skills: next.skills,
 				summoners: next.summoners,
 				effects: next.effects,
+				currentHealth: next.currentHealth,
 			})
 		},
 	}

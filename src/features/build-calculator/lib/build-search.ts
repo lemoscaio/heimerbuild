@@ -1,5 +1,6 @@
 import { FORM_ID_PATTERN } from "@schemas/champion"
 import * as z from "zod/mini"
+import { FULL_HEALTH, MIN_HEALTH } from "@/lib/effects/current-health"
 import type { EffectOverrides } from "@/lib/effects/effect"
 import {
 	EFFECTS_PARAM_PATTERN,
@@ -90,6 +91,11 @@ export const buildSearchSchema = z.object({
 		z.optional(z.string().check(z.regex(EFFECTS_PARAM_PATTERN))),
 		undefined,
 	),
+	/** Current health in percent of maximum health, which some effects read; absent means full. */
+	hp: z.catch(
+		z.optional(z.int().check(z.gte(MIN_HEALTH), z.lte(FULL_HEALTH))),
+		undefined,
+	),
 })
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
@@ -121,9 +127,11 @@ export type BuildState = {
 	summoners?: string
 	/** The effects that differ from their defaults; `undefined` or empty for none. */
 	effects?: EffectOverrides
+	/** Percent of maximum health; `undefined` for full health. */
+	currentHealth?: number
 }
 
-/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells, default effects) stay out of the URL. */
+/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells, default effects, full health) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
@@ -135,6 +143,7 @@ export function toBuildSearch({
 	skills,
 	summoners,
 	effects,
+	currentHealth,
 }: BuildState): BuildSearch {
 	return {
 		lvl: level === MIN_LEVEL ? undefined : level,
@@ -147,6 +156,7 @@ export function toBuildSearch({
 		skills,
 		summoners,
 		effects: serializeEffectOverrides(effects),
+		hp: currentHealth === FULL_HEALTH ? undefined : currentHealth,
 		v: BUILD_LINK_VERSION,
 	}
 }
