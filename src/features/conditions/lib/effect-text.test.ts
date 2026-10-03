@@ -18,6 +18,7 @@ function condition(
 		source: { kind: "rune", runeKey: "NimbusCloak" },
 		trigger,
 		grants: [],
+		since: "16.19",
 		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Nimbus_Cloak",
 	}
 	return {
@@ -71,6 +72,7 @@ describe("partLabel and stackedOutText", () => {
 		trigger: { kind: "while", condition: "not-damaged-recently" },
 		part: "passive",
 		grants: [],
+		since: "16.19",
 		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Teemo",
 	}
 	const active = { ...passive, id: "teemo-w-active", part: "active" as const }

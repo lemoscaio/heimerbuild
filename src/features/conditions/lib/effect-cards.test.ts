@@ -9,6 +9,7 @@ function condition(id: string, fields: Partial<BuildEffect>): Condition {
 		source: { kind: "rune", runeKey: "Test" },
 		trigger: { kind: "after-use" },
 		grants: [],
+		since: "16.19",
 		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Teemo",
 	}
 	return {
