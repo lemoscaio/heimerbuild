@@ -155,7 +155,7 @@ export function useChampion(patch: string | undefined, key: string | undefined) 
 
 The champion build is composed from one hook per domain ([Build composition](../../docs/frontend-architecture.md#build-composition)).
 
-- A **domain hook** (`useChampionState`, `useSkills`, `useBuildItems`, `useRunePage`, `useSummoners`, `useConditions`) is controlled: `value` + `onChange`, with its data injected. It never reads the URL, records history or recent builds, or imports another domain; a dependency between domains is passed in by the composer.
+- A **domain hook** (`useChampionState`, `useSkills`, `useBuildItems`, `useRunePage`, `useSummoners`, `useMatchState`, `useConditions`) is controlled: `value` + `onChange`, with its data injected. It never reads the URL, records history or recent builds, or imports another domain; a dependency between domains is passed in by the composer.
 - Only the **build source** writes the URL and records recent builds (`useUrlBuildSource`); only the **composer** (`useChampionBuild`) decides the browser history of an edit and links domains (level → skills).
 - Stats come only from `computeBuildStats`; a preview is `whatIf(change)`, never a new stats helper.
 - The build is grouped by domain (`build.items.add`). Screens take the page object; feature components take slices as props, never the whole build.
