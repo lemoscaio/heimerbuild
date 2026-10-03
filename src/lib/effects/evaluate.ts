@@ -3,6 +3,7 @@ import type { StatKey } from "@schemas/item"
 import type { ComputedStats, ItemInput, StatName } from "../stats/compute-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { spellCooldown } from "../summoner-rune-interactions"
+import { FULL_HEALTH } from "./current-health"
 import { isOnByDefault, isSwitchable } from "./defaults"
 import type {
 	Amount,
@@ -68,8 +69,6 @@ function resolveTableAmount(
 			return spell && bracketValue(amount.brackets, spellCooldown(spell))
 	}
 }
-
-const FULL_HEALTH = 100
 
 /** The amount's number at the build's state; undefined when the data lacks it, or a `stat` amount without totals. */
 export function resolveAmount(
