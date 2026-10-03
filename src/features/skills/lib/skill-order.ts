@@ -56,21 +56,32 @@ export function canRankUp(
 	)
 }
 
-/** The longest start of `order` the rules allow, each point checked at its own level: a link's invalid points are dropped. */
+/** The level of the first point the rules reject, each checked at its own level; undefined when all are valid. */
+export function firstInvalidLevel(
+	order: SkillOrder,
+	rules: SkillRules,
+): number | undefined {
+	const index = order.findIndex(
+		(slot, index) =>
+			!!slot &&
+			!canRankUp(rules, ranksOf(order.slice(0, index), rules), {
+				slot,
+				level: index + 1,
+			}),
+	)
+	return index === -1 ? undefined : index + 1
+}
+
+/** The longest start of `order` the rules allow: a link's invalid points are dropped. */
 export function validPrefix(order: SkillOrder, rules: SkillRules): SkillOrder {
-	const valid: (AbilitySlot | null)[] = []
-	for (const slot of order) {
-		const level = valid.length + 1
-		if (slot && !canRankUp(rules, ranksOf(valid, rules), { slot, level })) {
-			break
-		}
-		valid.push(slot)
-	}
-	return trimOrder(valid)
+	const invalidLevel = firstInvalidLevel(order, rules)
+	return trimOrder(
+		invalidLevel === undefined ? order : order.slice(0, invalidLevel - 1),
+	)
 }
 
 export function isValidOrder(order: SkillOrder, rules: SkillRules): boolean {
-	return validPrefix(order, rules).length === trimOrder(order).length
+	return firstInvalidLevel(order, rules) === undefined
 }
 
 /**
