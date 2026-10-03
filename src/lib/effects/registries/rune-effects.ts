@@ -26,4 +26,19 @@ export const RUNE_EFFECTS: readonly Effect[] = [
 		since: VERIFIED_ON,
 		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Nimbus_Cloak",
 	},
+	{
+		id: "gathering-storm",
+		source: { kind: "rune", runeKey: "GatheringStorm" },
+		trigger: { kind: "always" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "adaptiveForce",
+				// The rune text lists 8, 24, 48… AP up to 60 min, then "etc.": 8 × n(n+1)/2, no cap (wiki).
+				amount: { by: "gameTime", every: 10, growth: "triangular", step: 8 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Gathering_Storm",
+	},
 ]
