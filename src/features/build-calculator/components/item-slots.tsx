@@ -39,7 +39,8 @@ const slotGrid = cva("", {
 const slotMessages = cva("flex flex-col text-lilac text-xs", {
 	variants: {
 		layout: {
-			panel: "items-center gap-2 text-center empty:-mt-2.5",
+			panel:
+				"items-center gap-2 text-center empty:-mt-2.5 lg:items-start lg:text-left",
 			bar: "items-start text-left empty:-mt-1",
 		} satisfies Record<SlotsLayout, string>,
 	},
