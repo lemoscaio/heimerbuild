@@ -104,11 +104,13 @@ export function useBuildPage({
 		runePage,
 		/** The two summoner spell slots; `pick`, `swap` and `clear` edit them. */
 		summoners,
+		/** The build's conditional effects with their switches; `setOn` turns one on or off. */
+		conditions: build.conditions,
 		/** The page's runes that react to the chosen summoner spells, with what happens. */
 		summonerHints: runeSummonerHints(pageRunes, chosenSpells),
 		/** For each spell a slot can take, the page's runes that react to it (the picker). */
 		spellEffects: spellRuneEffectsById(pageRunes, summoners.available),
-		/** Totals with the items, stat shards and ranks. */
+		/** Totals with the items, stat shards, ranks and the effects turned on. */
 		stats,
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes: build.statsWithoutRunes,

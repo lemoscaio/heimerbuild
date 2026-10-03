@@ -1,0 +1,105 @@
+import { describe, expect, test } from "bun:test"
+import type { SummonerSpell } from "@schemas/summoner-spell"
+import type { Effect, Trigger } from "@/lib/effects/effect"
+import type { Condition } from "./conditions"
+import {
+	conditionText,
+	grantText,
+	partLabel,
+	stackedOutText,
+} from "./effect-text"
+
+function condition(
+	trigger: Trigger,
+	fields: { duration?: number; spell?: SummonerSpell } = {},
+): Condition {
+	const effect: Effect = {
+		id: "test",
+		source: { kind: "rune", runeKey: "NimbusCloak" },
+		trigger,
+		grants: [],
+		since: "16.19",
+		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Nimbus_Cloak",
+	}
+	return {
+		effect: { id: "test", effect, name: "Test", icon: "", spell: fields.spell },
+		isOn: false,
+		grants: [],
+		duration: fields.duration,
+	}
+}
+
+const FLASH = { name: "Flash" } as SummonerSpell
+
+describe("conditionText", () => {
+	test("says how long an effect lasts after its trigger", () => {
+		expect(
+			conditionText(condition({ kind: "after-use" }, { duration: 10 })),
+		).toBe("For 10 s after casting")
+		expect(
+			conditionText(
+				condition({ kind: "after-summoner" }, { duration: 2, spell: FLASH }),
+			),
+		).toBe("For 2 s after casting Flash")
+		expect(conditionText(condition({ kind: "after-ability" }))).toBe(
+			"After an ability",
+		)
+	})
+
+	test("names the state a while-effect needs", () => {
+		expect(
+			conditionText(
+				condition({ kind: "while", condition: "not-damaged-recently" }),
+			),
+		).toBe("Not hit by a champion or turret for 5 s")
+	})
+})
+
+describe("grantText", () => {
+	test("shows stats like item stats, and shields and heals as whole numbers", () => {
+		expect(
+			grantText({ kind: "stat", stat: "movementSpeedPercent", value: 0.3529 }),
+		).toBe("+35.3% Move Speed")
+		expect(grantText({ kind: "shield", value: 269.4118 })).toBe("269 shield")
+		expect(grantText({ kind: "heal", value: 192 })).toBe("192 heal")
+	})
+})
+
+describe("partLabel and stackedOutText", () => {
+	const passive: Effect = {
+		id: "teemo-w-passive",
+		source: { kind: "ability", championKey: "Teemo", slot: "W" },
+		trigger: { kind: "while", condition: "not-damaged-recently" },
+		part: "passive",
+		grants: [],
+		since: "16.19",
+		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Teemo",
+	}
+	const active = { ...passive, id: "teemo-w-active", part: "active" as const }
+
+	function row(effect: Effect, stackedOutBy?: Effect): Condition {
+		const bind = (entry: Effect) => ({
+			id: entry.id,
+			effect: entry,
+			name: "Move Quick",
+			icon: "",
+		})
+		return {
+			effect: bind(effect),
+			isOn: true,
+			grants: [],
+			stackedOutBy: stackedOutBy && bind(stackedOutBy),
+		}
+	}
+
+	test("labels an ability's part, and nothing for an effect without parts", () => {
+		expect(partLabel(row(passive))).toBe("Passive")
+		expect(partLabel(row(active))).toBe("Active")
+		expect(partLabel(condition({ kind: "after-use" }))).toBeUndefined()
+	})
+
+	test("says which part stands in for a stacked-out row", () => {
+		expect(stackedOutText(row(passive, active))).toBe("Replaced by the active")
+		expect(stackedOutText(row(passive))).toBeUndefined()
+	})
+})
