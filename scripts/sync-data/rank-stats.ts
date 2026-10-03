@@ -137,7 +137,7 @@ export const RANK_STAT_RULES: readonly RankStatRule[] = [
 		stat: "movementSpeedPercent",
 		dataValue: "PassiveMoveSpeedBonus",
 		reason:
-			"Move Quick passively grants bonus movement speed while Teemo was not hit by a champion or turret for 5 s, the state the stats panel assumes",
+			"Move Quick passively grants bonus movement speed while Teemo was not hit by a champion or turret for 5 s; the app applies it as the teemo-w-passive effect, on by default",
 		source: `${WIKI}Teemo/Move_Quick`,
 	},
 ]
