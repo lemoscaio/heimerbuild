@@ -1,4 +1,5 @@
 import type { Effect } from "../effect"
+import { VERIFIED_ON } from "./verified-on"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
 
@@ -20,6 +21,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 				ratios: { baseAttackDamage: 1 },
 			},
 		],
+		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Sheen`,
 	},
 	{
@@ -35,6 +37,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 				ratios: { baseAttackDamage: 2 },
 			},
 		],
+		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Trinity_Force`,
 	},
 	{
@@ -51,6 +54,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 			},
 			{ kind: "stat", stat: "attackSpeedPercent", amount: 0.5 },
 		],
+		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Lich_Bane`,
 	},
 ]

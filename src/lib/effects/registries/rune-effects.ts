@@ -1,4 +1,5 @@
 import type { Effect } from "../effect"
+import { VERIFIED_ON } from "./verified-on"
 
 /** Rune effects. */
 export const RUNE_EFFECTS: readonly Effect[] = [
@@ -22,6 +23,7 @@ export const RUNE_EFFECTS: readonly Effect[] = [
 				},
 			},
 		],
+		since: VERIFIED_ON,
 		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Nimbus_Cloak",
 	},
 ]

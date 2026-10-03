@@ -1,4 +1,5 @@
 import type { ChampionSpell } from "@schemas/champion"
+import { isInPatchRange } from "@schemas/patch-range"
 import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import type { AbilityRanks } from "../stats/rank-stats"
@@ -10,6 +11,8 @@ import { SUMMONER_EFFECTS } from "./registries/summoner-effects"
 
 /** What decides which effects a build has: the champion and its ranks, the spells and the page's runes. */
 export type EffectsBuild = {
+	/** The build's patch ("16.19.1"): only the effect versions in force on it count. */
+	patch: string
 	champion: {
 		key: string
 		abilities: {
@@ -81,13 +84,14 @@ function bindTrigger(bound: BuildEffect, build: EffectsBuild): BuildEffect[] {
 	}))
 }
 
-/** The effects whose source is in the build: a ranked ability, a chosen spell, a rune of the page. */
+/** The effects in force on the build's patch whose source is in it: a ranked ability, a chosen spell, a rune of the page. */
 export function availableEffects(
 	build: EffectsBuild,
 	registries: readonly (readonly Effect[])[] = EFFECT_REGISTRIES,
 ): BuildEffect[] {
 	return registries
 		.flat()
+		.filter((effect) => isInPatchRange(build.patch, effect))
 		.flatMap((effect) => bindSource(effect, build))
 		.flatMap((bound) => bindTrigger(bound, build))
 }

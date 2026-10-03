@@ -1,4 +1,5 @@
 import type { Effect } from "../effect"
+import { VERIFIED_ON } from "./verified-on"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
 
@@ -16,6 +17,7 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 				amount: { by: "level", value: "movespeedmod" },
 			},
 		],
+		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Ghost`,
 	},
 	{
@@ -31,6 +33,7 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 				amount: { by: "level", value: "movespeed" },
 			},
 		],
+		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Heal`,
 	},
 	{
@@ -41,6 +44,7 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 		grants: [
 			{ kind: "shield", amount: { by: "level", value: "shieldstrength" } },
 		],
+		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Barrier`,
 	},
 ]

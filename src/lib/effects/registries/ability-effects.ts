@@ -1,4 +1,5 @@
 import type { Amount, Effect } from "../effect"
+import { VERIFIED_ON } from "./verified-on"
 
 const MOVE_QUICK =
 	"https://wiki.leagueoflegends.com/en-us/Template:Data_Teemo/Move_Quick"
@@ -21,6 +22,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		grants: [
 			{ kind: "stat", stat: "movementSpeedPercent", amount: MOVE_QUICK_SPEED },
 		],
+		since: VERIFIED_ON,
 		sourceUrl: MOVE_QUICK,
 	},
 	{
@@ -37,6 +39,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 				amount: { ...MOVE_QUICK_SPEED, scale: 2 },
 			},
 		],
+		since: VERIFIED_ON,
 		sourceUrl: MOVE_QUICK,
 	},
 ]
