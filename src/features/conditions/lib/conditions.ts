@@ -6,6 +6,7 @@ import {
 	isEffectOn,
 	type ResolvedGrant,
 	resolveGrants,
+	stackEffects,
 } from "@/lib/effects/evaluate"
 
 /** One effect of the build with its switch and what it gives at the build's level and ranks. */
@@ -15,6 +16,8 @@ export type Condition = {
 	grants: readonly ResolvedGrant[]
 	/** Seconds it lasts, when it says. */
 	duration?: number
+	/** The effect of its stacking group that applies instead, while this one is on. */
+	stackedOutBy?: BuildEffect
 }
 
 /**
@@ -52,10 +55,12 @@ export function conditionList(
 	value: EffectOverrides,
 	context: EffectContext,
 ): Condition[] {
+	const { stackedOut } = stackEffects(effects, value, context)
 	return effects.map((effect) => ({
 		effect,
 		isOn: isEffectOn(effect, value),
 		grants: resolveGrants(effect, context),
 		duration: effectDuration(effect, context),
+		stackedOutBy: stackedOut.get(effect.id),
 	}))
 }
