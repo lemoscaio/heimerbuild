@@ -85,6 +85,7 @@ export function useChampionBuild({
 	const effects =
 		champion && skills.ranks && summonerSpells && runes
 			? availableEffects({
+					patch,
 					champion,
 					ranks: skills.ranks,
 					spells: summoners.slots.filter((spell) => spell !== undefined),
