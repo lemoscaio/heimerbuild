@@ -71,7 +71,7 @@ export function hastedCooldown(cooldown: number, haste: number) {
 }
 
 /** Seconds until the spell is back: Smite's charge recharge, else its cooldown. */
-function spellCooldown(spell: SummonerSpell) {
+export function spellCooldown(spell: SummonerSpell) {
 	return spell.charges?.rechargeTime ?? spell.cooldown
 }
 

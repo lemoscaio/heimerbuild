@@ -107,6 +107,7 @@ export function useChampionBuild({
 		if (!champion) return undefined
 		return computeBuildStats({
 			champion,
+			patch,
 			level: championState.level,
 			form: championState.formValue,
 			items: items.list,

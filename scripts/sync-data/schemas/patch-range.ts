@@ -1,9 +1,18 @@
-import { compareVersions } from "../version"
+/** Compares versions or patches number by number: "16.9" comes before "16.19". */
+export function compareVersions(a: string, b: string): number {
+	const left = a.split(".").map(Number)
+	const right = b.split(".").map(Number)
+	for (let i = 0; i < Math.max(left.length, right.length); i++) {
+		const diff = (left[i] ?? 0) - (right[i] ?? 0)
+		if (diff !== 0) return diff
+	}
+	return 0
+}
 
 /** A game patch as "major.minor" ("16.19"); Data Dragon versions add a third number. */
 export type Patch = `${number}.${number}`
 
-/** Inclusive on both ends; no `until` means every later patch too. */
+/** Inclusive on both ends; no `until` means every later patch too. Shared by the data overrides and the app's effect rules. */
 export type PatchRange = { since: Patch; until?: Patch }
 
 const PATCH_PATTERN = /^\d+\.\d+$/

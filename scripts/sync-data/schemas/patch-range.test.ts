@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
 	assertValidPatchRange,
+	compareVersions,
 	isInPatchRange,
 	type Patch,
 	patchRangesOverlap,
@@ -62,5 +63,15 @@ describe("assertValidPatchRange", () => {
 		expect(() =>
 			assertValidPatchRange({ since: "16.20", until: "16.19" }),
 		).toThrow("ends before it starts")
+	})
+})
+
+describe("compareVersions", () => {
+	test("compares numerically, not lexically", () => {
+		expect(["16.9.1", "16.19.1", "16.10.1"].sort(compareVersions)).toEqual([
+			"16.9.1",
+			"16.10.1",
+			"16.19.1",
+		])
 	})
 })

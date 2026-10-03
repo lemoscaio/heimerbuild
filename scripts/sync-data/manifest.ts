@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { readdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { type DataManifest, dataManifestSchema } from "./schemas/manifest"
-import { compareVersions } from "./version"
+import { compareVersions } from "./schemas/patch-range"
 
 type DataFileHashes = DataManifest["files"]
 

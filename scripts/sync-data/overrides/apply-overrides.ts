@@ -4,7 +4,7 @@ import {
 	isInPatchRange,
 	type PatchRange,
 	patchRangesOverlap,
-} from "./patch-range"
+} from "../schemas/patch-range"
 
 export type FieldOverride<Entity, Field extends keyof Entity> = PatchRange & {
 	/** Unique, kebab-case: names the override in the sync log and the sync PR. */
