@@ -22,7 +22,7 @@ export const orderCellVariants = cva(
 			state: {
 				spent: "border-gold bg-gold text-surface-sunken",
 				suggested: "border-gold border-dashed text-gold",
-				next: "border-lilac text-lilac",
+				free: "border-line-strong font-normal text-subtle hover:border-lilac hover:text-white",
 				unspent: "border-line font-normal text-subtle",
 				kept: "border-line-strong border-dashed text-subtle",
 				future: "border-line/60 font-normal text-subtle/60",
@@ -31,10 +31,10 @@ export const orderCellVariants = cva(
 	},
 )
 
-/** A level whose point can be chosen: a spent one, or the next to spend. */
+/** A level whose point can be chosen: a spent one or an unspent one. */
 export type EditableLevelPoint = Extract<
 	LevelPoint,
-	{ state: "spent" | "next" }
+	{ state: "spent" | "free" }
 >
 
 type SkillOrderCellProps = {
@@ -53,7 +53,7 @@ export function SkillOrderCell({
 }: SkillOrderCellProps) {
 	const [open, setOpen] = useState(false)
 	const chosen = point.state === "spent" ? point.slot : undefined
-	const suggestion = point.state === "next" ? point.suggestion : undefined
+	const suggestion = point.state === "free" ? point.suggestion : undefined
 
 	function choose(slot: AbilitySlot) {
 		onPlace(slot)
@@ -66,12 +66,12 @@ export function SkillOrderCell({
 				aria-label={triggerLabel(point)}
 				className={cn(
 					orderCellVariants({
-						state: chosen ? "spent" : suggestion ? "suggested" : "next",
+						state: chosen ? "spent" : suggestion ? "suggested" : "free",
 					}),
 					"w-full hover:brightness-110",
 				)}
 			>
-				{chosen ?? suggestion ?? "+"}
+				{chosen ?? suggestion ?? point.level}
 			</PopoverTrigger>
 			<PopoverContent className="w-56">
 				<PopoverTitle>Level {point.level} point</PopoverTitle>

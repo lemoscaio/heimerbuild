@@ -15,14 +15,13 @@ export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
 	}
 
 	function spend(slot: AbilitySlot) {
-		if (!skills.ranks || skills.spendBlocker(slot)) return
+		const level = skills.spendLevel(slot)
+		if (!skills.ranks || level === undefined) return
 		skills.spend(slot)
-		setAnnouncement(`${spellName(slot)} rank ${skills.ranks[slot] + 1}`)
-		track("skill_point_picked", {
-			slot,
-			level: skills.spentCount + 1,
-			via: "ability",
-		})
+		setAnnouncement(
+			`${spellName(slot)} rank ${skills.ranks[slot] + 1}, level ${level} point`,
+		)
+		track("skill_point_picked", { slot, level, via: "ability" })
 	}
 
 	function place(pointLevel: number, slot: AbilitySlot) {

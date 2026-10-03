@@ -57,6 +57,7 @@ export function SkillsRow({
 								rank={skills.ranks?.[spell.slot] ?? 0}
 								isSuggested={skills.suggestion === spell.slot}
 								blocker={skills.spendBlocker(spell.slot)}
+								pointLevel={skills.spendLevel(spell.slot)}
 								onSpend={() => row.spend(spell.slot)}
 								statChanges={statChanges?.[spell.slot]}
 							/>
@@ -71,14 +72,14 @@ export function SkillsRow({
 						<SkillPointActions
 							size="compact"
 							canFill={!!skills.unspentCount}
-							canReset={!!skills.spentCount || !!skills.keptPicks.length}
+							canReset={!!skills.spentCount || !!skills.keptCount}
 							onFill={row.fillRecommended}
 							onReset={row.reset}
 						/>
 					</SkillOrderStrip>
 					<p className="text-subtle text-xs leading-snug">
-						Press an ability to spend a point, or a level to change it. A dashed
-						outline is only a suggestion.
+						Press an ability to spend a point, or a level to choose its point. A
+						dashed outline is only a suggestion.
 					</p>
 				</>
 			) : (

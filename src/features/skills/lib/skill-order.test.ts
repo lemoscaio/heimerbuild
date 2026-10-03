@@ -16,8 +16,11 @@ import { skillRulesOf } from "./skill-rules"
 
 const standard = skillRulesOf(skillChampion())
 
+/** "Q_Q": Q at levels 1 and 3, level 2 unspent. */
 function order(letters: string) {
-	return [...letters] as AbilitySlot[]
+	return [...letters].map((letter) =>
+		letter === "_" ? null : (letter as AbilitySlot),
+	)
 }
 
 function overrideRules(id: string) {
@@ -38,6 +41,13 @@ describe("skill point rules", () => {
 		expect(isValidOrder(order("QWEQR"), standard)).toBe(false)
 		expect(isValidOrder(order("QWEQQRQWER"), standard)).toBe(false)
 		expect(isValidOrder(order("QWEQQRQWEWR"), standard)).toBe(true)
+	})
+
+	test("each point is checked at its own level, gaps included", () => {
+		expect(isValidOrder(order("Q_Q"), standard)).toBe(true)
+		expect(isValidOrder(order("_____R"), standard)).toBe(true)
+		expect(isValidOrder(order("____R"), standard)).toBe(false)
+		expect(validPrefix(order("Q_Q_QQ"), standard)).toEqual(order("Q_Q_Q"))
 	})
 
 	test("a basic ability stops at rank 5", () => {
@@ -173,8 +183,16 @@ describe("parseOrder and serializeOrder", () => {
 		expect(parseOrder(undefined, standard)).toEqual([])
 	})
 
-	test("writes nothing for an empty order", () => {
+	test("reads unspent levels as gaps and drops trailing ones", () => {
+		expect(parseOrder("Q_Q", standard)).toEqual(order("Q_Q"))
+		expect(parseOrder("Q__", standard)).toEqual(order("Q"))
+		expect(parseOrder("_", standard)).toEqual([])
+	})
+
+	test("writes unspent levels as _, never trailing, and nothing for an empty order", () => {
 		expect(serializeOrder(order("EQW"))).toBe("EQW")
+		expect(serializeOrder(order("Q_Q__"))).toBe("Q_Q")
+		expect(serializeOrder(order("__"))).toBeUndefined()
 		expect(serializeOrder([])).toBeUndefined()
 	})
 })

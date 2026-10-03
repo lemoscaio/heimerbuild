@@ -51,7 +51,7 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 						<SkillPointActions
 							size="regular"
 							canFill={!!skills.unspentCount}
-							canReset={!!skills.spentCount || !!skills.keptPicks.length}
+							canReset={!!skills.spentCount || !!skills.keptCount}
 							onFill={actions.fillRecommended}
 							onReset={actions.reset}
 						/>
@@ -68,7 +68,7 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 						canPlace={skills.canPlace}
 						onPlace={actions.place}
 					/>
-					{!!skills.keptPicks.length && (
+					{!!skills.keptCount && (
 						<p className="flex items-start gap-2 rounded-lg border border-line p-3 text-prose text-xs leading-snug">
 							<RotateCcw
 								aria-hidden="true"
@@ -76,11 +76,15 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 							/>
 							<span>
 								Kept above level {level}:{" "}
-								{skills.keptPicks
-									.map((slot, index) => `${slot} (level ${level + index + 1})`)
+								{skills.levels
+									.flatMap((point) =>
+										point.state === "kept"
+											? [`${point.slot} (level ${point.level})`]
+											: [],
+									)
 									.join(", ")}
-								. They come back when you raise the level; a different pick at
-								level {level} or below drops them.
+								. They come back when you raise the level; any change at level{" "}
+								{level} or below drops them.
 							</span>
 						</p>
 					)}
@@ -107,8 +111,8 @@ function OrderLegend() {
 			<LegendItem swatch="size-3 rounded-sm border border-gold border-dashed">
 				Suggested next point (not counted)
 			</LegendItem>
-			<LegendItem swatch="size-3 rounded-sm border border-line/60 bg-surface-sunken/40">
-				To spend later
+			<LegendItem swatch="size-3 rounded-sm border border-line-strong bg-surface-sunken">
+				Free: press to spend there
 			</LegendItem>
 			<LegendItem swatch="size-3 rounded-sm border border-line-strong border-dashed">
 				Kept above the level

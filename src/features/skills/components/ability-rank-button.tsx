@@ -40,6 +40,8 @@ type AbilityRankButtonProps = {
 	isSuggested: boolean
 	/** Why it cannot take one more point; undefined when it can. */
 	blocker: SpendBlocker | undefined
+	/** The level one more point goes to, when it can take one. */
+	pointLevel: number | undefined
 	onSpend: () => void
 	/** What the next rank changes on the stats panel, when it does. */
 	statChanges?: React.ReactNode
@@ -51,6 +53,7 @@ export function AbilityRankButton({
 	rank,
 	isSuggested,
 	blocker,
+	pointLevel,
 	onSpend,
 	statChanges,
 }: AbilityRankButtonProps) {
@@ -104,6 +107,7 @@ export function AbilityRankButton({
 						rank={rank}
 						isSuggested={isSuggested}
 						blocker={blocker}
+						pointLevel={pointLevel}
 						statChanges={statChanges}
 					/>
 				</TooltipContent>
@@ -158,8 +162,8 @@ function blockerMessage(blocker: SpendBlocker): string {
 			return `The next rank needs level ${blocker.level}.`
 		case "needs-ability":
 			return `Needs a point in ${blocker.abilities.join(" or ")} first.`
-		case "earlier-point":
-			return `The next rank needs level ${blocker.rankLevel}: spend the level ${blocker.pointLevel} point on another ability first.`
+		case "no-free-level":
+			return `The next rank needs level ${blocker.rankLevel}, and no unspent level from there on can take it. Change a level in the order.`
 	}
 }
 
@@ -169,6 +173,7 @@ function RankUpDetails({
 	rank,
 	isSuggested,
 	blocker,
+	pointLevel,
 	statChanges,
 }: Omit<AbilityRankButtonProps, "onSpend">) {
 	const changes = blocker ? [] : rankUpChanges(spell, rank)
@@ -212,7 +217,9 @@ function RankUpDetails({
 					{isSuggested && (
 						<p className="text-gold">Suggested by the recommended order.</p>
 					)}
-					<p className="text-subtle">Press to spend a point here.</p>
+					<p className="text-subtle">
+						Press to spend the level {pointLevel} point here.
+					</p>
 				</>
 			)}
 		</div>

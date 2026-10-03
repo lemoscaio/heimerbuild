@@ -1,4 +1,8 @@
-import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
+import {
+	ABILITY_SLOTS,
+	type AbilitySlot,
+	type ChampionSpell,
+} from "@schemas/champion"
 import { RotateCcw } from "lucide-react"
 import { useId } from "react"
 import type { LevelPoint } from "../lib/skill-history"
@@ -13,7 +17,7 @@ type SkillOrderStripProps = {
 	children?: React.ReactNode
 }
 
-/** The point of each level 1 to 18: spent, next to spend, still to spend, kept above the level, or not reached. */
+/** The point of each level 1 to 18: spent, unspent (chosen when pressed), kept above the level, or not reached. */
 export function SkillOrderStrip({
 	levels,
 	spells,
@@ -55,10 +59,11 @@ type StripLevelProps = Omit<
 function StripLevel({ point, ...props }: StripLevelProps) {
 	switch (point.state) {
 		case "spent":
-		case "next":
 			return <SkillOrderCell point={point} {...props} />
-		case "unspent":
-			return (
+		case "free":
+			return ABILITY_SLOTS.some((slot) => props.canPlace(slot)) ? (
+				<SkillOrderCell point={point} {...props} />
+			) : (
 				<span className={orderCellVariants({ state: "unspent" })}>
 					<span className="sr-only">Level </span>
 					{point.level}

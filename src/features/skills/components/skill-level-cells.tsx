@@ -17,7 +17,7 @@ export function SkillLevelCells({
 	orientation,
 	children,
 }: SkillLevelCellsProps) {
-	if (point.state !== "spent" && point.state !== "next") {
+	if (point.state !== "spent" && point.state !== "free") {
 		return <div className={cn("flex", className)}>{children}</div>
 	}
 	const chosen = point.state === "spent" ? point.slot : undefined

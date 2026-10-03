@@ -8,6 +8,7 @@ import {
 	placePoint,
 	type SkillPicks,
 	spendBlocker,
+	spendLevel,
 	spendPoint,
 	withKeptPicks,
 } from "../lib/skill-history"
@@ -45,6 +46,7 @@ export function useSkills({
 		level,
 	)
 	const spent = picks.slice(0, level)
+	const spentCount = spent.filter(Boolean).length
 	const ranks = rules && ranksOf(spent, rules)
 	const hasSkillOrder = !!rules?.hasSkillOrder
 
@@ -59,29 +61,32 @@ export function useSkills({
 		hasSkillOrder,
 		/** The recommended max order ("R, E, Q, W"). */
 		suggestedPriority: rules?.recommended.priority ?? [],
-		/** What each level 1 to 18 holds: spent, next, still to spend, kept or not reached. */
+		/** What each level 1 to 18 holds: spent, unspent, kept above the level or not reached. */
 		levels: rules && hasSkillOrder ? levelPoints(picks, { level, rules }) : [],
 		/** Each ability's rank from the spent points; suggestions never count. */
 		ranks,
-		spentCount: spent.length,
-		/** Points up to the current level not spent yet. */
-		unspentCount: hasSkillOrder ? level - spent.length : 0,
-		/** The recommended ability for the next point: only a hint. */
+		spentCount,
+		/** Points up to the current level not spent yet, gaps included. */
+		unspentCount: hasSkillOrder ? level - spentCount : 0,
+		/** The recommended ability for the first unspent level: only a hint. */
 		suggestion:
 			rules && hasSkillOrder
-				? nextSuggestion(picks, { level, rules })
+				? nextSuggestion(picks, { level, rules })?.slot
 				: undefined,
-		/** Points above the current level, restored when the level goes back up. */
-		keptPicks: picks.slice(level),
+		/** Points kept above the current level, restored when the level goes back up. */
+		keptCount: picks.slice(level).filter(Boolean).length,
 		/** Why `slot` cannot take the next point; undefined when it can. */
 		spendBlocker: (slot: AbilitySlot) =>
 			rules ? spendBlocker(picks, { slot, level, rules }) : undefined,
-		/** Spends the next point on `slot`. */
+		/** The level one more point in `slot` goes to: the earliest unspent one that can take it. */
+		spendLevel: (slot: AbilitySlot) =>
+			rules ? spendLevel(picks, { slot, level, rules }) : undefined,
+		/** Spends one more point on `slot`, at its `spendLevel`. */
 		spend: (slot: AbilitySlot) =>
 			rules && commit(spendPoint(picks, { slot, level, rules })),
 		canPlace: (pointLevel: number, slot: AbilitySlot) =>
 			!!rules && !!placePoint(picks, { slot, pointLevel, level, rules }),
-		/** Puts the point of `pointLevel` on `slot`: changes a spent point or spends the next one. */
+		/** Puts the point of `pointLevel` on `slot`: changes a spent point or spends an unspent one. */
 		place: (pointLevel: number, slot: AbilitySlot) =>
 			rules && commit(placePoint(picks, { slot, pointLevel, level, rules })),
 		/** Spends every point left with the recommended order. */
@@ -102,7 +107,7 @@ export function useSkills({
 		/** `ranks` with `slot` one rank higher: the base of the rank-up preview. */
 		ranksWithNext: (slot: AbilitySlot): AbilityRanks | undefined =>
 			ranks && { ...ranks, [slot]: ranks[slot] + 1 },
-		/** The spent points up to the current level, cleaned of invalid ones: the value for links. */
+		/** The points up to the current level, cleaned of invalid ones: the value for links. */
 		value: serializeOrder(spent),
 	}
 }

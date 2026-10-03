@@ -15,7 +15,6 @@ const gridCellVariants = cva(
 					"border-gold border-dashed text-gold hover:bg-gold/15 data-pressed:bg-transparent",
 				open: "border-line-strong bg-surface-sunken text-transparent hover:border-lilac hover:text-subtle",
 				blocked: "border-line/60 bg-hatched text-transparent",
-				unspent: "border-line/60 bg-surface-sunken/40",
 				kept: "border-line-strong border-dashed text-subtle",
 				future: "border-line/40 bg-surface-sunken/40",
 			},
@@ -45,7 +44,7 @@ function gridCellState(
 	switch (point.state) {
 		case "spent":
 			return point.slot === slot ? "spent" : canPlace ? "open" : "blocked"
-		case "next":
+		case "free":
 			return point.suggestion === slot
 				? "suggested"
 				: canPlace
@@ -81,7 +80,7 @@ export function SkillGridCell({
 }: SkillGridCellProps) {
 	const state = gridCellState(point, spell.slot, canPlace)
 
-	if (point.state !== "spent" && point.state !== "next") {
+	if (point.state !== "spent" && point.state !== "free") {
 		return (
 			<span className={cn(gridCellVariants({ state, size }), className)}>
 				{state === "kept" && (

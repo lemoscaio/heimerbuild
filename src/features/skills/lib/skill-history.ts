@@ -5,13 +5,16 @@ import {
 	ranksOf,
 	type SkillOrder,
 	suggestedPoint,
+	trimOrder,
+	withPointAt,
 	withRecommended,
 } from "./skill-order"
 import type { SkillRules } from "./skill-rules"
 
 /**
- * The points the user spent, one per level, level 1 first. Like browser history it may run past
- * the current level: lowering the level keeps those points, raising it again brings them back.
+ * The points the user spent, per level (null: unspent), trimmed. Like browser history it may run
+ * past the current level: lowering the level keeps those points, raising it again brings them back.
+ * The tail is every point above the current level; any edit at or below it drops the tail.
  */
 export type SkillPicks = SkillOrder
 
@@ -21,27 +24,33 @@ type AtLevel = { level: number; rules: SkillRules }
 export type LevelPoint =
 	/** A spent point, with the rank it takes its ability to. */
 	| { level: number; state: "spent"; slot: AbilitySlot; rank: number }
-	/** The next point to spend, with the recommended ability for it (never counted). */
-	| { level: number; state: "next"; suggestion: AbilitySlot | undefined }
-	/** A point to spend after the next one. */
-	| { level: number; state: "unspent" }
+	/** An unspent point; `suggestion` marks the recommended ability for the first one (never counted). */
+	| { level: number; state: "free"; suggestion: AbilitySlot | undefined }
 	/** A point kept above the current level, back when the level goes up again. */
 	| { level: number; state: "kept"; slot: AbilitySlot }
 	| { level: number; state: "future" }
 
 function spentAt(picks: SkillPicks, level: number): SkillOrder {
-	return picks.slice(0, level)
+	return trimOrder(picks.slice(0, level))
 }
 
-/** The ability the recommended order suggests for the next point; undefined when none is left. */
+function freeLevels(picks: SkillPicks, level: number): number[] {
+	return Array.from({ length: level }, (_, index) => index + 1).filter(
+		(pointLevel) => !picks[pointLevel - 1],
+	)
+}
+
+/** The recommended ability for the first unspent level that can take one; undefined when none can. */
 export function nextSuggestion(
 	picks: SkillPicks,
 	{ level, rules }: AtLevel,
-): AbilitySlot | undefined {
+): { level: number; slot: AbilitySlot } | undefined {
 	const spent = spentAt(picks, level)
-	return spent.length < level
-		? suggestedPoint(spent, { level: spent.length + 1, rules })
-		: undefined
+	for (const pointLevel of freeLevels(spent, level)) {
+		const slot = suggestedPoint(spent, { level: pointLevel, rules })
+		if (slot) return { level: pointLevel, slot }
+	}
+	return undefined
 }
 
 export function levelPoints(
@@ -53,23 +62,28 @@ export function levelPoints(
 	return Array.from({ length: MAX_LEVEL }, (_, index): LevelPoint => {
 		const pointLevel = index + 1
 		const slot = picks[index]
-		if (pointLevel <= spent.length && slot) {
+		if (pointLevel > level) {
+			return slot
+				? { level: pointLevel, state: "kept", slot }
+				: { level: pointLevel, state: "future" }
+		}
+		if (slot) {
 			const rank = ranksOf(spent.slice(0, pointLevel), rules)[slot]
 			return { level: pointLevel, state: "spent", slot, rank }
 		}
-		if (pointLevel === spent.length + 1 && pointLevel <= level) {
-			return { level: pointLevel, state: "next", suggestion }
+		return {
+			level: pointLevel,
+			state: "free",
+			suggestion:
+				suggestion?.level === pointLevel ? suggestion.slot : undefined,
 		}
-		if (pointLevel <= level) return { level: pointLevel, state: "unspent" }
-		if (slot) return { level: pointLevel, state: "kept", slot }
-		return { level: pointLevel, state: "future" }
 	})
 }
 
 /**
- * `picks` with the point of `pointLevel` on `slot`: a spent point changes, or the next one is
- * spent. Undefined when the rules forbid it. A different pick drops the points kept above
- * `level`, as a new page drops the browser's forward history.
+ * `picks` with the point of `pointLevel` (at most `level`) on `slot`: a spent point changes or an
+ * unspent one is spent. Undefined when the rules forbid it. A change drops the tail above `level`,
+ * as a new page drops the browser's forward history.
  */
 export function placePoint(
 	picks: SkillPicks,
@@ -83,47 +97,55 @@ export function placePoint(
 		pointLevel: number
 	},
 ): SkillPicks | undefined {
-	const spent = spentAt(picks, level)
-	if (pointLevel < 1 || pointLevel > Math.min(spent.length + 1, level)) {
-		return undefined
-	}
-	if (spent[pointLevel - 1] === slot) return picks
-	const next = [...spent]
-	next[pointLevel - 1] = slot
+	if (pointLevel < 1 || pointLevel > level) return undefined
+	if (picks[pointLevel - 1] === slot) return picks
+	const next = withPointAt(spentAt(picks, level), { slot, level: pointLevel })
 	return isValidOrder(next, rules) ? next : undefined
 }
 
-/** `picks` with the next point spent on `slot`; undefined when it cannot take it. */
+/** The earliest unspent level up to `level` that can take one more point in `slot`. */
+export function spendLevel(
+	picks: SkillPicks,
+	{ slot, level, rules }: AtLevel & { slot: AbilitySlot },
+): number | undefined {
+	return freeLevels(picks, level).find(
+		(pointLevel) => !!placePoint(picks, { slot, pointLevel, level, rules }),
+	)
+}
+
+/** `picks` with one more point in `slot`, at its `spendLevel`; the levels it skips stay unspent. */
 export function spendPoint(
 	picks: SkillPicks,
 	{ slot, level, rules }: AtLevel & { slot: AbilitySlot },
 ): SkillPicks | undefined {
-	return placePoint(picks, {
-		slot,
-		pointLevel: spentAt(picks, level).length + 1,
-		level,
-		rules,
-	})
+	const pointLevel = spendLevel(picks, { slot, level, rules })
+	return pointLevel === undefined
+		? undefined
+		: placePoint(picks, { slot, pointLevel, level, rules })
 }
 
-/** `picks` with every point left to spend up to `level` spent as the recommended order says. */
+/** `picks` with every unspent level up to `level` spent as the recommended order says. */
 export function fillRecommended(
 	picks: SkillPicks,
 	{ level, rules }: AtLevel,
 ): SkillPicks {
 	const spent = spentAt(picks, level)
-	return spent.length < level ? withRecommended(spent, { level, rules }) : picks
+	const filled = withRecommended(spent, { level, rules })
+	return filled.length === spent.length &&
+		filled.every((slot, index) => slot === spent[index])
+		? picks
+		: filled
 }
 
-/** Why `slot` cannot take the next point, as the rank-up tooltip explains it. */
+/** Why `slot` cannot take one more point, as the rank-up tooltip explains it. */
 export type SpendBlocker =
 	| { reason: "max-rank" }
 	| { reason: "no-points" }
 	| { reason: "first-point"; ability: AbilitySlot }
 	| { reason: "needs-ability"; abilities: readonly AbilitySlot[] }
 	| { reason: "needs-level"; level: number }
-	/** The rank's level is reached, but the next point is an earlier level's. */
-	| { reason: "earlier-point"; pointLevel: number; rankLevel: number }
+	/** The rank's level is reached, but no unspent level from it on can take the point. */
+	| { reason: "no-free-level"; rankLevel: number }
 
 export function spendBlocker(
 	picks: SkillPicks,
@@ -133,35 +155,36 @@ export function spendBlocker(
 	const spent = spentAt(picks, level)
 	const ranks = ranksOf(spent, rules)
 	const rule = rules.abilities[slot]
-	const pointLevel = spent.length + 1
 	const rankLevel = rule.rankLevels[ranks[slot]]
+	const free = freeLevels(spent, level)
 	if (ranks[slot] >= rule.maxRank || rankLevel === undefined) {
 		return { reason: "max-rank" }
 	}
-	if (spent.length >= level) return { reason: "no-points" }
-	if (pointLevel === 1 && rules.firstPoint && slot !== rules.firstPoint) {
-		return { reason: "first-point", ability: rules.firstPoint }
-	}
+	if (!free.length) return { reason: "no-points" }
+	if (rankLevel > level) return { reason: "needs-level", level: rankLevel }
 	if (rule.requires && !rule.requires.some((required) => ranks[required] > 0)) {
 		return { reason: "needs-ability", abilities: rule.requires }
 	}
-	if (rankLevel > level) return { reason: "needs-level", level: rankLevel }
-	return { reason: "earlier-point", pointLevel, rankLevel }
+	if (rules.firstPoint && free.length === 1 && free[0] === 1) {
+		return { reason: "first-point", ability: rules.firstPoint }
+	}
+	return { reason: "no-free-level", rankLevel }
 }
 
 /**
  * The full picks when `remembered` still agrees with the link, else the link's: `linkPicks` are
- * the picks up to `level`, so a remembered history must start with them and hold no more below `level`.
+ * the picks up to `level`, so a remembered history must hold exactly them up to `level`.
  */
 export function withKeptPicks(
 	remembered: SkillPicks | undefined,
 	linkPicks: SkillPicks,
 	level: number,
 ): SkillPicks {
+	const head = remembered && spentAt(remembered, level)
 	if (
-		!remembered ||
-		linkPicks.length !== Math.min(level, remembered.length) ||
-		linkPicks.some((slot, index) => remembered[index] !== slot)
+		!head ||
+		head.length !== linkPicks.length ||
+		linkPicks.some((slot, index) => head[index] !== slot)
 	) {
 		return linkPicks
 	}
