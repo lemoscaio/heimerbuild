@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { ShardStat } from "@schemas/rune"
+import type { BuildEffect, Effect } from "../effects/effect"
 import { type BuildStatsInput, computeBuildStats } from "./compute-build-stats"
 import { computeStats } from "./compute-stats"
 
@@ -80,5 +81,93 @@ describe("computeBuildStats", () => {
 
 		expect(nextRank.armor.total - now.armor.total).toBe(5)
 		expect(withItem.abilityPower.total - now.abilityPower.total).toBe(20)
+	})
+})
+
+const BOOTS = { stats: { movementSpeedFlat: 25 } }
+
+// A Teemo W-like passive reading the R armor rank stat, and a flat speed boost turned on by hand.
+const restingArmor: BuildEffect = {
+	id: "resting-armor",
+	name: "Resting armor",
+	icon: "",
+	slot: "R",
+	effect: {
+		id: "resting-armor",
+		source: { kind: "ability", championKey: "Heimerdinger", slot: "R" },
+		trigger: { kind: "while", condition: "not-damaged-recently" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "armor",
+				amount: { by: "rank", rankStat: "armor" },
+			},
+		],
+		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Olaf",
+	},
+}
+const sprint: Effect = {
+	id: "sprint",
+	source: { kind: "summoner", spellKey: "SummonerHaste" },
+	trigger: { kind: "after-use" },
+	grants: [{ kind: "stat", stat: "movementSpeedPercent", amount: 0.2 }],
+	sourceUrl: "https://wiki.leagueoflegends.com/en-us/Ghost",
+}
+const sprintEffect: BuildEffect = {
+	id: "sprint",
+	name: "Sprint",
+	icon: "",
+	effect: sprint,
+}
+
+describe("computeBuildStats with effects", () => {
+	test("an effect on by default keeps the totals of its always-on rank stat", () => {
+		for (const R of [1, 2, 3]) {
+			const ranked = { ...build, ranks: { ...NO_RANKS, R } }
+			expect(
+				computeBuildStats({
+					...ranked,
+					effects: { available: [restingArmor], overrides: {} },
+				}),
+			).toEqual(computeBuildStats(ranked))
+		}
+	})
+
+	test("turning that effect off drops its rank stat", () => {
+		const stats = computeBuildStats({
+			...build,
+			effects: {
+				available: [restingArmor],
+				overrides: { "resting-armor": false },
+			},
+		})
+
+		expect(computeBuildStats(build).armor.total - stats.armor.total).toBe(10)
+	})
+
+	test("an effect off by default changes nothing until it is turned on", () => {
+		const effects = { available: [sprintEffect], overrides: {} }
+
+		expect(computeBuildStats({ ...build, effects })).toEqual(
+			computeBuildStats(build),
+		)
+		expect(
+			computeBuildStats({
+				...build,
+				effects: { ...effects, overrides: { sprint: true } },
+			}).movementSpeed.total,
+		).toBeCloseTo(340 * 1.2)
+	})
+
+	test("effect stats add to the item bonuses before the soft caps", () => {
+		const stats = computeBuildStats({
+			...build,
+			items: [BOOTS],
+			effects: { available: [sprintEffect], overrides: { sprint: true } },
+		})
+		const raw = (340 + 25) * 1.2
+
+		expect(stats.movementSpeed.base).toBe(340)
+		expect(stats.movementSpeed.total).toBeCloseTo(raw * 0.8 + 83)
 	})
 })
