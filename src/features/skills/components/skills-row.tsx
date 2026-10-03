@@ -7,6 +7,7 @@ import { useSkillActions } from "../hooks/use-skill-actions"
 import type { Skills } from "../hooks/use-skills"
 import { AbilityRankButton } from "./ability-rank-button"
 import { SkillOrderStrip } from "./skill-order-strip"
+import { SkillPointActions } from "./skill-point-actions"
 
 type SkillsRowProps = {
 	abilities: ChampionAbilities
@@ -25,7 +26,6 @@ export function SkillsRow({
 }: SkillsRowProps) {
 	const titleId = useId()
 	const row = useSkillActions(skills, abilities)
-	const autoCount = skills.points.filter((point) => point.isAuto).length
 
 	return (
 		<section
@@ -37,17 +37,7 @@ export function SkillsRow({
 				<h2 id={titleId} className="text-prose text-sm">
 					Skills
 				</h2>
-				{skills.hasSkillOrder && (
-					<span className="text-subtle">
-						{skills.pickedCount} picked
-						{!!autoCount && (
-							<>
-								<span aria-hidden="true"> · </span>
-								<span className="text-gold">{autoCount} auto</span>
-							</>
-						)}
-					</span>
-				)}
+				{skills.hasSkillOrder && <PointsToSpend count={skills.unspentCount} />}
 			</div>
 			{skills.hasSkillOrder && skills.ranks ? (
 				<>
@@ -65,29 +55,31 @@ export function SkillsRow({
 								key={spell.slot}
 								spell={spell}
 								rank={skills.ranks?.[spell.slot] ?? 0}
-								autoRanks={
-									skills.points.filter(
-										(point) => point.isAuto && point.slot === spell.slot,
-									).length
-								}
+								isSuggested={skills.suggestion === spell.slot}
 								blocker={skills.spendBlocker(spell.slot)}
+								pointLevel={skills.spendLevel(spell.slot)}
 								onSpend={() => row.spend(spell.slot)}
 								statChanges={statChanges?.[spell.slot]}
 							/>
 						))}
 					</div>
 					<SkillOrderStrip
-						points={skills.points}
-						keptPicks={skills.keptPicks}
+						levels={skills.levels}
 						spells={abilities.spells}
-						hasPicks={!!skills.pickedCount || !!skills.keptPicks.length}
 						canPlace={skills.canPlace}
 						onPlace={row.place}
-						onReset={row.reset}
-					/>
+					>
+						<SkillPointActions
+							size="compact"
+							canFill={!!skills.unspentCount}
+							canReset={!!skills.spentCount || !!skills.keptCount}
+							onFill={row.fillRecommended}
+							onReset={row.reset}
+						/>
+					</SkillOrderStrip>
 					<p className="text-subtle text-xs leading-snug">
-						Press an ability for the next point, or a level to change it. Dashed
-						points are automatic.
+						Press an ability to spend a point, or a level to choose its point. A
+						dashed outline is only a suggestion.
 					</p>
 				</>
 			) : (
@@ -97,5 +89,16 @@ export function SkillsRow({
 			)}
 			<PoliteStatus message={row.announcement} />
 		</section>
+	)
+}
+
+/** The points left to spend, as the game counts them. */
+function PointsToSpend({ count }: { count: number }) {
+	return count ? (
+		<span className="font-bold text-lilac">
+			{count} {count === 1 ? "point" : "points"} to spend
+		</span>
+	) : (
+		<span className="text-subtle">All points spent</span>
 	)
 }

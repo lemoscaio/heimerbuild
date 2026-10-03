@@ -4,7 +4,7 @@ import { track } from "@/lib/analytics/analytics"
 import type { Skills } from "./use-skills"
 
 /**
- * The skill order actions of the skills row and tab: each one changes the order, tells screen
+ * The skill point actions of the skills row and tab: each one changes the points, tells screen
  * readers what changed and is tracked.
  */
 export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
@@ -15,12 +15,12 @@ export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
 	}
 
 	function spend(slot: AbilitySlot) {
-		if (!skills.ranks || skills.spendBlocker(slot)) return
-		const level =
-			skills.points.findIndex((point) => point.isAuto && point.slot !== slot) +
-			1
+		const level = skills.spendLevel(slot)
+		if (!skills.ranks || level === undefined) return
 		skills.spend(slot)
-		setAnnouncement(`${spellName(slot)} rank ${skills.ranks[slot] + 1}`)
+		setAnnouncement(
+			`${spellName(slot)} rank ${skills.ranks[slot] + 1}, level ${level} point`,
+		)
 		track("skill_point_picked", { slot, level, via: "ability" })
 	}
 
@@ -31,9 +31,19 @@ export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
 		track("skill_point_picked", { slot, level: pointLevel, via: "order" })
 	}
 
+	function fillRecommended() {
+		const points = skills.unspentCount
+		if (!points) return
+		skills.fillRecommended()
+		setAnnouncement(
+			`${points} ${points === 1 ? "point" : "points"} spent with the recommended order`,
+		)
+		track("skill_order_recommended", { points })
+	}
+
 	function reset() {
 		skills.reset()
-		setAnnouncement("Skill order back to the suggested one")
+		setAnnouncement("Skill points cleared")
 		track("skill_order_reset", {})
 	}
 
@@ -42,6 +52,7 @@ export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
 		announcement,
 		spend,
 		place,
+		fillRecommended,
 		reset,
 	}
 }

@@ -1,33 +1,29 @@
-import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
+import {
+	ABILITY_SLOTS,
+	type AbilitySlot,
+	type ChampionSpell,
+} from "@schemas/champion"
 import { RotateCcw } from "lucide-react"
 import { useId } from "react"
-import { Button } from "@/components/ui/button"
-import { MAX_LEVEL } from "@/lib/stats/growth"
-import type { SkillPoint } from "../lib/skill-history"
+import type { LevelPoint } from "../lib/skill-history"
 import { orderCellVariants, SkillOrderCell } from "./skill-order-cell"
 
-const LEVELS = Array.from({ length: MAX_LEVEL }, (_, index) => index + 1)
-
 type SkillOrderStripProps = {
-	points: readonly SkillPoint[]
-	keptPicks: readonly AbilitySlot[]
+	levels: readonly LevelPoint[]
 	spells: readonly ChampionSpell[]
-	/** Whether any point is picked, kept ones included: otherwise there is nothing to reset. */
-	hasPicks: boolean
 	canPlace: (pointLevel: number, slot: AbilitySlot) => boolean
 	onPlace: (pointLevel: number, slot: AbilitySlot) => void
-	onReset: () => void
+	/** The order's actions, next to its label. */
+	children?: React.ReactNode
 }
 
-/** The point of each level 1 to 18: picked, automatic, kept above the level, or not reached. */
+/** The point of each level 1 to 18: spent, unspent (chosen when pressed), kept above the level, or not reached. */
 export function SkillOrderStrip({
-	points,
-	keptPicks,
+	levels,
 	spells,
-	hasPicks,
 	canPlace,
 	onPlace,
-	onReset,
+	children,
 }: SkillOrderStripProps) {
 	const labelId = useId()
 
@@ -37,57 +33,62 @@ export function SkillOrderStrip({
 				<span id={labelId} className="text-subtle text-xs">
 					Order
 				</span>
-				<Button
-					type="button"
-					variant="link"
-					size="xs"
-					className="h-auto px-0 text-lilac"
-					disabled={!hasPicks}
-					onClick={onReset}
-				>
-					Reset to auto
-				</Button>
+				{children}
 			</div>
 			<ol aria-labelledby={labelId} className="grid grid-cols-9 gap-1">
-				{LEVELS.map((level) => {
-					const point = points[level - 1]
-					const kept = keptPicks[level - points.length - 1]
-					return (
-						<li key={level}>
-							{point ? (
-								<SkillOrderCell
-									level={level}
-									point={point}
-									spells={spells}
-									canPlace={(slot) => canPlace(level, slot)}
-									onPlace={(slot) => onPlace(level, slot)}
-								/>
-							) : kept ? (
-								<KeptCell level={level} slot={kept} />
-							) : (
-								<span className={orderCellVariants({ state: "future" })}>
-									<span className="sr-only">Level </span>
-									{level}
-								</span>
-							)}
-						</li>
-					)
-				})}
+				{levels.map((point) => (
+					<li key={point.level}>
+						<StripLevel
+							point={point}
+							spells={spells}
+							canPlace={(slot) => canPlace(point.level, slot)}
+							onPlace={(slot) => onPlace(point.level, slot)}
+						/>
+					</li>
+				))}
 			</ol>
 		</div>
 	)
 }
 
-function KeptCell({ level, slot }: { level: number; slot: AbilitySlot }) {
-	return (
-		<span className={orderCellVariants({ state: "kept" })}>
-			<span className="sr-only">
-				Level {level}: {slot}, kept for when the level goes back up
-			</span>
-			<span aria-hidden="true" className="flex items-center gap-0.5">
-				{slot}
-				<RotateCcw className="size-2.5" />
-			</span>
-		</span>
-	)
+type StripLevelProps = Omit<
+	React.ComponentProps<typeof SkillOrderCell>,
+	"point"
+> & { point: LevelPoint }
+
+function StripLevel({ point, ...props }: StripLevelProps) {
+	switch (point.state) {
+		case "spent":
+			return <SkillOrderCell point={point} {...props} />
+		case "free":
+			return ABILITY_SLOTS.some((slot) => props.canPlace(slot)) ? (
+				<SkillOrderCell point={point} {...props} />
+			) : (
+				<span className={orderCellVariants({ state: "unspent" })}>
+					<span className="sr-only">Level </span>
+					{point.level}
+					<span className="sr-only">: point to spend</span>
+				</span>
+			)
+		case "kept":
+			return (
+				<span className={orderCellVariants({ state: "kept" })}>
+					<span className="sr-only">
+						Level {point.level}: {point.slot}, kept for when the level goes back
+						up
+					</span>
+					<span aria-hidden="true" className="flex items-center gap-0.5">
+						{point.slot}
+						<RotateCcw className="size-2.5" />
+					</span>
+				</span>
+			)
+		case "future":
+			return (
+				<span className={orderCellVariants({ state: "future" })}>
+					<span className="sr-only">Level </span>
+					{point.level}
+				</span>
+			)
+	}
 }

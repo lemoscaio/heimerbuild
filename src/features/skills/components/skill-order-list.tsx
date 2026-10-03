@@ -1,23 +1,17 @@
 import { GameIcon } from "@/components/common/game-icon"
-import { ToggleGroup } from "@/components/ui/toggle-group"
-import { MAX_LEVEL } from "@/lib/stats/growth"
 import { SkillGridCell } from "./skill-grid-cell"
+import { SkillLevelCells } from "./skill-level-cells"
 import type { SkillOrderGridProps } from "./skill-order-grid"
 
-/** The skill order grid turned for phones: a row per level with four large buttons. */
+/** The skill order grid turned for phones: a row per reached or kept level with four large buttons. */
 export function SkillOrderList({
 	spells,
-	points,
-	keptPicks,
+	levels,
 	ranks,
 	canPlace,
 	onPlace,
 }: SkillOrderGridProps) {
-	const level = points.length
-	const rows = Array.from(
-		{ length: Math.min(MAX_LEVEL, level + keptPicks.length) },
-		(_, index) => index + 1,
-	)
+	const rows = levels.filter((point) => point.state !== "future")
 
 	return (
 		<div className="flex flex-col gap-1.5">
@@ -36,47 +30,33 @@ export function SkillOrderList({
 					</div>
 				))}
 			</div>
-			{rows.map((rowLevel) => {
-				const point = points[rowLevel - 1]
-				const kept = keptPicks[rowLevel - level - 1]
-				const cells = spells.map((spell) => (
-					<SkillGridCell
-						key={spell.slot}
-						spell={spell}
-						level={rowLevel}
+			{rows.map((point) => (
+				<div
+					key={point.level}
+					className="grid grid-cols-[3rem_1fr] items-center gap-1.5"
+				>
+					<span className="font-bold font-display text-sm">
+						Lv {point.level}
+					</span>
+					<SkillLevelCells
 						point={point}
-						canPlace={!!point && canPlace(rowLevel, spell.slot)}
-						isKept={kept === spell.slot}
-						size="large"
+						onPlace={(slot) => onPlace(point.level, slot)}
+						className="grid grid-cols-4 gap-1.5"
 					>
-						{spell.slot}
-					</SkillGridCell>
-				))
-				return (
-					<div
-						key={rowLevel}
-						className="grid grid-cols-[3rem_1fr] items-center gap-1.5"
-					>
-						<span className="font-bold font-display text-sm">
-							Lv {rowLevel}
-						</span>
-						{point ? (
-							<ToggleGroup
-								aria-label={`Level ${rowLevel} point`}
-								className="grid grid-cols-4 gap-1.5"
-								value={[point.slot]}
-								onValueChange={([next]) =>
-									next && next !== point.slot && onPlace(rowLevel, next)
-								}
+						{spells.map((spell) => (
+							<SkillGridCell
+								key={spell.slot}
+								spell={spell}
+								point={point}
+								canPlace={canPlace(point.level, spell.slot)}
+								size="large"
 							>
-								{cells}
-							</ToggleGroup>
-						) : (
-							<div className="grid grid-cols-4 gap-1.5">{cells}</div>
-						)}
-					</div>
-				)
-			})}
+								{spell.slot}
+							</SkillGridCell>
+						))}
+					</SkillLevelCells>
+				</div>
+			))}
 		</div>
 	)
 }

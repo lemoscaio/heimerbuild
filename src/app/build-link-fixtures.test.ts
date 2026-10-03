@@ -93,3 +93,17 @@ describe.each(v1Links)("a v1 link with $name", ({ link, build }) => {
 		expect(openLink(written)).toEqual(build)
 	})
 })
+
+// Unspent levels inside `skills` (`_`) are a new accepted value of v1, so no version bump.
+describe("a v1 link with unspent skill levels", () => {
+	const link = "?lvl=9&skills=Q_Q_W&v=1"
+	const build: BuildSearch = { v: BUILD_LINK_VERSION, lvl: 9, skills: "Q_Q_W" }
+
+	test("opens with its gaps", () => {
+		expect(openLink(link)).toEqual(build)
+	})
+
+	test("is written back with the same gaps", () => {
+		expect(openLink(writeLink(openLink(link)))).toEqual(build)
+	})
+})

@@ -1,10 +1,15 @@
 import { describe, expect, test } from "bun:test"
 import type { AbilitySlot } from "@schemas/champion"
+import { CHAMPION_SKILL_RULES } from "../../../../scripts/sync-data/overrides/champion-skill-rules"
 import { skillChampion, TEEMO_ORDER } from "./skill-champions.fixtures"
 import {
+	fillRecommended,
+	levelPoints,
+	nextSuggestion,
 	placePoint,
-	skillPointsAt,
+	type SkillPicks,
 	spendBlocker,
+	spendLevel,
 	spendPoint,
 	withKeptPicks,
 } from "./skill-history"
@@ -12,97 +17,195 @@ import { skillRulesOf } from "./skill-rules"
 
 const rules = skillRulesOf(skillChampion({ recommendedOrder: TEEMO_ORDER }))
 
+/** "Q_Q": Q at levels 1 and 3, level 2 unspent. */
 function order(letters: string) {
-	return [...letters] as AbilitySlot[]
+	return [...letters].map((letter) =>
+		letter === "_" ? null : (letter as AbilitySlot),
+	)
 }
 
-function letters(points: { slot: AbilitySlot }[] | readonly AbilitySlot[]) {
-	return points
-		.map((point) => (typeof point === "string" ? point : point.slot))
-		.join("")
+function overrideRules(id: string) {
+	const override = CHAMPION_SKILL_RULES.find((rule) => rule.id === id)
+	if (!override) throw new Error(`no override ${id}`)
+	return skillRulesOf(skillChampion({ skillRules: override.apply(undefined) }))
 }
 
-describe("skillPointsAt", () => {
-	test("shows the picks, then suggested points up to the level", () => {
-		const points = skillPointsAt(order("QWE"), { level: 5, rules })
-		expect(letters(points)).toBe("QWEEE")
-		expect(points.map(({ isAuto }) => isAuto)).toEqual([
-			false,
-			false,
-			false,
-			true,
-			true,
-		])
+describe("levelPoints", () => {
+	test("a build starts with no points: level 1 is unspent, only suggested", () => {
+		const [first, second] = levelPoints([], { level: 1, rules })
+		expect(first).toEqual({ level: 1, state: "free", suggestion: "E" })
+		expect(second?.state).toBe("future")
 	})
 
-	test("hides the picks above the level", () => {
-		expect(letters(skillPointsAt(order("QWEQQR"), { level: 4, rules }))).toBe(
-			"QWEQ",
+	test("lists spent points and gaps; only the first gap carries the suggestion", () => {
+		const points = levelPoints(order("Q_Q"), { level: 5, rules })
+		expect(points.slice(0, 6)).toEqual([
+			{ level: 1, state: "spent", slot: "Q", rank: 1 },
+			{ level: 2, state: "free", suggestion: "E" },
+			{ level: 3, state: "spent", slot: "Q", rank: 2 },
+			{ level: 4, state: "free", suggestion: undefined },
+			{ level: 5, state: "free", suggestion: undefined },
+			{ level: 6, state: "future" },
+		])
+		expect(points).toHaveLength(18)
+	})
+
+	test("lowering the level keeps only the points above it, gaps stay gaps", () => {
+		const states = levelPoints(order("Q_E_W"), { level: 1, rules }).map(
+			(point) => point.state,
 		)
+		expect(states.slice(0, 6)).toEqual([
+			"spent",
+			"future",
+			"kept",
+			"future",
+			"kept",
+			"future",
+		])
+	})
+})
+
+describe("nextSuggestion", () => {
+	test("suggests the recommended ability for the first unspent level", () => {
+		expect(nextSuggestion([], { level: 3, rules })).toEqual({
+			level: 1,
+			slot: "E",
+		})
+		expect(nextSuggestion(order("E"), { level: 3, rules })).toEqual({
+			level: 2,
+			slot: "Q",
+		})
+		// Riot's level 2 Q cannot reach rank 2: the max priority goes on (R cannot rank yet, so E).
+		expect(nextSuggestion(order("Q"), { level: 3, rules })?.slot).toBe("E")
+	})
+
+	test("suggests nothing once every point is spent", () => {
+		expect(nextSuggestion(order("QWE"), { level: 3, rules })).toBeUndefined()
 	})
 })
 
 describe("spendPoint", () => {
-	test("moves the first suggested point to the ability", () => {
-		expect(spendPoint(order("QW"), { slot: "Q", level: 5, rules })).toEqual(
+	test("puts the point at the earliest unspent level that can take it, leaving gaps", () => {
+		expect(spendPoint([], { slot: "Q", level: 9, rules })).toEqual(order("Q"))
+		// Rank 2 needs level 3: level 2 stays unspent.
+		expect(spendLevel(order("Q"), { slot: "Q", level: 9, rules })).toBe(3)
+		expect(spendPoint(order("Q"), { slot: "Q", level: 9, rules })).toEqual(
+			order("Q_Q"),
+		)
+		expect(spendPoint(order("Q_Q"), { slot: "W", level: 9, rules })).toEqual(
 			order("QWQ"),
 		)
 	})
 
-	test("skips suggested points that already are that ability", () => {
-		// Suggested after Q W at level 4: W, then E (Teemo's E Q W E).
-		expect(letters(skillPointsAt(order("QW"), { level: 4, rules }))).toBe(
-			"QWWE",
+	test("an earlier point keeps the later ones valid", () => {
+		expect(spendPoint(order("____Q"), { slot: "Q", level: 9, rules })).toEqual(
+			order("Q___Q"),
 		)
-		expect(spendPoint(order("QW"), { slot: "E", level: 4, rules })).toEqual(
-			order("QWE"),
+	})
+
+	test("stops at the max rank", () => {
+		let picks: SkillPicks = []
+		for (let point = 0; point < 5; point++) {
+			picks = spendPoint(picks, { slot: "Q", level: 9, rules }) ?? []
+		}
+		expect(picks).toEqual(order("Q_Q_Q_Q_Q"))
+		expect(spendPoint(picks, { slot: "Q", level: 18, rules })).toBeUndefined()
+	})
+
+	test("R takes its points at 6, 11 and 16 only", () => {
+		expect(spendPoint([], { slot: "R", level: 5, rules })).toBeUndefined()
+		expect(spendPoint([], { slot: "R", level: 9, rules })).toEqual(
+			order("_____R"),
 		)
-		// Level 3 already suggests W, and level 4 cannot take W to rank 3.
 		expect(
-			spendPoint(order("QW"), { slot: "W", level: 4, rules }),
+			spendPoint(order("_____R"), { slot: "R", level: 10, rules }),
 		).toBeUndefined()
 	})
 
-	test("refuses when every point is picked or the rank is not allowed yet", () => {
+	test("refuses with no point left to spend", () => {
 		expect(
 			spendPoint(order("QWE"), { slot: "Q", level: 3, rules }),
 		).toBeUndefined()
-		expect(spendPoint([], { slot: "R", level: 5, rules })).toBeUndefined()
 	})
 })
 
 describe("spendBlocker", () => {
-	test("says why an ability cannot take a point", () => {
+	test("says why an ability cannot take one more point", () => {
 		expect(spendBlocker([], { slot: "Q", level: 5, rules })).toBeUndefined()
 		expect(spendBlocker(order("QWE"), { slot: "Q", level: 3, rules })).toEqual({
-			reason: "all-picked",
+			reason: "no-points",
 		})
 		expect(spendBlocker([], { slot: "R", level: 5, rules })).toEqual({
 			reason: "needs-level",
 			level: 6,
 		})
-		// The suggested point of level 6 already is R: rank 2 is next.
 		expect(
-			spendBlocker(order("QWQEQ"), { slot: "R", level: 6, rules }),
+			spendBlocker(order("QWQEQR"), { slot: "R", level: 10, rules }),
 		).toEqual({ reason: "needs-level", level: 11 })
 		expect(
 			spendBlocker(order("QWQEQRQWQ"), { slot: "Q", level: 10, rules }),
 		).toEqual({ reason: "max-rank" })
+		// Only level 1 is unspent, and Q there would push the level 2 Q to rank 2.
+		expect(
+			spendBlocker(order("_QWQE"), { slot: "Q", level: 5, rules }),
+		).toEqual({ reason: "no-free-level", rankLevel: 5 })
+	})
+
+	test("keeps the champion exceptions", () => {
+		expect(
+			spendBlocker([], {
+				slot: "Q",
+				level: 1,
+				rules: overrideRules("azir-skill-rules"),
+			}),
+		).toEqual({ reason: "first-point", ability: "W" })
+		expect(
+			spendBlocker(order("E"), {
+				slot: "W",
+				level: 3,
+				rules: overrideRules("shen-skill-rules"),
+			}),
+		).toEqual({ reason: "needs-ability", abilities: ["Q"] })
+	})
+})
+
+describe("fillRecommended", () => {
+	test("spends every unspent level with the recommended order", () => {
+		expect(fillRecommended([], { level: 9, rules })).toEqual(
+			order("EQWEERE" + "QE"),
+		)
+		// After Q, level 2 cannot take Q to rank 2: the max priority goes on with E.
+		expect(fillRecommended(order("Q"), { level: 4, rules })).toEqual(
+			order("QEWE"),
+		)
+	})
+
+	test("fills the gaps too, within the rules", () => {
+		expect(fillRecommended(order("Q_Q"), { level: 5, rules })).toEqual(
+			order("QEQEE"),
+		)
+	})
+
+	test("leaves a build with every point spent as it is, kept points included", () => {
+		const picks = order("QWEQ")
+		expect(fillRecommended(picks, { level: 2, rules })).toBe(picks)
 	})
 })
 
 describe("placePoint", () => {
-	test("changes an earlier level and keeps the later picks", () => {
+	test("changes a spent level and keeps the later points", () => {
 		expect(
 			placePoint(order("QWEQ"), { slot: "E", pointLevel: 1, level: 4, rules }),
 		).toEqual(order("EWEQ"))
 	})
 
-	test("turns the suggested points before it into picks", () => {
-		// Suggested at levels 2-3: Q and W (Teemo's E Q W E).
+	test("spends any unspent level directly", () => {
 		expect(
-			placePoint(order("E"), { slot: "Q", pointLevel: 4, level: 6, rules }),
-		).toEqual(order("EQWQ"))
+			placePoint(order("Q"), { slot: "W", pointLevel: 5, level: 9, rules }),
+		).toEqual(order("Q___W"))
+		expect(
+			placePoint(order("Q"), { slot: "W", pointLevel: 10, level: 9, rules }),
+		).toBeUndefined()
 	})
 
 	test("refuses a point the rules forbid for the whole order", () => {
@@ -112,13 +215,14 @@ describe("placePoint", () => {
 		expect(
 			placePoint(order("QWE"), { slot: "R", pointLevel: 3, level: 3, rules }),
 		).toBeUndefined()
+		// Q at level 2 would push the level 3 Q to rank 3 at level 3.
 		expect(
-			placePoint(order("QWE"), { slot: "Q", pointLevel: 4, level: 3, rules }),
+			placePoint(order("Q_Q"), { slot: "Q", pointLevel: 2, level: 9, rules }),
 		).toBeUndefined()
 	})
 
 	describe("like browser history", () => {
-		// Picked up to level 11, then the level went down to 9: W (10) and R (11) are kept.
+		// Spent up to level 11, then the level went down to 9: W (10) and R (11) are kept.
 		const picks = order("EQWEERE" + "QE" + "WR")
 
 		test("picking the same ability keeps the points above the level", () => {
@@ -132,6 +236,20 @@ describe("placePoint", () => {
 				placePoint(picks, { slot: "W", pointLevel: 9, level: 9, rules }),
 			).toEqual(order("EQWEERE" + "QW"))
 		})
+
+		test("with gaps, any change at or below the level drops the kept points, spending a gap too", () => {
+			// Q at 1 and 3, then W (10) and R (11) kept above level 9.
+			const withGaps = order("Q_Q" + "______" + "WR")
+			expect(spendPoint(withGaps, { slot: "W", level: 9, rules })).toEqual(
+				order("QWQ"),
+			)
+			expect(
+				placePoint(withGaps, { slot: "E", pointLevel: 5, level: 9, rules }),
+			).toEqual(order("Q_Q_E"))
+			expect(
+				placePoint(withGaps, { slot: "Q", pointLevel: 3, level: 9, rules }),
+			).toBe(withGaps)
+		})
 	})
 })
 
@@ -143,6 +261,12 @@ describe("withKeptPicks", () => {
 			remembered,
 		)
 		expect(withKeptPicks(remembered, remembered, 11)).toBe(remembered)
+	})
+
+	test("keeps gaps: the link must match the remembered points up to the level", () => {
+		const withGaps = order("Q_Q" + "______" + "WR")
+		expect(withKeptPicks(withGaps, order("Q_Q"), 9)).toBe(withGaps)
+		expect(withKeptPicks(withGaps, order("QWQ"), 9)).toEqual(order("QWQ"))
 	})
 
 	test("follows the link once it says something else", () => {

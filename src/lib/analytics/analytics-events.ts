@@ -85,7 +85,7 @@ export type AnalyticsEvents = {
 	/** The rune page was reset to empty. */
 	runes_reset: Record<string, never>
 	/**
-	 * A skill point was picked: through the ability (`via: "ability"`, the next point) or a level
+	 * A skill point was spent or changed: through the ability (`via: "ability"`, the next point) or a level
 	 * of the order (`via: "order"`); `level` is the point's level.
 	 */
 	skill_point_picked: {
@@ -93,7 +93,9 @@ export type AnalyticsEvents = {
 		level: number
 		via: "ability" | "order"
 	}
-	/** The skill order went back to the suggested one. */
+	/** Every point left to spend was spent with the recommended order. */
+	skill_order_recommended: { points: number }
+	/** Every skill point was cleared. */
 	skill_order_reset: Record<string, never>
 	build_link_copied: {
 		champion: string

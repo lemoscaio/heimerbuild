@@ -3,20 +3,24 @@ import type { AbilitySlot } from "@schemas/champion"
 import { CHAMPION_SKILL_RULES } from "../../../../scripts/sync-data/overrides/champion-skill-rules"
 import { skillChampion, TEEMO_ORDER } from "./skill-champions.fixtures"
 import {
-	autoFill,
 	canRankUp,
 	isValidOrder,
 	parseOrder,
 	ranksOf,
 	serializeOrder,
+	suggestedPoint,
 	validPrefix,
+	withRecommended,
 } from "./skill-order"
 import { skillRulesOf } from "./skill-rules"
 
 const standard = skillRulesOf(skillChampion())
 
+/** "Q_Q": Q at levels 1 and 3, level 2 unspent. */
 function order(letters: string) {
-	return [...letters] as AbilitySlot[]
+	return [...letters].map((letter) =>
+		letter === "_" ? null : (letter as AbilitySlot),
+	)
 }
 
 function overrideRules(id: string) {
@@ -37,6 +41,13 @@ describe("skill point rules", () => {
 		expect(isValidOrder(order("QWEQR"), standard)).toBe(false)
 		expect(isValidOrder(order("QWEQQRQWER"), standard)).toBe(false)
 		expect(isValidOrder(order("QWEQQRQWEWR"), standard)).toBe(true)
+	})
+
+	test("each point is checked at its own level, gaps included", () => {
+		expect(isValidOrder(order("Q_Q"), standard)).toBe(true)
+		expect(isValidOrder(order("_____R"), standard)).toBe(true)
+		expect(isValidOrder(order("____R"), standard)).toBe(false)
+		expect(validPrefix(order("Q_Q_QQ"), standard)).toEqual(order("Q_Q_Q"))
 	})
 
 	test("a basic ability stops at rank 5", () => {
@@ -67,7 +78,7 @@ describe("skill point rules", () => {
 				skillRules: overrideRules("jayce-skill-rules"),
 			}),
 		)
-		const full = autoFill([], { level: 18, rules })
+		const full = withRecommended([], { level: 18, rules })
 		expect(full).toHaveLength(18)
 		expect(ranksOf(full, rules)).toEqual({ Q: 6, W: 6, E: 6, R: 1 })
 	})
@@ -87,7 +98,7 @@ describe("skill point rules", () => {
 			skillChampion({ skillRules: overrideRules("azir-skill-rules") }),
 		)
 		expect(isValidOrder(order("Q"), rules)).toBe(false)
-		expect(autoFill([], { level: 1, rules })).toEqual(order("W"))
+		expect(withRecommended([], { level: 1, rules })).toEqual(order("W"))
 	})
 
 	test("Shen's W needs a point in Q first", () => {
@@ -104,7 +115,7 @@ describe("skill point rules", () => {
 			skillChampion({ skillRules: overrideRules("aphelios-skill-rules") }),
 		)
 		expect(rules.hasSkillOrder).toBe(false)
-		expect(autoFill([], { level: 9, rules })).toEqual([])
+		expect(withRecommended([], { level: 9, rules })).toEqual([])
 	})
 
 	test.each(
@@ -126,28 +137,41 @@ describe("skill point rules", () => {
 			}),
 		)
 		if (!rules.hasSkillOrder) return
-		const full = autoFill([], { level: 18, rules })
+		const full = withRecommended([], { level: 18, rules })
 		expect(full).toHaveLength(18)
 		expect(isValidOrder(full, rules)).toBe(true)
 	})
 })
 
-describe("autoFill", () => {
+describe("withRecommended", () => {
 	test("follows Riot's first points, then its max priority", () => {
 		const rules = skillRulesOf(skillChampion({ recommendedOrder: TEEMO_ORDER }))
 		// Level 8 cannot rank E to 5, so Q takes it.
-		expect(autoFill([], { level: 9, rules })).toEqual(order("EQWEERE" + "QE"))
+		expect(withRecommended([], { level: 9, rules })).toEqual(
+			order("EQWEERE" + "QE"),
+		)
 	})
 
 	test("without a recommendation, takes R when it can, then maxes Q, W, E", () => {
-		expect(autoFill([], { level: 11, rules: standard })).toEqual(
+		expect(withRecommended([], { level: 11, rules: standard })).toEqual(
 			order("QWQWQRQWQWR"),
 		)
 	})
 
 	test("continues after the picks", () => {
 		const rules = skillRulesOf(skillChampion({ recommendedOrder: TEEMO_ORDER }))
-		expect(autoFill(order("QWQ"), { level: 6, rules })).toEqual(order("QWQEER"))
+		expect(withRecommended(order("QWQ"), { level: 6, rules })).toEqual(
+			order("QWQEER"),
+		)
+	})
+})
+
+describe("suggestedPoint", () => {
+	test("without a recommendation, suggests R as soon as it can rank, else Q, W, E", () => {
+		expect(suggestedPoint([], { level: 1, rules: standard })).toBe("Q")
+		expect(suggestedPoint(order("QWQWQ"), { level: 6, rules: standard })).toBe(
+			"R",
+		)
 	})
 })
 
@@ -159,8 +183,16 @@ describe("parseOrder and serializeOrder", () => {
 		expect(parseOrder(undefined, standard)).toEqual([])
 	})
 
-	test("writes nothing for an empty order", () => {
+	test("reads unspent levels as gaps and drops trailing ones", () => {
+		expect(parseOrder("Q_Q", standard)).toEqual(order("Q_Q"))
+		expect(parseOrder("Q__", standard)).toEqual(order("Q"))
+		expect(parseOrder("_", standard)).toEqual([])
+	})
+
+	test("writes unspent levels as _, never trailing, and nothing for an empty order", () => {
 		expect(serializeOrder(order("EQW"))).toBe("EQW")
+		expect(serializeOrder(order("Q_Q__"))).toBe("Q_Q")
+		expect(serializeOrder(order("__"))).toBeUndefined()
 		expect(serializeOrder([])).toBeUndefined()
 	})
 })

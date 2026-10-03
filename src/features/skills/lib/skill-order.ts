@@ -1,10 +1,31 @@
 import { ABILITY_SLOTS, type AbilitySlot } from "@schemas/champion"
+import { UNSPENT_LEVEL_MARK } from "@/lib/skill-order-param"
 import { MAX_LEVEL } from "@/lib/stats/growth"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import type { SkillRules } from "./skill-rules"
 
-/** One ability per level, level 1 first. */
-export type SkillOrder = readonly AbilitySlot[]
+/** The point of each level, level 1 first: an ability, or null while that level's point is unspent. */
+export type SkillOrder = readonly (AbilitySlot | null)[]
+
+/** `order` without its trailing unspent levels. */
+export function trimOrder(order: SkillOrder): SkillOrder {
+	let end = order.length
+	while (end > 0 && order[end - 1] === null) end--
+	return end === order.length ? order : order.slice(0, end)
+}
+
+/** `order` with `slot` as the point of `level`, the levels between left unspent. */
+export function withPointAt(
+	order: SkillOrder,
+	{ slot, level }: { slot: AbilitySlot; level: number },
+): SkillOrder {
+	const next = Array.from(
+		{ length: Math.max(order.length, level) },
+		(_, index) => order[index] ?? null,
+	)
+	next[level - 1] = slot
+	return trimOrder(next)
+}
 
 /** Each ability's rank after `order`: its innate ranks plus its points. */
 export function ranksOf(order: SkillOrder, rules: SkillRules): AbilityRanks {
@@ -14,7 +35,7 @@ export function ranksOf(order: SkillOrder, rules: SkillRules): AbilityRanks {
 		E: rules.abilities.E.innateRanks,
 		R: rules.abilities.R.innateRanks,
 	}
-	for (const slot of order) ranks[slot]++
+	for (const slot of order) if (slot) ranks[slot]++
 	return ranks
 }
 
@@ -35,55 +56,63 @@ export function canRankUp(
 	)
 }
 
-/** The longest start of `order` the rules allow: a link's invalid points are dropped. */
+/** The longest start of `order` the rules allow, each point checked at its own level: a link's invalid points are dropped. */
 export function validPrefix(order: SkillOrder, rules: SkillRules): SkillOrder {
-	const valid: AbilitySlot[] = []
+	const valid: (AbilitySlot | null)[] = []
 	for (const slot of order) {
-		const ranks = ranksOf(valid, rules)
-		if (!canRankUp(rules, ranks, { slot, level: valid.length + 1 })) break
+		const level = valid.length + 1
+		if (slot && !canRankUp(rules, ranksOf(valid, rules), { slot, level })) {
+			break
+		}
 		valid.push(slot)
 	}
-	return valid
+	return trimOrder(valid)
 }
 
 export function isValidOrder(order: SkillOrder, rules: SkillRules): boolean {
-	return validPrefix(order, rules).length === order.length
+	return validPrefix(order, rules).length === trimOrder(order).length
 }
 
-/** The point the game would suggest at `level`: the recommended first points, then the max priority. */
-function suggestedPoint(
+/**
+ * The ability the recommended order suggests for the unspent point of `level` in `order`: Riot's
+ * first points, then its max priority, skipping any the rules forbid there. Only a hint until spent.
+ */
+export function suggestedPoint(
 	order: SkillOrder,
-	rules: SkillRules,
-	level: number,
+	{ level, rules }: { level: number; rules: SkillRules },
 ): AbilitySlot | undefined {
-	const ranks = ranksOf(order, rules)
 	const candidates = [
 		rules.recommended.firstPoints[level - 1],
 		...rules.recommended.priority,
 		...ABILITY_SLOTS,
 	]
 	return candidates.find(
-		(slot) => slot !== undefined && canRankUp(rules, ranks, { slot, level }),
+		(slot) =>
+			slot !== undefined &&
+			isValidOrder(withPointAt(order, { slot, level }), rules),
 	)
 }
 
-/** `picks` (a valid order) followed by the suggested points up to `level`. */
-export function autoFill(
-	picks: SkillOrder,
+/** `order` with every unspent level up to `level` spent as the recommended order says, level 1 first. */
+export function withRecommended(
+	order: SkillOrder,
 	{ level, rules }: { level: number; rules: SkillRules },
 ): SkillOrder {
-	const order = [...picks.slice(0, level)]
-	while (order.length < level) {
-		const next = suggestedPoint(order, rules, order.length + 1)
-		if (!next) break
-		order.push(next)
+	let filled = order
+	for (let pointLevel = 1; pointLevel <= level; pointLevel++) {
+		if (filled[pointLevel - 1]) continue
+		const slot = suggestedPoint(filled, { level: pointLevel, rules })
+		if (slot) filled = withPointAt(filled, { slot, level: pointLevel })
 	}
-	return order
+	return filled
 }
 
-/** `order` as the `skills` URL value ("EQWE"); undefined when empty. */
+/** `order` as the `skills` URL value ("Q_QW"); undefined when nothing is spent. */
 export function serializeOrder(order: SkillOrder): string | undefined {
-	return order.length ? order.join("") : undefined
+	const trimmed = trimOrder(order)
+	return trimmed.length
+		? trimmed.map((slot) => slot ?? UNSPENT_LEVEL_MARK).join("")
+		: undefined
 }
 
 /** The `skills` URL value as an order the rules allow; invalid points and what follows them are dropped. */
@@ -91,10 +120,12 @@ export function parseOrder(
 	value: string | undefined,
 	rules: SkillRules,
 ): SkillOrder {
-	const slots: AbilitySlot[] = []
+	const slots: (AbilitySlot | null)[] = []
 	for (const letter of (value ?? "").slice(0, MAX_LEVEL)) {
-		if (!ABILITY_SLOTS.includes(letter as AbilitySlot)) break
-		slots.push(letter as AbilitySlot)
+		if (letter === UNSPENT_LEVEL_MARK) slots.push(null)
+		else if (ABILITY_SLOTS.includes(letter as AbilitySlot)) {
+			slots.push(letter as AbilitySlot)
+		} else break
 	}
 	return validPrefix(slots, rules)
 }

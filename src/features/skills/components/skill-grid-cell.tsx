@@ -1,18 +1,19 @@
-import type { ChampionSpell } from "@schemas/champion"
+import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
 import { cva, type VariantProps } from "class-variance-authority"
 import { RotateCcw } from "lucide-react"
 import { ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/cn"
-import type { SkillPoint } from "../lib/skill-history"
+import type { LevelPoint } from "../lib/skill-history"
 
 const gridCellVariants = cva(
 	"flex size-full items-center justify-center rounded-md border font-bold font-display text-xs tabular-nums",
 	{
 		variants: {
 			state: {
-				picked: "border-gold bg-gold text-surface-sunken data-pressed:bg-gold",
-				auto: "border-gold border-dashed text-gold data-pressed:bg-transparent",
-				open: "border-line bg-surface-sunken text-transparent hover:border-lilac hover:text-subtle",
+				spent: "border-gold bg-gold text-surface-sunken data-pressed:bg-gold",
+				suggested:
+					"border-gold border-dashed text-gold hover:bg-gold/15 data-pressed:bg-transparent",
+				open: "border-line-strong bg-surface-sunken text-transparent hover:border-lilac hover:text-subtle",
 				blocked: "border-line/60 bg-hatched text-transparent",
 				kept: "border-line-strong border-dashed text-subtle",
 				future: "border-line/40 bg-surface-sunken/40",
@@ -32,66 +33,74 @@ const gridCellVariants = cva(
 	},
 )
 
+type GridCellState = NonNullable<VariantProps<typeof gridCellVariants>["state"]>
+
+/** What one ability's cell shows at one level. */
+function gridCellState(
+	point: LevelPoint,
+	slot: AbilitySlot,
+	canPlace: boolean,
+): GridCellState {
+	switch (point.state) {
+		case "spent":
+			return point.slot === slot ? "spent" : canPlace ? "open" : "blocked"
+		case "free":
+			return point.suggestion === slot
+				? "suggested"
+				: canPlace
+					? "open"
+					: "blocked"
+		case "kept":
+			return point.slot === slot ? "kept" : "future"
+		default:
+			return point.state
+	}
+}
+
 type SkillGridCellProps = {
 	spell: ChampionSpell
-	level: number
-	/** That level's point, while the level is reached. */
-	point: SkillPoint | undefined
-	/** Whether the point of that level may move to this ability. */
+	point: LevelPoint
+	/** Whether that level's point may go to this ability. */
 	canPlace: boolean
-	/** A pick kept above the current level for this ability. */
-	isKept: boolean
 } & Pick<VariantProps<typeof gridCellVariants>, "size"> &
 	Omit<React.ComponentProps<typeof ToggleGroupItem>, "value" | "size">
 
 /**
- * One ability at one level: its point (showing the rank it reaches, unless `children` says
- * otherwise), a free cell, or a blocked one.
+ * One ability at one level: a spent point (showing the rank it reaches, unless `children` says
+ * otherwise), the suggestion, a free cell, or a blocked one.
  */
 export function SkillGridCell({
 	spell,
-	level,
 	point,
 	canPlace,
-	isKept,
 	size,
 	className,
 	children,
 	...props
 }: SkillGridCellProps) {
-	if (!point) {
+	const state = gridCellState(point, spell.slot, canPlace)
+
+	if (point.state !== "spent" && point.state !== "free") {
 		return (
-			<span
-				className={cn(
-					gridCellVariants({ state: isKept ? "kept" : "future", size }),
-					className,
-				)}
-			>
-				{isKept && (
+			<span className={cn(gridCellVariants({ state, size }), className)}>
+				{state === "kept" && (
 					<>
 						<RotateCcw aria-hidden="true" className="size-3" />
 						<span className="sr-only">
-							Level {level}: {spell.slot}, kept for when the level goes back up
+							Level {point.level}: {spell.slot}, kept for when the level goes
+							back up
 						</span>
 					</>
 				)}
 			</span>
 		)
 	}
-	const isPoint = point.slot === spell.slot
-	const state = isPoint
-		? point.isAuto
-			? "auto"
-			: "picked"
-		: canPlace
-			? "open"
-			: "blocked"
 
 	return (
 		<ToggleGroupItem
 			value={spell.slot}
-			aria-label={`${spell.slot} ${spell.name}`}
-			disabled={!isPoint && !canPlace}
+			aria-label={`${spell.slot} ${spell.name}${state === "suggested" ? ", suggested" : ""}`}
+			disabled={state === "blocked"}
 			className={cn(
 				"h-auto min-w-0 rounded-md p-0 disabled:opacity-100 data-pressed:inset-ring-0",
 				gridCellVariants({ state, size }),
@@ -99,7 +108,8 @@ export function SkillGridCell({
 			)}
 			{...props}
 		>
-			{children ?? (isPoint ? point.rank : "+")}
+			{children ??
+				(point.state === "spent" && state === "spent" ? point.rank : "+")}
 		</ToggleGroupItem>
 	)
 }
