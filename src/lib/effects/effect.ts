@@ -50,6 +50,16 @@ export type Trigger =
 
 export type TriggerKind = Trigger["kind"]
 
+/**
+ * How effects of one group combine; effects without a group add up. `replace`: the highest
+ * `priority` applies; `highest`: the largest value; `unique`: one of them, once.
+ */
+export type Stacking =
+	| { group: string; rule: "replace"; priority: number }
+	| { group: string; rule: "highest" | "unique" }
+
+export type StackingRule = Stacking["rule"]
+
 /** A conditional effect as typed, sourced data: what it grants, when, for how long. */
 export type Effect = {
 	/** Readable and stable: build links carry it ("ghost", "teemo-w-passive"). */
@@ -66,8 +76,10 @@ export type Effect = {
 	endsOn?: "damage-taken"
 	/** Replaces the trigger's default (`isOnByDefault`). */
 	defaultOn?: boolean
-	/** Effects it stands in for while on: Teemo's W active doubles the passive. */
-	replaces?: readonly string[]
+	/** Its stacking group; absent means it adds to every other effect. */
+	stacking?: Stacking
+	/** The part of its source it is, when the source has several (Teemo's W passive and active). */
+	part?: "passive" | "active"
 	/** The page the numbers were checked against. */
 	sourceUrl: string
 }

@@ -58,12 +58,9 @@ export function computeBuildStats({
 		defaultAdaptiveType: champion.adaptiveType,
 		items,
 	})
-	const active = activeEffects(effects.available, effects.overrides)
-	const effectInput = effectStatsInput(active, {
-		level,
-		ranks,
-		rankStats: champion.rankStats,
-	})
+	const context = { level, ranks, rankStats: champion.rankStats }
+	const active = activeEffects(effects.available, effects.overrides, context)
+	const effectInput = effectStatsInput(active, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)
 	const totals = computeStats(
 		{ ...champion, rankStats },

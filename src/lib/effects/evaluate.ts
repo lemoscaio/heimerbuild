@@ -11,6 +11,7 @@ import type {
 	EffectOverrides,
 	Grant,
 } from "./effect"
+import { resolveStacking, type StackingResult } from "./stacking"
 
 /** The build's state the amounts are read at. */
 export type EffectContext = {
@@ -25,18 +26,6 @@ export type ResolvedGrant =
 	| { kind: "stat"; stat: StatKey; value: number }
 	| { kind: "shield"; value: number }
 	| { kind: "heal"; value: number }
-
-/** The available effects that are on: the user's choice, else the default; a replaced effect drops out. */
-export function activeEffects(
-	available: readonly BuildEffect[],
-	overrides: EffectOverrides,
-): BuildEffect[] {
-	const on = available.filter(
-		({ id, effect }) => overrides[id] ?? isOnByDefault(effect),
-	)
-	const replaced = new Set(on.flatMap(({ effect }) => effect.replaces ?? []))
-	return on.filter(({ effect }) => !replaced.has(effect.id))
-}
 
 function bracketValue(brackets: readonly CooldownBracket[], cooldown: number) {
 	return brackets.findLast(({ from }) => cooldown >= from)?.value
@@ -99,6 +88,43 @@ export function resolveGrants(
 	return effect.effect.grants.flatMap((grant) =>
 		resolveGrant(grant, effect, context),
 	)
+}
+
+/** The user's choice for the effect, else its default. */
+export function isEffectOn(
+	{ id, effect }: BuildEffect,
+	overrides: EffectOverrides,
+): boolean {
+	return overrides[id] ?? isOnByDefault(effect)
+}
+
+/** An effect's size, to compare effects of a `highest` group: its grants' values summed. */
+export function effectValue(effect: BuildEffect, context: EffectContext) {
+	return resolveGrants(effect, context).reduce(
+		(sum, { value }) => sum + value,
+		0,
+	)
+}
+
+/** The effects that are on, after each stacking group picked the ones that apply. */
+export function stackEffects(
+	available: readonly BuildEffect[],
+	overrides: EffectOverrides,
+	context: EffectContext,
+): StackingResult {
+	return resolveStacking(
+		available.filter((effect) => isEffectOn(effect, overrides)),
+		(effect) => effectValue(effect, context),
+	)
+}
+
+/** The effects that apply: on, and not stacked out by another of their group. */
+export function activeEffects(
+	available: readonly BuildEffect[],
+	overrides: EffectOverrides,
+	context: EffectContext,
+): BuildEffect[] {
+	return stackEffects(available, overrides, context).active
 }
 
 /** The active effects' stats as one more stat source for `computeStats`, next to the items. */
