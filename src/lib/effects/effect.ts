@@ -1,7 +1,8 @@
-import type { AbilitySlot, RankStat } from "@schemas/champion"
+import type { AbilityRankValue, AbilitySlot, RankStat } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import type { PatchRange } from "@schemas/patch-range"
 import type { SummonerSpell } from "@schemas/summoner-spell"
+import type { StatName } from "../stats/compute-stats"
 
 /** Where an effect comes from, by the key the patch data uses. */
 export type EffectSource =
@@ -15,14 +16,26 @@ export type CooldownBracket = { from: number; value: number }
 
 /**
  * A fixed number, or a table read at the build's state: `level` is the summoner spell's synced
- * value by champion level, `rank` the ability's rank stat by its rank, `summonerCooldown` the
- * bracket the spell's cooldown falls into. `scale` converts the game value to the stat's unit.
+ * value by champion level, `rank` the ability's rank stat by its rank, `rankValue` the ability's
+ * synced tooltip line by its rank, `summonerCooldown` the bracket the spell's cooldown falls into.
+ * `scale` converts the game value to the stat's unit.
  */
-export type Amount =
+export type TableAmount =
 	| number
 	| { by: "level"; value: string; scale?: number }
 	| { by: "rank"; rankStat: RankStat["stat"]; scale?: number }
+	| { by: "rankValue"; label: AbilityRankValue["label"]; scale?: number }
 	| { by: "summonerCooldown"; brackets: readonly CooldownBracket[] }
+
+/**
+ * A table amount, or one that reads the build beyond it: `stat` is `ratio` of another stat's
+ * total before the stat-dependent bonuses (evaluation step 4); `missingHealth` grows from 0 at full
+ * health to `max` at `fullAt` percent missing health, read from the current health condition.
+ */
+export type Amount =
+	| TableAmount
+	| { by: "stat"; stat: StatName; ratio: TableAmount }
+	| { by: "missingHealth"; max: TableAmount; fullAt: number }
 
 export type DamageType = "physical" | "magic" | "true"
 
@@ -96,8 +109,10 @@ export type BuildEffect = {
 	/** The source's name and icon in this patch. */
 	name: string
 	icon: string
-	/** The ability whose rank the `rank` amounts read. */
+	/** The ability whose rank the `rank` and `rankValue` amounts read. */
 	slot?: AbilitySlot
+	/** That ability's synced tooltip lines, which `rankValue` amounts read. */
+	rankValues?: readonly AbilityRankValue[]
 	/** The spell the `level` and `summonerCooldown` amounts read: the source, or the one cast. */
 	spell?: SummonerSpell
 }

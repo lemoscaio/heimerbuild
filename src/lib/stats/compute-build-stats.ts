@@ -36,16 +36,13 @@ export type BuildStatsInput = {
 	ranks?: AbilityRanks
 	/** Conditional effects; absent means none, and every rank stat applies. */
 	effects?: BuildEffectsInput
+	/** Percent of maximum health the champion is at (1 to 100), which some effects read; absent means full. */
+	currentHealth?: number
 }
 
 const NO_EFFECTS: BuildEffectsInput = { available: [], overrides: {} }
 
-/**
- * A build's totals, in order: the champion at `level` in `form`; its items, stat shards and
- * ability ranks; the active effects; then the movement speed soft caps. Stat-dependent bonuses
- * (issue 266) go between the effects and the caps. Every "what if" is this call with one input changed.
- */
-export function computeBuildStats({
+function evaluateBuild({
 	champion,
 	patch,
 	level,
@@ -54,22 +51,50 @@ export function computeBuildStats({
 	shards,
 	ranks,
 	effects = NO_EFFECTS,
-}: BuildStatsInput): ComputedStats {
+	currentHealth,
+}: BuildStatsInput) {
 	// Adaptive Force becomes AD or AP from the items, so the shards read them.
 	const shardInput = shardStatsInput(shards, {
 		level,
 		defaultAdaptiveType: champion.adaptiveType,
 		items,
 	})
-	const context = { level, ranks, rankStats: champion.rankStats }
+	const context = { level, ranks, rankStats: champion.rankStats, currentHealth }
 	const active = activeEffects(effects.available, effects.overrides, context)
-	const effectInput = effectStatsInput(active, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)
-	const totals = computeStats(
-		{ ...champion, rankStats },
-		level,
-		[...items, shardInput, effectInput],
-		{ form, ranks },
+	const sources = [...items, shardInput, effectStatsInput(active, context)]
+	const totalsWith = (more: readonly ItemInput[]) =>
+		computeStats({ ...champion, rankStats }, level, [...sources, ...more], {
+			form,
+			ranks,
+		})
+	const beforeStatBonuses = totalsWith([])
+	// Reading the totals from before this step means no bonus feeds another, or itself.
+	const statBonuses = effectStatsInput(
+		active,
+		{ ...context, totals: beforeStatBonuses },
+		{ step: "stat-dependent" },
 	)
-	return capMovementSpeed(totals, patch)
+	const hasStatBonuses = Object.keys(statBonuses.stats).length > 0
+	return {
+		beforeStatBonuses,
+		totals: capMovementSpeed(
+			hasStatBonuses ? totalsWith([statBonuses]) : beforeStatBonuses,
+			patch,
+		),
+	}
+}
+
+/** The totals the stat-dependent bonuses read (`stat` amounts): the build up to the active effects. */
+export function statBonusBasis(input: BuildStatsInput): ComputedStats {
+	return evaluateBuild(input).beforeStatBonuses
+}
+
+/**
+ * A build's totals, in order: the champion at `level` in `form`; its items, stat shards and
+ * ability ranks; the active effects; the stat-dependent bonuses, reading the totals so far; then
+ * the movement speed soft caps. Every "what if" is this call with one input changed.
+ */
+export function computeBuildStats(input: BuildStatsInput): ComputedStats {
+	return evaluateBuild(input).totals
 }
