@@ -12,11 +12,11 @@ import {
 import { RunesStatsNote } from "@/features/build-calculator/components/runes-stats-note"
 import { StatChangeList } from "@/features/build-calculator/components/stat-change-list"
 import { StatsPanel } from "@/features/build-calculator/components/stats-panel"
+import { EffectsList } from "@/features/conditions/components/effects-list"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { RunePage } from "@/features/runes/components/rune-page"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { SkillsTab } from "@/features/skills/components/skills-tab"
-import { SummonerEffectsNote } from "@/features/summoners/components/summoner-effects-note"
 import { SummonerSlots } from "@/features/summoners/components/summoner-slots"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { ChampionSkills } from "./champion-skills"
@@ -105,7 +105,10 @@ export function MobileBuildPage({
 						preview={build.preview}
 						formComparison={build.formSwitch.comparison}
 					>
-						<SummonerEffectsNote spells={build.summoners.slots} />
+						<EffectsList
+							conditions={build.conditions.list}
+							onToggle={build.conditions.setOn}
+						/>
 					</StatsPanel>
 				)
 			}
