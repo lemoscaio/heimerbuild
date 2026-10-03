@@ -149,13 +149,14 @@ Conditional effects (an ability's passive that holds only while not hit, a summo
 lib/effects/
 ├── effect.ts               Effect, Grant, Trigger, Amount, BuildEffect, EffectOverrides
 ├── defaults.ts             isOnByDefault: a lookup on the trigger kind
-├── evaluate.ts             activeEffects, resolveGrants, effectStatsInput, alwaysOnRankStats
+├── evaluate.ts             activeEffects, stackEffects, resolveGrants, effectStatsInput, alwaysOnRankStats
+├── stacking.ts             resolveStacking: one pure function for the stacking groups
 ├── available-effects.ts    availableEffects(build): the effects whose source is in the build
 ├── effect-overrides.ts     the `effects` link param
 └── registries/             one registry per source: ability, summoner, rune, item effects
 ```
 
-- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn` and `replaces`, and it always has a `sourceUrl`.
+- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group and a `part` (`passive` or `active`, the row label in its ability's card), and it always has a `sourceUrl`.
 - **Amounts** are a number or a table read at the build's state:
   - `level`: the summoner spell's synced value by champion level;
   - `rank`: the ability's synced rank stat by its rank, with a `scale`;
@@ -169,7 +170,16 @@ lib/effects/
   - a rune effect whose rune is on the page.
 
   An `after-summoner` effect becomes one effect per chosen spell (`nimbus-cloak-flash`), since its value depends on the spell cast. Item effects are not listed yet (stage 1).
-- **Active** = available, filtered by the user's choice or else the default, minus the effects an active one `replaces` (Move Quick's active doubles the passive, so it stands in for it).
+- **Active** = available, filtered by the user's choice or else the default, then resolved by stacking group (`resolveStacking`). Effects without a group add up (Nimbus Cloak and Heal's movement speed sum, then the soft caps apply).
+- **Stacking groups** (`stacking: { group, rule, priority? }`); one effect per group applies:
+
+  | Rule | Which effect applies | Example |
+  | --- | --- | --- |
+  | `replace` | the highest `priority` that is on (required for this rule) | Move Quick's active (priority 1) stands in for its passive (0) |
+  | `highest` | the largest value (its grants' values summed) | two sources of the same buff that do not stack |
+  | `unique` | the first one, once | a unique item passive held twice |
+
+  The Effects list shows a stacked-out effect that is on dimmed, with its switch disabled and the reason ("Replaced by the active").
 - **A rank stat an effect reads belongs to that effect.** Teemo's W rank stat is synced like any other, but `alwaysOnRankStats` leaves it to the `teemo-w-passive` effect. On by default, it keeps the old totals.
 
 ### Evaluation order
@@ -187,8 +197,9 @@ lib/effects/
 
 1. Find its numbers in the synced data (`summoner-spells.json` values, a champion's `rankStats`), or on the wiki or CommunityDragon when the data lacks them.
 2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default and its `sourceUrl`. A new kind of trigger, grant or amount is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id.
-3. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank).
-4. Nothing else: the Effects list, the link and the stats pick it up.
+3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.
+4. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank).
+5. Nothing else: the Effects list, the link and the stats pick it up.
 
 ### Stage 2: the combo timeline (design)
 
