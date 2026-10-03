@@ -13,6 +13,7 @@ function effect(id: string, value: number, stacking?: Stacking) {
 			trigger: { kind: "after-use" },
 			grants: [{ kind: "stat", stat: "movementSpeedPercent", amount: value }],
 			stacking,
+			since: "16.19",
 			sourceUrl: "https://wiki.leagueoflegends.com/en-us/Movement_speed",
 		},
 	}

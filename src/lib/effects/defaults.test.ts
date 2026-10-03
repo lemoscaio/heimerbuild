@@ -9,6 +9,7 @@ function effect(trigger: Trigger, defaultOn?: boolean): Effect {
 		grants: [],
 		trigger,
 		defaultOn,
+		since: "16.19",
 		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Ghost",
 	}
 }

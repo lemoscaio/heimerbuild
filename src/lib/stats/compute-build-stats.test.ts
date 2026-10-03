@@ -36,6 +36,7 @@ const NO_RANKS = { Q: 0, W: 0, E: 0, R: 0 }
 
 const build: BuildStatsInput = {
 	champion,
+	patch: "16.19.1",
 	level: 11,
 	items: [AMPLIFYING_TOME],
 	shards: [ADAPTIVE, HEALTH_SCALING],
@@ -103,6 +104,7 @@ const restingArmor: BuildEffect = {
 				amount: { by: "rank", rankStat: "armor" },
 			},
 		],
+		since: "16.19",
 		sourceUrl: "https://wiki.leagueoflegends.com/en-us/Olaf",
 	},
 }
@@ -111,6 +113,7 @@ const sprint: Effect = {
 	source: { kind: "summoner", spellKey: "SummonerHaste" },
 	trigger: { kind: "after-use" },
 	grants: [{ kind: "stat", stat: "movementSpeedPercent", amount: 0.2 }],
+	since: "16.19",
 	sourceUrl: "https://wiki.leagueoflegends.com/en-us/Ghost",
 }
 const sprintEffect: BuildEffect = {

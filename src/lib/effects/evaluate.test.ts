@@ -74,6 +74,7 @@ const passive: Effect = {
 			amount: { by: "rank", rankStat: "movementSpeedPercent" },
 		},
 	],
+	since: "16.19",
 	sourceUrl: `${WIKI}Teemo`,
 }
 const active: Effect = {
@@ -100,6 +101,7 @@ const ghost: Effect = {
 			amount: { by: "level", value: "movespeedmod" },
 		},
 	],
+	since: "16.19",
 	sourceUrl: `${WIKI}Ghost`,
 }
 const barrier: Effect = {
@@ -109,6 +111,7 @@ const barrier: Effect = {
 	grants: [
 		{ kind: "shield", amount: { by: "level", value: "shieldstrength" } },
 	],
+	since: "16.19",
 	sourceUrl: `${WIKI}Barrier`,
 }
 const brackets = [
@@ -223,6 +226,7 @@ describe("resolveGrants", () => {
 					ratios: { baseAttackDamage: 1 },
 				},
 			],
+			since: "16.19",
 			sourceUrl: `${WIKI}Sheen`,
 		}
 
