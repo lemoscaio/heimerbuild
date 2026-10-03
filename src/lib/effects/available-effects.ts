@@ -16,7 +16,8 @@ export type EffectsBuild = {
 	champion: {
 		key: string
 		abilities: {
-			spells: readonly Pick<ChampionSpell, "slot" | "name" | "icon">[]
+			spells: readonly (Pick<ChampionSpell, "slot" | "name" | "icon"> &
+				Partial<Pick<ChampionSpell, "rankValues">>)[]
 		}
 	}
 	ranks: AbilityRanks
@@ -53,7 +54,13 @@ function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 				build.champion.key === source.championKey &&
 				build.ranks[source.slot] > 0
 			return ability && isRanked
-				? [{ ...named(effect, ability), slot: source.slot }]
+				? [
+						{
+							...named(effect, ability),
+							slot: source.slot,
+							rankValues: ability.rankValues,
+						},
+					]
 				: []
 		}
 		case "summoner": {

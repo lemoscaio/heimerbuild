@@ -16,3 +16,17 @@ const ON_BY_TRIGGER = {
 export function isOnByDefault({ trigger, defaultOn }: Effect): boolean {
 	return defaultOn ?? ON_BY_TRIGGER[trigger.kind]
 }
+
+/** An `always` effect is a fact of the build: its row in the Effects list informs, with no switch. */
+const SWITCHABLE_BY_TRIGGER = {
+	always: false,
+	while: true,
+	"after-use": true,
+	"after-summoner": true,
+	"on-hit": true,
+	"after-ability": true,
+} as const satisfies Record<TriggerKind, boolean>
+
+export function isSwitchable({ trigger }: Effect): boolean {
+	return SWITCHABLE_BY_TRIGGER[trigger.kind]
+}

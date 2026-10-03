@@ -1,15 +1,16 @@
 import type { Champion, RankStat } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
-import type { ItemInput } from "../stats/compute-stats"
+import type { ComputedStats, ItemInput, StatName } from "../stats/compute-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { spellCooldown } from "../summoner-rune-interactions"
-import { isOnByDefault } from "./defaults"
+import { isOnByDefault, isSwitchable } from "./defaults"
 import type {
 	Amount,
 	BuildEffect,
 	CooldownBracket,
 	EffectOverrides,
 	Grant,
+	TableAmount,
 } from "./effect"
 import { resolveStacking, type StackingResult } from "./stacking"
 
@@ -19,11 +20,18 @@ export type EffectContext = {
 	ranks?: AbilityRanks
 	/** The champion's rank stats, which `rank` amounts read. */
 	rankStats?: Champion["rankStats"]
+	/** Percent of maximum health the champion is at, 1 to 100; absent means full health. */
+	currentHealth?: number
+	/** The totals `stat` amounts read: the build's before the stat-dependent bonuses. */
+	totals?: ComputedStats
 }
+
+/** A stat grant that reads another stat: `ratio` of its total. */
+export type StatBasis = { stat: StatName; ratio: number }
 
 /** A grant's value at the build's state; damage has none until the combo timeline. */
 export type ResolvedGrant =
-	| { kind: "stat"; stat: StatKey; value: number }
+	| { kind: "stat"; stat: StatKey; value: number; basis?: StatBasis }
 	| { kind: "shield"; value: number }
 	| { kind: "heal"; value: number }
 
@@ -35,13 +43,13 @@ function scaled(value: number | undefined, scale = 1) {
 	return value === undefined ? undefined : value * scale
 }
 
-/** The amount's number at the build's state; undefined when the data lacks it. */
-export function resolveAmount(
-	amount: Amount,
-	{ slot, spell }: Pick<BuildEffect, "slot" | "spell">,
+function resolveTableAmount(
+	amount: TableAmount,
+	{ slot, spell, rankValues }: BuildEffect,
 	{ level, ranks, rankStats }: EffectContext,
 ): number | undefined {
 	if (typeof amount === "number") return amount
+	const rank = slot && ranks ? ranks[slot] : 0
 	switch (amount.by) {
 		case "level":
 			return scaled(spell?.values[amount.value]?.[level - 1], amount.scale)
@@ -50,12 +58,55 @@ export function resolveAmount(
 				(rankStat) =>
 					rankStat.slot === slot && rankStat.stat === amount.rankStat,
 			)?.values
-			const rank = slot && ranks ? ranks[slot] : 0
 			return scaled(values?.[rank - 1], amount.scale)
+		}
+		case "rankValue": {
+			const line = rankValues?.find(({ label }) => label === amount.label)
+			return scaled(line?.values[rank - 1], amount.scale)
 		}
 		case "summonerCooldown":
 			return spell && bracketValue(amount.brackets, spellCooldown(spell))
 	}
+}
+
+const FULL_HEALTH = 100
+
+/** The amount's number at the build's state; undefined when the data lacks it, or a `stat` amount without totals. */
+export function resolveAmount(
+	amount: Amount,
+	effect: BuildEffect,
+	context: EffectContext,
+): number | undefined {
+	if (typeof amount === "number") return amount
+	switch (amount.by) {
+		case "stat": {
+			const ratio = resolveTableAmount(amount.ratio, effect, context)
+			const total = context.totals?.[amount.stat].total
+			return ratio === undefined || total === undefined
+				? undefined
+				: total * ratio
+		}
+		case "missingHealth": {
+			const max = resolveTableAmount(amount.max, effect, context)
+			const missing = FULL_HEALTH - (context.currentHealth ?? FULL_HEALTH)
+			return max === undefined
+				? undefined
+				: max * Math.min(1, missing / amount.fullAt)
+		}
+		default:
+			return resolveTableAmount(amount, effect, context)
+	}
+}
+
+/** What a `stat` amount reads, at the build's ranks. */
+function statBasis(
+	amount: Amount,
+	effect: BuildEffect,
+	context: EffectContext,
+): StatBasis | undefined {
+	if (typeof amount === "number" || amount.by !== "stat") return undefined
+	const ratio = resolveTableAmount(amount.ratio, effect, context)
+	return ratio === undefined ? undefined : { stat: amount.stat, ratio }
 }
 
 function resolveGrant(
@@ -66,9 +117,10 @@ function resolveGrant(
 	switch (grant.kind) {
 		case "stat": {
 			const value = resolveAmount(grant.amount, effect, context)
+			const basis = statBasis(grant.amount, effect, context)
 			return value === undefined
 				? []
-				: [{ kind: "stat", stat: grant.stat, value }]
+				: [{ kind: "stat", stat: grant.stat, value, ...(basis && { basis }) }]
 		}
 		case "shield":
 		case "heal": {
@@ -90,12 +142,13 @@ export function resolveGrants(
 	)
 }
 
-/** The user's choice for the effect, else its default. */
+/** The user's choice for the effect, else its default; an effect without a switch keeps its default. */
 export function isEffectOn(
 	{ id, effect }: BuildEffect,
 	overrides: EffectOverrides,
 ): boolean {
-	return overrides[id] ?? isOnByDefault(effect)
+	const choice = isSwitchable(effect) ? overrides[id] : undefined
+	return choice ?? isOnByDefault(effect)
 }
 
 /** An effect's size, to compare effects of a `highest` group: its grants' values summed. */
@@ -138,17 +191,39 @@ export function effectDuration(
 		: resolveAmount(duration, effect, context)
 }
 
-/** The active effects' stats as one more stat source for `computeStats`, next to the items. */
+/** When a grant's stats apply (evaluation order): with the other effects, or after them, reading the totals. */
+export type EvaluationStep = "effects" | "stat-dependent"
+
+function stepOf(grant: Grant): EvaluationStep {
+	const { amount } = grant.kind === "damage" ? { amount: 0 } : grant
+	return typeof amount === "object" && amount.by === "stat"
+		? "stat-dependent"
+		: "effects"
+}
+
+export type EffectStatsOptions = {
+	/** Which grants to sum: the ones of the active effects step (default) or the stat-dependent ones. */
+	step?: EvaluationStep
+}
+
+/**
+ * The active effects' stats of one evaluation step, as one more stat source for `computeStats`,
+ * next to the items. The `stat-dependent` step needs `context.totals`.
+ */
 export function effectStatsInput(
 	active: readonly BuildEffect[],
 	context: EffectContext,
+	{ step = "effects" }: EffectStatsOptions = {},
 ): ItemInput {
 	const stats: Partial<Record<StatKey, number>> = {}
-	for (const grant of active.flatMap((effect) =>
-		resolveGrants(effect, context),
-	)) {
-		if (grant.kind === "stat") {
-			stats[grant.stat] = (stats[grant.stat] ?? 0) + grant.value
+	for (const effect of active) {
+		for (const grant of effect.effect.grants) {
+			if (stepOf(grant) !== step) continue
+			for (const resolved of resolveGrant(grant, effect, context)) {
+				if (resolved.kind === "stat") {
+					stats[resolved.stat] = (stats[resolved.stat] ?? 0) + resolved.value
+				}
+			}
 		}
 	}
 	return { stats }
