@@ -1,4 +1,5 @@
-import { isOnByDefault } from "@/lib/effects/defaults"
+import { FULL_HEALTH, readsCurrentHealth } from "@/lib/effects/current-health"
+import { isOnByDefault, isSwitchable } from "@/lib/effects/defaults"
 import type { BuildEffect, EffectOverrides } from "@/lib/effects/effect"
 import {
 	type EffectContext,
@@ -13,6 +14,10 @@ import {
 export type Condition = {
 	effect: BuildEffect
 	isOn: boolean
+	/** An always-on effect informs, with no switch. */
+	isSwitchable: boolean
+	/** Its value follows the current health, so its row carries the health input. */
+	readsCurrentHealth: boolean
 	grants: readonly ResolvedGrant[]
 	/** Seconds it lasts, when it says. */
 	duration?: number
@@ -20,9 +25,16 @@ export type Condition = {
 	stackedOutBy?: BuildEffect
 }
 
+/** The build's conditions: the effects turned on or off, and the current health effects read. */
+export type ConditionsValue = {
+	effects: EffectOverrides
+	/** Percent of maximum health, 1 to 99; absent means full health. */
+	currentHealth?: number
+}
+
 /**
- * The choices checked against the build's effects: a choice for an effect the build lacks, or
- * equal to its default, drops out. Until the effects load, the choices stay as given.
+ * The choices checked against the build's effects: a choice for an effect the build lacks, has no
+ * switch for, or equal to its default, drops out. Until the effects load, the choices stay as given.
  */
 export function readConditions(
 	value: EffectOverrides,
@@ -32,9 +44,23 @@ export function readConditions(
 	return Object.fromEntries(
 		effects.flatMap(({ id, effect }) => {
 			const on = value[id]
-			return on === undefined || on === isOnByDefault(effect) ? [] : [[id, on]]
+			const isChoice =
+				on !== undefined && isSwitchable(effect) && on !== isOnByDefault(effect)
+			return isChoice ? [[id, on]] : []
 		}),
 	)
+}
+
+/** The current health checked like a choice: dropped at full health or when no effect reads it. */
+export function readCurrentHealth(
+	currentHealth: number | undefined,
+	effects: readonly BuildEffect[] | undefined,
+): number | undefined {
+	if (currentHealth === FULL_HEALTH) return undefined
+	if (!effects) return currentHealth
+	return effects.some(({ effect }) => readsCurrentHealth(effect))
+		? currentHealth
+		: undefined
 }
 
 /** The choices with `effect` turned on or off; back to its default, it leaves the choices. */
@@ -59,6 +85,8 @@ export function conditionList(
 	return effects.map((effect) => ({
 		effect,
 		isOn: isEffectOn(effect, value),
+		isSwitchable: isSwitchable(effect.effect),
+		readsCurrentHealth: readsCurrentHealth(effect.effect),
 		grants: resolveGrants(effect, context),
 		duration: effectDuration(effect, context),
 		stackedOutBy: stackedOut.get(effect.id),

@@ -1,6 +1,8 @@
+import { STAT_UNITS, type StatKey } from "@schemas/item"
 import type { EffectCondition } from "@/lib/effects/effect"
-import type { ResolvedGrant } from "@/lib/effects/evaluate"
+import type { ResolvedGrant, StatBasis } from "@/lib/effects/evaluate"
 import { itemStatLines } from "@/lib/item-stats"
+import { formatStat, statDisplay } from "@/lib/stat-display"
 import type { Condition } from "./conditions"
 
 const CONDITION_TEXT = {
@@ -50,12 +52,24 @@ export function stackedOutText({
 	return `Replaced by the ${winner}`
 }
 
-/** What a grant gives, as shown: "+35.3% Move Speed", "269 shield", "192 heal". */
+/** The stat a bonus reads: "30% of Armor"; a percent bonus per 100 of a flat stat, "2% per 100 Ability Power". */
+function basisText({ stat, ratio }: StatBasis, granted: StatKey) {
+	const { label } = statDisplay[stat]
+	return STAT_UNITS[granted] === "percent"
+		? `${formatStat(ratio * 100, "percent")} per 100 ${label}`
+		: `${formatStat(ratio, "percent")} of ${label}`
+}
+
+/** What a grant gives, as shown: "+35.3% Move Speed", "+12 Armor (30% of Armor)", "269 shield", "192 heal". */
 export function grantText(grant: ResolvedGrant): string {
 	switch (grant.kind) {
 		case "stat": {
 			const [line] = itemStatLines({ [grant.stat]: grant.value })
-			return line ? `${line.value} ${line.label}` : ""
+			if (!line) return ""
+			const text = `${line.value} ${line.label}`
+			return grant.basis
+				? `${text} (${basisText(grant.basis, grant.stat)})`
+				: text
 		}
 		case "shield":
 		case "heal":
