@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import type { ShardStat } from "@schemas/rune"
 import type { BuildEffect, Effect } from "../effects/effect"
-import { type BuildStatsInput, computeBuildStats } from "./compute-build-stats"
+import {
+	type BuildStatsInput,
+	computeBuildStats,
+	statBonusBasis,
+} from "./compute-build-stats"
 import { computeStats } from "./compute-stats"
 
 // Heimerdinger's stats, patch 16.19.1, with Olaf's R values for the ranks.
@@ -189,5 +193,132 @@ describe("computeBuildStats with effects", () => {
 
 		expect(stats.movementSpeed.base).toBe(340)
 		expect(stats.movementSpeed.total).toBeCloseTo(raw * 0.8 + 83)
+	})
+})
+
+function alwaysOn(
+	id: string,
+	grants: Effect["grants"],
+	fields: Partial<BuildEffect> = {},
+): BuildEffect {
+	return {
+		id,
+		name: id,
+		icon: "",
+		effect: {
+			id,
+			source: { kind: "ability", championKey: "Heimerdinger", slot: "W" },
+			trigger: { kind: "always" },
+			grants,
+			since: "16.19",
+			sourceUrl: "https://wiki.leagueoflegends.com/en-us/Malphite",
+		},
+		...fields,
+	}
+}
+
+// Malphite's W at rank 5 (30% of armor), Dr. Mundo's E at rank 1 (2% of maximum health).
+const armorFromArmor = alwaysOn("armor-from-armor", [
+	{
+		kind: "stat",
+		stat: "armor",
+		amount: { by: "stat", stat: "armor", ratio: 0.3 },
+	},
+])
+const adFromHealth = alwaysOn("ad-from-health", [
+	{
+		kind: "stat",
+		stat: "attackDamage",
+		amount: { by: "stat", stat: "health", ratio: 0.02 },
+	},
+])
+const healthFromAd = alwaysOn("health-from-ad", [
+	{
+		kind: "stat",
+		stat: "health",
+		amount: { by: "stat", stat: "attackDamage", ratio: 1 },
+	},
+])
+const CLOTH_ARMOR = { stats: { armor: 15 } }
+
+describe("computeBuildStats with stat-dependent bonuses", () => {
+	const plain = { ...build, shards: [] }
+	const withEffects = (...available: BuildEffect[]) =>
+		computeBuildStats({ ...plain, effects: { available, overrides: {} } })
+
+	test("a bonus is its ratio of the totals before it, items and effects included", () => {
+		const before = computeBuildStats({ ...plain, items: [CLOTH_ARMOR] })
+		const stats = computeBuildStats({
+			...plain,
+			items: [CLOTH_ARMOR],
+			effects: { available: [armorFromArmor], overrides: {} },
+		})
+
+		expect(stats.armor.total).toBeCloseTo(before.armor.total * 1.3)
+		expect(stats.armor.base).toBe(before.armor.base)
+	})
+
+	test("a bonus never feeds itself: 30% of armor adds 30% once, not compounding", () => {
+		const before = computeBuildStats(plain).armor.total
+		const after = withEffects(armorFromArmor).armor.total
+
+		expect(after - before).toBeCloseTo(before * 0.3)
+		expect(after).not.toBeCloseTo(before / (1 - 0.3))
+	})
+
+	test("bonuses never read each other, so their order does not matter", () => {
+		const before = computeBuildStats(plain)
+		const forward = withEffects(adFromHealth, healthFromAd)
+
+		expect(forward).toEqual(withEffects(healthFromAd, adFromHealth))
+		expect(forward.attackDamage.total).toBeCloseTo(
+			before.attackDamage.total + before.health.total * 0.02,
+		)
+		expect(forward.health.total).toBeCloseTo(
+			before.health.total + before.attackDamage.total,
+		)
+	})
+
+	test("the basis is the totals the bonuses read", () => {
+		const input = {
+			...plain,
+			effects: { available: [armorFromArmor], overrides: {} },
+		}
+
+		expect(statBonusBasis(input)).toEqual(computeBuildStats(plain))
+	})
+
+	test("a movement speed bonus applies before the soft caps", () => {
+		const speedFromAp = alwaysOn("speed-from-ap", [
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				amount: { by: "stat", stat: "abilityPower", ratio: 0.0002 },
+			},
+		])
+		const stats = computeBuildStats({
+			...plain,
+			items: [{ stats: { abilityPower: 1000 } }, BOOTS],
+			effects: { available: [speedFromAp], overrides: {} },
+		})
+
+		expect(stats.movementSpeed.total).toBeCloseTo((340 + 25) * 1.2 * 0.8 + 83)
+	})
+
+	test("the current health reaches the effects that read it", () => {
+		const bloodlust = alwaysOn("bloodlust", [
+			{
+				kind: "stat",
+				stat: "attackDamage",
+				amount: { by: "missingHealth", max: 80, fullAt: 90 },
+			},
+		])
+		const effects = { available: [bloodlust], overrides: {} }
+		const atHealth = (currentHealth?: number) =>
+			computeBuildStats({ ...plain, effects, currentHealth }).attackDamage.bonus
+
+		expect(atHealth()).toBe(0)
+		expect(atHealth(55)).toBeCloseTo(40)
+		expect(atHealth(5)).toBeCloseTo(80)
 	})
 })

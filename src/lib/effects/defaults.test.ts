@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { isOnByDefault } from "./defaults"
+import { isOnByDefault, isSwitchable } from "./defaults"
 import type { Effect, Trigger } from "./effect"
 
 function effect(trigger: Trigger, defaultOn?: boolean): Effect {
@@ -38,5 +38,17 @@ describe("isOnByDefault", () => {
 	test("an explicit default wins over the trigger's", () => {
 		expect(isOnByDefault(effect({ kind: "after-use" }, true))).toBe(true)
 		expect(isOnByDefault(effect({ kind: "always" }, false))).toBe(false)
+	})
+})
+
+describe("isSwitchable", () => {
+	test("an always-on effect has no switch; every conditional one has", () => {
+		expect(isSwitchable(effect({ kind: "always" }))).toBe(false)
+		expect(
+			isSwitchable(
+				effect({ kind: "while", condition: "not-damaged-recently" }),
+			),
+		).toBe(true)
+		expect(isSwitchable(effect({ kind: "after-use" }))).toBe(true)
 	})
 })

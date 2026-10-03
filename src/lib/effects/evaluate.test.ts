@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test"
-import type { RankStat } from "@schemas/champion"
+import type { AbilityRankValue, RankStat } from "@schemas/champion"
 import type { SummonerSpell } from "@schemas/summoner-spell"
+import type { ComputedStats } from "../stats/compute-stats"
 import type { BuildEffect, Effect } from "./effect"
 import {
 	activeEffects,
 	alwaysOnRankStats,
 	effectStatsInput,
+	isEffectOn,
 	resolveAmount,
 	resolveGrants,
 } from "./evaluate"
@@ -125,6 +127,38 @@ const teemoActive = bind(active, { slot: "W" })
 const ghostEffect = bind(ghost, { spell: GHOST })
 const context = { level: 9, ranks: RANKS, rankStats: [TEEMO_W] }
 
+// Malphite's W tooltip line (16.19.1) and an armor passive reading it, on by default with no switch.
+const ARMOR_LINE: AbilityRankValue = {
+	label: "Armor",
+	values: [10, 15, 20, 25, 30],
+	unit: "%",
+}
+const ARMOR_RATIO = { by: "rankValue", label: "Armor", scale: 0.01 } as const
+const armorPassive: Effect = {
+	id: "malphite-w-passive",
+	source: { kind: "ability", championKey: "Malphite", slot: "W" },
+	trigger: { kind: "always" },
+	grants: [
+		{
+			kind: "stat",
+			stat: "armor",
+			amount: { by: "stat", stat: "armor", ratio: ARMOR_RATIO },
+		},
+	],
+	since: "16.19",
+	sourceUrl: `${WIKI}Malphite`,
+}
+const malphiteW = bind(armorPassive, { slot: "W", rankValues: [ARMOR_LINE] })
+
+function totalsWith(stats: Partial<Record<keyof ComputedStats, number>>) {
+	return Object.fromEntries(
+		Object.entries(stats).map(([stat, total]) => [
+			stat,
+			{ base: total, bonus: 0, total },
+		]),
+	) as unknown as ComputedStats
+}
+
 describe("activeEffects", () => {
 	const available = [teemoPassive, ghostEffect]
 
@@ -140,6 +174,13 @@ describe("activeEffects", () => {
 				context,
 			),
 		).toEqual([ghostEffect])
+	})
+
+	test("an always-on effect keeps its default whatever the choices say", () => {
+		expect(isEffectOn(malphiteW, { "malphite-w-passive": false })).toBe(true)
+		expect(
+			activeEffects([malphiteW], { "malphite-w-passive": false }, context),
+		).toEqual([malphiteW])
 	})
 
 	test("in a replace group, the higher priority applies", () => {
@@ -200,6 +241,42 @@ describe("resolveAmount", () => {
 	})
 })
 
+describe("resolveAmount, amounts that read the build", () => {
+	test("a rank value reads the ability's synced tooltip line at its rank, scaled", () => {
+		expect(resolveAmount(ARMOR_RATIO, malphiteW, context)).toBeCloseTo(0.2)
+		expect(
+			resolveAmount({ ...ARMOR_RATIO, label: "Renamed" }, malphiteW, context),
+		).toBeUndefined()
+		expect(
+			resolveAmount(ARMOR_RATIO, malphiteW, {
+				...context,
+				ranks: { ...RANKS, W: 0 },
+			}),
+		).toBeUndefined()
+	})
+
+	test("a stat amount is its ratio of the given totals, and nothing without them", () => {
+		const amount = { by: "stat", stat: "armor", ratio: ARMOR_RATIO } as const
+		const totals = totalsWith({ armor: 150 })
+
+		expect(resolveAmount(amount, malphiteW, { ...context, totals })).toBe(30)
+		expect(resolveAmount(amount, malphiteW, context)).toBeUndefined()
+	})
+
+	test("a missing health amount grows with missing health up to its full value", () => {
+		// Tryndamere's Q: the most bonus AD at 90% missing health.
+		const amount = { by: "missingHealth", max: 80, fullAt: 90 } as const
+		const at = (currentHealth?: number) =>
+			resolveAmount(amount, malphiteW, { ...context, currentHealth })
+
+		expect(at()).toBe(0)
+		expect(at(100)).toBe(0)
+		expect(at(55)).toBeCloseTo(40)
+		expect(at(10)).toBe(80)
+		expect(at(1)).toBe(80)
+	})
+})
+
 describe("resolveGrants", () => {
 	test("gives each grant's value at the build's state", () => {
 		expect(resolveGrants(ghostEffect, context)).toEqual([
@@ -236,6 +313,38 @@ describe("resolveGrants", () => {
 })
 
 describe("effectStatsInput", () => {
+	test("a stat grant tells the stat and ratio it reads", () => {
+		expect(
+			resolveGrants(malphiteW, {
+				...context,
+				totals: totalsWith({ armor: 100 }),
+			}),
+		).toEqual([
+			{
+				kind: "stat",
+				stat: "armor",
+				value: expect.closeTo(20),
+				basis: { stat: "armor", ratio: expect.closeTo(0.2) },
+			},
+		])
+	})
+
+	test("the effects step leaves the stat-dependent grants for their own step", () => {
+		const totals = totalsWith({ armor: 100 })
+		const active = [teemoPassive, malphiteW]
+
+		expect(effectStatsInput(active, { ...context, totals })).toEqual({
+			stats: { movementSpeedPercent: expect.closeTo(0.2) },
+		})
+		expect(
+			effectStatsInput(
+				active,
+				{ ...context, totals },
+				{ step: "stat-dependent" },
+			),
+		).toEqual({ stats: { armor: expect.closeTo(20) } })
+	})
+
 	test("sums the active effects' stats; shields stay out", () => {
 		const input = effectStatsInput(
 			[teemoPassive, ghostEffect, bind(barrier, { spell: BARRIER })],
