@@ -174,6 +174,21 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })).toEqual([build("Teemo", 3)])
 	})
 
+	test("keep the effect choices, and drop only them when the stored ones are invalid", () => {
+		const storage = memoryStorage()
+		const effects = { ghost: true, "teemo-w-passive": false }
+		recordRecentBuild({ ...build("Teemo"), effects }, { storage })
+		expect(readRecentBuilds({ storage })[0]?.effects).toEqual(effects)
+
+		storage.setItem(
+			"heimerbuild:recent-builds:v1",
+			JSON.stringify([
+				{ championKey: "Teemo", search: { lvl: 3, effects: "Ghost!" } },
+			]),
+		)
+		expect(readRecentBuilds({ storage })).toEqual([build("Teemo", 3)])
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

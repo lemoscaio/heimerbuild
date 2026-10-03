@@ -100,6 +100,14 @@ describe("buildSearchSchema", () => {
 		expect(parse({ summoners: -4 }).summoners).toBeUndefined()
 	})
 
+	test("accepts effect choices in their param form and drops anything else", () => {
+		expect(parse({ effects: "ghost,-teemo-w-passive" }).effects).toBe(
+			"ghost,-teemo-w-passive",
+		)
+		expect(parse({ effects: "Ghost" }).effects).toBeUndefined()
+		expect(parse({ effects: 4 }).effects).toBeUndefined()
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
@@ -134,6 +142,17 @@ describe("readBuildSearch", () => {
 })
 
 describe("toBuildSearch", () => {
+	test("writes only the effects that differ from their defaults, and none when none do", () => {
+		const build = { level: 1, itemIds: [], patch: undefined }
+		expect(
+			toBuildSearch({
+				...build,
+				effects: { ghost: true, "teemo-w-passive": false },
+			}).effects,
+		).toBe("ghost,-teemo-w-passive")
+		expect(toBuildSearch({ ...build, effects: {} }).effects).toBeUndefined()
+	})
+
 	test("writes level, items and patch", () => {
 		expect(
 			toBuildSearch({ level: 11, itemIds: ["3089", "3020"], patch: "16.19.1" }),
