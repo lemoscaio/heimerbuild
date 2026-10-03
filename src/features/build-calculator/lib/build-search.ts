@@ -1,5 +1,10 @@
 import { FORM_ID_PATTERN } from "@schemas/champion"
 import * as z from "zod/mini"
+import type { EffectOverrides } from "@/lib/effects/effect"
+import {
+	EFFECTS_PARAM_PATTERN,
+	serializeEffectOverrides,
+} from "@/lib/effects/effect-overrides"
 import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { UNSPENT_LEVEL_MARK } from "@/lib/skill-order-param"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
@@ -80,6 +85,11 @@ export const buildSearchSchema = z.object({
 	),
 	/** The two summoner spells, D then F (`serializeSummonerSlots`); checked against the data later. */
 	summoners: z.catch(z.optional(summonersSchema), undefined),
+	/** The effects turned on or off against their defaults (`serializeEffectOverrides`); checked against the build later. */
+	effects: z.catch(
+		z.optional(z.string().check(z.regex(EFFECTS_PARAM_PATTERN))),
+		undefined,
+	),
 })
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
@@ -109,9 +119,11 @@ export type BuildState = {
 	skills?: string
 	/** `serializeSummonerSlots` output; `undefined` for two empty slots. */
 	summoners?: string
+	/** The effects that differ from their defaults; `undefined` or empty for none. */
+	effects?: EffectOverrides
 }
 
-/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells) stay out of the URL. */
+/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells, default effects) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
@@ -122,6 +134,7 @@ export function toBuildSearch({
 	form,
 	skills,
 	summoners,
+	effects,
 }: BuildState): BuildSearch {
 	return {
 		lvl: level === MIN_LEVEL ? undefined : level,
@@ -133,6 +146,7 @@ export function toBuildSearch({
 		runes,
 		skills,
 		summoners,
+		effects: serializeEffectOverrides(effects),
 		v: BUILD_LINK_VERSION,
 	}
 }
