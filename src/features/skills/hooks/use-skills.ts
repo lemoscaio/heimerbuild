@@ -6,6 +6,8 @@ import {
 	levelPoints,
 	nextSuggestion,
 	placePoint,
+	removeBlocker,
+	removePoint,
 	type SkillPicks,
 	spendBlocker,
 	spendLevel,
@@ -89,6 +91,12 @@ export function useSkills({
 		/** Puts the point of `pointLevel` on `slot`: changes a spent point or spends an unspent one. */
 		place: (pointLevel: number, slot: AbilitySlot) =>
 			rules && commit(placePoint(picks, { slot, pointLevel, level, rules })),
+		/** Why the point of `pointLevel` cannot be removed: a later point needs it. */
+		removeBlocker: (pointLevel: number) =>
+			rules ? removeBlocker(picks, { pointLevel, level, rules }) : undefined,
+		/** Removes the point of `pointLevel`, leaving that level unspent. */
+		remove: (pointLevel: number) =>
+			rules && commit(removePoint(picks, { pointLevel, level, rules })),
 		/** Spends every point left with the recommended order. */
 		fillRecommended: () =>
 			rules && commit(fillRecommended(picks, { level, rules })),
