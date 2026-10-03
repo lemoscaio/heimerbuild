@@ -9,6 +9,7 @@ import type {
 	BuildSource,
 	BuildValues,
 } from "@/features/build-calculator/types/build-source"
+import { parseEffectOverrides } from "@/lib/effects/effect-overrides"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 
 type UseUrlBuildSourceOptions = {
@@ -39,6 +40,7 @@ export function useUrlBuildSource({
 		form: search.form,
 		skills: search.skills,
 		summoners: search.summoners,
+		effects: parseEffectOverrides(search.effects),
 	}
 	const page: PageValues = { view: search.view, tab: search.tab }
 
@@ -68,6 +70,7 @@ export function useUrlBuildSource({
 				form: next.form,
 				skills: next.skills,
 				summoners: next.summoners,
+				effects: next.effects,
 			})
 		},
 	}

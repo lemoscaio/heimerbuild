@@ -10,9 +10,12 @@ import type {
 } from "@/features/build-calculator/types/build-source"
 import { useChampionState } from "@/features/champions/hooks/use-champion-state"
 import type { ChampionStateValue } from "@/features/champions/lib/champion-state"
+import { useConditions } from "@/features/conditions/hooks/use-conditions"
 import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
+import { availableEffects } from "@/lib/effects/available-effects"
+import { selectedRunes } from "@/lib/rune-selection"
 import {
 	type BuildStatsInput,
 	computeBuildStats,
@@ -32,13 +35,14 @@ const EDIT_HISTORY = {
 	items: { replace: false },
 	runes: { replace: true },
 	summoners: { replace: true },
+	effects: { replace: true },
 } as const satisfies Record<string, BuildNavigation>
 
 export type ChampionBuild = ReturnType<typeof useChampionBuild>
 
 /**
  * A champion's build, composed from one hook per domain on a build source: champion state, skills,
- * items, rune page and summoner spells. Their values only come together in the stats and in each saved edit.
+ * items, rune page, summoner spells and conditions (the effects turned on). Their values only come together in the stats and in each saved edit.
  */
 export function useChampionBuild({
 	patch,
@@ -77,6 +81,27 @@ export function useChampionBuild({
 		value: state.summoners,
 		onChange: (value) => save({ summoners: value }, EDIT_HISTORY.summoners),
 	})
+	// Conditions read the other domains: the ranked abilities, the spells and the page's runes.
+	const effects =
+		champion && skills.ranks && summonerSpells && runes
+			? availableEffects({
+					patch,
+					champion,
+					ranks: skills.ranks,
+					spells: summoners.slots.filter((spell) => spell !== undefined),
+					runes: selectedRunes(runePage.selection, runes),
+				})
+			: undefined
+	const conditions = useConditions({
+		effects,
+		context: {
+			level: championState.level,
+			ranks: skills.ranks,
+			rankStats: champion?.rankStats,
+		},
+		value: state.effects ?? {},
+		onChange: (value) => save({ effects: value }, EDIT_HISTORY.effects),
+	})
 
 	/** The checked values every edit saves next to its own change (the link's while data loads). */
 	const values: BuildValues = {
@@ -86,6 +111,7 @@ export function useChampionBuild({
 		form: championState.formValue,
 		skills: state.skills,
 		summoners: summoners.value,
+		effects: conditions.value,
 	}
 
 	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
@@ -113,6 +139,7 @@ export function useChampionBuild({
 			items: items.list,
 			shards: runePage.shards,
 			ranks: skills.ranks,
+			effects: { available: effects ?? [], overrides: conditions.value },
 			...change,
 		})
 	}
@@ -124,12 +151,13 @@ export function useChampionBuild({
 		items,
 		runePage,
 		summoners,
-		/** Totals with the items, stat shards and ranks. */
+		conditions,
+		/** Totals with the items, stat shards, ranks and the effects turned on. */
 		stats: whatIf(),
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes: whatIf({ shards: [] }),
 		whatIf,
-		/** The checked values: known items, checked runes and summoner spells, the default form left out. */
+		/** The checked values: known items, checked runes, summoner spells and effects, the default form left out. */
 		values,
 	}
 }

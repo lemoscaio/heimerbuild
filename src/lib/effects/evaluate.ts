@@ -127,6 +127,17 @@ export function activeEffects(
 	return stackEffects(available, overrides, context).active
 }
 
+/** Seconds the effect lasts at the build's state, when it says. */
+export function effectDuration(
+	effect: BuildEffect,
+	context: EffectContext,
+): number | undefined {
+	const { duration } = effect.effect
+	return duration === undefined
+		? undefined
+		: resolveAmount(duration, effect, context)
+}
+
 /** The active effects' stats as one more stat source for `computeStats`, next to the items. */
 export function effectStatsInput(
 	active: readonly BuildEffect[],

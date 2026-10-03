@@ -6,6 +6,7 @@ import {
 	readBuildSearch,
 	toBuildSearch,
 } from "@/features/build-calculator/lib/build-search"
+import { parseEffectOverrides } from "@/lib/effects/effect-overrides"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 import { stringifySearch } from "./search-params"
 
@@ -60,6 +61,16 @@ const v1Links: LinkFixture[] = [
 		link: "?lvl=9&summoners=14%2C4",
 		build: { v: BUILD_LINK_VERSION, lvl: 9, summoners: "14,4" },
 	},
+	{
+		name: "effects",
+		link: "?lvl=9&summoners=6%2C4&effects=ghost%2C-teemo-w-passive",
+		build: {
+			v: BUILD_LINK_VERSION,
+			lvl: 9,
+			summoners: "6,4",
+			effects: "ghost,-teemo-w-passive",
+		},
+	},
 ]
 
 function openLink(link: string) {
@@ -67,10 +78,11 @@ function openLink(link: string) {
 }
 
 /** The link the app writes for a build it read, as the build source does. */
-function writeLink({ lvl, items, ...search }: BuildSearch) {
+function writeLink({ lvl, items, effects, ...search }: BuildSearch) {
 	return stringifySearch(
 		toBuildSearch({
 			...search,
+			effects: parseEffectOverrides(effects),
 			patch: search.patch,
 			level: lvl ?? MIN_LEVEL,
 			itemIds: items ?? [],

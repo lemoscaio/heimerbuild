@@ -1,4 +1,5 @@
 import * as z from "zod/mini"
+import { parseEffectOverrides } from "@/lib/effects/effect-overrides"
 import {
 	readLocalStorage,
 	type StorageOptions,
@@ -52,7 +53,7 @@ const unversionedRecentBuildSchema = z.pipe(
 const recentBuildSchema = z.pipe(
 	z.union([storedRecentBuildSchema, unversionedRecentBuildSchema]),
 	z.transform(({ championKey, search }): RecentBuild => {
-		const { lvl, items, patch, runes, form, skills, summoners } =
+		const { lvl, items, patch, runes, form, skills, summoners, effects } =
 			readBuildSearch(search)
 		return {
 			championKey,
@@ -63,6 +64,7 @@ const recentBuildSchema = z.pipe(
 			form,
 			skills,
 			summoners,
+			effects: parseEffectOverrides(effects),
 		}
 	}),
 )
