@@ -16,12 +16,15 @@ type ChampionHeaderProps = {
 	attackType: Champion["attackType"]
 	/** The selected form's name, over the portrait, for a champion with forms. */
 	formName?: string
+	/** Next to the portrait, such as the summoner spell slots. */
+	beside?: React.ReactNode
 }
 
 export function ChampionHeader({
 	champion,
 	attackType,
 	formName,
+	beside,
 }: ChampionHeaderProps) {
 	return (
 		<>
@@ -32,6 +35,7 @@ export function ChampionHeader({
 					caption={formName}
 					className="size-16 rounded-lg border-2 border-gold/70"
 				/>
+				{beside}
 				<div className="flex flex-col gap-0.5 font-display">
 					<h1 className="font-extrabold text-xl leading-tight">
 						{champion.name}

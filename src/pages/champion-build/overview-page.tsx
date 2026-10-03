@@ -15,6 +15,8 @@ import { RunePage } from "@/features/runes/components/rune-page"
 import { RuneSummary } from "@/features/runes/components/rune-summary"
 import { useRuneImagePreload } from "@/features/runes/hooks/use-rune-image-preload"
 import { SkillsTab } from "@/features/skills/components/skills-tab"
+import { SummonerEffectsNote } from "@/features/summoners/components/summoner-effects-note"
+import { SummonerSlots } from "@/features/summoners/components/summoner-slots"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
 import { ChampionSkills } from "./champion-skills"
@@ -53,6 +55,14 @@ export function OverviewPage({
 								form: championState.form?.id,
 							})}
 							formName={championState.form?.name}
+							beside={
+								<SummonerSlots
+									summoners={build.summoners}
+									spellEffects={build.spellEffects}
+									layout="popover"
+									className="-ml-2"
+								/>
+							}
 						/>
 						{champion.forms && championState.form && (
 							<FormToggle
@@ -113,6 +123,7 @@ export function OverviewPage({
 							patch={patch}
 							selection={build.runePage.selection}
 							onSelectionChange={build.runePage.setSelection}
+							summonerHints={build.summonerHints}
 						/>
 					}
 					skills={
@@ -145,6 +156,7 @@ export function OverviewPage({
 									formComparison={build.formSwitch.comparison}
 								>
 									<RunesStatsNote />
+									<SummonerEffectsNote spells={build.summoners.slots} />
 								</StatsPanel>
 							) : (
 								<StatsPanel
@@ -152,7 +164,9 @@ export function OverviewPage({
 									resource={champion.resource}
 									preview={build.preview}
 									formComparison={build.formSwitch.comparison}
-								/>
+								>
+									<SummonerEffectsNote spells={build.summoners.slots} />
+								</StatsPanel>
 							))}
 					</WorkbenchPanel>
 				</>

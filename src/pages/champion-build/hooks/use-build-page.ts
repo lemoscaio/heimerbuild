@@ -1,11 +1,17 @@
 import type { AbilitySlot } from "@schemas/champion"
 import { useState } from "react"
 import { useItems } from "@/data/hooks/use-items"
+import { useRunes } from "@/data/hooks/use-runes"
 import type {
 	BuildTab,
 	BuildView,
 } from "@/features/build-calculator/lib/build-search"
 import { track } from "@/lib/analytics/analytics"
+import { selectedRunes } from "@/lib/rune-selection"
+import {
+	runeSummonerHints,
+	spellRuneEffectsById,
+} from "@/lib/summoner-rune-interactions"
 import { useChampionBuild } from "./use-champion-build"
 import { useFormSwitch } from "./use-form-switch"
 import { useUrlBuildSource } from "./use-url-build-source"
@@ -31,9 +37,11 @@ export function useBuildPage({
 	const build = useChampionBuild({ patch, championKey, source })
 	const formSwitch = useFormSwitch(build)
 	const { data: itemsById } = useItems(patch)
+	const { data: runes } = useRunes(patch)
 	const [selectedItemId, setSelectedItemId] = useState<string>()
 
-	const { champion, championState, skills, items, runePage, stats } = build
+	const { champion, championState, skills, items, runePage, summoners, stats } =
+		build
 	const { view, tab } = source
 	const selectedItem = selectedItemId ? itemsById?.[selectedItemId] : undefined
 	const selectedItemStats =
@@ -46,6 +54,10 @@ export function useBuildPage({
 		runePage.shards.length && stats
 			? { label: "stat shards", stats }
 			: undefined
+
+	// Runes × summoner spells: the page wires the two domains, neither knows the other.
+	const pageRunes = runes ? selectedRunes(runePage.selection, runes) : []
+	const chosenSpells = summoners.slots.filter((spell) => spell !== undefined)
 
 	// Leaving for the expanded shop drops the tab: the overview comes back on Items.
 	function setView(nextView: BuildView) {
@@ -90,6 +102,12 @@ export function useBuildPage({
 		items,
 		addItem,
 		runePage,
+		/** The two summoner spell slots; `pick`, `swap` and `clear` edit them. */
+		summoners,
+		/** The page's runes that react to the chosen summoner spells, with what happens. */
+		summonerHints: runeSummonerHints(pageRunes, chosenSpells),
+		/** For each spell a slot can take, the page's runes that react to it (the picker). */
+		spellEffects: spellRuneEffectsById(pageRunes, summoners.available),
 		/** Totals with the items, stat shards and ranks. */
 		stats,
 		/** Totals without the stat shards: the base of the runes preview. */

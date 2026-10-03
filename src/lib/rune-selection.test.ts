@@ -8,6 +8,7 @@ import {
 	parseRuneSelection,
 	type RuneSelection,
 	runePageHighlights,
+	selectedRunes,
 	selectedShards,
 	serializeRuneSelection,
 } from "./rune-selection"
@@ -98,6 +99,28 @@ describe("selectedShards", () => {
 		expect(
 			selectedShards(COMET_PAGE, runes).map((shard) => shard.name),
 		).toEqual(["Adaptive Force", "Adaptive Force", "Health"])
+	})
+})
+
+describe("selectedRunes", () => {
+	test("lists the keystone, the primary runes and the secondary runes in page order", () => {
+		expect(selectedRunes(COMET_PAGE, runes).map((rune) => rune.name)).toEqual([
+			"Arcane Comet",
+			"Manaflow Band",
+			"Transcendence",
+			"Scorch",
+			"Magical Footwear",
+			"Cosmic Insight",
+		])
+	})
+
+	test("skips the picks not made yet", () => {
+		expect(
+			selectedRunes(
+				{ primary: { treeId: 8200, runeIds: [] }, shardIds: [] },
+				runes,
+			),
+		).toEqual([])
 	})
 })
 

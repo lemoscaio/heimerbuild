@@ -146,6 +146,29 @@ export function selectedShards(
 	})
 }
 
+/** The page's runes in page order: keystone, primary rows, then the secondary runes. */
+export function selectedRunes(
+	selection: RuneSelection,
+	runes: RunesFile,
+): Rune[] {
+	const primaryTree = findTree(runes, selection.primary?.treeId)
+	const secondaryTree = findTree(runes, selection.secondary?.treeId)
+	const candidates = [
+		...(primaryTree?.keystones ?? []),
+		...(primaryTree?.rows.flat() ?? []),
+		...(secondaryTree?.rows.flat() ?? []),
+	]
+	const ids = [
+		selection.primary?.keystoneId,
+		...(selection.primary?.runeIds ?? []),
+		...(selection.secondary?.runeIds ?? []),
+	]
+	return ids.flatMap((id) => {
+		const rune = candidates.find((entry) => entry.id === id)
+		return rune ? [rune] : []
+	})
+}
+
 /** What tells rune pages apart at a glance: the keystone and the secondary tree, when chosen. */
 export function runePageHighlights(
 	selection: RuneSelection,
