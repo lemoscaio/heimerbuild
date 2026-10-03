@@ -34,6 +34,22 @@ export function conditionText({ effect, duration }: Condition): string {
 	}
 }
 
+const PART_LABEL = { passive: "Passive", active: "Active" } as const
+
+/** The row's label in its card: the part of the ability ("Passive", "Active"), when it has one. */
+export function partLabel({ effect }: Condition): string | undefined {
+	return effect.effect.part && PART_LABEL[effect.effect.part]
+}
+
+/** Why a row's switch is off limits: "Replaced by the active". */
+export function stackedOutText({
+	stackedOutBy,
+}: Condition): string | undefined {
+	if (!stackedOutBy) return undefined
+	const winner = stackedOutBy.effect.part ?? stackedOutBy.name
+	return `Replaced by the ${winner}`
+}
+
 /** What a grant gives, as shown: "+35.3% Move Speed", "269 shield", "192 heal". */
 export function grantText(grant: ResolvedGrant): string {
 	switch (grant.kind) {
