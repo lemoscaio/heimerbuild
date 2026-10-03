@@ -24,6 +24,8 @@ export type BuildEffectsInput = {
 
 export type BuildStatsInput = {
 	champion: ChampionInput & Pick<Champion, "adaptiveType">
+	/** The build's patch ("16.19.1"): the rules in force on it apply (the movement speed soft caps). */
+	patch: string
 	level: number
 	/** The selected form's id; absent or unknown means the default form. */
 	form?: string
@@ -45,6 +47,7 @@ const NO_EFFECTS: BuildEffectsInput = { available: [], overrides: {} }
  */
 export function computeBuildStats({
 	champion,
+	patch,
 	level,
 	form,
 	items,
@@ -68,5 +71,5 @@ export function computeBuildStats({
 		[...items, shardInput, effectInput],
 		{ form, ranks },
 	)
-	return capMovementSpeed(totals)
+	return capMovementSpeed(totals, patch)
 }

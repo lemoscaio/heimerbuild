@@ -1,5 +1,6 @@
 import type { AbilitySlot, RankStat } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
+import type { PatchRange } from "@schemas/patch-range"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 
 /** Where an effect comes from, by the key the patch data uses. */
@@ -60,8 +61,11 @@ export type Stacking =
 
 export type StackingRule = Stacking["rule"]
 
-/** A conditional effect as typed, sourced data: what it grants, when, for how long. */
-export type Effect = {
+/**
+ * A conditional effect as typed, sourced data: what it grants, when, for how long. `since` is the
+ * patch its numbers were checked on; a change in a later patch is a new entry with the same id.
+ */
+export type Effect = PatchRange & {
 	/** Readable and stable: build links carry it ("ghost", "teemo-w-passive"). */
 	id: string
 	source: EffectSource
