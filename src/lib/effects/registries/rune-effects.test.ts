@@ -1,12 +1,17 @@
 import { describe, expect, test } from "bun:test"
 import type { Rune } from "@schemas/rune"
+import teemoBin from "../../../../scripts/sync-data/fixtures/champions/Teemo.bin.json"
+import teemoDetail from "../../../../scripts/sync-data/fixtures/champions/Teemo.json"
 import perks from "../../../../scripts/sync-data/fixtures/runes/perks.json"
 import perkStyles from "../../../../scripts/sync-data/fixtures/runes/perkstyles.json"
 import runesReforged from "../../../../scripts/sync-data/fixtures/runes/runesReforged.json"
 import sharedBin from "../../../../scripts/sync-data/fixtures/summoners/shared.bin.json"
 import summonerJson from "../../../../scripts/sync-data/fixtures/summoners/summoner.json"
+import { normalizeChampion } from "../../../../scripts/sync-data/normalize-champions"
 import { normalizeRunes } from "../../../../scripts/sync-data/normalize-runes"
 import { normalizeSummonerSpells } from "../../../../scripts/sync-data/normalize-summoner-spells"
+import { computeBuildStats } from "../../stats/compute-build-stats"
+import { softCapMovementSpeed } from "../../stats/movement-speed"
 import { availableEffects } from "../available-effects"
 import { resolveGrants } from "../evaluate"
 import { RUNE_EFFECTS } from "./rune-effects"
@@ -60,5 +65,33 @@ describe("Nimbus Cloak", () => {
 		}
 		expect(nimbusSpeedAfter("Cleanse")).toBe(0.35)
 		expect(nimbusSpeedAfter("Smite")).toBe(0.15)
+	})
+})
+
+describe("Nimbus Cloak with Heal", () => {
+	test("their percent movement speed adds up, then the soft caps apply", () => {
+		const teemo = normalizeChampion(teemoDetail, teemoBin, "16.19.1")
+		const heal = spells.find(({ name }) => name === "Heal")
+		const ranks = { Q: 0, W: 0, E: 0, R: 0 }
+		const available = availableEffects({
+			champion: teemo,
+			ranks,
+			spells: heal ? [heal] : [],
+			runes: [nimbusCloak],
+		})
+		const build = { champion: teemo, level: 1, items: [], shards: [], ranks }
+
+		const stats = computeBuildStats({
+			...build,
+			effects: {
+				available,
+				overrides: { heal: true, "nimbus-cloak-heal": true },
+			},
+		})
+
+		expect(available.map(({ id }) => id)).toEqual(["heal", "nimbus-cloak-heal"])
+		expect(stats.movementSpeed.total).toBeCloseTo(
+			softCapMovementSpeed(teemo.stats.movementSpeed.base * (1 + 0.3 + 0.35)),
+		)
 	})
 })

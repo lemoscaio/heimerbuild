@@ -113,10 +113,18 @@ describe("the registries", () => {
 		}
 	})
 
-	test("an effect only replaces effects that exist", () => {
-		const known = new Set(effects.map(({ id }) => id))
-		for (const replaced of effects.flatMap(({ replaces = [] }) => replaces)) {
-			expect(known.has(replaced)).toBe(true)
+	test("a stacking group has one rule, and a replace group distinct priorities", () => {
+		const groups = Map.groupBy(
+			effects.filter(({ stacking }) => stacking),
+			({ stacking }) => stacking?.group,
+		)
+		for (const group of groups.values()) {
+			const rules = new Set(group.map(({ stacking }) => stacking?.rule))
+			const priorities = group.flatMap(({ stacking }) =>
+				stacking?.rule === "replace" ? [stacking.priority] : [],
+			)
+			expect(rules.size).toBe(1)
+			expect(new Set(priorities).size).toBe(priorities.length)
 		}
 	})
 })
