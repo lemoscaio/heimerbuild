@@ -12,6 +12,7 @@ import type { ComputedStats, StatName } from "../../stats/compute-stats"
 import { softCapMovementSpeed } from "../../stats/movement-speed"
 import { availableEffects } from "../available-effects"
 import { type EffectContext, resolveGrants } from "../evaluate"
+import { ABILITY_EFFECTS } from "./ability-effects"
 
 const PATCH = "16.19.1"
 
@@ -296,5 +297,218 @@ describe("Tryndamere's Bloodlust (wiki, current patch data)", () => {
 		expect(at(1)).toEqual([20, 35, 50, 65, 80])
 		// 80 / 90 AD per 1% missing health at rank 5.
 		expect(at(55)[4]).toBeCloseTo(40)
+	})
+})
+
+type FormBuild = {
+	form?: string
+	level: number
+	ranks: Record<AbilitySlot, number>
+	items?: { stats: Record<string, number> }[]
+	overrides?: Record<string, boolean>
+}
+
+/** The totals of a build of `champion` with its form effects available, as the build page computes them. */
+function formTotals(
+	champion: Champion,
+	{ form, level, ranks, items = [], overrides = {} }: FormBuild,
+) {
+	const available = availableEffects({
+		patch: PATCH,
+		champion,
+		ranks,
+		spells: [],
+		runes: [],
+	})
+	return computeBuildStats({
+		champion,
+		patch: PATCH,
+		level,
+		form,
+		items,
+		shards: [],
+		ranks,
+		effects: { available, overrides },
+	})
+}
+
+const LONG_SWORDS = { stats: { attackDamage: 40 } }
+
+describe("Jayce's Hammer Stance (wiki, current patch data)", () => {
+	const ranks = { Q: 1, W: 1, E: 1, R: 1 }
+
+	test("adds 5 / 12 / 19 / 26 armor and magic resist from levels 1 / 6 / 11 / 16, only as Hammer", async () => {
+		const jayce = await currentChampion("Jayce")
+		const bonus = (level: number) => {
+			const hammer = formTotals(jayce, { level, ranks })
+			const cannon = formTotals(jayce, { form: "cannon", level, ranks })
+			return [
+				rounded(hammer.armor.total - cannon.armor.total),
+				rounded(hammer.magicResist.total - cannon.magicResist.total),
+			]
+		}
+
+		expect([1, 5, 6, 11, 16, 18].map(bonus)).toEqual([
+			[5, 5],
+			[5, 5],
+			[12, 12],
+			[19, 19],
+			[26, 26],
+			[26, 26],
+		])
+		expect(
+			formTotals(jayce, { form: "cannon", level: 1, ranks }).armor,
+		).toEqual({ base: 22, bonus: 0, total: 22 })
+	})
+
+	test("adds 7.5% of bonus AD to both", async () => {
+		const jayce = await currentChampion("Jayce")
+		const hammer = formTotals(jayce, { level: 6, ranks, items: [LONG_SWORDS] })
+
+		expect(rounded(hammer.armor.bonus)).toBe(12 + 3)
+		expect(rounded(hammer.magicResist.bonus)).toBe(12 + 3)
+	})
+})
+
+describe("Shyvana's Dragon Form (synced R lines)", () => {
+	const withR = (R: number) => ({ Q: 1, W: 1, E: 1, R })
+
+	test("adds 150 / 250 / 350 health and 25 / 50 / 75 range by R rank", async () => {
+		const shyvana = await currentChampion("Shyvana")
+		const human = formTotals(shyvana, { level: 16, ranks: withR(1) })
+
+		expect(
+			[1, 2, 3].map((R) => {
+				const dragon = formTotals(shyvana, {
+					form: "dragon",
+					level: 16,
+					ranks: withR(R),
+				})
+				return [
+					rounded(dragon.health.total - human.health.total),
+					dragon.attackRange.total,
+				]
+			}),
+		).toEqual([
+			[150, 175],
+			[250, 200],
+			[350, 225],
+		])
+	})
+
+	test("is locked until R has a point: the stats stay human", async () => {
+		const shyvana = await currentChampion("Shyvana")
+		const level5 = { level: 5, ranks: withR(0) }
+
+		expect(formTotals(shyvana, { ...level5, form: "dragon" })).toEqual(
+			formTotals(shyvana, level5),
+		)
+	})
+})
+
+describe("Jinx's Switcheroo! (synced Q lines, wiki)", () => {
+	const withQ = (Q: number) => ({ Q, W: 1, E: 1, R: 0 })
+	const DAGGER = { stats: { attackSpeedPercent: 0.35 } }
+
+	test("Rockets add 100 to 200 range by Q rank and keep 90% of the bonus attack speed", async () => {
+		const jinx = await currentChampion("Jinx")
+		const rockets = (Q: number) =>
+			formTotals(jinx, {
+				form: "rockets",
+				level: 9,
+				ranks: withQ(Q),
+				items: [DAGGER],
+			})
+		const minigun = formTotals(jinx, {
+			level: 9,
+			ranks: withQ(1),
+			items: [DAGGER],
+		})
+
+		expect([1, 2, 3, 4, 5].map((Q) => rockets(Q).attackRange.total)).toEqual([
+			625, 650, 675, 700, 725,
+		])
+		expect(rockets(1).attackSpeed.bonus).toBeCloseTo(
+			minigun.attackSpeed.bonus * 0.9,
+		)
+	})
+
+	test("Rev'd up is off by default; on, it adds 30% to 130% bonus attack speed with the Minigun only", async () => {
+		const jinx = await currentChampion("Jinx")
+		const revdUp = { "jinx-q-revd-up": true }
+		const at = (Q: number, form?: string, overrides = {}) =>
+			formTotals(jinx, { form, level: 1, ranks: withQ(Q), overrides })
+				.attackSpeed.total
+
+		expect(at(1)).toBe(jinx.stats.attackSpeed.base)
+		expect([1, 3, 5].map((Q) => rounded(at(Q, undefined, revdUp)))).toEqual(
+			[0.3, 0.8, 1.3].map((bonus) =>
+				rounded(jinx.stats.attackSpeed.base + 0.625 * bonus),
+			),
+		)
+		expect(at(5, "rockets", revdUp)).toBe(at(5, "rockets"))
+	})
+})
+
+describe("Bel'Veth's True Form (synced R lines, wiki ratios)", () => {
+	const withR = (R: number) => ({ Q: 1, W: 1, E: 1, R })
+	const ITEMS = [LONG_SWORDS, { stats: { abilityPower: 20 } }]
+
+	test("adds 100 / 250 / 400 health plus 150% bonus AD and AP, and 25 / 75 / 125 range", async () => {
+		const belveth = await currentChampion("Belveth")
+		const base = formTotals(belveth, {
+			level: 18,
+			ranks: withR(1),
+			items: ITEMS,
+		})
+
+		expect(
+			[1, 2, 3].map((R) => {
+				const trueForm = formTotals(belveth, {
+					form: "true-form",
+					level: 18,
+					ranks: withR(R),
+					items: ITEMS,
+				})
+				return [
+					rounded(trueForm.health.total - base.health.total),
+					trueForm.attackRange.total,
+				]
+			}),
+		).toEqual([
+			[100 + 60 + 30, 175],
+			[250 + 60 + 30, 225],
+			[400 + 60 + 30, 275],
+		])
+	})
+
+	test("raises the total attack speed by 6 / 13 / 20%", async () => {
+		const belveth = await currentChampion("Belveth")
+		const base = formTotals(belveth, { level: 11, ranks: withR(1) })
+
+		expect(
+			[1, 2, 3].map((R) =>
+				rounded(
+					formTotals(belveth, {
+						form: "true-form",
+						level: 11,
+						ranks: withR(R),
+					}).attackSpeed.total / base.attackSpeed.total,
+				),
+			),
+		).toEqual([1.06, 1.13, 1.2])
+	})
+})
+
+describe("form-bound effects", () => {
+	test("each names a form its champion has in the current patch data", async () => {
+		const bound = ABILITY_EFFECTS.filter((effect) => effect.form)
+
+		for (const { id, form, source } of bound) {
+			if (source.kind !== "ability") throw new Error(`${id} is not an ability`)
+			const champion = await currentChampion(source.championKey)
+			expect(champion.forms?.map((entry) => entry.id)).toContain(form)
+		}
+		expect(bound.length).toBeGreaterThan(0)
 	})
 })
