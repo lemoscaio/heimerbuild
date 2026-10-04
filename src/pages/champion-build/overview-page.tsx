@@ -69,6 +69,7 @@ export function OverviewPage({
 								forms={champion.forms}
 								form={championState.form.id}
 								onFormChange={build.formSwitch.setForm}
+								locks={build.formSwitch.locks}
 								announcement={build.formSwitch.announcement}
 							/>
 						)}

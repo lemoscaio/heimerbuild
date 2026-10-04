@@ -3,28 +3,34 @@ import {
 	type FormComparison,
 	statDeltas,
 } from "@/features/build-calculator/lib/diff-stats"
+import { formLocks } from "@/features/build-calculator/lib/form-locks"
 import { comparedForm } from "@/lib/stats/champion-forms"
 import type { ChampionBuild } from "./use-champion-build"
 
 type FormSwitchBuild = Pick<
 	ChampionBuild,
-	"champion" | "championState" | "stats" | "whatIf"
+	"champion" | "championState" | "skills" | "stats" | "whatIf"
 >
 
 /**
  * The form selector on the build page: the selected form's stats against the compared form
- * (the delta chips), and a screen-reader message after each switch saying how many stats changed.
+ * (the delta chips), the forms the skill points do not unlock yet with why, and a screen-reader
+ * message after each switch saying how many stats changed.
  */
 export function useFormSwitch({
 	champion,
 	championState,
+	skills,
 	stats,
 	whatIf,
 }: FormSwitchBuild) {
 	const [announcement, setAnnouncement] = useState("")
 	const forms = champion?.forms
+	const locks = formLocks(forms, skills.ranks)
 	const { form } = championState
-	const compared = comparedForm(forms, form?.id)
+	// A form the points do not unlock has nothing to compare: its stats are the default's.
+	const comparable = comparedForm(forms, form?.id)
+	const compared = comparable && !locks[comparable.id] ? comparable : undefined
 	const comparedStats = compared && whatIf({ form: compared.id })
 	const comparison: FormComparison | undefined =
 		form && compared && stats && comparedStats
@@ -38,7 +44,13 @@ export function useFormSwitch({
 	function setForm(formId: string) {
 		const next = forms?.find(({ id }) => id === formId)
 		const nextStats = whatIf({ form: formId })
-		if (!next || !stats || !nextStats || next.id === form?.id) {
+		if (
+			!next ||
+			!stats ||
+			!nextStats ||
+			next.id === form?.id ||
+			locks[formId]
+		) {
 			return
 		}
 		const changed = Object.keys(statDeltas(nextStats, stats)).length
@@ -53,6 +65,8 @@ export function useFormSwitch({
 		comparison,
 		/** The last switch for screen readers: the new form and how many stats changed. */
 		announcement,
+		/** Why each form the skill points do not unlock yet cannot be picked, by form id. */
+		locks,
 		setForm,
 	}
 }
