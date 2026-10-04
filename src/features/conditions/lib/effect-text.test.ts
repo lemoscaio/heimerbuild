@@ -158,6 +158,37 @@ describe("partLabel and stackedOutText", () => {
 		expect(partLabel(condition({ kind: "after-use" }))).toBeUndefined()
 	})
 
+	test("labels a row by its own label, else by the form it holds in", () => {
+		const dragon = row({ ...passive, part: undefined, form: "dragon" })
+		const revdUp = row({ ...passive, part: undefined, label: "Rev'd up" })
+
+		expect(
+			partLabel({
+				...dragon,
+				effect: { ...dragon.effect, formName: "Dragon" },
+			}),
+		).toBe("Dragon")
+		expect(partLabel(revdUp)).toBe("Rev'd up")
+	})
+
+	test("says a form's always-on bonus holds in that form, and how many hits a stacking one needs", () => {
+		const dragon = row({
+			...passive,
+			trigger: { kind: "always" },
+			form: "dragon",
+		})
+		const revdUp = row({
+			...passive,
+			trigger: { kind: "on-hit" },
+			stacks: { max: 3 },
+		})
+
+		expect(conditionText(dragon)).toBe("While in this form")
+		expect(conditionText({ ...revdUp, duration: 2.5 })).toBe(
+			"For 2.5 s after 3 hits",
+		)
+	})
+
 	test("says which part stands in for a stacked-out row", () => {
 		expect(stackedOutText(row(passive, active))).toBe("Replaced by the active")
 		expect(stackedOutText(row(passive))).toBeUndefined()

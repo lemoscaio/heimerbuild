@@ -102,6 +102,28 @@ describe("availableEffects", () => {
 		})
 	})
 
+	test("binds an effect bound to a form to that form's name", () => {
+		const dragonForm: Effect = {
+			id: "dragon-form",
+			source: { kind: "ability", championKey: "Teemo", slot: "W" },
+			form: "dragon",
+			trigger: { kind: "always" },
+			grants: [],
+			since: "16.19",
+			sourceUrl: "https://wiki.leagueoflegends.com/en-us/Shyvana",
+		}
+		const champion = {
+			...build.champion,
+			forms: [
+				{ id: "human", name: "Human" },
+				{ id: "dragon", name: "Dragon" },
+			],
+		}
+		const [bound] = availableEffects({ ...build, champion }, [[dragonForm]])
+
+		expect(bound?.formName).toBe("Dragon")
+	})
+
 	test("an effect any summoner spell triggers needs a chosen spell", () => {
 		expect(ids(availableEffects({ ...build, spells: [] }))).toEqual([
 			"teemo-w-passive",
