@@ -23,6 +23,7 @@ import {
 	computeBuildStats,
 	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
+import { dropUnusedConditionValues } from "../lib/condition-values"
 
 type UseChampionBuildOptions = {
 	patch: string
@@ -59,9 +60,22 @@ export function useChampionBuild({
 	const { data: summonerSpells } = useSummonerSpells(patch)
 	const { state } = source
 
+	const championState = useChampionState({
+		champion,
+		value: {
+			level: state.level,
+			form: state.form,
+			currentHealth: state.currentHealth,
+		},
+		onChange: changeChampionState,
+	})
+	const matchState = useMatchState({
+		value: { gameTime: state.gameTime },
+		onChange: (change) => save(change, EDIT_HISTORY.match),
+	})
 	const skills = useSkills({
 		champion,
-		level: state.level,
+		level: championState.level,
 		value: state.skills,
 		onChange: (value) => save({ skills: value }, EDIT_HISTORY.skills),
 	})
@@ -91,22 +105,6 @@ export function useChampionBuild({
 					runes: selectedRunes(runePage.selection, runes),
 				})
 			: undefined
-	// The current health and the game time are kept only while an effect reads them.
-	const championState = useChampionState({
-		champion,
-		effects,
-		value: {
-			level: state.level,
-			form: state.form,
-			currentHealth: state.currentHealth,
-		},
-		onChange: changeChampionState,
-	})
-	const matchState = useMatchState({
-		effects,
-		value: { gameTime: state.gameTime },
-		onChange: (value) => save(value, EDIT_HISTORY.match),
-	})
 	const basisInput = statsInput()
 	const conditions = useConditions({
 		available: effects,
@@ -124,21 +122,27 @@ export function useChampionBuild({
 		onChange: (value) => save({ effects: value }, EDIT_HISTORY.effects),
 	})
 
-	/** The checked values every edit saves next to its own change (the link's while data loads). */
-	const values: BuildValues = {
-		level: championState.level,
-		itemIds: items.ids,
-		runes: runePage.value,
-		form: championState.formValue,
-		skills: state.skills,
-		summoners: summoners.value,
-		effects: conditions.value,
-		currentHealth: championState.currentHealthValue,
-		gameTime: matchState.value.gameTime,
-	}
+	/** The checked values every edit saves next to its own change (the link's while data loads), without unused condition values. */
+	const values: BuildValues = dropUnusedConditionValues(
+		{
+			level: championState.level,
+			itemIds: items.ids,
+			runes: runePage.value,
+			form: championState.formValue,
+			skills: state.skills,
+			summoners: summoners.value,
+			effects: conditions.value,
+			currentHealth: state.currentHealth,
+			gameTime: state.gameTime,
+		},
+		effects,
+	)
 
 	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
-		source.update({ ...values, ...change }, navigation)
+		source.update(
+			dropUnusedConditionValues({ ...values, ...change }, effects),
+			navigation,
+		)
 	}
 
 	// Level → skills: a new level also saves the points it keeps, or brings back the ones it kept.
