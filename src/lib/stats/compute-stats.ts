@@ -56,7 +56,7 @@ function breakdown(base: number, total: number): StatBreakdown {
 }
 
 export type ComputeStatsOptions = FormOptions & {
-	/** The abilities' ranks, for the stats a rank grants; absent means no ability ranked. */
+	/** The abilities' ranks: the stats a rank grants (absent: none) and the forms a rank unlocks (absent: not checked). */
 	ranks?: AbilityRanks
 }
 
@@ -72,10 +72,10 @@ export function computeStats(
 	champion: ChampionInput,
 	level: number,
 	items: readonly ItemInput[],
-	{ ranks, ...options }: ComputeStatsOptions = {},
+	{ ranks, form }: ComputeStatsOptions = {},
 ): ComputedStats {
 	assertChampionLevel(level)
-	const inForm = formStats(champion, options)
+	const inForm = formStats(champion, { form, ranks })
 	const { attackRange = inForm.stats.attackRange } = levelStateAt(
 		inForm.levelStates,
 		level,

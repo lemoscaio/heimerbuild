@@ -20,9 +20,9 @@ export function levelStateAt(
 export function attackTypeAtLevel(
 	champion: Pick<Champion, "attackType" | "levelStates" | "forms">,
 	level: number,
-	{ form }: FormOptions = {},
+	{ form, ranks }: FormOptions = {},
 ): Champion["attackType"] {
-	const changes = formChanges(champion.forms, form)
+	const changes = formChanges(champion.forms, form, { ranks })
 	const levelStates = changes ? changes.levelStates : champion.levelStates
 	return (
 		levelStateAt(levelStates, level).attackType ??
