@@ -5,6 +5,7 @@ import {
 	type EffectContext,
 	effectDuration,
 	isEffectOn,
+	isInForm,
 	type ResolvedGrant,
 	resolveGrants,
 	stackEffects,
@@ -79,14 +80,15 @@ export function setCondition(
 		: { ...others, [effect.id]: on }
 }
 
-/** The build's effects in list order, each with its switch and values. */
+/** The build's effects in list order, each with its switch and values; a form's effects only in that form. */
 export function conditionList(
 	effects: readonly BuildEffect[],
 	value: EffectOverrides,
 	context: EffectContext,
 ): Condition[] {
 	const { stackedOut } = stackEffects(effects, value, context)
-	return effects.map((effect) => ({
+	const inForm = effects.filter((effect) => isInForm(effect, context.form))
+	return inForm.map((effect) => ({
 		effect,
 		isOn: isEffectOn(effect, value),
 		isSwitchable: isSwitchable(effect.effect),
