@@ -122,6 +122,25 @@ describe("conditionList, game time", () => {
 	})
 })
 
+describe("conditionList, forms", () => {
+	const dragonForm = bind({
+		...bloodlust.effect,
+		id: "shyvana-r-dragon-form",
+		form: "dragon",
+		grants: [{ kind: "stat", stat: "health", amount: 250 }],
+	})
+
+	test("lists a form's effect only while the champion is in that form", () => {
+		const rows = (form: string) =>
+			conditionList([dragonForm, barrier], {}, { level: 6, form }).map(
+				({ effect }) => effect.id,
+			)
+
+		expect(rows("dragon")).toEqual(["shyvana-r-dragon-form", "barrier"])
+		expect(rows("human")).toEqual(["barrier"])
+	})
+})
+
 describe("setCondition", () => {
 	test("records a switch that leaves the default, and forgets one that returns to it", () => {
 		const on = setCondition({}, barrier, true)

@@ -50,3 +50,35 @@ describe("readChampionState", () => {
 		).toBe(100)
 	})
 })
+
+describe("readChampionState, a form that needs an ability point", () => {
+	const shyvana = {
+		forms: [
+			{ id: "human", name: "Human" },
+			{
+				id: "dragon",
+				name: "Dragon",
+				requires: { slot: "R" as const, minRank: 1 },
+			},
+		],
+	}
+	const value = { level: 6, form: "dragon" }
+
+	test("is the default form, out of the value, until the point is spent", () => {
+		const state = readChampionState(shyvana, value, {
+			ranks: { Q: 1, W: 1, E: 1, R: 0 },
+		})
+
+		expect(state.form?.id).toBe("human")
+		expect(state.formValue).toBeUndefined()
+	})
+
+	test("is selected once the point is spent, or while the ranks load", () => {
+		const learned = readChampionState(shyvana, value, {
+			ranks: { Q: 1, W: 1, E: 1, R: 1 },
+		})
+
+		expect(learned.formValue).toBe("dragon")
+		expect(readChampionState(shyvana, value).formValue).toBe("dragon")
+	})
+})

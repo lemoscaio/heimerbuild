@@ -85,6 +85,23 @@ describe("grantText", () => {
 				basis: { stat: "abilityPower", ratio: 0.0002 },
 			}),
 		).toBe("+6% Move Speed (2% per 100 Ability Power)")
+		expect(
+			grantText({
+				kind: "stat",
+				stat: "armor",
+				value: 3,
+				basis: { stat: "attackDamage", ratio: 0.075, part: "bonus" },
+			}),
+		).toBe("+3 Armor (7.5% of bonus Attack Damage)")
+	})
+
+	test("says what an attack speed multiplier scales, with its sign", () => {
+		expect(
+			grantText({ kind: "attackSpeedMultiplier", of: "total", value: 0.13 }),
+		).toBe("+13% total Attack Speed")
+		expect(
+			grantText({ kind: "attackSpeedMultiplier", of: "bonus", value: -0.1 }),
+		).toBe("−10% bonus Attack Speed")
 	})
 })
 
