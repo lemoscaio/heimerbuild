@@ -1,12 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { BuildEffect, Effect } from "@/lib/effects/effect"
-import {
-	conditionList,
-	readConditions,
-	readCurrentHealth,
-	readGameTime,
-	setCondition,
-} from "./conditions"
+import { conditionList, readConditions, setCondition } from "./conditions"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
 
@@ -109,36 +103,6 @@ describe("readConditions", () => {
 	})
 })
 
-describe("readCurrentHealth", () => {
-	test("keeps the current health while an effect reads it", () => {
-		expect(readCurrentHealth(40, [passive, bloodlust])).toBe(40)
-	})
-
-	test("drops it at full health or when no effect reads it", () => {
-		expect(readCurrentHealth(100, [bloodlust])).toBeUndefined()
-		expect(readCurrentHealth(40, effects)).toBeUndefined()
-	})
-
-	test("keeps it as given while the effects load", () => {
-		expect(readCurrentHealth(40, undefined)).toBe(40)
-	})
-})
-
-describe("readGameTime", () => {
-	test("keeps the game time while an effect reads it", () => {
-		expect(readGameTime(30, [passive, gatheringStorm])).toBe(30)
-	})
-
-	test("drops it at the game's start or when no effect reads it", () => {
-		expect(readGameTime(0, [gatheringStorm])).toBeUndefined()
-		expect(readGameTime(30, effects)).toBeUndefined()
-	})
-
-	test("keeps it as given while the effects load", () => {
-		expect(readGameTime(30, undefined)).toBe(30)
-	})
-})
-
 describe("conditionList, game time", () => {
 	test("gives an effect that grows with the game time its value now and at the next step", () => {
 		const [storm] = conditionList(
@@ -147,7 +111,7 @@ describe("conditionList, game time", () => {
 			{ level: 1, gameTime: 25, adaptiveType: "ap" },
 		)
 
-		expect(storm?.readsGameTime).toBe(true)
+		expect(storm?.usesGameTime).toBe(true)
 		expect(storm?.grants).toEqual([
 			{ kind: "stat", stat: "abilityPower", value: 24 },
 		])
@@ -189,8 +153,8 @@ describe("conditionList", () => {
 				effect: passive,
 				isOn: true,
 				isSwitchable: true,
-				readsCurrentHealth: false,
-				readsGameTime: false,
+				usesCurrentHealth: false,
+				usesGameTime: false,
 				grants: [{ kind: "stat", stat: "movementSpeedPercent", value: 0.16 }],
 				duration: undefined,
 				next: undefined,
@@ -199,8 +163,8 @@ describe("conditionList", () => {
 				effect: barrier,
 				isOn: true,
 				isSwitchable: true,
-				readsCurrentHealth: false,
-				readsGameTime: false,
+				usesCurrentHealth: false,
+				usesGameTime: false,
 				grants: [{ kind: "shield", value: 280 }],
 				duration: 2.5,
 				next: undefined,
@@ -222,7 +186,7 @@ describe("conditionList", () => {
 		expect(row).toMatchObject({
 			isOn: true,
 			isSwitchable: false,
-			readsCurrentHealth: true,
+			usesCurrentHealth: true,
 		})
 		expect(row?.grants[0]?.value).toBeCloseTo(40)
 	})

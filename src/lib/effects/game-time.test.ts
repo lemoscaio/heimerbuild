@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import type { Effect } from "./effect"
-import { clampGameTime, nextGameTimeStep, readsGameTime } from "./game-time"
+import { clampGameTime, nextGameTimeStep, usesGameTime } from "./game-time"
 
 function effect(grants: Effect["grants"]): Effect {
 	return {
@@ -22,10 +22,10 @@ const storm = effect([
 ])
 const flat = effect([{ kind: "stat", stat: "armor", amount: 10 }])
 
-describe("readsGameTime", () => {
+describe("usesGameTime", () => {
 	test("is true only for an effect with a game time amount", () => {
-		expect(readsGameTime(storm)).toBe(true)
-		expect(readsGameTime(flat)).toBe(false)
+		expect(usesGameTime(storm)).toBe(true)
+		expect(usesGameTime(flat)).toBe(false)
 	})
 })
 

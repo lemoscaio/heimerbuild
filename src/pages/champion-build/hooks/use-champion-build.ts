@@ -11,6 +11,7 @@ import type {
 import { useChampionState } from "@/features/champions/hooks/use-champion-state"
 import type { ChampionStateValue } from "@/features/champions/lib/champion-state"
 import { useConditions } from "@/features/conditions/hooks/use-conditions"
+import { useMatchState } from "@/features/match/hooks/use-match-state"
 import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
@@ -22,6 +23,7 @@ import {
 	computeBuildStats,
 	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
+import { dropUnusedConditionValues } from "../lib/condition-values"
 
 type UseChampionBuildOptions = {
 	patch: string
@@ -37,6 +39,7 @@ const EDIT_HISTORY = {
 	items: { replace: false },
 	runes: { replace: true },
 	summoners: { replace: true },
+	match: { replace: true },
 	effects: { replace: true },
 } as const satisfies Record<string, BuildNavigation>
 
@@ -44,7 +47,7 @@ export type ChampionBuild = ReturnType<typeof useChampionBuild>
 
 /**
  * A champion's build, composed from one hook per domain on a build source: champion state, skills,
- * items, rune page, summoner spells and conditions (the effects turned on). Their values only come together in the stats and in each saved edit.
+ * items, rune page, summoner spells, match state and conditions (the effects turned on). Their values only come together in the stats and in each saved edit.
  */
 export function useChampionBuild({
 	patch,
@@ -59,8 +62,16 @@ export function useChampionBuild({
 
 	const championState = useChampionState({
 		champion,
-		value: { level: state.level, form: state.form },
+		value: {
+			level: state.level,
+			form: state.form,
+			currentHealth: state.currentHealth,
+		},
 		onChange: changeChampionState,
+	})
+	const matchState = useMatchState({
+		value: { gameTime: state.gameTime },
+		onChange: (change) => save(change, EDIT_HISTORY.match),
 	})
 	const skills = useSkills({
 		champion,
@@ -96,46 +107,42 @@ export function useChampionBuild({
 			: undefined
 	const basisInput = statsInput()
 	const conditions = useConditions({
-		effects,
+		available: effects,
 		context: {
 			level: championState.level,
+			currentHealth: championState.currentHealth,
+			gameTime: matchState.gameTime,
 			ranks: skills.ranks,
 			rankStats: champion?.rankStats,
 			adaptiveType:
 				champion && itemsAdaptiveType(champion.adaptiveType, items.list),
 			totals: basisInput && statBonusBasis(basisInput),
 		},
-		value: {
-			effects: state.effects ?? {},
+		value: state.effects ?? {},
+		onChange: (value) => save({ effects: value }, EDIT_HISTORY.effects),
+	})
+
+	/** The checked values every edit saves next to its own change (the link's while data loads), without unused condition values. */
+	const values: BuildValues = dropUnusedConditionValues(
+		{
+			level: championState.level,
+			itemIds: items.ids,
+			runes: runePage.value,
+			form: championState.formValue,
+			skills: state.skills,
+			summoners: summoners.value,
+			effects: conditions.value,
 			currentHealth: state.currentHealth,
 			gameTime: state.gameTime,
 		},
-		onChange: (value) =>
-			save(
-				{
-					effects: value.effects,
-					currentHealth: value.currentHealth,
-					gameTime: value.gameTime,
-				},
-				EDIT_HISTORY.effects,
-			),
-	})
-
-	/** The checked values every edit saves next to its own change (the link's while data loads). */
-	const values: BuildValues = {
-		level: championState.level,
-		itemIds: items.ids,
-		runes: runePage.value,
-		form: championState.formValue,
-		skills: state.skills,
-		summoners: summoners.value,
-		effects: conditions.value.effects,
-		currentHealth: conditions.value.currentHealth,
-		gameTime: conditions.value.gameTime,
-	}
+		effects,
+	)
 
 	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
-		source.update({ ...values, ...change }, navigation)
+		source.update(
+			dropUnusedConditionValues({ ...values, ...change }, effects),
+			navigation,
+		)
 	}
 
 	// Level → skills: a new level also saves the points it keeps, or brings back the ones it kept.
@@ -149,7 +156,7 @@ export function useChampionBuild({
 	}
 
 	/**
-	 * The build's stats input with `change` applied. It reads the link's conditions, which give the
+	 * The build's stats input with `change` applied. It reads the link's effect choices, which give the
 	 * same active effects as the checked ones: checking only drops choices that change nothing.
 	 */
 	function statsInput(
@@ -165,8 +172,8 @@ export function useChampionBuild({
 			shards: runePage.shards,
 			ranks: skills.ranks,
 			effects: { available: effects ?? [], overrides: state.effects ?? {} },
-			currentHealth: state.currentHealth,
-			gameTime: state.gameTime,
+			currentHealth: championState.currentHealth,
+			gameTime: matchState.gameTime,
 			...change,
 		}
 	}
@@ -184,6 +191,8 @@ export function useChampionBuild({
 		items,
 		runePage,
 		summoners,
+		/** The match's game time. */
+		matchState,
 		conditions,
 		/** Totals with the items, stat shards, ranks and the effects turned on. */
 		stats: whatIf(),

@@ -204,6 +204,18 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })[0]?.gameTime).toBe(30)
 	})
 
+	test("store full health and the game's start as no value, like the link", () => {
+		const storage = memoryStorage()
+		recordRecentBuild(
+			{ ...build("Tryndamere"), currentHealth: 100, gameTime: 0 },
+			{ storage },
+		)
+		const stored = storage.getItem(RECENT_BUILDS_KEY) ?? ""
+		expect(stored).not.toContain('"hp"')
+		expect(stored).not.toContain('"min"')
+		expect(readRecentBuilds({ storage })).toEqual([build("Tryndamere")])
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

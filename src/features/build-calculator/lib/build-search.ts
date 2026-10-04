@@ -133,9 +133,9 @@ export type BuildState = {
 	summoners?: string
 	/** The effects that differ from their defaults; `undefined` or empty for none. */
 	effects?: EffectOverrides
-	/** Percent of maximum health; `undefined` for full health. */
+	/** Percent of maximum health; `undefined` for full health. 100 stays out of the link too. */
 	currentHealth?: number
-	/** Whole minutes into the game; `undefined` for its start. */
+	/** Whole minutes into the game; `undefined` for its start. 0 stays out of the link too. */
 	gameTime?: number
 }
 

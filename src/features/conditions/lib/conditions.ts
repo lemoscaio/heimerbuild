@@ -1,4 +1,4 @@
-import { FULL_HEALTH, readsCurrentHealth } from "@/lib/effects/current-health"
+import { usesCurrentHealth } from "@/lib/effects/current-health"
 import { isOnByDefault, isSwitchable } from "@/lib/effects/defaults"
 import type { BuildEffect, EffectOverrides } from "@/lib/effects/effect"
 import {
@@ -12,7 +12,7 @@ import {
 import {
 	GAME_START,
 	nextGameTimeStep,
-	readsGameTime,
+	usesGameTime,
 } from "@/lib/effects/game-time"
 
 /** One effect of the build with its switch and what it gives at the build's level and ranks. */
@@ -22,9 +22,9 @@ export type Condition = {
 	/** An always-on effect informs, with no switch. */
 	isSwitchable: boolean
 	/** Its value follows the current health, so its row carries the health input. */
-	readsCurrentHealth: boolean
+	usesCurrentHealth: boolean
 	/** Its value follows the game time, so its row carries the game time input. */
-	readsGameTime: boolean
+	usesGameTime: boolean
 	grants: readonly ResolvedGrant[]
 	/** What it grants from the next game time step on, for an effect that grows with the game time. */
 	next?: { gameTime: number; grants: readonly ResolvedGrant[] }
@@ -32,15 +32,6 @@ export type Condition = {
 	duration?: number
 	/** The effect of its stacking group that applies instead, while this one is on. */
 	stackedOutBy?: BuildEffect
-}
-
-/** The build's conditions: the effects turned on or off, and the current health effects read. */
-export type ConditionsValue = {
-	effects: EffectOverrides
-	/** Percent of maximum health, 1 to 99; absent means full health. */
-	currentHealth?: number
-	/** Whole minutes into the game, 1 to 120; absent means its start. */
-	gameTime?: number
 }
 
 /**
@@ -60,30 +51,6 @@ export function readConditions(
 			return isChoice ? [[id, on]] : []
 		}),
 	)
-}
-
-/** The current health checked like a choice: dropped at full health or when no effect reads it. */
-export function readCurrentHealth(
-	currentHealth: number | undefined,
-	effects: readonly BuildEffect[] | undefined,
-): number | undefined {
-	if (currentHealth === FULL_HEALTH) return undefined
-	if (!effects) return currentHealth
-	return effects.some(({ effect }) => readsCurrentHealth(effect))
-		? currentHealth
-		: undefined
-}
-
-/** The game time checked like the current health: dropped at the game's start or when no effect reads it. */
-export function readGameTime(
-	gameTime: number | undefined,
-	effects: readonly BuildEffect[] | undefined,
-): number | undefined {
-	if (gameTime === GAME_START) return undefined
-	if (!effects) return gameTime
-	return effects.some(({ effect }) => readsGameTime(effect))
-		? gameTime
-		: undefined
 }
 
 /** The effect's grants at its next game time step, when its value follows the game time. */
@@ -123,8 +90,8 @@ export function conditionList(
 		effect,
 		isOn: isEffectOn(effect, value),
 		isSwitchable: isSwitchable(effect.effect),
-		readsCurrentHealth: readsCurrentHealth(effect.effect),
-		readsGameTime: readsGameTime(effect.effect),
+		usesCurrentHealth: usesCurrentHealth(effect.effect),
+		usesGameTime: usesGameTime(effect.effect),
 		grants: resolveGrants(effect, context),
 		next: nextStep(effect, context),
 		duration: effectDuration(effect, context),

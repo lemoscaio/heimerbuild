@@ -15,12 +15,13 @@ src/
 │   ├── home/             champion browser and recent builds
 │   └── champion-build/   the build page: picks the screen (overview, expanded shop, mobile), useChampionBuild, useBuildPage
 ├── features/             feature slices, never import each other
-│   ├── champions/        champion grid, search, champion header and skills
+│   ├── champions/        champion grid, search, champion header and skills; champion state (level, form, current health)
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
 │   ├── item-shop/        item grid, role/stat filters, sorting, tooltips
 │   ├── runes/            rune page editor (trees, runes, stat shards) and its summary card
 │   ├── skills/           skill points: rank rules, suggested order and history, the skills row and Skills tab
 │   ├── summoners/        the two summoner spell slots: picks, swap, checks against the patch's spells
+│   ├── match/            the match state (useMatchState): the game time, one per match
 │   └── conditions/       the conditional effects turned on or off (useConditions) and the Effects list
 ├── data/                 game data loading: fetch + Zod parsing, data hooks, query options
 │   ├── services/         fetchGameData, fetchManifest, fetchChampion, fetchItems
@@ -55,7 +56,8 @@ app → routes → pages → features → shared (components, hooks, lib, types,
 pages/<page>/
 ├── <page>-page.tsx   the page component the route loads (named export)
 ├── <part>.tsx        one file per screen (overview-page.tsx) or page-only layout (home-layout.tsx)
-└── hooks/            page-level hooks that compose feature hooks with page state
+├── hooks/            page-level hooks that compose feature hooks with page state
+└── lib/              pure page-level rules that join features (tested with bun test)
 ```
 
 A page reads its route through `getRouteApi("<route id>")`, never by importing the route file.
@@ -79,7 +81,7 @@ features/<feature>/
 ### Import boundaries
 
 - **A feature never imports another feature. No exceptions.** Pages compose features; anything two features need is promoted to a shared layer.
-- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, on top of `useChampionBuild`, which composes the domain hooks of six features; see [Build composition](#build-composition)) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
+- When two features interact, the page wires them with props and callbacks. Example: the champion build page calls `useBuildPage()` (its own hook, on top of `useChampionBuild`, which composes the domain hooks of seven features; see [Build composition](#build-composition)) and its screens pass `build.addItem` to `ItemShop` (item-shop) as `onItemAdd`; the shop never knows about the build.
 - Features may import only the shared layers: `components/{ui,common}`, `lib`, `hooks`, `types`, `data`. Never `pages/` or `routes/`.
 - Pages may import features and the shared layers, never `routes/`. Routes import pages.
 - Shared layers never import from `features/`, `pages/` or `routes/`.
@@ -106,20 +108,32 @@ import { computeStats } from "@/lib/stats/compute-stats"
 The build (everything the user builds for a champion) is **composed from one controlled hook per domain**. Domains never import each other: the page layer wires them, and their values only meet in the stats and in each saved edit.
 
 ```
-pages/champion-build/hooks/
-├── use-url-build-source.ts   the URL as the build source: writes the search, records recent builds
-├── use-champion-build.ts     data hooks + domain hooks + stats on a build source (the composer)
-└── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch
+pages/champion-build/
+├── hooks/
+│   ├── use-url-build-source.ts   the URL as the build source: writes the search, records recent builds
+│   ├── use-champion-build.ts     data hooks + domain hooks + stats on a build source (the composer)
+│   └── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch
+└── lib/
+    └── condition-values.ts       dropUnusedConditionValues: the composer's cleanup on save
 ```
 
 | Domain | Hook | Feature | Value in the source |
 | --- | --- | --- | --- |
-| Champion state | `useChampionState` (level, form) | `champions` | `level`, `form` |
+| Champion state | `useChampionState` (level, form, current health) | `champions` | `level`, `form`, `currentHealth` |
 | Skills | `useSkills` (ranks, order, kept points) | `skills` | `skills` |
 | Items | `useBuildItems` (chosen items, full-build notice, announcement, item events) | `build-calculator` | `itemIds` |
 | Rune page | `useRunePage` (checked page, stat shards) | `runes` | `runes` |
 | Summoner spells | `useSummoners` (the two slots, pick, swap, clear) | `summoners` | `summoners` |
-| Conditions | `useConditions` (the effects turned on or off, with their values; the current health and the game time) | `conditions` | `effects`, `currentHealth`, `gameTime` |
+| Match state | `useMatchState` (game time) | `match` | `gameTime` |
+| Conditions | `useConditions` (the effects turned on or off, with their values) | `conditions` | `effects` |
+
+Each rule about a value lives in one place:
+
+| Rule | Where |
+| --- | --- |
+| The value, its default and its setter (`currentHealth` is 100 and `gameTime` is 0 when absent; a setter saves the number as picked) | the domain hook (`useChampionState`, `useMatchState`) |
+| A default stays out of the link (`hp` at 100, `min` at 0, like level 1 or no items) | the link writer, `toBuildSearch` |
+| A condition value that no available effect uses is dropped (as given while the effects load) | the composer, `dropUnusedConditionValues` on every save |
 
 - **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`, `readSummoners`); the hook stays thin and is covered by the e2e flows.
 - **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
@@ -127,7 +141,9 @@ pages/champion-build/hooks/
 - **Pure stats.** `computeBuildStats({ champion, patch, level, form, items, shards, ranks, effects })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`), an effect turned on (`effects`; see [Effects](#effects)).
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
 - **Hints between domains** are page wiring too: the runes that react to the chosen summoner spells come from `lib/summoner-rune-interactions.ts` (typed rules, numbers read from the patch's runes), computed in `useBuildPage` and passed to the rune page (`summonerHints`) and the spell picker (`spellEffects`). Neither feature imports the other.
-- **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` and into the stats (`effects: { available, overrides }`, `currentHealth`, `gameTime`). Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step) and the build's adaptive type (`itemsAdaptiveType`, as the stat shards read it), so each row shows the bonus the stats add.
+- **Grouped by subject, not by mechanism.** A value effects read lives with what it describes: the current health with the champion state (one per build), the game time with the match state (one per match). The conditions keep only the effects turned on or off.
+- **Match state is shared.** One match holds the game time and later its other values (expected gold, dragons). When a second build instance arrives (an opponent, issue 69), both builds read the same match state; the time is never kept per build.
+- **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` (`available`) and into the stats (`effects: { available, overrides }`). It injects the condition values as plain values too: `useConditions` gets them in its `context` (level, current health, game time) only to show each row's value, and `computeBuildStats` gets `currentHealth` and `gameTime` as inputs. `useChampionState` and `useMatchState` never see the effects: the composer drops a condition value no effect uses when it saves. Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices and values stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step) and the build's adaptive type (`itemsAdaptiveType`, as the stat shards read it), so each row shows the bonus the stats add.
 - **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
@@ -151,8 +167,8 @@ Conditional effects (an ability's passive that holds only while not hit, a summo
 lib/effects/
 ├── effect.ts               Effect, Grant, Trigger, Amount, BuildEffect, EffectOverrides
 ├── defaults.ts             isOnByDefault and isSwitchable: lookups on the trigger kind
-├── current-health.ts       the current health condition: its range, readsCurrentHealth
-├── game-time.ts            the game time condition: its range, readsGameTime, nextGameTimeStep
+├── current-health.ts       the current health condition: its range, usesCurrentHealth
+├── game-time.ts            the game time condition: its range, usesGameTime, nextGameTimeStep
 ├── evaluate.ts             activeEffects, stackEffects, resolveGrants, effectStatsInput, alwaysOnRankStats
 ├── stacking.ts             resolveStacking: one pure function for the stacking groups
 ├── available-effects.ts    availableEffects(build): the effects whose source is in the build
@@ -176,8 +192,8 @@ lib/effects/
   Numbers come from the synced data whenever it has them. A hand-written number (Nimbus Cloak's brackets, spellblade ratios) cites its page in `sourceUrl` and has a test against it.
 - **Defaults come from the trigger.** `always` and `while: <condition>` are on: the stats show a champion at rest. `after-use`, `after-summoner`, `on-hit` and `after-ability` are off. `defaultOn` overrides it as data.
 - **Always-on passives inform.** An `always` effect (Malphite's W, Janna's W) has no switch (`isSwitchable`): its row in the Effects list shows what it adds, so a bonus never appears from nowhere, and a link choice for it is ignored and dropped.
-- **Condition values** are build state that effects read, kept by the conditions domain and the link. The **current health** (percent of maximum health, 1 to 100, default 100; link `hp`) is the first: `missingHealth` amounts read it, and every row whose effect reads it carries the `CurrentHealthInput` slider (`readsCurrentHealth`). The combo timeline and later health-dependent effects read the same value.
-  The **game time** (whole minutes, 0 to 120, default 0; link `min`) is the second: `gameTime` amounts read it, and every row whose effect reads it carries the `GameTimeInput` (minutes with − and +, presets 10 to 40; `readsGameTime`) and shows the next step ("+24 Ability Power (next: +48 Ability Power at 30 min)"). Every input is the same controlled value, so they stay in sync. Expected gold, item stacks and the expected level by minute will read it too.
+- **Condition values** are build state that effects read, kept by the domain of their subject (the current health by the champion state, the game time by the match state) and the link. The **current health** (percent of maximum health, 1 to 100, default 100; link `hp`) is the first: `missingHealth` amounts read it, and every row whose effect reads it carries the `CurrentHealthInput` slider (`usesCurrentHealth`). The combo timeline and later health-dependent effects read the same value.
+  The **game time** (whole minutes, 0 to 120, default 0; link `min`) is the second: `gameTime` amounts read it, and every row whose effect reads it carries the `GameTimeInput` (minutes with − and +, presets 10 to 40; `usesGameTime`) and shows the next step ("+24 Ability Power (next: +48 Ability Power at 30 min)"). Every input is the same controlled value, so they stay in sync. Expected gold, item stacks and the expected level by minute will read it too.
 - **Which effects a build has:** `availableEffects` keeps:
   - an ability effect whose champion is the build's and whose ability has a rank;
   - a summoner effect whose spell is chosen;
@@ -217,7 +233,7 @@ lib/effects/
    - a value that follows the current health: `missingHealth`. Its row gets the health input by itself;
    - a value that grows with the game time: `gameTime`. Its row gets the game time input and the next step by itself.
 
-   An always-on passive gets the `always` trigger: an informational row without a switch. A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins `ConditionsValue`, the link (a new optional param) and the recent builds, like `currentHealth`.
+   An always-on passive gets the `always` trigger: an informational row without a switch. A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins the state of its subject (`ChampionStateValue` for the champion, `MatchStateValue` for the match), the link (a new optional param) and the recent builds, like `currentHealth`.
 3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.
 4. When a later patch changes it, never edit the entry in place: give the old one an `until` (the last patch it held) and add a new entry with the same `id` and the new `since`. Ranges of one id must not overlap (a registry test checks it). The same goes for the soft caps, a new version in `MOVEMENT_SPEED_SOFT_CAPS`. Checking at sync time whether a rule is stale is a separate issue.
 5. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank). An amount read from a tooltip line is tested against the current patch's data (`public/data`), so a sync that renames or changes the line fails the tests.

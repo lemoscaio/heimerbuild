@@ -156,7 +156,11 @@ export function OverviewPage({
 									formComparison={build.formSwitch.comparison}
 								>
 									<RunesStatsNote />
-									<BuildEffectsList conditions={build.conditions} />
+									<BuildEffectsList
+										conditions={build.conditions}
+										championState={build.championState}
+										matchState={build.matchState}
+									/>
 								</StatsPanel>
 							) : (
 								<StatsPanel
@@ -165,7 +169,11 @@ export function OverviewPage({
 									preview={build.preview}
 									formComparison={build.formSwitch.comparison}
 								>
-									<BuildEffectsList conditions={build.conditions} />
+									<BuildEffectsList
+										conditions={build.conditions}
+										championState={build.championState}
+										matchState={build.matchState}
+									/>
 								</StatsPanel>
 							))}
 					</WorkbenchPanel>

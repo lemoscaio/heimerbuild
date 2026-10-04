@@ -21,7 +21,7 @@ function gameTimeAmounts({ grants }: Effect): GameTimeAmount[] {
 }
 
 /** Whether the effect's value depends on the game time (Gathering Storm). */
-export function readsGameTime(effect: Effect): boolean {
+export function usesGameTime(effect: Effect): boolean {
 	return gameTimeAmounts(effect).length > 0
 }
 

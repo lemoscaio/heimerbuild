@@ -9,6 +9,6 @@ function readsHealth(amount: Amount) {
 }
 
 /** Whether the effect's value depends on the current health (Tryndamere's Bloodlust). */
-export function readsCurrentHealth({ grants }: Effect): boolean {
+export function usesCurrentHealth({ grants }: Effect): boolean {
 	return grants.some((grant) => "amount" in grant && readsHealth(grant.amount))
 }

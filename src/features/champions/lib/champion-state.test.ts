@@ -14,6 +14,7 @@ describe("readChampionState", () => {
 			level: 7,
 			form: undefined,
 			formValue: "mega",
+			currentHealth: 100,
 		})
 	})
 
@@ -35,7 +36,17 @@ describe("readChampionState", () => {
 
 	test("a champion without forms has no form", () => {
 		expect(readChampionState(heimerdinger, { level: 1, form: "mega" })).toEqual(
-			{ level: 1, form: undefined, formValue: undefined },
+			{ level: 1, form: undefined, formValue: undefined, currentHealth: 100 },
 		)
+	})
+
+	test("reads the current health, full when absent", () => {
+		expect(
+			readChampionState(gnar, { level: 1, form: undefined, currentHealth: 40 })
+				.currentHealth,
+		).toBe(40)
+		expect(
+			readChampionState(undefined, { level: 1, form: undefined }).currentHealth,
+		).toBe(100)
 	})
 })

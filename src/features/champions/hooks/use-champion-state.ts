@@ -14,13 +14,16 @@ type UseChampionStateOptions = {
 
 export type ChampionState = ReturnType<typeof useChampionState>
 
-/** The champion's level and form in a build, controlled by `value`. */
+/** The champion's level, form and current health in a build, controlled by `value`. */
 export function useChampionState({
 	champion,
 	value,
 	onChange,
 }: UseChampionStateOptions) {
-	const { level, form, formValue } = readChampionState(champion, value)
+	const { level, form, formValue, currentHealth } = readChampionState(
+		champion,
+		value,
+	)
 
 	function setForm(formId: string) {
 		if (!champion || formId === form?.id) return
@@ -36,5 +39,9 @@ export function useChampionState({
 		/** The checked `form` value: a form other than the default; the given one while loading. */
 		formValue,
 		setForm,
+		/** Percent of maximum health the effects read, 1 to 100. */
+		currentHealth,
+		setCurrentHealth: (nextHealth: number) =>
+			onChange({ currentHealth: nextHealth }),
 	}
 }
