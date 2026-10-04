@@ -14,12 +14,12 @@ function lasting(duration: number | undefined, when: string) {
 	return `${when.charAt(0).toUpperCase()}${when.slice(1)}`
 }
 
-/** When the effect holds: "For 10 s after casting", "Not hit by a champion or turret for 5 s". */
+/** When the effect holds: "For 10 s after casting", "For 2.5 s after 3 hits", "While in this form". */
 export function conditionText({ effect, duration }: Condition): string {
-	const { trigger } = effect.effect
+	const { trigger, form, stacks } = effect.effect
 	switch (trigger.kind) {
 		case "always":
-			return "Always"
+			return form ? "While in this form" : "Always"
 		case "while":
 			return CONDITION_TEXT[trigger.condition]
 		case "after-use":
@@ -30,7 +30,7 @@ export function conditionText({ effect, duration }: Condition): string {
 				`after casting ${effect.spell?.name ?? "a summoner spell"}`,
 			)
 		case "on-hit":
-			return lasting(duration, "on hit")
+			return lasting(duration, stacks ? `after ${stacks.max} hits` : "on hit")
 		case "after-ability":
 			return lasting(duration, "after an ability")
 	}
@@ -38,9 +38,10 @@ export function conditionText({ effect, duration }: Condition): string {
 
 const PART_LABEL = { passive: "Passive", active: "Active" } as const
 
-/** The row's label in its card: the part of the ability ("Passive", "Active"), when it has one. */
+/** The row's label in its card: its own ("Rev'd up"), the ability's part ("Passive") or its form ("Dragon"). */
 export function partLabel({ effect }: Condition): string | undefined {
-	return effect.effect.part && PART_LABEL[effect.effect.part]
+	const { label, part } = effect.effect
+	return label ?? (part && PART_LABEL[part]) ?? effect.formName
 }
 
 /** Why a row's switch is off limits: "Replaced by the active". */
