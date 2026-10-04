@@ -4,10 +4,13 @@ import type { BuildEffect, EffectOverrides } from "../effects/effect"
 import {
 	activeEffects,
 	alwaysOnRankStats,
+	attackSpeedMultipliers,
 	type EffectContext,
 	effectStatsInput,
 } from "../effects/evaluate"
 import { itemsAdaptiveType } from "./adaptive-force"
+import { multiplyAttackSpeed } from "./attack-speed"
+import { selectedForm } from "./champion-forms"
 import {
 	type ChampionInput,
 	type ComputedStats,
@@ -29,7 +32,7 @@ export type BuildStatsInput = {
 	/** The build's patch ("16.19.1"): the rules in force on it apply (the movement speed soft caps). */
 	patch: string
 	level: number
-	/** The selected form's id; absent or unknown means the default form. */
+	/** The selected form's id; absent, unknown or missing its required rank means the default form. */
 	form?: string
 	items: readonly ItemInput[]
 	/** The chosen stat shards; `[]` gives the stats without runes. */
@@ -71,6 +74,7 @@ function evaluateBuild({
 		currentHealth,
 		gameTime,
 		adaptiveType: itemsAdaptiveType(champion.adaptiveType, items),
+		form: selectedForm(champion.forms, form, { ranks })?.id,
 	}
 	const active = activeEffects(effects.available, effects.overrides, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)
@@ -88,12 +92,16 @@ function evaluateBuild({
 		{ step: "stat-dependent" },
 	)
 	const hasStatBonuses = Object.keys(statBonuses.stats).length > 0
+	const withStatBonuses = hasStatBonuses
+		? totalsWith([statBonuses])
+		: beforeStatBonuses
+	const attackSpeed = multiplyAttackSpeed(
+		withStatBonuses.attackSpeed,
+		attackSpeedMultipliers(active, context),
+	)
 	return {
 		beforeStatBonuses,
-		totals: capMovementSpeed(
-			hasStatBonuses ? totalsWith([statBonuses]) : beforeStatBonuses,
-			patch,
-		),
+		totals: capMovementSpeed({ ...withStatBonuses, attackSpeed }, patch),
 	}
 }
 
@@ -104,8 +112,9 @@ export function statBonusBasis(input: BuildStatsInput): ComputedStats {
 
 /**
  * A build's totals, in order: the champion at `level` in `form`; its items, stat shards and
- * ability ranks; the active effects; the stat-dependent bonuses, reading the totals so far; then
- * the movement speed soft caps. Every "what if" is this call with one input changed.
+ * ability ranks; the active effects (those bound to a form only in it); the stat-dependent bonuses,
+ * reading the totals so far; the attack speed multipliers; then the movement speed soft caps.
+ * Every "what if" is this call with one input changed.
  */
 export function computeBuildStats(input: BuildStatsInput): ComputedStats {
 	return evaluateBuild(input).totals

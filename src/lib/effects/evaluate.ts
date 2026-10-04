@@ -1,6 +1,7 @@
 import type { Champion, RankStat } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import { type AdaptiveType, adaptiveForceStat } from "../stats/adaptive-force"
+import type { AttackSpeedMultipliers } from "../stats/attack-speed"
 import type { ComputedStats, ItemInput, StatName } from "../stats/compute-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { spellCooldown } from "../summoner-rune-interactions"
@@ -9,7 +10,6 @@ import { isOnByDefault, isSwitchable } from "./defaults"
 import type {
 	Amount,
 	BuildEffect,
-	CooldownBracket,
 	EffectOverrides,
 	Grant,
 	GrantStat,
@@ -32,19 +32,26 @@ export type EffectContext = {
 	adaptiveType?: AdaptiveType
 	/** The totals `stat` amounts read: the build's before the stat-dependent bonuses. */
 	totals?: ComputedStats
+	/** The champion's form id (its default's when it has forms); a form-bound effect holds only in its own. */
+	form?: string
 }
 
-/** A stat grant that reads another stat: `ratio` of its total. */
-export type StatBasis = { stat: StatName; ratio: number }
+/** A stat grant that reads another stat: `ratio` of its total, or of its bonus part. */
+export type StatBasis = { stat: StatName; ratio: number; part?: "bonus" }
 
 /** A grant's value at the build's state; damage has none until the combo timeline. */
 export type ResolvedGrant =
 	| { kind: "stat"; stat: StatKey; value: number; basis?: StatBasis }
+	| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; value: number }
 	| { kind: "shield"; value: number }
 	| { kind: "heal"; value: number }
 
-function bracketValue(brackets: readonly CooldownBracket[], cooldown: number) {
-	return brackets.findLast(({ from }) => cooldown >= from)?.value
+/** The value of the last bracket or step whose `from` the value reached. */
+function bracketValue(
+	brackets: readonly { from: number; value: number }[],
+	reached: number,
+) {
+	return brackets.findLast(({ from }) => reached >= from)?.value
 }
 
 function scaled(value: number | undefined, scale = 1) {
@@ -74,6 +81,8 @@ function resolveTableAmount(
 		}
 		case "summonerCooldown":
 			return spell && bracketValue(amount.brackets, spellCooldown(spell))
+		case "championLevel":
+			return bracketValue(amount.steps, level)
 	}
 }
 
@@ -87,10 +96,10 @@ export function resolveAmount(
 	switch (amount.by) {
 		case "stat": {
 			const ratio = resolveTableAmount(amount.ratio, effect, context)
-			const total = context.totals?.[amount.stat].total
-			return ratio === undefined || total === undefined
+			const read = context.totals?.[amount.stat][amount.part ?? "total"]
+			return ratio === undefined || read === undefined
 				? undefined
-				: total * ratio
+				: read * ratio
 		}
 		case "missingHealth": {
 			const max = resolveTableAmount(amount.max, effect, context)
@@ -117,7 +126,9 @@ function statBasis(
 ): StatBasis | undefined {
 	if (typeof amount === "number" || amount.by !== "stat") return undefined
 	const ratio = resolveTableAmount(amount.ratio, effect, context)
-	return ratio === undefined ? undefined : { stat: amount.stat, ratio }
+	if (ratio === undefined) return undefined
+	const { stat, part } = amount
+	return part ? { stat, ratio, part } : { stat, ratio }
 }
 
 /** The stat a grant's value goes to: Adaptive Force becomes AD or AP by the build's adaptive type. */
@@ -142,6 +153,12 @@ function resolveGrant(
 			const stat = grantStat(grant.stat, amount, context)
 			const basis = statBasis(grant.amount, effect, context)
 			return stat ? [{ kind: "stat", ...stat, ...(basis && { basis }) }] : []
+		}
+		case "attackSpeedMultiplier": {
+			const value = resolveAmount(grant.amount, effect, context)
+			return value === undefined
+				? []
+				: [{ kind: grant.kind, of: grant.of, value }]
 		}
 		case "shield":
 		case "heal": {
@@ -180,14 +197,22 @@ export function effectValue(effect: BuildEffect, context: EffectContext) {
 	)
 }
 
-/** The effects that are on, after each stacking group picked the ones that apply. */
+/** Whether the effect holds in the champion's form: one bound to a form holds only in it. */
+export function isInForm({ effect }: BuildEffect, form: string | undefined) {
+	return effect.form === undefined || effect.form === form
+}
+
+/** The effects that are on in the champion's form, after each stacking group picked the ones that apply. */
 export function stackEffects(
 	available: readonly BuildEffect[],
 	overrides: EffectOverrides,
 	context: EffectContext,
 ): StackingResult {
 	return resolveStacking(
-		available.filter((effect) => isEffectOn(effect, overrides)),
+		available.filter(
+			(effect) =>
+				isInForm(effect, context.form) && isEffectOn(effect, overrides),
+		),
 		(effect) => effectValue(effect, context),
 	)
 }
@@ -248,6 +273,25 @@ export function effectStatsInput(
 		}
 	}
 	return { stats }
+}
+
+/**
+ * The active effects' attack speed multipliers, summed by what they scale. They apply after the
+ * stat-dependent bonuses (evaluation step 5), so no bonus reads a multiplied attack speed.
+ */
+export function attackSpeedMultipliers(
+	active: readonly BuildEffect[],
+	context: EffectContext,
+): AttackSpeedMultipliers {
+	const multipliers = { bonus: 0, total: 0 }
+	for (const effect of active) {
+		for (const resolved of resolveGrants(effect, context)) {
+			if (resolved.kind === "attackSpeedMultiplier") {
+				multipliers[resolved.of] += resolved.value
+			}
+		}
+	}
+	return multipliers
 }
 
 function readsRankStat(effect: BuildEffect, rankStat: RankStat) {
