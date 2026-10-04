@@ -14,6 +14,8 @@ export default defineConfig({
 	reporter: isCI ? [["github"], ["html", { open: "never" }]] : "list",
 	// A full local run on a busy machine can take over 5 s to show a page after `goto` (issue 220).
 	expect: { timeout: 15_000 },
+	// A flow chains up to ~25 steps: on a busy machine the longer ones outlast 30 s with every step passing (PR body).
+	timeout: 60_000,
 	use: {
 		baseURL,
 		trace: "retain-on-failure",
