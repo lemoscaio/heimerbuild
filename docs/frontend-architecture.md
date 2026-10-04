@@ -137,13 +137,13 @@ Each rule about a value lives in one place:
 
 - **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`, `readSummoners`); the hook stays thin and is covered by the e2e flows.
 - **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
-- **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills, runes and summoner spells replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores).
+- **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills, runes and summoner spells replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores; the skills' ranks go to the champion state, which unlocks the forms that need a point).
 - **Pure stats.** `computeBuildStats({ champion, patch, level, form, items, shards, ranks, effects })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`), an effect turned on (`effects`; see [Effects](#effects)).
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
 - **Hints between domains** are page wiring too: the runes that react to the chosen summoner spells come from `lib/summoner-rune-interactions.ts` (typed rules, numbers read from the patch's runes), computed in `useBuildPage` and passed to the rune page (`summonerHints`) and the spell picker (`spellEffects`). Neither feature imports the other.
 - **Grouped by subject, not by mechanism.** A value effects read lives with what it describes: the current health with the champion state (one per build), the game time with the match state (one per match). The conditions keep only the effects turned on or off.
 - **Match state is shared.** One match holds the game time and later its other values (expected gold, dragons). When a second build instance arrives (an opponent, issue 69), both builds read the same match state; the time is never kept per build.
-- **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` (`available`) and into the stats (`effects: { available, overrides }`). It injects the condition values as plain values too: `useConditions` gets them in its `context` (level, current health, game time) only to show each row's value, and `computeBuildStats` gets `currentHealth` and `gameTime` as inputs. `useChampionState` and `useMatchState` never see the effects: the composer drops a condition value no effect uses when it saves. Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices and values stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step) and the build's adaptive type (`itemsAdaptiveType`, as the stat shards read it), so each row shows the bonus the stats add.
+- **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` (`available`) and into the stats (`effects: { available, overrides }`). It injects the condition values as plain values too: `useConditions` gets them in its `context` (level, current health, game time, the selected form) only to show each row's value, and `computeBuildStats` gets `currentHealth` and `gameTime` as inputs. `useChampionState` and `useMatchState` never see the effects: the composer drops a condition value no effect uses when it saves. Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices and values stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step) and the build's adaptive type (`itemsAdaptiveType`, as the stat shards read it), so each row shows the bonus the stats add.
 - **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
@@ -157,6 +157,7 @@ Shared links must keep opening the same build, so the link format has a version:
 - **`effects`** holds only the choices that differ from each effect's default, by effect id: `ghost` turns Ghost on, `-teemo-w-passive` turns Move Quick's passive off (`effects=ghost,-teemo-w-passive`, `serializeEffectOverrides` in `lib/effects/effect-overrides.ts`). No choice means no param. A choice for an effect the build no longer has (Ghost swapped for Flash) is dropped on the next edit. It came as a new optional param of v1 (no bump).
 - **`hp`** is the current health in percent of maximum health, 1 to 100 (`hp=40`), which health-dependent effects read (Tryndamere's Bloodlust). Full health means no param, and it is dropped on the next edit when no effect of the build reads it, like an `effects` choice. It came as a new optional param of v1 (no bump).
 - **`min`** is the game time in whole minutes, 0 to 120 (`min=30`), which time-dependent effects read (Gathering Storm). The game's start (0) means no param, and it is dropped on the next edit when no effect of the build reads it, like `hp`. 120 only guards typos. It came as a new optional param of v1 (no bump).
+- **`form`** is the selected form's id (`form=mega`); the default form means no param. An id the champion lacks, or a form whose ability rank is missing (`form=dragon` before Shyvana learns R), opens in the default form and is dropped on the next edit. New forms (`dragon`, `rockets`, `true-form`) are new accepted values of v1 (no bump).
 - **`skills`** holds one letter per level (`Q`, `W`, `E`, `R`), level 1 first, with `_` (`UNSPENT_LEVEL_MARK`, `lib/skill-order-param.ts`) for a level whose point is unspent: `Q_Q` is Q at levels 1 and 3. Levels after the last letter are unspent, so trailing `_` are never written. The `_` came as a new accepted value of v1 (no bump): older links never contain it and read as before.
 
 ## Effects
@@ -176,17 +177,19 @@ lib/effects/
 └── registries/             one registry per source: ability, summoner, rune, item effects; VERIFIED_ON
 ```
 
-- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It holds for a patch range (`since`, optional `until`). It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group and a `part` (`passive` or `active`, the row label in its ability's card), and it always has a `sourceUrl`.
+- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `attackSpeedMultiplier`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It holds for a patch range (`since`, optional `until`). It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group, a `part` (`passive` or `active`, the row label in its ability's card), a `form` (it holds only in that form; see [Forms](#forms)) and a `label` (its row's name when neither the part nor the form says it: "Rev'd up"), and it always has a `sourceUrl`.
 - **Amounts** are a number or a table read at the build's state:
   - `level`: the summoner spell's synced value by champion level;
   - `rank`: the ability's synced rank stat by its rank, with a `scale`;
   - `rankValue`: the ability's synced tooltip line by its label and rank, with a `scale` (Malphite's W "Armor", 10 to 30 %);
-  - `summonerCooldown`: brackets of the spell's cooldown.
+  - `summonerCooldown`: brackets of the spell's cooldown;
+  - `championLevel`: steps by champion level, each from its `from` level on (Jayce's Hammer Stance: 5, 12, 19, 26 from levels 1, 6, 11, 16).
 
   Two kinds read the build beyond the tables:
-  - `stat`: a `ratio` (a number or a table) of another stat's total, read before the stat-dependent bonuses (evaluation step 4): Malphite's W is `{ by: "stat", stat: "armor", ratio: <"Armor" line> }`;
+  - `stat`: a `ratio` (a number or a table) of another stat's total, read before the stat-dependent bonuses (evaluation step 4): Malphite's W is `{ by: "stat", stat: "armor", ratio: <"Armor" line> }`. With `part: "bonus"` it reads only the stat's bonus (Jayce's 7.5% bonus AD, Bel'Veth's 150% bonus AD);
   - `missingHealth`: grows from 0 at full health to `max` at `fullAt` percent missing health, read from the current health condition (Tryndamere's Q: 80 bonus AD at 90% missing);
   - `gameTime`: grows once per full `every` minutes of the game time condition. `triangular` growth adds one more `step` each time, `step` × n(n+1)/2 after n steps, with no cap (Gathering Storm: 8, 24, 48, 80 at 10, 20, 30, 40 min).
+- **Attack speed multipliers:** an `attackSpeedMultiplier` grant scales the attack speed instead of adding to it, `of: "bonus"` its bonus part (Jinx's Rockets keep 90%: `-0.1`) or `of: "total"` the whole (Bel'Veth's True Form: +6 to 20%). They apply in their own step, after every bonus.
 - **Adaptive Force:** a `stat` grant may give `adaptiveForce` instead of a stat. It becomes ability power or 0.6 attack damage per point by the build's adaptive type, read like the stat shards (`itemsAdaptiveType`: the items' bonus AP against bonus AD, the champion's `adaptiveType` on a tie).
 
   Numbers come from the synced data whenever it has them. A hand-written number (Nimbus Cloak's brackets, spellblade ratios) cites its page in `sourceUrl` and has a test against it.
@@ -217,12 +220,13 @@ lib/effects/
 
 `computeBuildStats` applies, in order:
 
-1. the champion's base stats at its level and form;
+1. the champion's base stats at its level and form (a form missing its required rank is the default);
 2. items, stat shards and rank stats;
-3. the active effects' stats, as one more stat source (they add to the item bonuses);
+3. the active effects' stats, as one more stat source (they add to the item bonuses); an effect bound to a form is active only in it;
 4. stat-dependent bonuses: the active effects' `stat` amounts, all reading the totals of steps 1 to 3, so no bonus feeds another or itself (Malphite's 30% of armor adds 30% once);
-5. the movement speed soft caps (`lib/stats/movement-speed.ts`; wiki "Movement speed");
-6. the outputs: shields and heals, from `resolveGrants` per effect. The Effects list shows them on each row, on or off.
+5. attack speed multipliers (`attackSpeedMultipliers`, `multiplyAttackSpeed` in `lib/stats/attack-speed.ts`): the bonus ones scale the bonus part, then the total ones the whole. No stat-dependent bonus reads a multiplied attack speed;
+6. the movement speed soft caps (`lib/stats/movement-speed.ts`; wiki "Movement speed");
+7. the outputs: shields and heals, from `resolveGrants` per effect. The Effects list shows them on each row, on or off.
 
 ### Adding an effect
 
@@ -231,13 +235,29 @@ lib/effects/
    - a per-rank number the tooltip shows: `rankValue` with the line's label (`scale: 0.01` for a percent line);
    - a bonus that is a share of another stat: `stat` with that stat and the `ratio` (a number, or a `rankValue` per rank). It applies in step 4, after the other effects;
    - a value that follows the current health: `missingHealth`. Its row gets the health input by itself;
-   - a value that grows with the game time: `gameTime`. Its row gets the game time input and the next step by itself.
+   - a value that grows with the game time: `gameTime`. Its row gets the game time input and the next step by itself;
+   - a value that steps up with the champion level: `championLevel` with its `steps`;
+   - a share of a stat's bonus only: `stat` with `part: "bonus"`;
+   - a multiplier of the attack speed: an `attackSpeedMultiplier` grant, `of: "bonus"` or `of: "total"`.
+
+   A bonus that holds only in one form gets `form` with the form's id: it applies, and its row shows, only while the champion is in that form (see [Forms](#forms)).
 
    An always-on passive gets the `always` trigger: an informational row without a switch. A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins the state of its subject (`ChampionStateValue` for the champion, `MatchStateValue` for the match), the link (a new optional param) and the recent builds, like `currentHealth`.
 3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.
 4. When a later patch changes it, never edit the entry in place: give the old one an `until` (the last patch it held) and add a new entry with the same `id` and the new `since`. Ranges of one id must not overlap (a registry test checks it). The same goes for the soft caps, a new version in `MOVEMENT_SPEED_SOFT_CAPS`. Checking at sync time whether a rule is stale is a separate issue.
 5. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank). An amount read from a tooltip line is tested against the current patch's data (`public/data`), so a sync that renames or changes the line fails the tests.
 6. Nothing else: the Effects list, the link and the stats pick it up.
+
+### Forms
+
+A champion's forms (Mini and Mega Gnar, Shyvana's Dragon, Jinx's Rockets) are a hybrid of data and effects:
+
+- **The form keeps its fixed part**, curated in `scripts/sync-data/overrides/champion-forms.ts` (README, Data overrides): attack type, the growth stats it replaces, its level states. `formStats` applies it in evaluation step 1.
+- **What varies is an effect bound to the form**, in the effects registry: a bonus by ability rank (Shyvana's Dragon health), by champion level (Jayce's Hammer resistances) or by another stat (Bel'Veth's 150% bonus AD as health) is an effect with `form: "<form id>"`. `computeBuildStats` puts the selected form in the effects' context, and `activeEffects` keeps a form-bound effect only in its form, so `whatIf({ form })` and the form's delta chips include it with no form code. Its row in the Effects list shows only while the form is selected, under the form's name; an `always` one is an informational row ("While in this form").
+- **A form may need an ability point:** `requires: { slot, minRank }`. Until the skills reach it, `selectedForm` falls back to the default form (stats, champion state and link), the toggle keeps the form visible but disabled with the reason (`formLocks`: "Learn R to unlock Dragon"), and the form is not compared. While the ranks load, nothing is locked.
+- **Dependencies are injected:** the composer passes the skills' ranks to `useChampionState` and the selected form to `useConditions`; no feature imports another.
+
+**Adding a form:** a `defineForms` entry (its `id` is the link value; the first form is the default, with only names), `requires` when it needs a point, then one registry entry per varying bonus with `form` set, its numbers from the synced tooltip lines where they exist (`rankValue`) or the wiki (`sourceUrl`), tested at a few ranks and levels against the current patch data (`ability-effects.test.ts`). A registry test checks that every form-bound effect names a form its champion has.
 
 ### Stage 2: the combo timeline (design)
 

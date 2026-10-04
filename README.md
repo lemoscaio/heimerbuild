@@ -146,7 +146,7 @@ levelStates: [
 
 The stats engine applies every state the selected level has reached, in order, each one replacing only the fields it sets. A stat with `growth: "linear"` adds `perLevel` once per level instead of following the champion growth curve.
 
-Forms the player switches between (Mini and Mega Gnar, Human and Cougar Nidalee) go in `champion-forms.ts` with `defineForms`, the same way, and the sync writes them to the champion's `forms`. The first form is the default: Riot's data, so it has only an `id` and a `name`. Every other form may set `attackType`, any growth stats it replaces, and its own `levelStates`, which replace the champion's (Mega Gnar has none, so he keeps 175 range):
+Forms the player switches between (Mini and Mega Gnar, Human and Cougar Nidalee) go in `champion-forms.ts` with `defineForms`, the same way, and the sync writes them to the champion's `forms`. The first form is the default: Riot's data, so it has only an `id`, a `name` and an optional `gameName` (Jinx's Minigun is "Pow-Pow" in game, shown in a tooltip). Every other form may set `attackType`, any growth stats it replaces, its own `levelStates`, which replace the champion's (Mega Gnar has none, so he keeps 175 range), and `requires: { slot, minRank }` when it needs an ability point (Shyvana's Dragon needs R):
 
 ```ts
 forms: [
@@ -155,7 +155,7 @@ forms: [
 ]
 ```
 
-The stats engine applies the selected form first, then the level states. The form `id` is what the share link carries (`?form=mega`).
+The stats engine applies the selected form first, then the level states. The form `id` is what the share link carries (`?form=mega`); a form whose ability rank is missing falls back to the default. A form keeps only its fixed part here: a bonus that depends on an ability rank, the champion level or another stat is an effect bound to the form (`docs/frontend-architecture.md`, Forms).
 
 Skill points follow the game's default rules (one point per level, a basic ability's rank n at level 2n - 1, R at 6/11/16, max ranks from Data Dragon). Champions that differ (Elise starts with an R rank, Udyr's R ranks like a basic ability, Azir's first point is W, Shen's W needs Q first, Aphelios's points raise stats) go in `champion-skill-rules.ts` with `defineSkillRules`, the same way, and the sync writes them to the champion's `skillRules`:
 
