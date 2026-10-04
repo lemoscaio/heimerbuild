@@ -162,8 +162,8 @@ function EffectRow({
 						{reason}
 					</span>
 				)}
-				{condition.readsCurrentHealth && healthInput}
-				{condition.readsGameTime && gameTimeInput}
+				{condition.usesCurrentHealth && healthInput}
+				{condition.usesGameTime && gameTimeInput}
 			</div>
 			{isSwitchable && (
 				<Switch

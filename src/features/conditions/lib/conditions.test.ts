@@ -111,7 +111,7 @@ describe("conditionList, game time", () => {
 			{ level: 1, gameTime: 25, adaptiveType: "ap" },
 		)
 
-		expect(storm?.readsGameTime).toBe(true)
+		expect(storm?.usesGameTime).toBe(true)
 		expect(storm?.grants).toEqual([
 			{ kind: "stat", stat: "abilityPower", value: 24 },
 		])
@@ -153,8 +153,8 @@ describe("conditionList", () => {
 				effect: passive,
 				isOn: true,
 				isSwitchable: true,
-				readsCurrentHealth: false,
-				readsGameTime: false,
+				usesCurrentHealth: false,
+				usesGameTime: false,
 				grants: [{ kind: "stat", stat: "movementSpeedPercent", value: 0.16 }],
 				duration: undefined,
 				next: undefined,
@@ -163,8 +163,8 @@ describe("conditionList", () => {
 				effect: barrier,
 				isOn: true,
 				isSwitchable: true,
-				readsCurrentHealth: false,
-				readsGameTime: false,
+				usesCurrentHealth: false,
+				usesGameTime: false,
 				grants: [{ kind: "shield", value: 280 }],
 				duration: 2.5,
 				next: undefined,
@@ -186,7 +186,7 @@ describe("conditionList", () => {
 		expect(row).toMatchObject({
 			isOn: true,
 			isSwitchable: false,
-			readsCurrentHealth: true,
+			usesCurrentHealth: true,
 		})
 		expect(row?.grants[0]?.value).toBeCloseTo(40)
 	})

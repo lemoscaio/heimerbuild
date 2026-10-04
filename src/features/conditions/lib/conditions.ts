@@ -1,4 +1,4 @@
-import { readsCurrentHealth } from "@/lib/effects/current-health"
+import { usesCurrentHealth } from "@/lib/effects/current-health"
 import { isOnByDefault, isSwitchable } from "@/lib/effects/defaults"
 import type { BuildEffect, EffectOverrides } from "@/lib/effects/effect"
 import {
@@ -12,7 +12,7 @@ import {
 import {
 	GAME_START,
 	nextGameTimeStep,
-	readsGameTime,
+	usesGameTime,
 } from "@/lib/effects/game-time"
 
 /** One effect of the build with its switch and what it gives at the build's level and ranks. */
@@ -22,9 +22,9 @@ export type Condition = {
 	/** An always-on effect informs, with no switch. */
 	isSwitchable: boolean
 	/** Its value follows the current health, so its row carries the health input. */
-	readsCurrentHealth: boolean
+	usesCurrentHealth: boolean
 	/** Its value follows the game time, so its row carries the game time input. */
-	readsGameTime: boolean
+	usesGameTime: boolean
 	grants: readonly ResolvedGrant[]
 	/** What it grants from the next game time step on, for an effect that grows with the game time. */
 	next?: { gameTime: number; grants: readonly ResolvedGrant[] }
@@ -90,8 +90,8 @@ export function conditionList(
 		effect,
 		isOn: isEffectOn(effect, value),
 		isSwitchable: isSwitchable(effect.effect),
-		readsCurrentHealth: readsCurrentHealth(effect.effect),
-		readsGameTime: readsGameTime(effect.effect),
+		usesCurrentHealth: usesCurrentHealth(effect.effect),
+		usesGameTime: usesGameTime(effect.effect),
 		grants: resolveGrants(effect, context),
 		next: nextStep(effect, context),
 		duration: effectDuration(effect, context),

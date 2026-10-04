@@ -1,5 +1,5 @@
 import type { BuildEffect } from "@/lib/effects/effect"
-import { GAME_START, readsGameTime } from "@/lib/effects/game-time"
+import { GAME_START, usesGameTime } from "@/lib/effects/game-time"
 
 /** The match's state, one per match and shared by every build in it: the game time. */
 export type MatchStateValue = {
@@ -14,7 +14,7 @@ export function readGameTime(
 ): number | undefined {
 	if (gameTime === GAME_START) return undefined
 	if (!effects) return gameTime
-	return effects.some(({ effect }) => readsGameTime(effect))
+	return effects.some(({ effect }) => usesGameTime(effect))
 		? gameTime
 		: undefined
 }

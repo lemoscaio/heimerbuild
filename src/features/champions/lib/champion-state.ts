@@ -1,5 +1,5 @@
 import type { Champion } from "@schemas/champion"
-import { FULL_HEALTH, readsCurrentHealth } from "@/lib/effects/current-health"
+import { FULL_HEALTH, usesCurrentHealth } from "@/lib/effects/current-health"
 import type { BuildEffect } from "@/lib/effects/effect"
 import { formChanges, selectedForm } from "@/lib/stats/champion-forms"
 
@@ -36,7 +36,7 @@ export function readCurrentHealth(
 ): number | undefined {
 	if (currentHealth === FULL_HEALTH) return undefined
 	if (!effects) return currentHealth
-	return effects.some(({ effect }) => readsCurrentHealth(effect))
+	return effects.some(({ effect }) => usesCurrentHealth(effect))
 		? currentHealth
 		: undefined
 }

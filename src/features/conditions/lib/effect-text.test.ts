@@ -26,8 +26,8 @@ function condition(
 		effect: { id: "test", effect, name: "Test", icon: "", spell: fields.spell },
 		isOn: false,
 		isSwitchable: true,
-		readsCurrentHealth: false,
-		readsGameTime: false,
+		usesCurrentHealth: false,
+		usesGameTime: false,
 		grants: [],
 		duration: fields.duration,
 	}
@@ -128,8 +128,8 @@ describe("partLabel and stackedOutText", () => {
 			effect: bind(effect),
 			isOn: true,
 			isSwitchable: true,
-			readsCurrentHealth: false,
-			readsGameTime: false,
+			usesCurrentHealth: false,
+			usesGameTime: false,
 			grants: [],
 			stackedOutBy: stackedOutBy && bind(stackedOutBy),
 		}
