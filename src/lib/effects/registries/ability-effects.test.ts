@@ -11,7 +11,7 @@ import { computeBuildStats } from "../../stats/compute-build-stats"
 import type { ComputedStats, StatName } from "../../stats/compute-stats"
 import { softCapMovementSpeed } from "../../stats/movement-speed"
 import { availableEffects } from "../available-effects"
-import { type EffectContext, resolveGrants } from "../evaluate"
+import { type EffectContext, effectDuration, resolveGrants } from "../evaluate"
 import { ABILITY_EFFECTS } from "./ability-effects"
 
 const PATCH = "16.19.1"
@@ -497,6 +497,210 @@ describe("Bel'Veth's True Form (synced R lines, wiki ratios)", () => {
 				),
 			),
 		).toEqual([1.06, 1.13, 1.2])
+	})
+})
+
+/** An effect of `champion` with only `slot` ranked, at each of `ranks`: its rounded grant values and duration. */
+function atRanks(
+	champion: Champion,
+	{ id, slot, ranks }: { id: string; slot: AbilitySlot; ranks: number[] },
+	context: Pick<EffectContext, "totals"> = {},
+) {
+	return ranks.map((rank) => {
+		const effect = effectsOf(champion, slot, rank).find(
+			(entry) => entry.id === id,
+		)
+		if (!effect) throw new Error(`${id} is not available at rank ${rank}`)
+		const at = {
+			level: 18,
+			ranks: ranksWith(slot, rank),
+			...context,
+		}
+		return {
+			values: resolveGrants(effect, at).map(({ value }) => rounded(value)),
+			duration: effectDuration(effect, at),
+		}
+	})
+}
+
+const SIX_RANKS = [1, 2, 3, 4, 5, 6]
+const ULTIMATE_RANKS = [1, 2, 3]
+/** 100 bonus AD, 100 AP and 1000 health, which the ratios read. */
+const RATIO_TOTALS = {
+	...totalsWith({ abilityPower: 100, health: 1000 }),
+	attackDamage: { base: 60, bonus: 100, total: 160 },
+}
+
+describe("Udyr's stances (synced lines, wiki ratios)", () => {
+	test("Wilding Claw: 20 / 32 / 44 / 56 / 68 / 80% attack speed for 4 s", async () => {
+		const udyr = await currentChampion("Udyr")
+
+		expect(
+			atRanks(udyr, { id: "udyr-q-active", slot: "Q", ranks: SIX_RANKS }),
+		).toEqual(
+			[0.2, 0.32, 0.44, 0.56, 0.68, 0.8].map((value) => ({
+				values: [value],
+				duration: 4,
+			})),
+		)
+	})
+
+	test("Iron Mantle: a 45 to 145 shield (+50% bonus AD, 40% AP, 2 to 3.5% max health) and 15 to 20% life steal", async () => {
+		const udyr = await currentChampion("Udyr")
+		const ranks = atRanks(
+			udyr,
+			{ id: "udyr-w-active", slot: "W", ranks: SIX_RANKS },
+			{ totals: RATIO_TOTALS },
+		)
+
+		expect(ranks.map(({ values }) => values)).toEqual([
+			[45, 50, 40, 20, 0.15],
+			[65, 50, 40, 23, 0.16],
+			[85, 50, 40, 26, 0.17],
+			[105, 50, 40, 29, 0.18],
+			[125, 50, 40, 32, 0.19],
+			[145, 50, 40, 35, 0.2],
+		])
+		expect(ranks.every(({ duration }) => duration === 4)).toBe(true)
+	})
+
+	test("Blazing Stampede: 25 to 55% movement speed, plus 5% per 100 bonus AD", async () => {
+		const udyr = await currentChampion("Udyr")
+
+		expect(
+			atRanks(
+				udyr,
+				{ id: "udyr-e-active", slot: "E", ranks: SIX_RANKS },
+				{ totals: RATIO_TOTALS },
+			).map(({ values }) => values),
+		).toEqual(
+			[0.25, 0.31, 0.37, 0.43, 0.49, 0.55].map((value) => [value, 0.05]),
+		)
+	})
+
+	test("are off by default; on, the stance buffs add up", async () => {
+		const udyr = await currentChampion("Udyr")
+		const ranks = { Q: 1, W: 1, E: 1, R: 0 }
+		const stats = (overrides: Record<string, boolean> = {}) =>
+			formTotals(udyr, { level: 3, ranks, overrides })
+		const base = computeBuildStats({
+			champion: udyr,
+			patch: PATCH,
+			level: 3,
+			items: [],
+			shards: [],
+			ranks,
+		})
+		const both = stats({ "udyr-q-active": true, "udyr-e-active": true })
+
+		expect(stats()).toEqual(base)
+		expect(both.attackSpeed.bonus).toBeCloseTo(
+			base.attackSpeed.bonus + 0.2 * 0.65,
+		)
+		expect(both.movementSpeed.total).toBeCloseTo(
+			softCapMovementSpeed(350 * 1.25, PATCH),
+		)
+	})
+})
+
+describe("Viego's Harrowed Path (synced E lines, wiki)", () => {
+	test("in the mist: 30 to 50% attack speed and 25 to 35% movement speed (+4% per 100 AP) for 8 s", async () => {
+		const viego = await currentChampion("Viego")
+
+		expect(
+			atRanks(
+				viego,
+				{ id: "viego-e-active", slot: "E", ranks: [1, 2, 3, 4, 5] },
+				{ totals: RATIO_TOTALS },
+			),
+		).toEqual([
+			{ values: [0.3, 0.25, 0.04], duration: 8 },
+			{ values: [0.35, 0.275, 0.04], duration: 8 },
+			{ values: [0.4, 0.3, 0.04], duration: 8 },
+			{ values: [0.45, 0.325, 0.04], duration: 8 },
+			{ values: [0.5, 0.35, 0.04], duration: 8 },
+		])
+	})
+})
+
+describe("Rengar's Thrill of the Hunt (synced R lines)", () => {
+	test("40 / 50 / 60% movement speed for 12 / 16 / 20 s", async () => {
+		const rengar = await currentChampion("Rengar")
+
+		expect(
+			atRanks(rengar, {
+				id: "rengar-r-active",
+				slot: "R",
+				ranks: ULTIMATE_RANKS,
+			}),
+		).toEqual([
+			{ values: [0.4], duration: 12 },
+			{ values: [0.5], duration: 16 },
+			{ values: [0.6], duration: 20 },
+		])
+	})
+})
+
+describe("Mini Gnar's Hop and Hyper (synced lines, wiki)", () => {
+	const ranks = (R: number) => ({ Q: 1, W: 1, E: 1, R })
+	const speed = (
+		gnar: Champion,
+		R: number,
+		overrides: Record<string, boolean>,
+	) =>
+		formTotals(gnar, { level: 11, ranks: ranks(R), overrides }).movementSpeed
+			.total
+
+	test("Hop: 40 to 60% attack speed for 6 s", async () => {
+		const gnar = await currentChampion("Gnar")
+
+		expect(
+			atRanks(gnar, { id: "gnar-e-active", slot: "E", ranks: [1, 2, 3, 4, 5] }),
+		).toEqual(
+			[0.4, 0.45, 0.5, 0.55, 0.6].map((value) => ({
+				values: [value],
+				duration: 6,
+			})),
+		)
+	})
+
+	test("Hop's attack speed holds only as Mini Gnar", async () => {
+		const gnar = await currentChampion("Gnar")
+		const hop = { "gnar-e-active": true }
+		const attackSpeed = (form: string | undefined, overrides = {}) =>
+			formTotals(gnar, { form, level: 11, ranks: ranks(1), overrides })
+				.attackSpeed.total
+
+		expect(attackSpeed(undefined, hop)).toBeGreaterThan(attackSpeed(undefined))
+		expect(attackSpeed("mega", hop)).toBe(attackSpeed("mega"))
+	})
+
+	test("Hyper: 20% movement speed after 3 hits at R 0, GNAR!'s 40 / 60 / 80% at R 1 / 2 / 3, off by default", async () => {
+		const gnar = await currentChampion("Gnar")
+		const hyper = { "gnar-w-hyper": true }
+		const expected = (bonus: number) =>
+			softCapMovementSpeed(335 * (1 + bonus), PATCH)
+
+		expect(speed(gnar, 0, {})).toBe(335)
+		expect([0, 1, 2, 3].map((R) => rounded(speed(gnar, R, hyper)))).toEqual(
+			[0.2, 0.4, 0.6, 0.8].map((bonus) => rounded(expected(bonus))),
+		)
+	})
+
+	test("Hyper is one effect, in W, that names GNAR! as its boost", async () => {
+		const gnar = await currentChampion("Gnar")
+		const effects = availableEffects({
+			patch: PATCH,
+			champion: gnar,
+			ranks: ranks(2),
+			spells: [],
+			runes: [],
+		})
+		const hyper = effects.find(({ id }) => id === "gnar-w-hyper")
+
+		expect(effects.filter(({ slot }) => slot === "R")).toEqual([])
+		expect(hyper?.slot).toBe("W")
+		expect(hyper?.boosts?.R?.name).toBe("GNAR!")
 	})
 })
 

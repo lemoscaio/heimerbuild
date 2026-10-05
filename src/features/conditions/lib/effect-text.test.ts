@@ -120,6 +120,40 @@ describe("valuesText", () => {
 			}),
 		).toBe("+24 Ability Power (next: +48 Ability Power at 30 min)")
 	})
+
+	test("names the ability with a point that boosts the value", () => {
+		const row = condition({ kind: "on-hit" })
+		const speed = {
+			kind: "stat",
+			stat: "movementSpeedPercent",
+			value: 0.6,
+		} as const
+
+		expect(
+			valuesText({
+				...row,
+				grants: [speed],
+				boostedBy: [{ name: "GNAR!", slot: "R", rank: 2 }],
+			}),
+		).toBe("+60% Move Speed · boosted by GNAR! (R2)")
+	})
+
+	test("adds an effect's shield parts up to one shield", () => {
+		const row = condition({ kind: "after-use" })
+		const shield = (value: number) => ({ kind: "shield", value }) as const
+		const lifeSteal = {
+			kind: "stat",
+			stat: "lifeStealPercent",
+			value: 0.2,
+		} as const
+
+		expect(
+			valuesText({
+				...row,
+				grants: [shield(145), shield(20), shield(70.4), lifeSteal],
+			}),
+		).toBe("235 shield · +20% Life Steal")
+	})
 })
 
 describe("partLabel and stackedOutText", () => {

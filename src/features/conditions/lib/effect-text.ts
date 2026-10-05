@@ -88,14 +88,37 @@ export function grantText(grant: ResolvedGrant): string {
 	}
 }
 
-function grantsText(grants: readonly ResolvedGrant[]) {
-	return grants.map(grantText).join(" · ")
+/** An effect's shield parts (Iron Mantle's base and ratios) add up to one shield; heals alike. */
+function totalOutputs(grants: readonly ResolvedGrant[]): ResolvedGrant[] {
+	const merged: ResolvedGrant[] = []
+	for (const grant of grants) {
+		const isOutput = grant.kind === "shield" || grant.kind === "heal"
+		const total = isOutput && merged.find(({ kind }) => kind === grant.kind)
+		if (total) total.value += grant.value
+		else merged.push({ ...grant })
+	}
+	return merged
 }
 
-/** What the row's effect gives, and from when it grows: "+24 Ability Power (next: +48 Ability Power at 30 min)". */
-export function valuesText({ grants, next }: Condition): string {
+function grantsText(grants: readonly ResolvedGrant[]) {
+	return totalOutputs(grants).map(grantText).join(" · ")
+}
+
+/**
+ * What the row's effect gives, from when it grows and what raises it: "+24 Ability Power (next: +48
+ * Ability Power at 30 min)", "+60% Move Speed · boosted by GNAR! (R2)".
+ */
+export function valuesText({
+	grants,
+	next,
+	boostedBy = [],
+}: Condition): string {
 	const now = grantsText(grants)
-	return next
+	const value = next
 		? `${now} (next: ${grantsText(next.grants)} at ${next.gameTime} min)`
 		: now
+	const boosts = boostedBy.map(
+		({ name, slot, rank }) => `boosted by ${name} (${slot}${rank})`,
+	)
+	return [value, ...boosts].join(" · ")
 }

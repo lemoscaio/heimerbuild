@@ -167,6 +167,7 @@ Conditional effects (an ability's passive that holds only while not hit, a summo
 ```
 lib/effects/
 ├── effect.ts               Effect, Grant, Trigger, Amount, BuildEffect, EffectOverrides
+├── boosts.ts               boostSlots and effectBoosts: the other abilities a `rankValue` with a `slot` reads
 ├── defaults.ts             isOnByDefault and isSwitchable: lookups on the trigger kind
 ├── current-health.ts       the current health condition: its range, usesCurrentHealth
 ├── game-time.ts            the game time condition: its range, usesGameTime, nextGameTimeStep
@@ -181,7 +182,7 @@ lib/effects/
 - **Amounts** are a number or a table read at the build's state:
   - `level`: the summoner spell's synced value by champion level;
   - `rank`: the ability's synced rank stat by its rank, with a `scale`;
-  - `rankValue`: the ability's synced tooltip line by its label and rank, with a `scale` (Malphite's W "Armor", 10 to 30 %);
+  - `rankValue`: the ability's synced tooltip line by its label and rank, with a `scale` (Malphite's W "Armor", 10 to 30 %). With a `slot`, another ability's line at that ability's rank, and `unranked` while it has no point (Mini Gnar's Hyper: 20%, then GNAR!'s "Hyper Move Speed", 40 / 60 / 80% by R rank). The row names the boost ("+60% Move Speed · boosted by GNAR! (R2)", `effectBoosts` in `boosts.ts`);
   - `summonerCooldown`: brackets of the spell's cooldown;
   - `championLevel`: steps by champion level, each from its `from` level on (Jayce's Hammer Stance: 5, 12, 19, 26 from levels 1, 6, 11, 16).
 
@@ -233,6 +234,7 @@ lib/effects/
 1. Find its numbers in the synced data (`summoner-spells.json` values, a champion's `rankStats`), or on the wiki or CommunityDragon when the data lacks them.
 2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default, its `sourceUrl` and `since`: the patch you checked the numbers on (`VERIFIED_ON` for the stage-1 effects). Pick its amount:
    - a per-rank number the tooltip shows: `rankValue` with the line's label (`scale: 0.01` for a percent line);
+   - a basic ability's bonus that its ultimate (or any other ability) upgrades by rank: one effect in the basic ability's slot, with `rankValue` naming the upgrading `slot` and its `unranked` value (Hyper reads GNAR!'s line). Reusable for any such pair, never two rows;
    - a bonus that is a share of another stat: `stat` with that stat and the `ratio` (a number, or a `rankValue` per rank). It applies in step 4, after the other effects;
    - a value that follows the current health: `missingHealth`. Its row gets the health input by itself;
    - a value that grows with the game time: `gameTime`. Its row gets the game time input and the next step by itself;
@@ -241,6 +243,8 @@ lib/effects/
    - a multiplier of the attack speed: an `attackSpeedMultiplier` grant, `of: "bonus"` or `of: "total"`.
 
    A bonus that holds only in one form gets `form` with the form's id: it applies, and its row shows, only while the champion is in that form (see [Forms](#forms)).
+
+   An ability's buff after casting it (Udyr's stances, Viego's E, Rengar's R) gets the `after-use` trigger and its `duration`: a switch, off by default. One that procs after hits gets `on-hit` with its `stacks` (Mini Gnar's Hyper after 3 hits). A shield made of parts (a base plus ratios, Udyr's Iron Mantle) is one `shield` grant per part; its row shows their sum.
 
    An always-on passive gets the `always` trigger: an informational row without a switch. A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins the state of its subject (`ChampionStateValue` for the champion, `MatchStateValue` for the match), the link (a new optional param) and the recent builds, like `currentHealth`.
 3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.

@@ -1,4 +1,4 @@
-import type { Amount, Effect } from "../effect"
+import type { Amount, Effect, RankValueAmount } from "../effect"
 import { VERIFIED_ON } from "./verified-on"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
@@ -11,7 +11,7 @@ const MOVE_QUICK_SPEED: Amount = {
 }
 
 /** A percent tooltip line of the ability, as a fraction: "Armor" 10 to 30 (%) is 0.1 to 0.3. */
-function percentLine(label: string): Amount & { by: "rankValue" } {
+function percentLine(label: string): RankValueAmount {
 	return { by: "rankValue", label, scale: 0.01 }
 }
 
@@ -272,5 +272,164 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Bel%27Veth/Endless_Banquet`,
+	},
+	// Udyr's stance buffs add up: "Switching Stances will not cause any additional effects granted by
+	// the previous one to end prematurely" (wiki, Udyr). Awaken's level-scaled extras are left out.
+	{
+		id: "udyr-q-active",
+		source: { kind: "ability", championKey: "Udyr", slot: "Q" },
+		trigger: { kind: "after-use" },
+		duration: 4,
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				amount: percentLine("Attack Speed"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Udyr/Wilding_Claw`,
+	},
+	{
+		// The life steal holds for the next two attacks; the shield ratios are the wiki's.
+		id: "udyr-w-active",
+		source: { kind: "ability", championKey: "Udyr", slot: "W" },
+		trigger: { kind: "after-use" },
+		duration: 4,
+		grants: [
+			{ kind: "shield", amount: { by: "rankValue", label: "Shield Amount" } },
+			{
+				kind: "shield",
+				amount: { by: "stat", stat: "attackDamage", part: "bonus", ratio: 0.5 },
+			},
+			{
+				kind: "shield",
+				amount: { by: "stat", stat: "abilityPower", ratio: 0.4 },
+			},
+			{
+				kind: "shield",
+				amount: {
+					by: "stat",
+					stat: "health",
+					ratio: percentLine("% Health Shield"),
+				},
+			},
+			{
+				kind: "stat",
+				stat: "lifeStealPercent",
+				amount: percentLine("Life Steal"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Udyr/Iron_Mantle`,
+	},
+	{
+		// Its peak: the speed decays to 30% over the last 1.5 s.
+		id: "udyr-e-active",
+		source: { kind: "ability", championKey: "Udyr", slot: "E" },
+		trigger: { kind: "after-use" },
+		duration: 4,
+		grants: [
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				amount: percentLine("Move Speed"),
+			},
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				// 5% per 100 bonus AD.
+				amount: {
+					by: "stat",
+					stat: "attackDamage",
+					part: "bonus",
+					ratio: 0.0005,
+				},
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Udyr/Blazing_Stampede`,
+	},
+	{
+		// While in the mist, 8 s; attacking or casting drops the speed (and camouflage) for 1 s.
+		id: "viego-e-active",
+		source: { kind: "ability", championKey: "Viego", slot: "E" },
+		trigger: { kind: "after-use" },
+		duration: 8,
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				amount: percentLine("Attack Speed"),
+			},
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				amount: percentLine("Move Speed"),
+			},
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				// 4% per 100 AP.
+				amount: { by: "stat", stat: "abilityPower", ratio: 0.0004 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Viego/Harrowed_Path`,
+	},
+	{
+		// Attacking or casting anything but Savagery ends it (wiki).
+		id: "rengar-r-active",
+		source: { kind: "ability", championKey: "Rengar", slot: "R" },
+		trigger: { kind: "after-use" },
+		duration: { by: "rankValue", label: "Duration" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				amount: percentLine("Move Speed"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Rengar/Thrill_of_the_Hunt`,
+	},
+	{
+		// No bonus when Hop transforms Gnar (wiki), so only as Mini Gnar.
+		id: "gnar-e-active",
+		source: { kind: "ability", championKey: "Gnar", slot: "E" },
+		form: "mini",
+		trigger: { kind: "after-use" },
+		duration: 6,
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				amount: percentLine("Bonus Attack Speed"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Gnar/Hop`,
+	},
+	{
+		// Its peak: the speed decays over 3 s. GNAR!'s passive raises it; 20% before R has a point (wiki).
+		id: "gnar-w-hyper",
+		source: { kind: "ability", championKey: "Gnar", slot: "W" },
+		form: "mini",
+		trigger: { kind: "on-hit" },
+		stacks: { max: 3 },
+		duration: 3,
+		grants: [
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				amount: {
+					...percentLine("Hyper Move Speed"),
+					slot: "R",
+					unranked: 0.2,
+				},
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Gnar/Hyper`,
 	},
 ]

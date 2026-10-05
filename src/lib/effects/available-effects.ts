@@ -4,6 +4,7 @@ import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import { spellInForm } from "../form-abilities"
 import type { AbilityRanks } from "../stats/rank-stats"
+import { boostSlots } from "./boosts"
 import type { BuildEffect, Effect } from "./effect"
 import { ABILITY_EFFECTS } from "./registries/ability-effects"
 import { ITEM_EFFECTS } from "./registries/item-effects"
@@ -51,6 +52,19 @@ function named(
 	return { id: effect.id, effect, name, icon }
 }
 
+/** The other abilities the effect's amounts read (GNAR! for Hyper), as its form shows them. */
+function boostsOf(effect: Effect, build: EffectsBuild): Partial<BuildEffect> {
+	const boosts = Object.fromEntries(
+		boostSlots(effect).flatMap((slot) => {
+			const ability = spellInForm(build.champion.abilities, slot, effect.form)
+			return ability
+				? [[slot, { name: ability.name, rankValues: ability.rankValues }]]
+				: []
+		}),
+	)
+	return Object.keys(boosts).length ? { boosts } : {}
+}
+
 /** The effect bound to its source in the build, or nothing when the build lacks the source. */
 function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 	const { source } = effect
@@ -75,6 +89,7 @@ function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 							slot: source.slot,
 							rankValues: ability.rankValues,
 							...(formName && { formName }),
+							...boostsOf(effect, build),
 						},
 					]
 				: []
