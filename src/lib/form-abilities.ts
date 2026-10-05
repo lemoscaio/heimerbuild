@@ -18,7 +18,7 @@ export function spellInForm<Spell extends { slot: AbilitySlot }>(
 	)
 }
 
-/** The abilities as the form `formId` has them; absent or unknown means the default form. Ranks stay per slot. */
+/** The abilities as the form `formId` shows them, passive included; absent or unknown means the default form. Ranks stay per slot. */
 export function abilitiesInForm(
 	abilities: ChampionAbilities,
 	formId: string | undefined,
@@ -28,6 +28,7 @@ export function abilitiesInForm(
 	const [q, w, e, r] = abilities.spells
 	return {
 		...abilities,
+		passive: formSpells.passive ?? abilities.passive,
 		spells: [
 			formSpells.Q ?? q,
 			formSpells.W ?? w,
