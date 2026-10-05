@@ -35,12 +35,14 @@ export type EffectContext = {
 	totals?: ComputedStats
 	/** The champion's form id (its default's when it has forms); a form-bound effect holds only in its own. */
 	form?: string
+	/** Stacks an effect has by its id (the combat simulator's); absent means its full value, all stacks. */
+	stacks?: Readonly<Record<string, number>>
 }
 
 /** A stat grant that reads another stat: `ratio` of its total, or of its bonus part. */
 export type StatBasis = { stat: StatName; ratio: number; part?: "bonus" }
 
-/** A grant's value at the build's state; damage has none until the combo timeline. */
+/** A grant's value at the build's state; damage grants have none here (the combat simulator deals them). */
 export type ResolvedGrant =
 	| { kind: "stat"; stat: StatKey; value: number; basis?: StatBasis }
 	| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; value: number }
@@ -159,7 +161,26 @@ function grantStat(
 	return adaptiveType && adaptiveForceStat(value, adaptiveType)
 }
 
+/** The share of its full value an effect holds at its stacks (Rev'd up at 2 of 3 stacks: 2/3). */
+function stackShare({ id, effect }: BuildEffect, { stacks }: EffectContext) {
+	const count = stacks?.[id]
+	if (!effect.stacks || count === undefined) return 1
+	return Math.min(count, effect.stacks.max) / effect.stacks.max
+}
+
 function resolveGrant(
+	grant: Grant,
+	effect: BuildEffect,
+	context: EffectContext,
+): ResolvedGrant[] {
+	const share = stackShare(effect, context)
+	const full = resolveFullGrant(grant, effect, context)
+	return share === 1
+		? full
+		: full.map((resolved) => ({ ...resolved, value: resolved.value * share }))
+}
+
+function resolveFullGrant(
 	grant: Grant,
 	effect: BuildEffect,
 	context: EffectContext,
@@ -183,6 +204,8 @@ function resolveGrant(
 			return value === undefined ? [] : [{ kind: grant.kind, value }]
 		}
 		case "damage":
+		case "abilityDamage":
+		case "damageOverTime":
 			return []
 	}
 }
@@ -258,8 +281,9 @@ export function effectDuration(
 export type EvaluationStep = "effects" | "stat-dependent"
 
 function stepOf(grant: Grant): EvaluationStep {
-	const { amount } = grant.kind === "damage" ? { amount: 0 } : grant
-	return typeof amount === "object" && amount.by === "stat"
+	return grant.kind === "stat" &&
+		typeof grant.amount === "object" &&
+		grant.amount.by === "stat"
 		? "stat-dependent"
 		: "effects"
 }

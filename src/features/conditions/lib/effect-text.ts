@@ -33,6 +33,10 @@ export function conditionText({ effect, duration }: Condition): string {
 			return lasting(duration, stacks ? `after ${stacks.max} hits` : "on hit")
 		case "after-ability":
 			return lasting(duration, "after an ability")
+		case "on-cast":
+			return lasting(duration, "after casting")
+		case "on-mark-consumed":
+			return lasting(duration, "after consuming a mark")
 	}
 }
 

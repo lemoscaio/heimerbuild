@@ -1,10 +1,17 @@
-import type { AbilitySlot, Champion, ChampionSpell } from "@schemas/champion"
+import type {
+	AbilitySlot,
+	Champion,
+	ChampionPassive,
+	ChampionSpell,
+} from "@schemas/champion"
+import type { Item } from "@schemas/item"
 import { isInPatchRange } from "@schemas/patch-range"
 import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import { spellInForm } from "../form-abilities"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { boostSlots } from "./boosts"
+import { isListed } from "./defaults"
 import type { BuildEffect, Effect } from "./effect"
 import { ABILITY_EFFECTS } from "./registries/ability-effects"
 import { ITEM_EFFECTS } from "./registries/item-effects"
@@ -24,6 +31,8 @@ export type EffectsBuild = {
 		forms?: Champion["forms"]
 		/** The default form's abilities, and the ones another form swaps in, which its bound effects read. */
 		abilities: {
+			/** Its passive, which a passive's effects (Quinn's Harrier) are named after. */
+			passive?: Pick<ChampionPassive, "name" | "icon">
 			spells: readonly EffectAbility[]
 			forms?: Readonly<
 				Record<string, Partial<Record<AbilitySlot, EffectAbility>>>
@@ -35,6 +44,8 @@ export type EffectsBuild = {
 	spells: readonly SummonerSpell[]
 	/** The rune page's runes. */
 	runes: readonly Rune[]
+	/** The chosen items, whose effects only the combat simulator reads (`combatEffects`). */
+	items?: readonly Pick<Item, "id" | "name" | "icon">[]
 }
 
 /** Every registry, one per source. */
@@ -70,6 +81,12 @@ function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 	const { source } = effect
 	switch (source.kind) {
 		case "ability": {
+			if (source.slot === "passive") {
+				const { passive } = build.champion.abilities
+				return passive && build.champion.key === source.championKey
+					? [named(effect, passive)]
+					: []
+			}
 			// A form-bound effect reads its form's ability (its row and rank lines); the others the default's.
 			const ability = spellInForm(
 				build.champion.abilities,
@@ -102,9 +119,10 @@ function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 			const rune = build.runes.find(({ key }) => key === source.runeKey)
 			return rune ? [named(effect, rune)] : []
 		}
-		// Item effects wait for the combo timeline (stage 2).
-		case "item":
-			return []
+		case "item": {
+			const item = build.items?.find(({ id }) => id === source.itemId)
+			return item ? [named(effect, item)] : []
+		}
 	}
 }
 
@@ -122,8 +140,11 @@ function bindTrigger(bound: BuildEffect, build: EffectsBuild): BuildEffect[] {
 	}))
 }
 
-/** The effects in force on the build's patch whose source is in it: a ranked ability, a chosen spell, a rune of the page. */
-export function availableEffects(
+/**
+ * Every effect in force on the build's patch whose source is in it (a ranked ability, the
+ * champion's passive, a chosen spell, a rune of the page, a chosen item): what the combat simulator reads.
+ */
+export function combatEffects(
 	build: EffectsBuild,
 	registries: readonly (readonly Effect[])[] = EFFECT_REGISTRIES,
 ): BuildEffect[] {
@@ -132,4 +153,17 @@ export function availableEffects(
 		.filter((effect) => isInPatchRange(build.patch, effect))
 		.flatMap((effect) => bindSource(effect, build))
 		.flatMap((bound) => bindTrigger(bound, build))
+}
+
+/**
+ * The effects the stats panel lists and switches: the build's own, without its items' (none
+ * on screen yet) and without those only a combat sequence fires (`isListed`).
+ */
+export function availableEffects(
+	build: EffectsBuild,
+	registries: readonly (readonly Effect[])[] = EFFECT_REGISTRIES,
+): BuildEffect[] {
+	return combatEffects({ ...build, items: [] }, registries).filter(
+		({ effect }) => isListed(effect),
+	)
 }

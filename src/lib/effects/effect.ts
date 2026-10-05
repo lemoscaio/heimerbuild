@@ -4,9 +4,9 @@ import type { PatchRange } from "@schemas/patch-range"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import type { StatName } from "../stats/compute-stats"
 
-/** Where an effect comes from, by the key the patch data uses. */
+/** Where an effect comes from, by the key the patch data uses; an ability's passive has no rank. */
 export type EffectSource =
-	| { kind: "ability"; championKey: string; slot: AbilitySlot }
+	| { kind: "ability"; championKey: string; slot: AbilitySlot | "passive" }
 	| { kind: "summoner"; spellKey: string }
 	| { kind: "rune"; runeKey: string }
 	| { kind: "item"; itemId: string }
@@ -81,7 +81,9 @@ export type GrantStat = StatKey | "adaptiveForce"
 
 /**
  * Stats fold into the totals; an attack speed multiplier scales the bonus or total attack speed
- * after them; shields and heals are values of their own; damage waits for the combo timeline.
+ * after them; shields and heals are values of their own. The damage grants are the combat
+ * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
+ * source ability's synced formula by name, `damageOverTime` dealt every `every` seconds while it lasts.
  */
 export type Grant =
 	| { kind: "stat"; stat: GrantStat; amount: Amount }
@@ -89,10 +91,21 @@ export type Grant =
 	| { kind: "shield"; amount: Amount }
 	| { kind: "heal"; amount: Amount }
 	| { kind: "damage"; damageType: DamageType; ratios: DamageRatios }
+	| { kind: "abilityDamage"; ability: AbilitySlot | "passive"; name: string }
+	| {
+			kind: "damageOverTime"
+			damageType: DamageType
+			amount: Amount
+			every: number
+	  }
 
 /** A state the champion holds while the effect lasts. */
 export type EffectCondition = "not-damaged-recently"
 
+/**
+ * When an effect starts. `on-cast` and `on-mark-consumed` exist only in the combat simulator:
+ * a cast of one of `slots` (any ability without them), the attacker consuming `mark` on the target.
+ */
 export type Trigger =
 	| { kind: "always" }
 	| { kind: "while"; condition: EffectCondition }
@@ -100,6 +113,8 @@ export type Trigger =
 	| { kind: "after-summoner" }
 	| { kind: "on-hit" }
 	| { kind: "after-ability" }
+	| { kind: "on-cast"; slots?: readonly AbilitySlot[] }
+	| { kind: "on-mark-consumed"; mark: string }
 
 export type TriggerKind = Trigger["kind"]
 
@@ -112,6 +127,22 @@ export type Stacking =
 	| { group: string; rule: "highest" | "unique" }
 
 export type StackingRule = Stacking["rule"]
+
+/** What consumes a mark on the target: a basic attack, or an ability's hit. */
+export type MarkConsumer = "attack" | "ability"
+
+/** A mark the effect puts on the target for `duration` seconds (Quinn's Harrier, Ezreal's Essence Flux). */
+export type MarkApplication = {
+	mark: string
+	duration: number
+	consumedBy: readonly MarkConsumer[]
+}
+
+/**
+ * What ends an effect early: Teemo's W passive stops when he takes damage; Viego's E when he
+ * attacks or casts; a spellblade on the next on-hit, which deals its damage and uses it up.
+ */
+export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit"
 
 /**
  * A conditional effect as typed, sourced data: what it grants, when, for how long. `since` is the
@@ -128,8 +159,12 @@ export type Effect = PatchRange & {
 	/** Seconds before it can trigger again. */
 	cooldown?: Amount
 	stacks?: { max: number }
-	/** What ends it early: Teemo's W passive stops when he takes damage. */
-	endsOn?: "damage-taken"
+	/** What ends it early; its `cooldown` then starts from that moment instead of the trigger. */
+	endsOn?: EndsOn
+	/** The mark it puts on the target when it triggers (combat simulator). */
+	applies?: MarkApplication
+	/** Who holds it: the attacker (absent), or the target (Ignite's burn). */
+	holder?: "target"
 	/** Replaces the trigger's default (`isOnByDefault`). */
 	defaultOn?: boolean
 	/** Its stacking group; absent means it adds to every other effect. */
@@ -158,7 +193,7 @@ export type BuildEffect = {
 	/** The source's name and icon in this patch. */
 	name: string
 	icon: string
-	/** The ability whose rank the `rank` and `rankValue` amounts read. */
+	/** The ability whose rank the `rank` and `rankValue` amounts read; absent for a passive's. */
 	slot?: AbilitySlot
 	/** That ability's synced tooltip lines, which `rankValue` amounts read. */
 	rankValues?: readonly AbilityRankValue[]
