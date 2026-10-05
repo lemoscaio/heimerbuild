@@ -104,7 +104,7 @@ export function AbilityRankButton({
 					{unavailable && (
 						<span
 							aria-hidden="true"
-							className="absolute -top-1.5 -left-1.5 flex size-4.5 items-center justify-center rounded-full bg-surface-sunken text-warning"
+							className="absolute -right-1 -bottom-1 rounded-sm bg-surface-sunken p-px text-warning"
 						>
 							<Ban className="size-3" strokeWidth={3} />
 						</span>
