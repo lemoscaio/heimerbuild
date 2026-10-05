@@ -120,6 +120,23 @@ describe("valuesText", () => {
 			}),
 		).toBe("+24 Ability Power (next: +48 Ability Power at 30 min)")
 	})
+
+	test("adds an effect's shield parts up to one shield", () => {
+		const row = condition({ kind: "after-use" })
+		const shield = (value: number) => ({ kind: "shield", value }) as const
+		const lifeSteal = {
+			kind: "stat",
+			stat: "lifeStealPercent",
+			value: 0.2,
+		} as const
+
+		expect(
+			valuesText({
+				...row,
+				grants: [shield(145), shield(20), shield(70.4), lifeSteal],
+			}),
+		).toBe("235 shield · +20% Life Steal")
+	})
 })
 
 describe("partLabel and stackedOutText", () => {
@@ -140,6 +157,7 @@ describe("partLabel and stackedOutText", () => {
 			effect: entry,
 			name: "Move Quick",
 			icon: "",
+			...(entry.source.kind === "ability" && { slot: entry.source.slot }),
 		})
 		return {
 			effect: bind(effect),
@@ -192,5 +210,20 @@ describe("partLabel and stackedOutText", () => {
 	test("says which part stands in for a stacked-out row", () => {
 		expect(stackedOutText(row(passive, active))).toBe("Replaced by the active")
 		expect(stackedOutText(row(passive))).toBeUndefined()
+	})
+
+	test("names the ability that stands in from another card", () => {
+		const hyper = row({ ...passive, part: undefined })
+		const gnarPassive = {
+			id: "gnar-r-passive",
+			effect: { ...passive, id: "gnar-r-passive" },
+			name: "GNAR!",
+			icon: "",
+			slot: "R" as const,
+		}
+
+		expect(stackedOutText({ ...hyper, stackedOutBy: gnarPassive })).toBe(
+			"Replaced by GNAR!",
+		)
 	})
 })

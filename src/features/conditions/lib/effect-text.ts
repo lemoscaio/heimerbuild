@@ -44,13 +44,17 @@ export function partLabel({ effect }: Condition): string | undefined {
 	return label ?? (part && PART_LABEL[part]) ?? effect.formName
 }
 
-/** Why a row's switch is off limits: "Replaced by the active". */
+/** Why a row's switch is off limits: "Replaced by the active" of its card, else "Replaced by GNAR!". */
 export function stackedOutText({
+	effect,
 	stackedOutBy,
 }: Condition): string | undefined {
 	if (!stackedOutBy) return undefined
-	const winner = stackedOutBy.effect.part ?? stackedOutBy.name
-	return `Replaced by the ${winner}`
+	const { part } = stackedOutBy.effect
+	const sameCard = !!effect.slot && effect.slot === stackedOutBy.slot
+	return part && sameCard
+		? `Replaced by the ${part}`
+		: `Replaced by ${stackedOutBy.name}`
 }
 
 /**
@@ -88,8 +92,20 @@ export function grantText(grant: ResolvedGrant): string {
 	}
 }
 
+/** An effect's shield parts (Iron Mantle's base and ratios) add up to one shield; heals alike. */
+function totalOutputs(grants: readonly ResolvedGrant[]): ResolvedGrant[] {
+	const merged: ResolvedGrant[] = []
+	for (const grant of grants) {
+		const isOutput = grant.kind === "shield" || grant.kind === "heal"
+		const total = isOutput && merged.find(({ kind }) => kind === grant.kind)
+		if (total) total.value += grant.value
+		else merged.push({ ...grant })
+	}
+	return merged
+}
+
 function grantsText(grants: readonly ResolvedGrant[]) {
-	return grants.map(grantText).join(" · ")
+	return totalOutputs(grants).map(grantText).join(" · ")
 }
 
 /** What the row's effect gives, and from when it grows: "+24 Ability Power (next: +48 Ability Power at 30 min)". */
