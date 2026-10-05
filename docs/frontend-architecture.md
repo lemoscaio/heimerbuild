@@ -212,7 +212,7 @@ lib/effects/
   | `highest` | the largest value (its grants' values summed) | two sources of the same buff that do not stack |
   | `unique` | the first one, once | a unique item passive held twice |
 
-  The Effects list shows a stacked-out effect that is on dimmed, with its switch disabled and the reason ("Replaced by the active").
+  The Effects list shows a stacked-out effect that is on dimmed, with its switch disabled and the reason: "Replaced by the active" in the same card, or the winner's name from another ability ("Replaced by GNAR!": its passive raises Mini Gnar's Hyper speed).
 - **Patch validity.** Every effect and every hand-written rule (the movement speed soft caps in `MOVEMENT_SPEED_SOFT_CAPS`, Nimbus Cloak's brackets, the stacking groups) has a patch range with the data overrides' convention: `since` and an optional `until`, as `major.minor`, inclusive (`PatchRange` and `isInPatchRange` in `scripts/sync-data/schemas/patch-range.ts`). The build's patch picks the version in force: `availableEffects({ patch, … })` drops effect versions outside it, and `computeBuildStats({ patch, … })` applies that patch's soft caps. So a link pinned to an older patch keeps that patch's rules. Brackets and stacking groups are fields of an effect, so they follow its range.
 - **A rank stat an effect reads belongs to that effect.** Teemo's W rank stat is synced like any other, but `alwaysOnRankStats` leaves it to the `teemo-w-passive` effect. On by default, it keeps the old totals. Janna's W rank stat went the same way into `janna-w-passive`, next to its AP part.
 
@@ -241,6 +241,8 @@ lib/effects/
    - a multiplier of the attack speed: an `attackSpeedMultiplier` grant, `of: "bonus"` or `of: "total"`.
 
    A bonus that holds only in one form gets `form` with the form's id: it applies, and its row shows, only while the champion is in that form (see [Forms](#forms)).
+
+   An ability's buff after casting it (Udyr's stances, Viego's E, Rengar's R) gets the `after-use` trigger and its `duration`: a switch, off by default. One that procs after hits gets `on-hit` with its `stacks` (Mini Gnar's Hyper after 3 hits). A shield made of parts (a base plus ratios, Udyr's Iron Mantle) is one `shield` grant per part; its row shows their sum.
 
    An always-on passive gets the `always` trigger: an informational row without a switch. A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins the state of its subject (`ChampionStateValue` for the champion, `MatchStateValue` for the match), the link (a new optional param) and the recent builds, like `currentHealth`.
 3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.
