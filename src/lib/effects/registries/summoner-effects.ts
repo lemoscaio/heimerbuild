@@ -47,4 +47,26 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Barrier`,
 	},
+	{
+		// The total true damage over 5 s, one fifth per tick, the first right after the cast (wiki).
+		id: "ignite",
+		source: { kind: "summoner", spellKey: "SummonerDot" },
+		trigger: { kind: "after-use" },
+		holder: "target",
+		duration: { by: "level", value: "dotduration" },
+		grants: [
+			{
+				kind: "damageOverTime",
+				damageType: "true",
+				amount: {
+					by: "level",
+					value: "tooltiptruedamagecalculation",
+					scale: 0.2,
+				},
+				every: 1,
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Ignite`,
+	},
 ]

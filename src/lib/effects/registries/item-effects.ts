@@ -4,8 +4,10 @@ import { VERIFIED_ON } from "./verified-on"
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
 
 /**
- * Item effects, as data for the combo timeline (stage 2): none is listed or applied yet. The ratios
- * match CommunityDragon's 16.19 item data (`SpellbladeMultiplier`, `SpellbladeADRatio`, `LichBaneAPValue`).
+ * Item effects, read only by the combat simulator: the stats panel lists none yet. The ratios match
+ * CommunityDragon's 16.19 item data (`SpellbladeMultiplier`, `SpellbladeADRatio`, `LichBaneAPValue`).
+ * A spellblade is primed at an ability's cast and spent by the next on-hit, which deals its damage
+ * and starts its cooldown (wiki "Spellblade").
  */
 export const ITEM_EFFECTS: readonly Effect[] = [
 	{
@@ -14,6 +16,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		trigger: { kind: "after-ability" },
 		duration: 10,
 		cooldown: 1.5,
+		endsOn: "on-hit",
 		grants: [
 			{
 				kind: "damage",
@@ -30,6 +33,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		trigger: { kind: "after-ability" },
 		duration: 10,
 		cooldown: 1.5,
+		endsOn: "on-hit",
 		grants: [
 			{
 				kind: "damage",
@@ -46,6 +50,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		trigger: { kind: "after-ability" },
 		duration: 10,
 		cooldown: 1.5,
+		endsOn: "on-hit",
 		grants: [
 			{
 				kind: "damage",

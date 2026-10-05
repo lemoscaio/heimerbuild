@@ -32,6 +32,9 @@ const HAMMER_RESIST_FROM_AD: Amount = {
 	ratio: 0.075,
 }
 
+const HARRIER = "quinn-harrier"
+const ESSENCE_FLUX = "ezreal-w"
+
 /**
  * Champions' ability effects; their numbers are the synced rank stats and tooltip lines they read.
  * An `always` one is a passive the champion always has, shown without a switch.
@@ -431,5 +434,69 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Gnar/Hyper`,
+	},
+	{
+		// Blinding Assault, Vault and Skystrike mark the target for 4 s; a basic attack consumes it.
+		id: "quinn-harrier-mark",
+		source: { kind: "ability", championKey: "Quinn", slot: "passive" },
+		trigger: { kind: "on-cast", slots: ["Q", "E", "R"] },
+		applies: { mark: HARRIER, duration: 4, consumedBy: ["attack"] },
+		grants: [],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Quinn/Harrier`,
+	},
+	{
+		id: "quinn-harrier",
+		source: { kind: "ability", championKey: "Quinn", slot: "passive" },
+		trigger: { kind: "on-mark-consumed", mark: HARRIER },
+		grants: [
+			{ kind: "abilityDamage", ability: "passive", name: "BonusDamage" },
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Quinn/Harrier`,
+	},
+	{
+		// Attacking a Harrier target grants the speeds for 2 s; consuming the mark stands in for it.
+		id: "quinn-w-passive",
+		source: { kind: "ability", championKey: "Quinn", slot: "W" },
+		trigger: { kind: "on-mark-consumed", mark: HARRIER },
+		part: "passive",
+		duration: 2,
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				amount: percentLine("Attack Speed"),
+			},
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				amount: percentLine("Move Speed"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Quinn/Heightened_Senses`,
+	},
+	{
+		// The orb marks the target for 4 s; its damage waits for the attack or ability that detonates it.
+		id: "ezreal-w-mark",
+		source: { kind: "ability", championKey: "Ezreal", slot: "W" },
+		trigger: { kind: "on-cast", slots: ["W"] },
+		applies: {
+			mark: ESSENCE_FLUX,
+			duration: 4,
+			consumedBy: ["attack", "ability"],
+		},
+		grants: [],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Ezreal/Essence_Flux`,
+	},
+	{
+		id: "ezreal-w-detonation",
+		source: { kind: "ability", championKey: "Ezreal", slot: "W" },
+		trigger: { kind: "on-mark-consumed", mark: ESSENCE_FLUX },
+		grants: [{ kind: "abilityDamage", ability: "W", name: "Damage" }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Ezreal/Essence_Flux`,
 	},
 ]
