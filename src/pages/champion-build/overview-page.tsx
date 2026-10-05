@@ -79,7 +79,7 @@ export function OverviewPage({
 							onLevelChange={championState.setLevel}
 						/>
 						<ChampionSkills
-							abilities={champion.abilities}
+							abilities={build.abilities ?? champion.abilities}
 							skills={build.skills}
 							rankUpStats={build.rankUpStats}
 						/>
@@ -129,7 +129,7 @@ export function OverviewPage({
 					}
 					skills={
 						<SkillsTab
-							abilities={champion.abilities}
+							abilities={build.abilities ?? champion.abilities}
 							skills={build.skills}
 							layout="grid"
 						/>

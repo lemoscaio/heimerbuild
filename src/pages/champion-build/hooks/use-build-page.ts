@@ -97,6 +97,8 @@ export function useBuildPage({
 		/** Switches the form and announces how many stats changed, with the delta chips. */
 		formSwitch,
 		skills,
+		/** The abilities in the selected form, which the skills row and tab show. */
+		abilities: build.abilities,
 		rankUpStats,
 		/** The chosen items; `addItem` adds one from the shop and closes its details. */
 		items,
