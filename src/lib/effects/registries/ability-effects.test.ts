@@ -675,18 +675,32 @@ describe("Mini Gnar's Hop and Hyper (synced lines, wiki)", () => {
 		expect(attackSpeed("mega", hop)).toBe(attackSpeed("mega"))
 	})
 
-	test("Hyper: 20% movement speed after 3 hits before GNAR!, 40 / 60 / 80% with it", async () => {
+	test("Hyper: 20% movement speed after 3 hits at R 0, GNAR!'s 40 / 60 / 80% at R 1 / 2 / 3, off by default", async () => {
 		const gnar = await currentChampion("Gnar")
 		const hyper = { "gnar-w-hyper": true }
-		const both = { ...hyper, "gnar-r-passive": true }
 		const expected = (bonus: number) =>
 			softCapMovementSpeed(335 * (1 + bonus), PATCH)
 
 		expect(speed(gnar, 0, {})).toBe(335)
-		expect(speed(gnar, 0, hyper)).toBeCloseTo(expected(0.2))
-		expect([1, 2, 3].map((R) => rounded(speed(gnar, R, both)))).toEqual(
-			[0.4, 0.6, 0.8].map((bonus) => rounded(expected(bonus))),
+		expect([0, 1, 2, 3].map((R) => rounded(speed(gnar, R, hyper)))).toEqual(
+			[0.2, 0.4, 0.6, 0.8].map((bonus) => rounded(expected(bonus))),
 		)
+	})
+
+	test("Hyper is one effect, in W, that names GNAR! as its boost", async () => {
+		const gnar = await currentChampion("Gnar")
+		const effects = availableEffects({
+			patch: PATCH,
+			champion: gnar,
+			ranks: ranks(2),
+			spells: [],
+			runes: [],
+		})
+		const hyper = effects.find(({ id }) => id === "gnar-w-hyper")
+
+		expect(effects.filter(({ slot }) => slot === "R")).toEqual([])
+		expect(hyper?.slot).toBe("W")
+		expect(hyper?.boosts?.R?.name).toBe("GNAR!")
 	})
 })
 

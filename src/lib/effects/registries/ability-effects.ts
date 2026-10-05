@@ -1,4 +1,4 @@
-import type { Amount, Effect } from "../effect"
+import type { Amount, Effect, RankValueAmount } from "../effect"
 import { VERIFIED_ON } from "./verified-on"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
@@ -11,7 +11,7 @@ const MOVE_QUICK_SPEED: Amount = {
 }
 
 /** A percent tooltip line of the ability, as a fraction: "Armor" 10 to 30 (%) is 0.1 to 0.3. */
-function percentLine(label: string): Amount & { by: "rankValue" } {
+function percentLine(label: string): RankValueAmount {
 	return { by: "rankValue", label, scale: 0.01 }
 }
 
@@ -31,14 +31,6 @@ const HAMMER_RESIST_FROM_AD: Amount = {
 	part: "bonus",
 	ratio: 0.075,
 }
-
-/** Mini Gnar's Hyper speed after 3 hits: GNAR!'s passive raises it from 20% and stands in for it. */
-const HYPER_SPEED_STACKING = {
-	group: "gnar-hyper-speed",
-	rule: "replace",
-} as const
-/** Hyper's speed decays over 3 s; the row shows its peak. */
-const HYPER_DURATION = 3
 
 /**
  * Champions' ability effects; their numbers are the synced rank stats and tooltip lines they read.
@@ -419,35 +411,25 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Gnar/Hop`,
 	},
 	{
-		// 20% before GNAR! has a point; not in the tooltip.
+		// Its peak: the speed decays over 3 s. GNAR!'s passive raises it; 20% before R has a point (wiki).
 		id: "gnar-w-hyper",
 		source: { kind: "ability", championKey: "Gnar", slot: "W" },
 		form: "mini",
 		trigger: { kind: "on-hit" },
 		stacks: { max: 3 },
-		duration: HYPER_DURATION,
-		stacking: { ...HYPER_SPEED_STACKING, priority: 0 },
-		grants: [{ kind: "stat", stat: "movementSpeedPercent", amount: 0.2 }],
-		since: VERIFIED_ON,
-		sourceUrl: `${WIKI}Gnar/Hyper`,
-	},
-	{
-		id: "gnar-r-passive",
-		source: { kind: "ability", championKey: "Gnar", slot: "R" },
-		form: "mini",
-		part: "passive",
-		trigger: { kind: "on-hit" },
-		stacks: { max: 3 },
-		duration: HYPER_DURATION,
-		stacking: { ...HYPER_SPEED_STACKING, priority: 1 },
+		duration: 3,
 		grants: [
 			{
 				kind: "stat",
 				stat: "movementSpeedPercent",
-				amount: percentLine("Hyper Move Speed"),
+				amount: {
+					...percentLine("Hyper Move Speed"),
+					slot: "R",
+					unranked: 0.2,
+				},
 			},
 		],
 		since: VERIFIED_ON,
-		sourceUrl: `${WIKI}Gnar/GNAR!`,
+		sourceUrl: `${WIKI}Gnar/Hyper`,
 	},
 ]
