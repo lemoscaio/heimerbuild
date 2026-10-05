@@ -36,12 +36,11 @@ test("Udyr's Wilding Claw is off by default; on, it raises the attack speed and 
 	await expect.poll(() => statTotal(page, "Attack Speed")).toBe(before)
 })
 
-test("Mini Gnar's Hyper raises the movement speed; GNAR!'s passive stands in for it with more", async ({
+test("Mini Gnar's Hyper raises the movement speed, boosted by GNAR! once R has a point", async ({
 	page,
 }) => {
-	await page.goto("/champions/Gnar?lvl=6&skills=QWEQQR")
+	await page.goto("/champions/Gnar?lvl=5&skills=QWEQQ")
 	const hyper = effectSwitch(page, /^Hyper \(W\)/)
-	const gnarPassive = effectSwitch(page, /^GNAR! \(R\) Passive/)
 	await expect(hyper).not.toBeChecked()
 	const before = await statTotal(page, "Movement Speed")
 
@@ -50,16 +49,22 @@ test("Mini Gnar's Hyper raises the movement speed; GNAR!'s passive stands in for
 	await expect
 		.poll(() => statTotal(page, "Movement Speed"))
 		.toBeGreaterThan(before)
-	const withHyper = await statTotal(page, "Movement Speed")
+	const unboosted = await statTotal(page, "Movement Speed")
+	await expect(hyper).not.toHaveAccessibleDescription(/boosted by/)
 
-	await gnarPassive.click()
-	await expect(hyper).toBeDisabled()
-	await expect(hyper).toHaveAccessibleDescription(/^Replaced by GNAR!/)
+	// Level 6 with R: GNAR!'s passive raises the same row.
+	await page.goto("/champions/Gnar?lvl=6&skills=QWEQQR&effects=gnar-w-hyper")
+	await expect(hyper).toBeChecked()
+	await expect(hyper).toHaveAccessibleDescription(/boosted by GNAR! \(R1\)$/)
+	await expect(
+		effectSwitch(page, /^GNAR! \(R\)/),
+		"no separate GNAR! row",
+	).toHaveCount(0)
 	await expect
 		.poll(() => statTotal(page, "Movement Speed"))
-		.toBeGreaterThan(withHyper)
+		.toBeGreaterThan(unboosted)
 
-	// Hyper is Mini Gnar's: as Mega Gnar its rows leave the list.
+	// Hyper is Mini Gnar's: as Mega Gnar its row leaves the list.
 	await page
 		.getByRole("group", { name: "Form" })
 		.getByRole("button", { name: "Mega Gnar" })
