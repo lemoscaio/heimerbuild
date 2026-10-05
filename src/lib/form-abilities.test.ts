@@ -63,6 +63,37 @@ describe("abilitiesInForm", () => {
 	})
 })
 
+const MINI_GNAR_R = {
+	...spell("R", "GNAR!"),
+	unavailable: { reason: "Unavailable as Mini Gnar" },
+}
+
+const GNAR: ChampionAbilities = {
+	passive: {
+		name: "Rage Gene",
+		description: "",
+		icon: "https://example.test/passive.png",
+	},
+	spells: [
+		spell("Q", "Boomerang Throw"),
+		spell("W", "Hyper"),
+		spell("E", "Hop"),
+		MINI_GNAR_R,
+	],
+	forms: { mega: { Q: spell("Q", "Boulder Toss"), R: spell("R", "GNAR!") } },
+}
+
+describe("abilitiesInForm, abilities a form can't cast", () => {
+	test("each form carries its own unavailable flag in the slot", () => {
+		expect(abilitiesInForm(GNAR, "mini").spells[3].unavailable).toEqual({
+			reason: "Unavailable as Mini Gnar",
+		})
+		expect(abilitiesInForm(GNAR, "mega").spells[3].unavailable).toBeUndefined()
+		expect(spellInForm(GNAR, "R", "mega")?.unavailable).toBeUndefined()
+		expect(spellInForm(GNAR, "R", undefined)).toBe(MINI_GNAR_R)
+	})
+})
+
 describe("spellInForm", () => {
 	test("reads the form's ability in a slot, else the default one", () => {
 		expect(spellInForm(JAYCE, "Q", "cannon")?.name).toBe("Shock Blast")

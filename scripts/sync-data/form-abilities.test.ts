@@ -47,6 +47,21 @@ describe("FORM_ABILITY_RULES", () => {
 		expect(() => assertValidPatchRange(rule)).not.toThrow()
 	})
 
+	test("every ability a form can't cast has a reason to show and a wiki source", () => {
+		const flags = FORM_ABILITY_RULES.flatMap(({ spells }) =>
+			Object.values(spells).flatMap((spell) => [
+				spell.unavailable,
+				spell.default?.unavailable,
+			]),
+		).filter((flag) => flag !== undefined)
+
+		expect(flags.length).toBeGreaterThan(0)
+		for (const { reason, source } of flags) {
+			expect(reason).toBeTruthy()
+			expect(source).toStartWith("https://wiki.leagueoflegends.com/")
+		}
+	})
+
 	test("one rule per champion form and patch", () => {
 		for (const [index, rule] of FORM_ABILITY_RULES.entries()) {
 			for (const earlier of FORM_ABILITY_RULES.slice(0, index)) {
@@ -199,13 +214,59 @@ describe("form abilities in the current patch data (wiki)", () => {
 	})
 })
 
+/** Each slot's unavailable reason in the form, or undefined where the form casts it. */
+function unavailableInForm({ abilities }: Champion, form: string) {
+	return ABILITY_SLOTS.map(
+		(slot, index) =>
+			(abilities.forms?.[form]?.[slot] ?? abilities.spells[index])?.unavailable
+				?.reason,
+	)
+}
+
+describe("abilities a form can't cast, in the current patch data (wiki)", () => {
+	test("Mini Gnar can't cast GNAR!; Mega Gnar casts every ability", async () => {
+		const gnar = await currentChampion("Gnar")
+
+		expect(unavailableInForm(gnar, "mini")).toEqual([
+			undefined,
+			undefined,
+			undefined,
+			"Unavailable as Mini Gnar",
+		])
+		expect(unavailableInForm(gnar, "mega")).toEqual([
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+		])
+	})
+
+	test("dismounted Kled casts only Pocket Pistol, Violent Tendencies included", async () => {
+		const kled = await currentChampion("Kled")
+		const dismounted = "Kled can't cast this while dismounted"
+
+		expect(unavailableInForm(kled, "mounted")).toEqual([
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+		])
+		expect(unavailableInForm(kled, "dismounted")).toEqual([
+			undefined,
+			dismounted,
+			dismounted,
+			dismounted,
+		])
+	})
+})
+
 /** The audit (issue 309): what each form shows differently from the default form, by slot. */
 const AUDIT: Record<string, Record<string, readonly string[]>> = {
 	Jayce: { cannon: ["passive", "Q", "W", "E", "R"] },
 	Nidalee: { cougar: ["Q", "W", "E", "R"] },
 	Elise: { spider: ["Q", "W", "E", "R"] },
 	Gnar: { mega: ["Q", "W", "E", "R"] },
-	Kled: { dismounted: ["passive", "Q", "E", "R"] },
+	Kled: { dismounted: ["passive", "Q", "W", "E", "R"] },
 	Jinx: { rockets: ["Q"] },
 	// Same icon and text in both forms in the game files: the form empowers the abilities.
 	Shyvana: { dragon: [] },
