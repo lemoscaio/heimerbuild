@@ -44,17 +44,13 @@ export function partLabel({ effect }: Condition): string | undefined {
 	return label ?? (part && PART_LABEL[part]) ?? effect.formName
 }
 
-/** Why a row's switch is off limits: "Replaced by the active" of its card, else "Replaced by GNAR!". */
+/** Why a row's switch is off limits: "Replaced by the active". */
 export function stackedOutText({
-	effect,
 	stackedOutBy,
 }: Condition): string | undefined {
 	if (!stackedOutBy) return undefined
-	const { part } = stackedOutBy.effect
-	const sameCard = !!effect.slot && effect.slot === stackedOutBy.slot
-	return part && sameCard
-		? `Replaced by the ${part}`
-		: `Replaced by ${stackedOutBy.name}`
+	const winner = stackedOutBy.effect.part ?? stackedOutBy.name
+	return `Replaced by the ${winner}`
 }
 
 /**
@@ -108,10 +104,21 @@ function grantsText(grants: readonly ResolvedGrant[]) {
 	return totalOutputs(grants).map(grantText).join(" · ")
 }
 
-/** What the row's effect gives, and from when it grows: "+24 Ability Power (next: +48 Ability Power at 30 min)". */
-export function valuesText({ grants, next }: Condition): string {
+/**
+ * What the row's effect gives, from when it grows and what raises it: "+24 Ability Power (next: +48
+ * Ability Power at 30 min)", "+60% Move Speed · boosted by GNAR! (R2)".
+ */
+export function valuesText({
+	grants,
+	next,
+	boostedBy = [],
+}: Condition): string {
 	const now = grantsText(grants)
-	return next
+	const value = next
 		? `${now} (next: ${grantsText(next.grants)} at ${next.gameTime} min)`
 		: now
+	const boosts = boostedBy.map(
+		({ name, slot, rank }) => `boosted by ${name} (${slot}${rank})`,
+	)
+	return [value, ...boosts].join(" · ")
 }

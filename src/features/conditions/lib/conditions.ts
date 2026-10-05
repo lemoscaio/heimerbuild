@@ -1,3 +1,4 @@
+import { type Boost, effectBoosts } from "@/lib/effects/boosts"
 import { usesCurrentHealth } from "@/lib/effects/current-health"
 import { isOnByDefault, isSwitchable } from "@/lib/effects/defaults"
 import type { BuildEffect, EffectOverrides } from "@/lib/effects/effect"
@@ -33,6 +34,8 @@ export type Condition = {
 	duration?: number
 	/** The effect of its stacking group that applies instead, while this one is on. */
 	stackedOutBy?: BuildEffect
+	/** The other abilities with a point that raise its value (GNAR! for Hyper). */
+	boostedBy?: readonly Boost[]
 }
 
 /**
@@ -88,15 +91,19 @@ export function conditionList(
 ): Condition[] {
 	const { stackedOut } = stackEffects(effects, value, context)
 	const inForm = effects.filter((effect) => isInForm(effect, context.form))
-	return inForm.map((effect) => ({
-		effect,
-		isOn: isEffectOn(effect, value),
-		isSwitchable: isSwitchable(effect.effect),
-		usesCurrentHealth: usesCurrentHealth(effect.effect),
-		usesGameTime: usesGameTime(effect.effect),
-		grants: resolveGrants(effect, context),
-		next: nextStep(effect, context),
-		duration: effectDuration(effect, context),
-		stackedOutBy: stackedOut.get(effect.id),
-	}))
+	return inForm.map((effect) => {
+		const boostedBy = effectBoosts(effect, context.ranks)
+		return {
+			effect,
+			isOn: isEffectOn(effect, value),
+			isSwitchable: isSwitchable(effect.effect),
+			usesCurrentHealth: usesCurrentHealth(effect.effect),
+			usesGameTime: usesGameTime(effect.effect),
+			grants: resolveGrants(effect, context),
+			next: nextStep(effect, context),
+			duration: effectDuration(effect, context),
+			stackedOutBy: stackedOut.get(effect.id),
+			...(boostedBy.length > 0 && { boostedBy }),
+		}
+	})
 }
