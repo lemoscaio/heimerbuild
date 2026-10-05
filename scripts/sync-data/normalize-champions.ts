@@ -1,11 +1,16 @@
 import { mkdir, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
+import { FORM_ABILITY_RULES, type FormAbilityRule } from "./form-abilities"
 import {
 	ddragonPassiveSchema,
 	ddragonSpellSchema,
 	normalizeAbilities,
 } from "./normalize-abilities"
+import {
+	type GameStrings,
+	normalizeFormAbilities,
+} from "./normalize-form-abilities"
 import {
 	applyOverrides,
 	type OverrideReport,
@@ -21,8 +26,11 @@ import {
 	type ChampionSummary,
 	championIndexSchema,
 	championSchema,
+	formAbilitiesFitForms,
 	skillRulesFitAbilities,
 } from "./schemas/champion"
+import { isInPatchRange } from "./schemas/patch-range"
+import { toCommunityDragonPatch } from "./version"
 
 const DDRAGON_CDN = "https://ddragon.leagueoflegends.com/cdn"
 // Lillia has the longest melee range (325), Urgot the shortest ranged one (350).
@@ -156,6 +164,10 @@ export type NormalizedChampion = {
 export type NormalizeChampionOptions = {
 	/** Every champion's rank stat rules; each champion takes its own. */
 	rankStatRules?: readonly RankStatRule[]
+	/** Every champion's form ability rules in force on the patch; each champion takes its own. */
+	formAbilityRules?: readonly FormAbilityRule[]
+	/** The game's texts, which name the spells another form swaps in. */
+	strings?: GameStrings
 }
 
 /** Merges Data Dragon `champion/<Id>.json` with the CommunityDragon character bin. */
@@ -174,7 +186,11 @@ export function normalizeChampionWithReport(
 	detail: unknown,
 	characterBin: unknown,
 	version: string,
-	{ rankStatRules = RANK_STAT_RULES }: NormalizeChampionOptions = {},
+	{
+		rankStatRules = RANK_STAT_RULES,
+		formAbilityRules = [],
+		strings = () => undefined,
+	}: NormalizeChampionOptions = {},
 ): NormalizedChampion {
 	const champions = Object.values(ddragonDetailSchema.parse(detail).data)
 	const [champion] = champions
@@ -183,13 +199,14 @@ export function normalizeChampionWithReport(
 	}
 	const record = findRootRecord(characterBin)
 	const stats = champion.stats
-	const { abilities, rankStats, skippedLines } = normalizeAbilities(
+	const bin = characterBin as Record<string, unknown>
+	const normalizedAbilities = normalizeAbilities(
 		{
 			partype: champion.partype,
 			passive: champion.passive,
 			spells: champion.spells,
 		},
-		characterBin as Record<string, unknown>,
+		bin,
 		version,
 		{
 			rankStatRules: rankStatRules.filter(
@@ -197,6 +214,18 @@ export function normalizeChampionWithReport(
 			),
 		},
 	)
+	const { rankStats } = normalizedAbilities
+	const { abilities, skippedLines: skippedFormLines } = normalizeFormAbilities(
+		normalizedAbilities.abilities,
+		formAbilityRules.filter(({ championKey }) => championKey === champion.id),
+		{
+			bin,
+			strings,
+			partype: champion.partype,
+			cdragonPatch: toCommunityDragonPatch(version),
+		},
+	)
+	const skippedLines = normalizedAbilities.skippedLines + skippedFormLines
 
 	const normalized = championSchema.parse({
 		key: champion.id,
@@ -256,6 +285,36 @@ export type ChampionOutputSummary = {
 export type WriteChampionsOptions = {
 	overrides?: readonly ChampionOverride[]
 	rankStatRules?: readonly RankStatRule[]
+	formAbilityRules?: readonly FormAbilityRule[]
+}
+
+const stringTableSchema = z.object({
+	entries: z.record(z.string(), z.string()),
+})
+
+/** The game's English texts by lowercase key (CommunityDragon `lol.stringtable.json`). */
+async function readGameStrings(cacheDir: string): Promise<GameStrings> {
+	const { entries } = stringTableSchema.parse(
+		await readJson(join(cacheDir, "cdragon/lol.stringtable.json")),
+	)
+	return (key) => entries[key]
+}
+
+/** A rank stat on a slot whose ability changes with the form would hold in both forms. */
+function assertRankStatsKeepTheirForm(
+	rankStatRules: readonly RankStatRule[],
+	formAbilityRules: readonly FormAbilityRule[],
+): void {
+	for (const { championKey, slot } of rankStatRules) {
+		const swapped = formAbilityRules.find(
+			(rule) => rule.championKey === championKey && rule.spells[slot],
+		)
+		if (swapped) {
+			throw new Error(
+				`rank stat rule ${championKey} ${slot}: the ${swapped.form} form swaps that ability, so the stat would hold in both forms`,
+			)
+		}
+	}
 }
 
 /**
@@ -269,6 +328,7 @@ export async function writeChampions(
 	{
 		overrides = CHAMPION_OVERRIDES,
 		rankStatRules = RANK_STAT_RULES,
+		formAbilityRules = FORM_ABILITY_RULES,
 	}: WriteChampionsOptions = {},
 ): Promise<ChampionOutputSummary> {
 	const index = buildChampionIndex(
@@ -280,6 +340,21 @@ export async function writeChampions(
 			throw new Error(`rank stat rule ${championKey} ${slot}: no such champion`)
 		}
 	}
+	const formRules = formAbilityRules.filter((rule) =>
+		isInPatchRange(version, rule),
+	)
+	for (const { championKey, form } of formRules) {
+		if (!index.some(({ key }) => key === championKey)) {
+			throw new Error(
+				`form ability rule ${championKey} ${form}: no such champion`,
+			)
+		}
+	}
+	assertRankStatsKeepTheirForm(rankStatRules, formRules)
+	// 31 MB of texts, read only when a form needs its spells' names.
+	const strings = formRules.length
+		? await readGameStrings(cacheDir)
+		: () => undefined
 	const results = await Promise.all(
 		index.map(async ({ key }) => {
 			try {
@@ -287,7 +362,7 @@ export async function writeChampions(
 					await readJson(join(cacheDir, `ddragon/champion/${key}.json`)),
 					await readJson(join(cacheDir, `cdragon/characters/${key}.bin.json`)),
 					version,
-					{ rankStatRules },
+					{ rankStatRules, formAbilityRules: formRules, strings },
 				)
 			} catch (error) {
 				throw new Error(`${key}: ${(error as Error).message}`, {
@@ -306,6 +381,11 @@ export async function writeChampions(
 		const result = championSchema.safeParse(champion)
 		if (!result.success)
 			throw new Error(`${champion.key}: ${result.error.message}`)
+		if (!formAbilitiesFitForms(result.data)) {
+			throw new Error(
+				`${champion.key}: abilities for a form the champion lacks; check FORM_ABILITY_RULES against overrides/champion-forms.ts`,
+			)
+		}
 		if (!skillRulesFitAbilities(result.data)) {
 			throw new Error(
 				`${champion.key}: an ability rank has no level to unlock at; add skill rules (overrides/champion-skill-rules.ts)`,

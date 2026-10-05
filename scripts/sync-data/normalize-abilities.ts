@@ -54,6 +54,26 @@ const spellObjectSchema = z.object({
 			castRange: perRankArray,
 			mAmmoRechargeTime: perRankArray,
 			mMaxAmmo: perRankArray,
+			// Read for the spells another form swaps in, which Data Dragon lacks.
+			cooldownTime: perRankArray,
+			/** From rank 1, unlike the other lists. */
+			mana: z.array(z.number()).optional(),
+			mImgIconName: z.array(z.string()).optional(),
+			mClientData: z
+				.object({
+					mTooltipData: z
+						.object({
+							mObjectName: z.string().optional(),
+							mLocKeys: z
+								.object({
+									keyName: z.string().optional(),
+									keySummary: z.string().optional(),
+								})
+								.optional(),
+						})
+						.optional(),
+				})
+				.optional(),
 		})
 		.optional(),
 })
@@ -65,12 +85,12 @@ const recommendationSchema = z.object({
 	mEarlyLevelOverrides: z.array(z.number().int()).optional(),
 })
 
-type SpellObject = z.infer<typeof spellObjectSchema>
+export type SpellObject = z.infer<typeof spellObjectSchema>
 
 /** A spell's values by lowercase name; index = rank (index 0 is rank 0), as in the game files. */
-type SpellValues = Map<string, readonly (number | null)[]>
+export type SpellValues = Map<string, readonly (number | null)[]>
 
-function round(value: number): number {
+export function round(value: number): number {
 	// CommunityDragon stores float32 values (0.07999999821186066).
 	return Math.round(value * 10_000) / 10_000
 }
@@ -97,6 +117,19 @@ function entriesOfType(bin: Record<string, unknown>, type: string) {
 	)
 }
 
+/** The game files' spell whose path ends with `/<name>` ("JayceShockBlast"), or undefined. */
+export function findSpellObject(
+	bin: Record<string, unknown>,
+	name: string,
+): SpellObject | undefined {
+	const suffix = `/${name}`.toLowerCase()
+	const found = entriesOfType(bin, "SpellObject").filter(([path]) =>
+		path.toLowerCase().endsWith(suffix),
+	)
+	if (found.length > 1) throw new Error(`several SpellObjects for ${name}`)
+	return found[0] && spellObjectSchema.parse(found[0][1])
+}
+
 /** The game files' spell for each slot, through the character record's `spellNames`. */
 function findSpellObjects(bin: Record<string, unknown>): SpellObject[] {
 	const [root] = entriesOfType(bin, "CharacterRecord").filter(([path]) =>
@@ -116,7 +149,7 @@ function findSpellObjects(bin: Record<string, unknown>): SpellObject[] {
 	})
 }
 
-function spellValues(spellObject: SpellObject): SpellValues {
+export function spellValues(spellObject: SpellObject): SpellValues {
 	const spell = spellObject.mSpell
 	const values: SpellValues = new Map()
 	const add = (name: string, list: readonly (number | null)[] | undefined) => {
@@ -138,7 +171,7 @@ function spellValues(spellObject: SpellObject): SpellValues {
 const RANK_VALUE_PATTERN =
 	/^\{\{\s*([a-z0-9_]+)\s*(?:\*\s*(-?\d+(?:\.\d+)?)\s*)?\}\}(%?)$/i
 
-type RankValueContext = {
+export type RankValueContext = {
 	maxRank: number
 	cooldown: readonly number[]
 	cost: readonly number[]
@@ -166,8 +199,10 @@ function valuesPerRank(
  * The rank-up tooltip's lines ("Damage 80 → 125") from Data Dragon's `leveltip`, with the values
  * from the game files. A line whose value the data does not have is left out.
  */
+export type Leveltip = z.infer<typeof ddragonSpellSchema>["leveltip"]
+
 export function rankValues(
-	leveltip: z.infer<typeof ddragonSpellSchema>["leveltip"],
+	leveltip: Leveltip,
 	{ partype, ...context }: RankValueContext & { partype: string },
 ): { lines: AbilityRankValue[]; skipped: number } {
 	const lines: AbilityRankValue[] = []
