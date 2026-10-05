@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { type GameStrings, spellCombatFields } from "./damage-formulas"
 import { type RankStatRule, rankStatValues } from "./rank-stats"
 import {
 	ABILITY_SLOTS,
@@ -58,6 +59,10 @@ const spellObjectSchema = z.object({
 			cooldownTime: perRankArray,
 			/** From rank 1, unlike the other lists. */
 			mana: z.array(z.number()).optional(),
+			mCastTime: z.number().optional(),
+			spellCastTime: z.number().optional(),
+			/** The tooltip's calculations by name; read by `damage-formulas.ts`. */
+			mSpellCalculations: z.record(z.string(), z.unknown()).optional(),
 			mImgIconName: z.array(z.string()).optional(),
 			mClientData: z
 				.object({
@@ -68,6 +73,7 @@ const spellObjectSchema = z.object({
 								.object({
 									keyName: z.string().optional(),
 									keySummary: z.string().optional(),
+									keyTooltip: z.string().optional(),
 								})
 								.optional(),
 						})
@@ -130,14 +136,29 @@ export function findSpellObject(
 	return found[0] && spellObjectSchema.parse(found[0][1])
 }
 
+function rootRecord(bin: Record<string, unknown>) {
+	return entriesOfType(bin, "CharacterRecord").find(([path]) =>
+		path.endsWith("/CharacterRecords/Root"),
+	)?.[1]
+}
+
+/** The passive's spell in the game files (`mCharacterPassiveSpell`), when the record names one. */
+function findPassiveObject(
+	bin: Record<string, unknown>,
+): SpellObject | undefined {
+	const path = z
+		.object({ mCharacterPassiveSpell: z.string().optional() })
+		.parse(rootRecord(bin) ?? {}).mCharacterPassiveSpell
+	const found = path ? bin[path] : undefined
+	return found ? spellObjectSchema.parse(found) : undefined
+}
+
 /** The game files' spell for each slot, through the character record's `spellNames`. */
 function findSpellObjects(bin: Record<string, unknown>): SpellObject[] {
-	const [root] = entriesOfType(bin, "CharacterRecord").filter(([path]) =>
-		path.endsWith("/CharacterRecords/Root"),
-	)
+	const root = rootRecord(bin)
 	const spellNames = z
 		.object({ spellNames: z.array(z.string()).min(ABILITY_SLOTS.length) })
-		.parse(root?.[1]).spellNames
+		.parse(root).spellNames
 	const spellObjects = entriesOfType(bin, "SpellObject")
 	return ABILITY_SLOTS.map((slot, index) => {
 		const suffix = `/${spellNames[index]}`.toLowerCase()
@@ -281,6 +302,8 @@ export type NormalizedAbilities = {
 export type NormalizeAbilitiesOptions = {
 	/** This champion's `RANK_STAT_RULES`. */
 	rankStatRules?: readonly RankStatRule[]
+	/** The game's texts, whose tooltips name the damage calculations; without them, no damage is read. */
+	strings?: GameStrings
 }
 
 /** Merges Data Dragon's passive and spells with the game files' per-rank values. Pure. */
@@ -288,12 +311,22 @@ export function normalizeAbilities(
 	{ partype, passive, spells }: DdragonAbilities,
 	characterBin: Record<string, unknown>,
 	version: string,
-	{ rankStatRules = [] }: NormalizeAbilitiesOptions = {},
+	{
+		rankStatRules = [],
+		strings = () => undefined,
+	}: NormalizeAbilitiesOptions = {},
 ): NormalizedAbilities {
 	if (spells.length !== ABILITY_SLOTS.length) {
 		throw new Error(`expected 4 spells, found ${spells.length}`)
 	}
-	const valuesBySlot = findSpellObjects(characterBin).map(spellValues)
+	const spellObjects = findSpellObjects(characterBin)
+	const valuesBySlot = spellObjects.map(spellValues)
+	const passiveObject = findPassiveObject(characterBin)
+	const combat = {
+		strings,
+		findSpell: (name: string) => findSpellObject(characterBin, name),
+		spellValues,
+	}
 	let skippedLines = 0
 	const normalized = ABILITY_SLOTS.map((slot, index): ChampionSpell => {
 		const spell = spells[index] as (typeof spells)[number]
@@ -318,6 +351,10 @@ export function normalizeAbilities(
 			cooldown: [...spell.cooldown],
 			...(cost ? { cost } : {}),
 			rankValues: lines,
+			...spellCombatFields(spellObjects[index] as SpellObject, {
+				...combat,
+				maxRank: spell.maxrank,
+			}),
 		}
 	})
 	const order = recommendedOrder(characterBin)
@@ -339,6 +376,7 @@ export function normalizeAbilities(
 				name: passive.name,
 				description: plainText(passive.description),
 				icon: `${DDRAGON_CDN}/${version}/img/passive/${passive.image.full}`,
+				...(passiveObject && spellCombatFields(passiveObject, combat)),
 			},
 			spells: normalized as ChampionAbilities["spells"],
 			...(order ? { recommendedOrder: order } : {}),

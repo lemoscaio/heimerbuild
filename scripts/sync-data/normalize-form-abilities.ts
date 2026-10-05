@@ -1,3 +1,4 @@
+import { type GameStrings, spellCombatFields } from "./damage-formulas"
 import type {
 	FormAbilityRule,
 	FormDisplay,
@@ -22,9 +23,6 @@ import {
 
 const CDRAGON_RAW = "https://raw.communitydragon.org"
 const NO_COST = { text: "No Cost" } as const
-
-/** The game's text by lowercase key, from CommunityDragon's `lol.stringtable.json`. */
-export type GameStrings = (key: string) => string | undefined
 
 /**
  * The rank-up lines the client generates for a spell (`<postScriptLeft>Damage<br>…`,
@@ -243,6 +241,12 @@ export function normalizeFormSpell(
 			cost,
 			rankValues: lines,
 			...unavailableIn(rule),
+			...spellCombatFields(spell, {
+				strings,
+				maxRank,
+				findSpell: (name) => findSpellObject(bin, name),
+				spellValues,
+			}),
 		},
 		skipped,
 	}
