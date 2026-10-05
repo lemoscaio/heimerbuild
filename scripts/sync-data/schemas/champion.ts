@@ -159,6 +159,13 @@ export const championSpellSchema = z
 		cost: z.optional(abilityCostSchema),
 		/** What changes at each rank, as the game's rank-up tooltip lists it. */
 		rankValues: z.array(abilityRankValueSchema),
+		/**
+		 * The form this ability belongs to can't cast it (Mini Gnar's GNAR!), with the reason to show.
+		 * Its rank still counts for the slot. Synced from `FORM_ABILITY_RULES`.
+		 */
+		unavailable: z.optional(
+			z.strictObject({ reason: z.string().check(z.minLength(1)) }),
+		),
 	})
 	.check(
 		z.refine(
