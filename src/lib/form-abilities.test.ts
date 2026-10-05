@@ -27,7 +27,15 @@ const JAYCE: ChampionAbilities = {
 		spell("R", "Mercury Cannon"),
 	],
 	forms: {
-		cannon: { Q: spell("Q", "Shock Blast"), R: spell("R", "Mercury Hammer") },
+		cannon: {
+			passive: {
+				name: "Hextech Capacitor",
+				description: "",
+				icon: "https://example.test/passive-cannon.png",
+			},
+			Q: spell("Q", "Shock Blast"),
+			R: spell("R", "Mercury Hammer"),
+		},
 	},
 }
 
@@ -43,6 +51,9 @@ describe("abilitiesInForm", () => {
 			"Thundering Blow",
 			"Mercury Hammer",
 		])
+		expect(abilitiesInForm(JAYCE, "cannon").passive.icon).toBe(
+			"https://example.test/passive-cannon.png",
+		)
 	})
 
 	test("the default form, an unknown form or no form keeps the abilities as they are", () => {

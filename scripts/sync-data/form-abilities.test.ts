@@ -198,3 +198,81 @@ describe("form abilities in the current patch data (wiki)", () => {
 		])
 	})
 })
+
+/** The audit (issue 309): what each form shows differently from the default form, by slot. */
+const AUDIT: Record<string, Record<string, readonly string[]>> = {
+	Jayce: { cannon: ["passive", "Q", "W", "E", "R"] },
+	Nidalee: { cougar: ["Q", "W", "E", "R"] },
+	Elise: { spider: ["Q", "W", "E", "R"] },
+	Gnar: { mega: ["Q", "W", "E", "R"] },
+	Kled: { dismounted: ["passive", "Q", "E", "R"] },
+	Jinx: { rockets: ["Q"] },
+	// Same icon and text in both forms in the game files: the form empowers the abilities.
+	Shyvana: { dragon: [] },
+	Belveth: { "true-form": [] },
+}
+
+const DISPLAY_SLOTS = ["passive", ...ABILITY_SLOTS] as const
+
+/** What a slot shows in a form: its own entry, else the default form's. */
+function displayInForm(
+	{ abilities }: Champion,
+	form: string,
+	slot: (typeof DISPLAY_SLOTS)[number],
+) {
+	const own = abilities.forms?.[form]?.[slot]
+	if (own) return own
+	return slot === "passive"
+		? abilities.passive
+		: abilities.spells[ABILITY_SLOTS.indexOf(slot)]
+}
+
+describe("every form champion's slots in the current patch data", () => {
+	test("the audit covers every champion with forms", () => {
+		expect(CHAMPION_FORMS.map(({ target }) => target).toSorted()).toEqual(
+			Object.keys(AUDIT).toSorted(),
+		)
+	})
+
+	test.each(Object.entries(AUDIT))(
+		"%s shows each slot as its form does",
+		async (key, audit) => {
+			const champion = await currentChampion(key)
+			const defaultForm = champion.forms?.[0]?.id ?? ""
+			for (const [form, changed] of Object.entries(audit)) {
+				const differs = DISPLAY_SLOTS.filter((slot) => {
+					const display = displayInForm(champion, form, slot)
+					const fallback = displayInForm(champion, defaultForm, slot)
+					expect(display?.name).toBeTruthy()
+					expect(display?.icon).toMatch(/^https:\/\//)
+					return JSON.stringify(display) !== JSON.stringify(fallback)
+				})
+				expect<string[]>(differs).toEqual([...changed])
+			}
+		},
+	)
+
+	test("Jinx's Q shows Pow-Pow with the Minigun and Fishbones with the Rockets, one line each", async () => {
+		const jinx = await currentChampion("Jinx")
+		const minigun = displayInForm(jinx, "minigun", "Q")
+		const rockets = displayInForm(jinx, "rockets", "Q")
+
+		expect(minigun).toMatchObject({
+			name: "Switcheroo! (Pow-Pow)",
+			icon: "https://raw.communitydragon.org/16.19/game/assets/characters/jinx/hud/icons2d/jinx_q2.png",
+			rankValues: [
+				{ label: "Minigun Total Attack Speed", values: [30, 55, 80, 105, 130] },
+			],
+		})
+		expect(rockets).toMatchObject({
+			name: "Switcheroo! (Fishbones)",
+			icon: "https://raw.communitydragon.org/16.19/game/assets/characters/jinx/hud/icons2d/jinx_q1.png",
+			rankValues: [
+				{ label: "Rocket Bonus Range", values: [100, 125, 150, 175, 200] },
+			],
+		})
+		expect(rockets?.description).toStartWith(
+			"Jinx is using her rocket launcher",
+		)
+	})
+})

@@ -14,8 +14,14 @@ import { championAbilitiesSchema } from "./schemas/champion"
 // Trimmed copies of the Data Dragon 16.19.1 / CommunityDragon 16.19 cache.
 const VERSION = "16.19.1"
 const bin = jayceBin as Record<string, unknown>
+const MODE_TEXTS: Record<string, string> = {
+	game_buff_tooltip_jaycehammer:
+		"<titleLeft>Hammer</titleLeft><mainText>Jayce swings his <b>hammer</b>.</mainText>",
+	game_buff_tooltip_jaycecannon:
+		"<titleLeft>Cannon</titleLeft><mainText>Jayce fires his cannon.</mainText>",
+}
 const strings = (key: string) =>
-	(jayceStrings.entries as Record<string, string>)[key]
+	MODE_TEXTS[key] ?? (jayceStrings.entries as Record<string, string>)[key]
 
 const CANNON: FormAbilityRule = {
 	championKey: "Jayce",
@@ -108,6 +114,50 @@ describe("normalizeFormAbilities", () => {
 		// Without `splitDescription`, both forms keep the whole description.
 		expect(abilities.forms?.cannon?.Q?.description).toStartWith("Fires")
 		expect(abilities.spells[0].description).toContain("Cannon Stance")
+	})
+
+	test("the slot's own spell keeps the ability and changes only its look in each form", () => {
+		const rule: FormAbilityRule = {
+			...CANNON,
+			passive: { spell: "JaycePassive", icon: 1, default: { icon: 0 } },
+			spells: {
+				Q: {
+					spell: "JayceToTheSkies",
+					icon: 1,
+					lines: ["Slow"],
+					modeText: "game_buff_tooltip_JayceCannon",
+					default: {
+						lines: ["Damage"],
+						modeText: "game_buff_tooltip_JayceHammer",
+					},
+				},
+			},
+		}
+
+		const { abilities } = jayce([rule])
+		const [hammerQ] = abilities.spells
+		const cannonQ = abilities.forms?.cannon?.Q
+
+		expect(championAbilitiesSchema.safeParse(abilities).success).toBe(true)
+		expect(hammerQ).toMatchObject({
+			name: "To the Skies! / Shock Blast (Hammer)",
+			description: "Jayce swings his hammer.",
+			cooldown: [16, 14, 12, 10, 8, 6],
+		})
+		expect(hammerQ.rankValues.map(({ label }) => label)).toEqual(["Damage"])
+		expect(cannonQ).toMatchObject({
+			name: "To the Skies! / Shock Blast (Cannon)",
+			description: "Jayce fires his cannon.",
+			icon: "https://raw.communitydragon.org/16.19/game/assets/characters/jayce/hud/icons2d/jayceq_melee.png",
+			cooldown: hammerQ.cooldown,
+			cost: hammerQ.cost,
+		})
+		expect(cannonQ?.rankValues.map(({ label }) => label)).toEqual(["Slow"])
+		expect(abilities.passive.icon).toEndWith("/jaycep_melee.png")
+		expect(abilities.forms?.cannon?.passive).toMatchObject({
+			name: "Hextech Capacitor",
+			icon: "https://raw.communitydragon.org/16.19/game/assets/characters/jayce/hud/icons2d/jaycep_ranged.png",
+		})
 	})
 
 	test("fails on a spell or line the game files lack", () => {

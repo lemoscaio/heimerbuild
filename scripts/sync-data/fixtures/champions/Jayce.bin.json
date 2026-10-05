@@ -493,5 +493,14 @@
 				}
 			}
 		}
+	},
+	"Characters/Jayce/Spells/JaycePassiveAbility/JaycePassive": {
+		"__type": "SpellObject",
+		"mSpell": {
+			"mImgIconName": [
+				"ASSETS/Characters/Jayce/HUD/Icons2D/JayceP_Melee.dds",
+				"ASSETS/Characters/Jayce/HUD/Icons2D/JayceP_Ranged.dds"
+			]
+		}
 	}
 }
