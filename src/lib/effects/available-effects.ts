@@ -1,4 +1,4 @@
-import type { ChampionSpell } from "@schemas/champion"
+import type { Champion, ChampionSpell } from "@schemas/champion"
 import { isInPatchRange } from "@schemas/patch-range"
 import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
@@ -15,6 +15,8 @@ export type EffectsBuild = {
 	patch: string
 	champion: {
 		key: string
+		/** The champion's forms, which name the form an effect holds in. */
+		forms?: Champion["forms"]
 		abilities: {
 			spells: readonly (Pick<ChampionSpell, "slot" | "name" | "icon"> &
 				Partial<Pick<ChampionSpell, "rankValues">>)[]
@@ -53,12 +55,16 @@ function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 			const isRanked =
 				build.champion.key === source.championKey &&
 				build.ranks[source.slot] > 0
+			const formName = build.champion.forms?.find(
+				({ id }) => id === effect.form,
+			)?.name
 			return ability && isRanked
 				? [
 						{
 							...named(effect, ability),
 							slot: source.slot,
 							rankValues: ability.rankValues,
+							...(formName && { formName }),
 						},
 					]
 				: []

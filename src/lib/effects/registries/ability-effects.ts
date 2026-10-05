@@ -218,6 +218,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		id: "jinx-q-revd-up",
 		source: { kind: "ability", championKey: "Jinx", slot: "Q" },
 		form: "minigun",
+		label: "Rev'd up",
 		trigger: { kind: "on-hit" },
 		duration: 2.5,
 		stacks: { max: 3 },

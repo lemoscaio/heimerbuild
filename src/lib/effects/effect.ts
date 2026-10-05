@@ -125,6 +125,8 @@ export type Effect = PatchRange & {
 	part?: "passive" | "active"
 	/** The champion form it holds in, by form id ("dragon"); absent means every form. */
 	form?: string
+	/** Its row's name in the Effects list when neither the part nor the form says it ("Rev'd up"). */
+	label?: string
 	/** The page the numbers were checked against. */
 	sourceUrl: string
 }
@@ -143,6 +145,8 @@ export type BuildEffect = {
 	rankValues?: readonly AbilityRankValue[]
 	/** The spell the `level` and `summonerCooldown` amounts read: the source, or the one cast. */
 	spell?: SummonerSpell
+	/** The name of the form it holds in ("Dragon"), for an effect bound to one. */
+	formName?: string
 }
 
 /** The user's choices that differ from each effect's default, by `BuildEffect.id`. */
