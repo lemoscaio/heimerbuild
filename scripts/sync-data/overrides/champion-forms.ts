@@ -111,7 +111,7 @@ export const CHAMPION_FORMS = [
 		championKey: "Jayce",
 		since: "16.19",
 		reason:
-			"Cannon Jayce is ranged with 500 range; Hammer's bonus resistances depend on the R rank and are not modeled yet",
+			"Cannon Jayce is ranged with 500 range; Hammer's bonus armor and magic resist come from the champion level and bonus AD (the jayce-hammer-stance effect)",
 		source:
 			"https://wiki.leagueoflegends.com/en-us/Template:Data_Jayce/Transform_Mercury_Cannon",
 		forms: [
@@ -121,6 +121,54 @@ export const CHAMPION_FORMS = [
 				name: "Cannon",
 				attackType: "ranged",
 				stats: { attackRange: { base: 500, perLevel: 0 } },
+			},
+		],
+	}),
+	defineForms({
+		id: "shyvana-forms",
+		championKey: "Shyvana",
+		since: "16.19",
+		reason:
+			"Dragon Form comes with Dragon's Descent (R); its bonus health and range are the shyvana-r-dragon-form effect",
+		source:
+			"https://wiki.leagueoflegends.com/en-us/Template:Data_Shyvana/Dragon%27s_Descent",
+		forms: [
+			{ id: "human", name: "Human" },
+			{ id: "dragon", name: "Dragon", requires: { slot: "R", minRank: 1 } },
+		],
+	}),
+	defineForms({
+		id: "jinx-forms",
+		championKey: "Jinx",
+		since: "16.19",
+		reason:
+			"Switcheroo! (Q) swaps Pow-Pow for Fishbones once learned; the rockets' range and the minigun's Rev'd up are effects",
+		source:
+			"https://wiki.leagueoflegends.com/en-us/Template:Data_Jinx/Switcheroo!",
+		forms: [
+			{ id: "minigun", name: "Minigun", gameName: "Pow-Pow" },
+			{
+				id: "rockets",
+				name: "Rockets",
+				gameName: "Fishbones",
+				requires: { slot: "Q", minRank: 1 },
+			},
+		],
+	}),
+	defineForms({
+		id: "belveth-forms",
+		championKey: "Belveth",
+		since: "16.19",
+		reason:
+			"True Form comes with Endless Banquet (R); its bonus health, range and attack speed are the belveth-r-true-form effect",
+		source:
+			"https://wiki.leagueoflegends.com/en-us/Template:Data_Bel%27Veth/Endless_Banquet",
+		forms: [
+			{ id: "base", name: "Base" },
+			{
+				id: "true-form",
+				name: "True Form",
+				requires: { slot: "R", minRank: 1 },
 			},
 		],
 	}),

@@ -20,7 +20,7 @@
 		"16.19.1/champions/Aurora.json": "f3d94cc7b0",
 		"16.19.1/champions/Azir.json": "df278676d3",
 		"16.19.1/champions/Bard.json": "acc08c6eda",
-		"16.19.1/champions/Belveth.json": "8ec85d6479",
+		"16.19.1/champions/Belveth.json": "108b9f31b8",
 		"16.19.1/champions/Blitzcrank.json": "26a430e312",
 		"16.19.1/champions/Brand.json": "c3be1b99cc",
 		"16.19.1/champions/Braum.json": "762a5def01",
@@ -59,7 +59,7 @@
 		"16.19.1/champions/Jax.json": "fee29102a4",
 		"16.19.1/champions/Jayce.json": "4157a1002f",
 		"16.19.1/champions/Jhin.json": "537922238a",
-		"16.19.1/champions/Jinx.json": "b7e13dc241",
+		"16.19.1/champions/Jinx.json": "2684c746ea",
 		"16.19.1/champions/KSante.json": "5df333dbba",
 		"16.19.1/champions/Kaisa.json": "5f9973b9bb",
 		"16.19.1/champions/Kalista.json": "3e286f8923",
@@ -127,7 +127,7 @@
 		"16.19.1/champions/Sett.json": "4b45bff6f6",
 		"16.19.1/champions/Shaco.json": "827bbcc457",
 		"16.19.1/champions/Shen.json": "785a311f67",
-		"16.19.1/champions/Shyvana.json": "e62c528207",
+		"16.19.1/champions/Shyvana.json": "1b6b9c57d5",
 		"16.19.1/champions/Singed.json": "6c2a3a4cd5",
 		"16.19.1/champions/Sion.json": "c1ea7f1354",
 		"16.19.1/champions/Sivir.json": "80fd43ae0e",
@@ -182,5 +182,5 @@
 		"16.19.1/runes.json": "51aeb100e8",
 		"16.19.1/summoner-spells.json": "8a4cd741cf"
 	},
-	"generatedAt": "2026-10-02T22:48:35.745Z"
+	"generatedAt": "2026-10-04T21:47:46.945Z"
 }

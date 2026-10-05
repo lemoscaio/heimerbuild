@@ -15,6 +15,23 @@ function percentLine(label: string): Amount & { by: "rankValue" } {
 	return { by: "rankValue", label, scale: 0.01 }
 }
 
+/** Hammer Stance armor and magic resist: 5 to 26 at levels 1, 6, 11 and 16 (wiki), plus 7.5% bonus AD. */
+const HAMMER_RESIST_STEPS: Amount = {
+	by: "championLevel",
+	steps: [
+		{ from: 1, value: 5 },
+		{ from: 6, value: 12 },
+		{ from: 11, value: 19 },
+		{ from: 16, value: 26 },
+	],
+}
+const HAMMER_RESIST_FROM_AD: Amount = {
+	by: "stat",
+	stat: "attackDamage",
+	part: "bonus",
+	ratio: 0.075,
+}
+
 /**
  * Champions' ability effects; their numbers are the synced rank stats and tooltip lines they read.
  * An `always` one is a passive the champion always has, shown without a switch.
@@ -144,5 +161,115 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Tryndamere/Bloodlust`,
+	},
+	{
+		id: "jayce-hammer-stance",
+		source: { kind: "ability", championKey: "Jayce", slot: "R" },
+		form: "hammer",
+		trigger: { kind: "always" },
+		grants: [
+			{ kind: "stat", stat: "armor", amount: HAMMER_RESIST_STEPS },
+			{ kind: "stat", stat: "magicResist", amount: HAMMER_RESIST_STEPS },
+			{ kind: "stat", stat: "armor", amount: HAMMER_RESIST_FROM_AD },
+			{ kind: "stat", stat: "magicResist", amount: HAMMER_RESIST_FROM_AD },
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Jayce/Transform_Mercury_Hammer`,
+	},
+	{
+		id: "shyvana-r-dragon-form",
+		source: { kind: "ability", championKey: "Shyvana", slot: "R" },
+		form: "dragon",
+		trigger: { kind: "always" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "health",
+				amount: { by: "rankValue", label: "Bonus Health" },
+			},
+			{
+				kind: "stat",
+				stat: "attackRange",
+				amount: { by: "rankValue", label: "Attack Range" },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Shyvana/Dragon%27s_Descent`,
+	},
+	{
+		// Fishbones keeps 90% of Jinx's bonus attack speed (wiki; not in the tooltip).
+		id: "jinx-q-rockets",
+		source: { kind: "ability", championKey: "Jinx", slot: "Q" },
+		form: "rockets",
+		trigger: { kind: "always" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackRange",
+				amount: { by: "rankValue", label: "Rocket Bonus Range" },
+			},
+			{ kind: "attackSpeedMultiplier", of: "bonus", amount: -0.1 },
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Jinx/Switcheroo!`,
+	},
+	{
+		// The tooltip line is the 3 stacks' bonus attack speed; each lasts 2.5 s (wiki).
+		id: "jinx-q-revd-up",
+		source: { kind: "ability", championKey: "Jinx", slot: "Q" },
+		form: "minigun",
+		trigger: { kind: "on-hit" },
+		duration: 2.5,
+		stacks: { max: 3 },
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				amount: percentLine("Minigun Total Attack Speed"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Jinx/Switcheroo!`,
+	},
+	{
+		// The 150% bonus AD and AP health ratios are the wiki's; the tooltip has the base only.
+		id: "belveth-r-true-form",
+		source: { kind: "ability", championKey: "Belveth", slot: "R" },
+		form: "true-form",
+		trigger: { kind: "always" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "health",
+				amount: { by: "rankValue", label: "Bonus Health" },
+			},
+			{
+				kind: "stat",
+				stat: "health",
+				amount: {
+					by: "stat",
+					stat: "attackDamage",
+					part: "bonus",
+					ratio: 1.5,
+				},
+			},
+			{
+				kind: "stat",
+				stat: "health",
+				amount: { by: "stat", stat: "abilityPower", ratio: 1.5 },
+			},
+			{
+				kind: "stat",
+				stat: "attackRange",
+				amount: { by: "rankValue", label: "Range" },
+			},
+			{
+				kind: "attackSpeedMultiplier",
+				of: "total",
+				amount: percentLine("Attack Speed"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Bel%27Veth/Endless_Banquet`,
 	},
 ]
