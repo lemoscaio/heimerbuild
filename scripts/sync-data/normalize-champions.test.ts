@@ -281,6 +281,7 @@ describe("writeChampions", () => {
 
 			const result = await writeChampions(cacheDir, outDir, VERSION, {
 				rankStatRules: [],
+				formAbilityRules: [],
 			})
 
 			expect(result.champions).toBe(1)
@@ -308,6 +309,7 @@ describe("writeChampions", () => {
 			const result = await writeChampions(cacheDir, outDir, VERSION, {
 				overrides: [override],
 				rankStatRules: [],
+				formAbilityRules: [],
 			})
 
 			const written = JSON.parse(
@@ -335,6 +337,7 @@ describe("writeChampions", () => {
 				writeChampions(cacheDir, outDir, VERSION, {
 					overrides: [override],
 					rankStatRules: [],
+					formAbilityRules: [],
 				}),
 			).rejects.toThrow("Heimerdinger:")
 			expect(await readdir(outDir)).toEqual([])
@@ -353,8 +356,47 @@ describe("writeChampions", () => {
 			}
 
 			await expect(
-				writeChampions(cacheDir, outDir, VERSION, { rankStatRules: [rule] }),
+				writeChampions(cacheDir, outDir, VERSION, {
+					rankStatRules: [rule],
+					formAbilityRules: [],
+				}),
 			).rejects.toThrow("rank stat rule Teemo W: no such champion")
+		}))
+
+	test("fails on a form ability rule for a champion that is gone, or under a rank stat", () =>
+		withDirs(async (cacheDir, outDir) => {
+			await writeList(cacheDir, ["Heimerdinger"])
+			const formRule = {
+				championKey: "Teemo",
+				form: "mushroom",
+				since: "16.19" as const,
+				reason: "test",
+				source: "test",
+				spells: { W: { spell: "TeemoW" } },
+			}
+			const rankStatRule = {
+				championKey: "Teemo",
+				slot: "W" as const,
+				stat: "movementSpeedPercent" as const,
+				dataValue: "PassiveMoveSpeedBonus",
+				reason: "test",
+				source: "test",
+			}
+
+			await expect(
+				writeChampions(cacheDir, outDir, VERSION, {
+					rankStatRules: [],
+					formAbilityRules: [formRule],
+				}),
+			).rejects.toThrow("form ability rule Teemo mushroom: no such champion")
+			await expect(
+				writeChampions(cacheDir, outDir, VERSION, {
+					rankStatRules: [{ ...rankStatRule, championKey: "Heimerdinger" }],
+					formAbilityRules: [{ ...formRule, championKey: "Heimerdinger" }],
+				}),
+			).rejects.toThrow(
+				"rank stat rule Heimerdinger W: the mushroom form swaps that ability",
+			)
 		}))
 
 	test("writes nothing when one champion fails", () =>
@@ -362,7 +404,10 @@ describe("writeChampions", () => {
 			await writeList(cacheDir, ["Heimerdinger", "Missing"])
 
 			await expect(
-				writeChampions(cacheDir, outDir, VERSION, { rankStatRules: [] }),
+				writeChampions(cacheDir, outDir, VERSION, {
+					rankStatRules: [],
+					formAbilityRules: [],
+				}),
 			).rejects.toThrow("Missing:")
 			expect(await readdir(outDir)).toEqual([])
 		}))

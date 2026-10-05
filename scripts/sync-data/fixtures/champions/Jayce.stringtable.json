@@ -1,0 +1,28 @@
+{
+	"entries": {
+		"spell_jaycetotheskies_name": "To the Skies! / Shock Blast",
+		"spell_jaycetotheskies_summary": "Hammer Stance: Leaps to an enemy dealing physical damage and slowing enemies.<br><br>Cannon Stance: Fires an orb of electricity that detonates upon hitting an enemy (or reaching the end of its path) dealing physical damage to all enemies hit.",
+		"generatedtip_spell_jaycetotheskies_tooltipleveluplist": "<postScriptLeft>Damage<br>Cooldown<br>Slow</postScriptLeft><postScriptRight>@BaseDamage@ -> @BaseDamageNL@<br>@Cooldown@ -> @CooldownNL@<br>@Slow*-100.000000@% -> @SlowNL*-100.000000@%</postScriptRight>",
+		"spell_jaycestaticfield_name": "Lightning Field / Hyper Charge",
+		"spell_jaycestaticfield_summary": "Hammer Stance: Passive: Restores Mana per strike. Active: Creates a field of lightning damaging nearby enemies for several seconds.<br><br>Cannon Stance: Gains a burst of energy, increasing Attack Speed to maximum for several attacks.",
+		"generatedtip_spell_jaycestaticfield_tooltipleveluplist": "<postScriptLeft>Damage<br>Mana Restore</postScriptLeft><postScriptRight>@BaseDamage@ -> @BaseDamageNL@<br>@ManaGain@ -> @ManaGainNL@</postScriptRight>",
+		"spell_jaycethunderingblow_name": "Thundering Blow / Acceleration Gate",
+		"spell_jaycethunderingblow_summary": "Hammer Stance: Deals magic damage to an enemy and knocks them back a short distance.<br><br>Cannon Stance: Deploys an Acceleration Gate increasing the Move Speed of all allied champions who pass through it. If Shock Blast is fired through the gate the missile speed, range, and damage will increase.",
+		"generatedtip_spell_jaycethunderingblow_tooltipleveluplist": "<postScriptLeft>Max Health %<br>Cooldown<br>Monster Damage Cap</postScriptLeft><postScriptRight>@PercHPDamage*100.000000@% -> @PercHPDamageNL*100.000000@%<br>@Cooldown@ -> @CooldownNL@<br>@MonsterCap@ -> @MonsterCapNL@</postScriptRight>",
+		"spell_jaycestancehtg_name": "Mercury Cannon / Mercury Hammer",
+		"spell_jaycestancehtg_summary": "Hammer Stance: Transforms the Mercury Hammer into the Mercury Cannon gaining new abilities and increased range. The first attack in this form reduces the target's Armor and Magic Resist.<br><br>Cannon Stance: Transforms the Mercury Cannon into the Mercury Hammer gaining new abilities and increasing Armor and Magic Resist. The first attack in this form deals additional magic damage.",
+		"generatedtip_spell_jaycestancehtg_tooltipleveluplist": "<postScriptLeft></postScriptLeft><postScriptRight></postScriptRight>",
+		"spell_jayceshockblast_name": "Shock Blast",
+		"spell_jayceshockblast_summary": "Fires an orb of electricity that detonates upon hitting an enemy (or reaching the end of its path) dealing physical damage to all enemies in the area of the explosion.",
+		"generatedtip_spell_jayceshockblast_tooltipleveluplist": "<postScriptLeft>Damage<br>@AbilityResourceName@ Cost</postScriptLeft><postScriptRight>@BaseDamage@ -> @BaseDamageNL@<br>@Cost@ -> @CostNL@</postScriptRight>",
+		"spell_jaycehypercharge_name": "Hyper Charge",
+		"spell_jaycehypercharge_summary": "Gains a burst of energy increasing Attack Speed to maximum for several attacks.",
+		"generatedtip_spell_jaycehypercharge_tooltipleveluplist": "<postScriptLeft>Damage per Shot<br>Cooldown</postScriptLeft><postScriptRight>@DamagePerc*100.000000@% -> @DamagePercNL*100.000000@%<br>@Cooldown@ -> @CooldownNL@</postScriptRight>",
+		"spell_jayceaccelerationgate_name": "Acceleration Gate",
+		"spell_jayceaccelerationgate_summary": "Deploys an Acceleration Gate increasing the Move Speed of all allied champions who pass through it.<br>If Shock Blast is fired through the gate the missile speed, range, and damage will increase.",
+		"generatedtip_spell_jayceaccelerationgate_tooltipleveluplist": "<postScriptLeft>Move Speed</postScriptLeft><postScriptRight>@MovementSpeed*100.000000@% -> @MovementSpeedNL*100.000000@%</postScriptRight>",
+		"spell_jaycestancegth_name": "Mercury Hammer / Mercury Cannon",
+		"spell_jaycestancegth_summary": "Transforms the Mercury Cannon into the Mercury Hammer gaining new abilities and increasing Armor and Magic Resist. The first attack in this form deals additional magic damage.",
+		"generatedtip_spell_jaycestancegth_tooltipleveluplist": "<postScriptLeft></postScriptLeft><postScriptRight></postScriptRight>"
+	}
+}
