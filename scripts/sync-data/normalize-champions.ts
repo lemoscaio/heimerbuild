@@ -1,16 +1,15 @@
 import { mkdir, rm, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { z } from "zod"
+import { type ChampionCoverage, damageCoverage } from "./damage-coverage"
+import type { GameStrings } from "./damage-formulas"
 import { FORM_ABILITY_RULES, type FormAbilityRule } from "./form-abilities"
 import {
 	ddragonPassiveSchema,
 	ddragonSpellSchema,
 	normalizeAbilities,
 } from "./normalize-abilities"
-import {
-	type GameStrings,
-	normalizeFormAbilities,
-} from "./normalize-form-abilities"
+import { normalizeFormAbilities } from "./normalize-form-abilities"
 import {
 	applyOverrides,
 	type OverrideReport,
@@ -212,6 +211,7 @@ export function normalizeChampionWithReport(
 			rankStatRules: rankStatRules.filter(
 				({ championKey }) => championKey === champion.id,
 			),
+			strings,
 		},
 	)
 	const { rankStats } = normalizedAbilities
@@ -280,6 +280,8 @@ export type ChampionOutputSummary = {
 	indexBytes: number
 	totalBytes: number
 	overrides: OverrideReport
+	/** How much of each ability's damage the formulas read. */
+	damageCoverage: ChampionCoverage[]
 }
 
 export type WriteChampionsOptions = {
@@ -351,10 +353,8 @@ export async function writeChampions(
 		}
 	}
 	assertRankStatsKeepTheirForm(rankStatRules, formRules)
-	// 31 MB of texts, read only when a form needs its spells' names.
-	const strings = formRules.length
-		? await readGameStrings(cacheDir)
-		: () => undefined
+	// 31 MB of texts: the forms' spell names and every tooltip's damage calculations.
+	const strings = await readGameStrings(cacheDir)
 	const results = await Promise.all(
 		index.map(async ({ key }) => {
 			try {
@@ -415,5 +415,6 @@ export async function writeChampions(
 		indexBytes: Buffer.byteLength(indexText),
 		totalBytes,
 		overrides: applied.report,
+		damageCoverage: damageCoverage(champions),
 	}
 }
