@@ -107,3 +107,58 @@ test("Bel'Veth's True Form adds range and survives a reload", async ({
 	await expect(formButton(page, "True Form", true)).toBeVisible()
 	await expect.poll(() => statTotal(page, "Attack Range")).toBe(base + 25)
 })
+
+function skillsRow(page: Page) {
+	return page.getByRole("region", { name: "Skills" })
+}
+
+test("Jayce's Cannon swaps his abilities in the skills row and the Skills tab, keeping their ranks", async ({
+	page,
+}) => {
+	await page.goto("/champions/Jayce?lvl=3&skills=QWE")
+	await expect(
+		skillsRow(page).getByRole("button", {
+			name: /^To the Skies! \(Q\), rank 1/,
+		}),
+	).toBeVisible()
+
+	await formButton(page, "Cannon").click()
+	await expect(
+		skillsRow(page).getByRole("button", { name: /^Shock Blast \(Q\), rank 1/ }),
+	).toBeVisible()
+	await expect(page).toHaveURL(/[?&]skills=QWE\b/)
+
+	await page.getByRole("tab", { name: "Skills" }).click()
+	await expect(
+		page.getByRole("table", { name: "Shock Blast per rank" }),
+	).toBeVisible()
+	await expect(
+		page.getByRole("table", { name: "To the Skies! per rank" }),
+	).toHaveCount(0)
+
+	await formButton(page, "Hammer").click()
+	await expect(
+		page.getByRole("table", { name: "To the Skies! per rank" }),
+	).toBeVisible()
+})
+
+test("Cougar Nidalee has Takedown, Pounce and Swipe and keeps Aspect of the Cougar", async ({
+	page,
+}) => {
+	await page.goto("/champions/Nidalee?lvl=2&skills=QW&form=cougar")
+	const row = skillsRow(page)
+	await expect(
+		row.getByRole("button", { name: /^Takedown \(Q\), rank 1/ }),
+	).toBeVisible()
+	await expect(
+		row.getByRole("button", { name: /^Pounce \(W\), rank 1/ }),
+	).toBeVisible()
+	await expect(
+		row.getByRole("button", { name: /^Aspect Of The Cougar \(R\)/ }),
+	).toBeVisible()
+
+	await formButton(page, "Human").click()
+	await expect(
+		row.getByRole("button", { name: /^Javelin Toss \(Q\), rank 1/ }),
+	).toBeVisible()
+})
