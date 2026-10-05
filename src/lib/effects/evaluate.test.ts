@@ -418,7 +418,7 @@ describe("resolveGrants", () => {
 		).toEqual([{ kind: "shield", value: 460 }])
 	})
 
-	test("leaves out a grant its data lacks, and damage until the combo timeline", () => {
+	test("leaves out a grant its data lacks, and damage, which the combat simulator deals", () => {
 		const spellblade: Effect = {
 			id: "sheen-spellblade",
 			source: { kind: "item", itemId: "3057" },
@@ -436,6 +436,27 @@ describe("resolveGrants", () => {
 
 		expect(resolveGrants(bind(barrier), context)).toEqual([])
 		expect(resolveGrants(bind(spellblade), context)).toEqual([])
+	})
+
+	test("scales by the stacks a combat sequence counts, up to the max; without a count, all stacks", () => {
+		const revdUp: Effect = {
+			id: "revd-up",
+			source: { kind: "ability", championKey: "Jinx", slot: "Q" },
+			trigger: { kind: "on-hit" },
+			stacks: { max: 3 },
+			grants: [{ kind: "stat", stat: "attackSpeedPercent", amount: 0.3 }],
+			since: "16.19",
+			sourceUrl: `${WIKI}Jinx`,
+		}
+		const value = (stacks?: number) =>
+			resolveGrants(bind(revdUp), {
+				level: 1,
+				...(stacks !== undefined && { stacks: { "revd-up": stacks } }),
+			})[0]?.value
+
+		expect(value(1)).toBeCloseTo(0.1)
+		expect(value(5)).toBeCloseTo(0.3)
+		expect(value()).toBeCloseTo(0.3)
 	})
 })
 

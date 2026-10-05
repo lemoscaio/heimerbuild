@@ -3,7 +3,7 @@ import type { SummonerSpell } from "@schemas/summoner-spell"
 import sharedBin from "../../../../scripts/sync-data/fixtures/summoners/shared.bin.json"
 import summonerJson from "../../../../scripts/sync-data/fixtures/summoners/summoner.json"
 import { normalizeSummonerSpells } from "../../../../scripts/sync-data/normalize-summoner-spells"
-import { availableEffects } from "../available-effects"
+import { availableEffects, combatEffects } from "../available-effects"
 import type { BuildEffect } from "../effect"
 import { resolveAmount, resolveGrants } from "../evaluate"
 
@@ -71,5 +71,31 @@ describe("summoner spell effects", () => {
 		for (const name of ["Flash", "Ignite", "Smite", "Teleport"]) {
 			expect(() => effectOf(name)).toThrow()
 		}
+	})
+})
+
+describe("ignite", () => {
+	test("each of its 5 ticks a second apart deals a fifth of the total: 70 to 475 true damage (wiki)", () => {
+		const [ignite] = combatEffects({
+			patch: PATCH,
+			champion: { key: "Teemo", abilities: { spells: [] } },
+			ranks: { Q: 0, W: 0, E: 0, R: 0 },
+			spells: [spell("Ignite")],
+			runes: [],
+		})
+		const [grant] = ignite?.effect.grants ?? []
+		if (!ignite || grant?.kind !== "damageOverTime") {
+			throw new Error("Ignite has no damage over time")
+		}
+		const tick = (level: number) =>
+			resolveAmount(grant.amount, ignite, { level })
+
+		expect(ignite.effect.holder).toBe("target")
+		expect(
+			resolveAmount(ignite.effect.duration ?? 0, ignite, { level: 1 }),
+		).toBe(5)
+		expect(grant.every).toBe(1)
+		expect(tick(1)).toBeCloseTo(70 / 5)
+		expect(tick(18)).toBeCloseTo(475 / 5)
 	})
 })
