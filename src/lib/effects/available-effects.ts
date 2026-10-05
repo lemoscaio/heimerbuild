@@ -1,7 +1,8 @@
-import type { Champion, ChampionSpell } from "@schemas/champion"
+import type { AbilitySlot, Champion, ChampionSpell } from "@schemas/champion"
 import { isInPatchRange } from "@schemas/patch-range"
 import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
+import { spellInForm } from "../form-abilities"
 import type { AbilityRanks } from "../stats/rank-stats"
 import type { BuildEffect, Effect } from "./effect"
 import { ABILITY_EFFECTS } from "./registries/ability-effects"
@@ -10,6 +11,9 @@ import { RUNE_EFFECTS } from "./registries/rune-effects"
 import { SUMMONER_EFFECTS } from "./registries/summoner-effects"
 
 /** What decides which effects a build has: the champion and its ranks, the spells and the page's runes. */
+type EffectAbility = Pick<ChampionSpell, "slot" | "name" | "icon"> &
+	Partial<Pick<ChampionSpell, "rankValues">>
+
 export type EffectsBuild = {
 	/** The build's patch ("16.19.1"): only the effect versions in force on it count. */
 	patch: string
@@ -17,9 +21,12 @@ export type EffectsBuild = {
 		key: string
 		/** The champion's forms, which name the form an effect holds in. */
 		forms?: Champion["forms"]
+		/** The default form's abilities, and the ones another form swaps in, which its bound effects read. */
 		abilities: {
-			spells: readonly (Pick<ChampionSpell, "slot" | "name" | "icon"> &
-				Partial<Pick<ChampionSpell, "rankValues">>)[]
+			spells: readonly EffectAbility[]
+			forms?: Readonly<
+				Record<string, Partial<Record<AbilitySlot, EffectAbility>>>
+			>
 		}
 	}
 	ranks: AbilityRanks
@@ -49,8 +56,11 @@ function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 	const { source } = effect
 	switch (source.kind) {
 		case "ability": {
-			const ability = build.champion.abilities.spells.find(
-				({ slot }) => slot === source.slot,
+			// A form-bound effect reads its form's ability (its row and rank lines); the others the default's.
+			const ability = spellInForm(
+				build.champion.abilities,
+				source.slot,
+				effect.form,
 			)
 			const isRanked =
 				build.champion.key === source.championKey &&

@@ -12,7 +12,7 @@ const CDRAGON_CLIENT_DATA_PATH =
 
 export const MANIFEST_FILE = "manifest.json"
 /** Bump when the set of cached files changes, so older caches are re-downloaded. */
-export const CACHE_LAYOUT = 5
+export const CACHE_LAYOUT = 6
 
 export type DownloadOptions = {
 	fetchFn?: typeof fetch
@@ -144,6 +144,11 @@ export async function downloadRawData(
 		["cdragon/perkstyles.json", `${cdragonClientData}/perkstyles.json`],
 		// Summoner spell values (Shared/Spells/Summoner*).
 		["cdragon/shared.cdtb.bin.json", `${cdragonGame}/shared.cdtb.bin.json`],
+		// Names and rank-up lines of the spells another form swaps in (Shock Blast).
+		[
+			"cdragon/lol.stringtable.json",
+			`${cdragonGame}/en_us/data/menu/en_us/lol.stringtable.json`,
+		],
 	] as const
 	await mapWithConcurrency(cdragonFiles, concurrency, ([path, url]) =>
 		download(path, url),

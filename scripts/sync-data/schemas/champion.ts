@@ -188,25 +188,58 @@ const recommendedSkillOrderSchema = z.strictObject({
 	),
 })
 
-export const championAbilitiesSchema = z.strictObject({
-	passive: passiveSchema,
-	/** Q, W, E and R, in that order. */
-	spells: z
-		.tuple([
-			championSpellSchema,
-			championSpellSchema,
-			championSpellSchema,
-			championSpellSchema,
-		])
-		.check(
-			z.refine(
-				(spells) =>
-					spells.every(({ slot }, index) => slot === ABILITY_SLOTS[index]),
-				{ error: "spells must be Q, W, E and R in order" },
-			),
-		),
-	recommendedOrder: z.optional(recommendedSkillOrderSchema),
+/**
+ * What a form shows, by slot: another ability (Cannon Jayce's Shock Blast), or the same one with its
+ * own look (Jinx's Fishbones Q, Jayce's cannon passive icon). A slot left out shows the default form's.
+ */
+const formSpellsSchema = z.strictObject({
+	passive: z.optional(passiveSchema),
+	...perAbility(championSpellSchema).shape,
 })
+
+export const championAbilitiesSchema = z
+	.strictObject({
+		passive: passiveSchema,
+		/** Q, W, E and R, in that order: the default form's, for a champion with forms. */
+		spells: z
+			.tuple([
+				championSpellSchema,
+				championSpellSchema,
+				championSpellSchema,
+				championSpellSchema,
+			])
+			.check(
+				z.refine(
+					(spells) =>
+						spells.every(({ slot }, index) => slot === ABILITY_SLOTS[index]),
+					{ error: "spells must be Q, W, E and R in order" },
+				),
+			),
+		recommendedOrder: z.optional(recommendedSkillOrderSchema),
+		/** By form id, what another form shows in its slots; synced by `FORM_ABILITY_RULES`. */
+		forms: z.optional(
+			z.record(z.string().check(z.regex(FORM_ID_PATTERN)), formSpellsSchema),
+		),
+	})
+	.check(
+		z.refine(
+			({ spells, forms }) =>
+				Object.values(forms ?? {}).every((formSpells) =>
+					ABILITY_SLOTS.every((slot, index) => {
+						const formSpell = formSpells[slot]
+						return (
+							!formSpell ||
+							(formSpell.slot === slot &&
+								formSpell.maxRank === spells[index]?.maxRank)
+						)
+					}),
+				),
+			{
+				error:
+					"a form's ability must sit in its own slot with the default ability's max rank (ranks are per slot)",
+			},
+		),
+	)
 
 /** A value for some of the four abilities. */
 function perAbility<Schema extends z.ZodMiniType>(schema: Schema) {
@@ -270,6 +303,16 @@ export function skillRulesFitAbilities({
 		({ slot, maxRank }) =>
 			(skillRules?.innateRanks?.[slot] ?? 0) <= maxRank &&
 			rankLevelsOf(skillRules, slot).length >= maxRank,
+	)
+}
+
+/** Every form that swaps abilities in is one of the champion's forms, and not its default one. */
+export function formAbilitiesFitForms({
+	abilities,
+	forms,
+}: Pick<Champion, "abilities" | "forms">): boolean {
+	return Object.keys(abilities.forms ?? {}).every((formId) =>
+		forms?.slice(1).some(({ id }) => id === formId),
 	)
 }
 
@@ -340,6 +383,7 @@ export type ChampionForm = z.infer<typeof championFormSchema>
 export type AbilitySlot = z.infer<typeof abilitySlotSchema>
 export type AbilityRankValue = z.infer<typeof abilityRankValueSchema>
 export type ChampionSpell = z.infer<typeof championSpellSchema>
+export type ChampionPassive = z.infer<typeof passiveSchema>
 export type ChampionAbilities = z.infer<typeof championAbilitiesSchema>
 export type SkillRules = z.infer<typeof skillRulesSchema>
 export type RankStat = z.infer<typeof rankStatSchema>

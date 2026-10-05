@@ -124,6 +124,43 @@ describe("availableEffects", () => {
 		expect(bound?.formName).toBe("Dragon")
 	})
 
+	test("an effect bound to a form reads the ability that form has in its slot", () => {
+		const cannonOnly: Effect = {
+			id: "cannon-only",
+			source: { kind: "ability", championKey: "Teemo", slot: "W" },
+			form: "cannon",
+			trigger: { kind: "always" },
+			grants: [],
+			since: "16.19",
+			sourceUrl: "https://wiki.leagueoflegends.com/en-us/Jayce",
+		}
+		const hyperCharge = {
+			slot: "W" as const,
+			name: "Hyper Charge",
+			icon: "jayce-w-cannon.png",
+			rankValues: [{ label: "Cooldown", values: [13, 11.4] }],
+		}
+		const champion = {
+			...build.champion,
+			abilities: {
+				...build.champion.abilities,
+				forms: { cannon: { W: hyperCharge } },
+			},
+		}
+
+		const [bound] = availableEffects({ ...build, champion }, [[cannonOnly]])
+		const [unbound] = availableEffects({ ...build, champion }, [
+			[{ ...cannonOnly, form: undefined }],
+		])
+
+		expect(bound).toMatchObject({
+			name: "Hyper Charge",
+			icon: "jayce-w-cannon.png",
+			rankValues: hyperCharge.rankValues,
+		})
+		expect(unbound?.name).toBe("Move Quick")
+	})
+
 	test("an effect any summoner spell triggers needs a chosen spell", () => {
 		expect(ids(availableEffects({ ...build, spells: [] }))).toEqual([
 			"teemo-w-passive",
