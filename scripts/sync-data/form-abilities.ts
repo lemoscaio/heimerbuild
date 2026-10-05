@@ -1,6 +1,13 @@
 import type { AbilitySlot } from "./schemas/champion"
 import type { PatchRange } from "./schemas/patch-range"
 
+/** The form can't cast the ability (Mini Gnar's GNAR!); its rank still counts for the slot. */
+export type FormUnavailable = {
+	/** What the skills row and tab say: "Unavailable as Mini Gnar". */
+	reason: string
+	source: string
+}
+
 /** How a form shows a slot, when it differs from the ability's Data Dragon look. */
 export type FormDisplay = {
 	/** Which of the spell's icons (`mImgIconName`, 0 first) the form shows: Cougar Nidalee's R is 1. */
@@ -9,6 +16,8 @@ export type FormDisplay = {
 	lines?: readonly string[]
 	/** A game text (string table key) whose title names the form's mode and whose main text describes it: "Switcheroo! (Pow-Pow)". */
 	modeText?: string
+	/** Set in the rules, never inferred from a grey icon (Violent Tendencies has none). */
+	unavailable?: FormUnavailable
 }
 
 export type FormSpellRule = FormDisplay & {
@@ -45,6 +54,12 @@ export type FormAbilityRule = PatchRange & {
 }
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
+
+/** Wiki, Kled: "Bear Trap on a Rope is replaced with Pocket Pistol, and Kled cannot cast his other abilities." */
+const KLED_DISMOUNTED: FormUnavailable = {
+	reason: "Kled can't cast this while dismounted",
+	source: `${WIKI}Kled`,
+}
 
 /**
  * Abilities another form swaps in. Data Dragon lists one spell per slot; the other form's spells
@@ -116,7 +131,7 @@ export const FORM_ABILITY_RULES: readonly FormAbilityRule[] = [
 		form: "mega",
 		since: "16.19",
 		reason:
-			"Mega Gnar has Boulder Toss, Wallop and Crunch; their numbers are in the Mini ability's tooltip. GNAR! is the same ability, which only Mega Gnar casts: Mini Gnar shows it grey (GnarR's second icon)",
+			"Mega Gnar has Boulder Toss, Wallop and Crunch; their numbers are in the Mini ability's tooltip. GNAR! is the same ability, which only Mega Gnar casts: Mini Gnar shows it grey (GnarR's second icon) and can't cast it",
 		source: `${WIKI}Template:Data_Gnar/Boulder_Toss`,
 		spells: {
 			Q: {
@@ -134,7 +149,18 @@ export const FORM_ABILITY_RULES: readonly FormAbilityRule[] = [
 				lines: ["Crunch Damage", "Cooldown"],
 				splitDescription: true,
 			},
-			R: { spell: "GnarR", icon: 0, default: { icon: 1 } },
+			R: {
+				spell: "GnarR",
+				icon: 0,
+				default: {
+					icon: 1,
+					// Wiki, Gnar: "Active: Mega Gnar throws enemies…"; Mini Gnar's GNAR! is passive only.
+					unavailable: {
+						reason: "Unavailable as Mini Gnar",
+						source: `${WIKI}Gnar`,
+					},
+				},
+			},
 		},
 	},
 	{
@@ -147,8 +173,9 @@ export const FORM_ABILITY_RULES: readonly FormAbilityRule[] = [
 		passive: { spell: "KledPassive", icon: 1 },
 		spells: {
 			Q: { spell: "KledRiderQ", splitDescription: true },
-			E: { spell: "KledE", icon: 1 },
-			R: { spell: "KledR", icon: 1 },
+			W: { spell: "KledW", unavailable: KLED_DISMOUNTED },
+			E: { spell: "KledE", icon: 1, unavailable: KLED_DISMOUNTED },
+			R: { spell: "KledR", icon: 1, unavailable: KLED_DISMOUNTED },
 		},
 	},
 	{
