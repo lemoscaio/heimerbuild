@@ -52,15 +52,20 @@ export function stackedOutText({
 	return `Replaced by the ${winner}`
 }
 
-/** The stat a bonus reads: "30% of Armor"; a percent bonus per 100 of a flat stat, "2% per 100 Ability Power". */
-function basisText({ stat, ratio }: StatBasis, granted: StatKey) {
-	const { label } = statDisplay[stat]
+/**
+ * The stat a bonus reads: "30% of Armor", "7.5% of bonus Attack Damage"; a percent bonus per 100
+ * of a flat stat, "2% per 100 Ability Power".
+ */
+function basisText({ stat, ratio, part }: StatBasis, granted: StatKey) {
+	const label = part
+		? `${part} ${statDisplay[stat].label}`
+		: statDisplay[stat].label
 	return STAT_UNITS[granted] === "percent"
 		? `${formatStat(ratio * 100, "percent")} per 100 ${label}`
 		: `${formatStat(ratio, "percent")} of ${label}`
 }
 
-/** What a grant gives, as shown: "+35.3% Move Speed", "+12 Armor (30% of Armor)", "269 shield", "192 heal". */
+/** What a grant gives, as shown: "+35.3% Move Speed", "+12 Armor (30% of Armor)", "+20% total Attack Speed", "269 shield". */
 export function grantText(grant: ResolvedGrant): string {
 	switch (grant.kind) {
 		case "stat": {
@@ -70,6 +75,11 @@ export function grantText(grant: ResolvedGrant): string {
 			return grant.basis
 				? `${text} (${basisText(grant.basis, grant.stat)})`
 				: text
+		}
+		case "attackSpeedMultiplier": {
+			const percent = formatStat(Math.abs(grant.value), "percent")
+			const sign = grant.value < 0 ? "−" : "+"
+			return `${sign}${percent} ${grant.of} Attack Speed`
 		}
 		case "shield":
 		case "heal":

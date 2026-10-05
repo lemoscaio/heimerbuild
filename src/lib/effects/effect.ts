@@ -14,10 +14,14 @@ export type EffectSource =
 /** `value` from `from` seconds of cooldown up to the next bracket's `from`. */
 export type CooldownBracket = { from: number; value: number }
 
+/** `value` from champion level `from` up to the next step's `from`. */
+export type LevelStep = { from: number; value: number }
+
 /**
  * A fixed number, or a table read at the build's state: `level` is the summoner spell's synced
  * value by champion level, `rank` the ability's rank stat by its rank, `rankValue` the ability's
- * synced tooltip line by its rank, `summonerCooldown` the bracket the spell's cooldown falls into.
+ * synced tooltip line by its rank, `summonerCooldown` the bracket the spell's cooldown falls into,
+ * `championLevel` the step the champion's level reached (Jayce's Hammer Stance: 5 to 26 at 1/6/11/16).
  * `scale` converts the game value to the stat's unit.
  */
 export type TableAmount =
@@ -26,16 +30,18 @@ export type TableAmount =
 	| { by: "rank"; rankStat: RankStat["stat"]; scale?: number }
 	| { by: "rankValue"; label: AbilityRankValue["label"]; scale?: number }
 	| { by: "summonerCooldown"; brackets: readonly CooldownBracket[] }
+	| { by: "championLevel"; steps: readonly LevelStep[] }
 
 /**
- * A table amount, or one that reads the build beyond it: `stat` is `ratio` of another stat's
- * total before the stat-dependent bonuses (evaluation step 4); `missingHealth` grows from 0 at full
- * health to `max` at `fullAt` percent missing health, read from the current health condition;
+ * A table amount, or one that reads the build beyond it: `stat` is `ratio` of another stat's total
+ * (its bonus part with `part: "bonus"`) before the stat-dependent bonuses (evaluation step 4);
+ * `missingHealth` grows from 0 at full health to `max` at `fullAt` percent missing health, read from
+ * the current health condition;
  * `gameTime` grows every `every` minutes of the game time condition (see `GameTimeAmount`).
  */
 export type Amount =
 	| TableAmount
-	| { by: "stat"; stat: StatName; ratio: TableAmount }
+	| { by: "stat"; stat: StatName; part?: "bonus"; ratio: TableAmount }
 	| { by: "missingHealth"; max: TableAmount; fullAt: number }
 	| GameTimeAmount
 
@@ -60,9 +66,13 @@ export type DamageRatios = Partial<
 /** A stat, or Adaptive Force: AD or AP by the build's adaptive type, like the stat shards. */
 export type GrantStat = StatKey | "adaptiveForce"
 
-/** Stats fold into the totals; shields and heals are values of their own; damage waits for the combo timeline. */
+/**
+ * Stats fold into the totals; an attack speed multiplier scales the bonus or total attack speed
+ * after them; shields and heals are values of their own; damage waits for the combo timeline.
+ */
 export type Grant =
 	| { kind: "stat"; stat: GrantStat; amount: Amount }
+	| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; amount: Amount }
 	| { kind: "shield"; amount: Amount }
 	| { kind: "heal"; amount: Amount }
 	| { kind: "damage"; damageType: DamageType; ratios: DamageRatios }
@@ -113,6 +123,8 @@ export type Effect = PatchRange & {
 	stacking?: Stacking
 	/** The part of its source it is, when the source has several (Teemo's W passive and active). */
 	part?: "passive" | "active"
+	/** The champion form it holds in, by form id ("dragon"); absent means every form. */
+	form?: string
 	/** The page the numbers were checked against. */
 	sourceUrl: string
 }

@@ -2,10 +2,11 @@ import { describe, expect, test } from "bun:test"
 import type { AbilityRankValue, RankStat } from "@schemas/champion"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import type { ComputedStats } from "../stats/compute-stats"
-import type { BuildEffect, Effect } from "./effect"
+import type { Amount, BuildEffect, Effect } from "./effect"
 import {
 	activeEffects,
 	alwaysOnRankStats,
+	attackSpeedMultipliers,
 	effectStatsInput,
 	isEffectOn,
 	resolveAmount,
@@ -150,6 +151,13 @@ const armorPassive: Effect = {
 }
 const malphiteW = bind(armorPassive, { slot: "W", rankValues: [ARMOR_LINE] })
 
+function alwaysOnGrant(amount: Amount): BuildEffect {
+	return bind({
+		...armorPassive,
+		grants: [{ kind: "stat", stat: "armor", amount }],
+	})
+}
+
 function totalsWith(stats: Partial<Record<keyof ComputedStats, number>>) {
 	return Object.fromEntries(
 		Object.entries(stats).map(([stat, total]) => [
@@ -241,6 +249,56 @@ describe("resolveAmount", () => {
 	})
 })
 
+describe("activeEffects, form-bound effects", () => {
+	const dragonHealth = bind(
+		{ ...armorPassive, id: "dragon-health", form: "dragon", grants: [] },
+		{ slot: "R" },
+	)
+
+	test("an effect bound to a form applies only in that form", () => {
+		expect(
+			activeEffects([dragonHealth], {}, { ...context, form: "dragon" }),
+		).toEqual([dragonHealth])
+		expect(
+			activeEffects([dragonHealth], {}, { ...context, form: "human" }),
+		).toEqual([])
+		expect(activeEffects([dragonHealth], {}, context)).toEqual([])
+	})
+
+	test("an effect bound to no form applies in every form", () => {
+		expect(
+			activeEffects([malphiteW], {}, { ...context, form: "human" }),
+		).toEqual([malphiteW])
+	})
+})
+
+describe("resolveAmount, champion level steps", () => {
+	// Jayce's Hammer Stance armor: 5 to 26 at levels 1, 6, 11 and 16 (wiki).
+	const amount = {
+		by: "championLevel",
+		steps: [
+			{ from: 1, value: 5 },
+			{ from: 6, value: 12 },
+			{ from: 11, value: 19 },
+			{ from: 16, value: 26 },
+		],
+	} as const
+
+	test("reads the last step the level reached", () => {
+		const at = (level: number) => resolveAmount(amount, malphiteW, { level })
+
+		expect([1, 5, 6, 10, 11, 15, 16, 18].map(at)).toEqual([
+			5, 5, 12, 12, 19, 19, 26, 26,
+		])
+	})
+
+	test("is nothing below the first step", () => {
+		const late = { ...amount, steps: [{ from: 6, value: 12 }] }
+
+		expect(resolveAmount(late, malphiteW, { level: 3 })).toBeUndefined()
+	})
+})
+
 describe("resolveAmount, amounts that read the build", () => {
 	test("a rank value reads the ability's synced tooltip line at its rank, scaled", () => {
 		expect(resolveAmount(ARMOR_RATIO, malphiteW, context)).toBeCloseTo(0.2)
@@ -261,6 +319,31 @@ describe("resolveAmount, amounts that read the build", () => {
 
 		expect(resolveAmount(amount, malphiteW, { ...context, totals })).toBe(30)
 		expect(resolveAmount(amount, malphiteW, context)).toBeUndefined()
+	})
+
+	test("a stat amount with part bonus reads only the stat's bonus", () => {
+		const amount = {
+			by: "stat",
+			stat: "attackDamage",
+			part: "bonus",
+			ratio: 0.075,
+		} as const
+		const totals = {
+			...totalsWith({}),
+			attackDamage: { base: 60, bonus: 40, total: 100 },
+		}
+
+		expect(resolveAmount(amount, malphiteW, { ...context, totals })).toBe(3)
+		expect(
+			resolveGrants(alwaysOnGrant(amount), { ...context, totals }),
+		).toEqual([
+			{
+				kind: "stat",
+				stat: "armor",
+				value: 3,
+				basis: { stat: "attackDamage", ratio: 0.075, part: "bonus" },
+			},
+		])
 	})
 
 	test("a missing health amount grows with missing health up to its full value", () => {
@@ -398,6 +481,40 @@ describe("effectStatsInput", () => {
 		expect(input).toEqual({
 			stats: { movementSpeedPercent: expect.closeTo(0.2 + 0.48) },
 		})
+	})
+})
+
+describe("attackSpeedMultipliers", () => {
+	const rockets = bind({
+		...armorPassive,
+		id: "rockets",
+		grants: [{ kind: "attackSpeedMultiplier", of: "bonus", amount: -0.1 }],
+	})
+	const trueForm = bind({
+		...armorPassive,
+		id: "true-form",
+		grants: [
+			{ kind: "attackSpeedMultiplier", of: "total", amount: 0.13 },
+			{ kind: "attackSpeedMultiplier", of: "total", amount: 0.07 },
+		],
+	})
+
+	test("sums the active effects' multipliers by what they scale", () => {
+		expect(attackSpeedMultipliers([rockets, trueForm], context)).toEqual({
+			bonus: -0.1,
+			total: expect.closeTo(0.2),
+		})
+		expect(attackSpeedMultipliers([malphiteW], context)).toEqual({
+			bonus: 0,
+			total: 0,
+		})
+	})
+
+	test("a multiplier resolves with what it scales, and adds nothing to the stat sources", () => {
+		expect(resolveGrants(rockets, context)).toEqual([
+			{ kind: "attackSpeedMultiplier", of: "bonus", value: -0.1 },
+		])
+		expect(effectStatsInput([rockets], context)).toEqual({ stats: {} })
 	})
 })
 

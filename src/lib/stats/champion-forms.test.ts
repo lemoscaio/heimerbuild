@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import type { ChampionForm } from "@schemas/champion"
-import { comparedForm, formChanges, selectedForm } from "./champion-forms"
+import {
+	comparedForm,
+	formChanges,
+	isFormUnlocked,
+	selectedForm,
+} from "./champion-forms"
 
 const forms: ChampionForm[] = [
 	{ id: "human", name: "Human" },
@@ -38,5 +43,35 @@ describe("comparedForm", () => {
 
 	test("is undefined for a champion without forms", () => {
 		expect(comparedForm(undefined, undefined)).toBeUndefined()
+	})
+})
+
+describe("forms that need an ability point", () => {
+	const shyvana: ChampionForm[] = [
+		{ id: "human", name: "Human" },
+		{ id: "dragon", name: "Dragon", requires: { slot: "R", minRank: 1 } },
+	]
+	const ranks = (R: number) => ({ Q: 1, W: 0, E: 0, R })
+
+	test("a form is unlocked once its ability has the rank it needs", () => {
+		const [human, dragon] = shyvana as [ChampionForm, ChampionForm]
+
+		expect(isFormUnlocked(dragon, ranks(0))).toBe(false)
+		expect(isFormUnlocked(dragon, ranks(1))).toBe(true)
+		expect(isFormUnlocked(human, ranks(0))).toBe(true)
+	})
+
+	test("unknown ranks never lock a form", () => {
+		expect(selectedForm(shyvana, "dragon")?.id).toBe("dragon")
+	})
+
+	test("a locked form falls back to the default one", () => {
+		expect(selectedForm(shyvana, "dragon", { ranks: ranks(0) })?.id).toBe(
+			"human",
+		)
+		expect(formChanges(shyvana, "dragon", { ranks: ranks(0) })).toBeUndefined()
+		expect(formChanges(shyvana, "dragon", { ranks: ranks(2) })?.id).toBe(
+			"dragon",
+		)
 	})
 })

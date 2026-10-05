@@ -322,3 +322,103 @@ describe("computeBuildStats with stat-dependent bonuses", () => {
 		expect(atHealth(5)).toBeCloseTo(80)
 	})
 })
+
+// A Shyvana-like form behind an R point, with a bonus bound to it.
+const formed: BuildStatsInput["champion"] = {
+	...champion,
+	forms: [
+		{ id: "human", name: "Human" },
+		{ id: "dragon", name: "Dragon", requires: { slot: "R", minRank: 1 } },
+	],
+}
+const healthBonus = alwaysOn(
+	"dragon-health",
+	[{ kind: "stat", stat: "health", amount: 250 }],
+	{ slot: "R" },
+)
+const dragonHealth: BuildEffect = {
+	...healthBonus,
+	effect: { ...healthBonus.effect, form: "dragon" },
+}
+
+describe("computeBuildStats with forms", () => {
+	const inForm = (form: string | undefined, R = 1) =>
+		computeBuildStats({
+			...build,
+			champion: formed,
+			form,
+			ranks: { ...NO_RANKS, R },
+			effects: { available: [dragonHealth], overrides: {} },
+		})
+
+	test("an effect bound to a form adds its bonus only in that form", () => {
+		expect(inForm("dragon").health.total - inForm(undefined).health.total).toBe(
+			250,
+		)
+		expect(inForm("human")).toEqual(inForm(undefined))
+	})
+
+	test("a form missing its required rank is the default form", () => {
+		expect(inForm("dragon", 0)).toEqual(inForm(undefined, 0))
+	})
+})
+
+function multiplier(of: "bonus" | "total", amount: number) {
+	return alwaysOn(`${of}-multiplier`, [
+		{ kind: "attackSpeedMultiplier", of, amount },
+	])
+}
+
+describe("computeBuildStats with attack speed multipliers", () => {
+	const plain = { ...build, shards: [] }
+	const DAGGER = { stats: { attackSpeedPercent: 0.35 } }
+	const before = computeBuildStats({ ...plain, items: [DAGGER] }).attackSpeed
+	const withEffects = (...available: BuildEffect[]) =>
+		computeBuildStats({
+			...plain,
+			items: [DAGGER],
+			effects: { available, overrides: {} },
+		}).attackSpeed
+
+	test("a bonus multiplier scales the bonus attack speed, level growth included", () => {
+		const stats = withEffects(multiplier("bonus", -0.1))
+
+		expect(stats.base).toBe(before.base)
+		expect(stats.bonus).toBeCloseTo(before.bonus * 0.9)
+	})
+
+	test("a total multiplier scales the whole attack speed", () => {
+		expect(withEffects(multiplier("total", 0.2)).total).toBeCloseTo(
+			before.total * 1.2,
+		)
+	})
+
+	test("the bonus multiplier applies first, then the total one", () => {
+		expect(
+			withEffects(multiplier("total", 0.2), multiplier("bonus", -0.1)).total,
+		).toBeCloseTo((before.base + before.bonus * 0.9) * 1.2)
+	})
+
+	test("they apply after the stat-dependent bonuses, which read the attack speed before them", () => {
+		const asFromAs = alwaysOn("as-from-as", [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				amount: { by: "stat", stat: "attackSpeed", ratio: 0.1 },
+			},
+		])
+		const basis = statBonusBasis({
+			...plain,
+			items: [DAGGER],
+			effects: {
+				available: [asFromAs, multiplier("total", 0.2)],
+				overrides: {},
+			},
+		})
+
+		expect(basis.attackSpeed).toEqual(before)
+		expect(withEffects(asFromAs, multiplier("total", 0.2)).total).toBeCloseTo(
+			withEffects(asFromAs).total * 1.2,
+		)
+	})
+})

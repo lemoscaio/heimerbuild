@@ -72,6 +72,11 @@ const levelStatesSchema = z.array(levelStateSchema).check(
 	),
 )
 
+/** The four ranked abilities, in Data Dragon's `spells` order. */
+export const ABILITY_SLOTS = ["Q", "W", "E", "R"] as const
+
+export const abilitySlotSchema = z.enum(ABILITY_SLOTS)
+
 /** A form id, as the share link carries it (`?form=mega`). */
 export const FORM_ID_PATTERN = /^[a-z]+(?:-[a-z]+)*$/
 
@@ -80,6 +85,15 @@ export const championFormSchema = z.strictObject({
 	id: z.string().check(z.regex(FORM_ID_PATTERN)),
 	/** "Mega Gnar" */
 	name: z.string().check(z.minLength(1)),
+	/** The game's own name, when `name` is a plainer one ("Pow-Pow" for Minigun). */
+	gameName: z.optional(z.string().check(z.minLength(1))),
+	/** The ability rank the form needs: Shyvana turns into a dragon once R has a point. */
+	requires: z.optional(
+		z.strictObject({
+			slot: abilitySlotSchema,
+			minRank: z.int().check(z.gte(1)),
+		}),
+	),
 	attackType: z.optional(attackTypeSchema),
 	/** Replaces the champion's growth stats it lists. */
 	stats: z.optional(z.partial(championStatsSchema)),
@@ -87,9 +101,9 @@ export const championFormSchema = z.strictObject({
 	levelStates: z.optional(levelStatesSchema),
 })
 
-const DEFAULT_FORM_FIELDS = new Set(["id", "name"])
+const DEFAULT_FORM_FIELDS = new Set(["id", "name", "gameName"])
 
-/** The first form is the default: the champion's own data, so it carries only `id` and `name`. */
+/** The first form is the default: the champion's own data, so it carries only its names. */
 const championFormsSchema = z.array(championFormSchema).check(
 	z.minLength(2),
 	z.refine(
@@ -104,11 +118,6 @@ const championFormsSchema = z.array(championFormSchema).check(
 		{ error: "the default (first) form takes its values from the champion" },
 	),
 )
-
-/** The four ranked abilities, in Data Dragon's `spells` order. */
-export const ABILITY_SLOTS = ["Q", "W", "E", "R"] as const
-
-export const abilitySlotSchema = z.enum(ABILITY_SLOTS)
 
 /** A list with one value per rank, from rank 1. */
 const perRankSchema = z.array(z.number()).check(z.minLength(1))

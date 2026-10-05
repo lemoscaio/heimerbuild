@@ -60,8 +60,16 @@ export function useChampionBuild({
 	const { data: summonerSpells } = useSummonerSpells(patch)
 	const { state } = source
 
+	// Skills read the level, and the champion state reads the ranks that unlock a form.
+	const skills = useSkills({
+		champion,
+		level: state.level,
+		value: state.skills,
+		onChange: (value) => save({ skills: value }, EDIT_HISTORY.skills),
+	})
 	const championState = useChampionState({
 		champion,
+		ranks: skills.ranks,
 		value: {
 			level: state.level,
 			form: state.form,
@@ -72,12 +80,6 @@ export function useChampionBuild({
 	const matchState = useMatchState({
 		value: { gameTime: state.gameTime },
 		onChange: (change) => save(change, EDIT_HISTORY.match),
-	})
-	const skills = useSkills({
-		champion,
-		level: championState.level,
-		value: state.skills,
-		onChange: (value) => save({ skills: value }, EDIT_HISTORY.skills),
 	})
 	const items = useBuildItems({
 		itemsById,
@@ -117,6 +119,7 @@ export function useChampionBuild({
 			adaptiveType:
 				champion && itemsAdaptiveType(champion.adaptiveType, items.list),
 			totals: basisInput && statBonusBasis(basisInput),
+			form: championState.form?.id,
 		},
 		value: state.effects ?? {},
 		onChange: (value) => save({ effects: value }, EDIT_HISTORY.effects),

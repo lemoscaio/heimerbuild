@@ -38,6 +38,18 @@ describe("CHAMPION_FORMS", () => {
 		expect(result.success).toBe(false)
 	})
 
+	test("the default form may carry the game's name, never a requirement", () => {
+		const minigun = { id: "minigun", name: "Minigun", gameName: "Pow-Pow" }
+		const rockets = {
+			id: "rockets",
+			name: "Rockets",
+			requires: { slot: "Q", minRank: 1 },
+		}
+
+		expect(formsSchema.safeParse([minigun, rockets]).success).toBe(true)
+		expect(formsSchema.safeParse([rockets, minigun]).success).toBe(false)
+	})
+
 	test("the schema rejects a form id the share link cannot carry", () => {
 		const result = formsSchema.safeParse([
 			{ id: "mini", name: "Mini Gnar" },
