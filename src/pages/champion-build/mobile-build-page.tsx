@@ -84,7 +84,7 @@ export function MobileBuildPage({
 					)}
 					{patchNotice}
 					<ChampionSkills
-						abilities={champion.abilities}
+						abilities={build.abilities ?? champion.abilities}
 						skills={build.skills}
 						rankUpStats={build.rankUpStats}
 					/>
@@ -149,7 +149,7 @@ export function MobileBuildPage({
 			}
 			skills={
 				<SkillsTab
-					abilities={champion.abilities}
+					abilities={build.abilities ?? champion.abilities}
 					skills={build.skills}
 					layout="list"
 				/>

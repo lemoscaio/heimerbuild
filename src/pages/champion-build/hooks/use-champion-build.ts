@@ -16,6 +16,7 @@ import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
 import { availableEffects } from "@/lib/effects/available-effects"
+import { abilitiesInForm } from "@/lib/form-abilities"
 import { selectedRunes } from "@/lib/rune-selection"
 import { itemsAdaptiveType } from "@/lib/stats/adaptive-force"
 import {
@@ -77,6 +78,9 @@ export function useChampionBuild({
 		},
 		onChange: changeChampionState,
 	})
+	// The abilities shown follow the selected form; their ranks stay per slot.
+	const abilities =
+		champion && abilitiesInForm(champion.abilities, championState.form?.id)
 	const matchState = useMatchState({
 		value: { gameTime: state.gameTime },
 		onChange: (change) => save(change, EDIT_HISTORY.match),
@@ -191,6 +195,8 @@ export function useChampionBuild({
 		champion,
 		championState,
 		skills,
+		/** The champion's abilities in the selected form (Cannon Jayce's Shock Blast). */
+		abilities,
 		items,
 		runePage,
 		summoners,
