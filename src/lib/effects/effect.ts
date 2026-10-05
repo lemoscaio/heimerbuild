@@ -28,9 +28,22 @@ export type TableAmount =
 	| number
 	| { by: "level"; value: string; scale?: number }
 	| { by: "rank"; rankStat: RankStat["stat"]; scale?: number }
-	| { by: "rankValue"; label: AbilityRankValue["label"]; scale?: number }
+	| RankValueAmount
 	| { by: "summonerCooldown"; brackets: readonly CooldownBracket[] }
 	| { by: "championLevel"; steps: readonly LevelStep[] }
+
+/**
+ * The ability's synced tooltip line `label` at its rank. With `slot`, another ability's line at
+ * that ability's rank, and `unranked` while it has no point: an ultimate that upgrades a basic
+ * ability (GNAR! raises Hyper's 20% speed to 40 / 60 / 80%).
+ */
+export type RankValueAmount = {
+	by: "rankValue"
+	label: AbilityRankValue["label"]
+	scale?: number
+	slot?: AbilitySlot
+	unranked?: number
+}
 
 /**
  * A table amount, or one that reads the build beyond it: `stat` is `ratio` of another stat's total
@@ -131,6 +144,12 @@ export type Effect = PatchRange & {
 	sourceUrl: string
 }
 
+/** An ability's name and synced tooltip lines, as an effect reads them. */
+export type EffectAbilityLines = {
+	name: string
+	rankValues?: readonly AbilityRankValue[]
+}
+
 /** An effect the build can turn on, bound to the data its amounts read. */
 export type BuildEffect = {
 	/** The id in links: the effect's, plus the cast spell for one any summoner spell triggers ("nimbus-cloak-flash"). */
@@ -143,6 +162,8 @@ export type BuildEffect = {
 	slot?: AbilitySlot
 	/** That ability's synced tooltip lines, which `rankValue` amounts read. */
 	rankValues?: readonly AbilityRankValue[]
+	/** The other abilities whose lines and rank its `rankValue` amounts read, by slot (GNAR! for Hyper). */
+	boosts?: Partial<Record<AbilitySlot, EffectAbilityLines>>
 	/** The spell the `level` and `summonerCooldown` amounts read: the source, or the one cast. */
 	spell?: SummonerSpell
 	/** The name of the form it holds in ("Dragon"), for an effect bound to one. */

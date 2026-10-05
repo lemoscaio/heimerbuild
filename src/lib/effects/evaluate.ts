@@ -13,6 +13,7 @@ import type {
 	EffectOverrides,
 	Grant,
 	GrantStat,
+	RankValueAmount,
 	TableAmount,
 } from "./effect"
 import { GAME_START, gameTimeSteps, triangularSteps } from "./game-time"
@@ -58,11 +59,29 @@ function scaled(value: number | undefined, scale = 1) {
 	return value === undefined ? undefined : value * scale
 }
 
+/** A `rankValue` line at its ability's rank: the effect's own, or the boosting `slot`'s (its `unranked` value until it has a point). */
+function rankValueAt(
+	amount: RankValueAmount,
+	{ slot, rankValues, boosts }: BuildEffect,
+	ranks: EffectContext["ranks"],
+) {
+	const lineSlot = amount.slot ?? slot
+	const rank = lineSlot && ranks ? ranks[lineSlot] : 0
+	if (rank === 0 && amount.unranked !== undefined) return amount.unranked
+	const lines =
+		amount.slot && amount.slot !== slot
+			? boosts?.[amount.slot]?.rankValues
+			: rankValues
+	const line = lines?.find(({ label }) => label === amount.label)
+	return scaled(line?.values[rank - 1], amount.scale)
+}
+
 function resolveTableAmount(
 	amount: TableAmount,
-	{ slot, spell, rankValues }: BuildEffect,
+	effect: BuildEffect,
 	{ level, ranks, rankStats }: EffectContext,
 ): number | undefined {
+	const { slot, spell } = effect
 	if (typeof amount === "number") return amount
 	const rank = slot && ranks ? ranks[slot] : 0
 	switch (amount.by) {
@@ -75,10 +94,8 @@ function resolveTableAmount(
 			)?.values
 			return scaled(values?.[rank - 1], amount.scale)
 		}
-		case "rankValue": {
-			const line = rankValues?.find(({ label }) => label === amount.label)
-			return scaled(line?.values[rank - 1], amount.scale)
-		}
+		case "rankValue":
+			return rankValueAt(amount, effect, ranks)
 		case "summonerCooldown":
 			return spell && bracketValue(amount.brackets, spellCooldown(spell))
 		case "championLevel":
