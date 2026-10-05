@@ -188,8 +188,14 @@ const recommendedSkillOrderSchema = z.strictObject({
 	),
 })
 
-/** The abilities a form swaps in, by slot (Cannon Jayce's Q is Shock Blast); a slot left out keeps the default form's. */
-const formSpellsSchema = perAbility(championSpellSchema)
+/**
+ * What a form shows, by slot: another ability (Cannon Jayce's Shock Blast), or the same one with its
+ * own look (Jinx's Fishbones Q, Jayce's cannon passive icon). A slot left out shows the default form's.
+ */
+const formSpellsSchema = z.strictObject({
+	passive: z.optional(passiveSchema),
+	...perAbility(championSpellSchema).shape,
+})
 
 export const championAbilitiesSchema = z
 	.strictObject({
@@ -210,7 +216,7 @@ export const championAbilitiesSchema = z
 				),
 			),
 		recommendedOrder: z.optional(recommendedSkillOrderSchema),
-		/** By form id, the abilities another form swaps in; synced by `FORM_ABILITY_RULES`. */
+		/** By form id, what another form shows in its slots; synced by `FORM_ABILITY_RULES`. */
 		forms: z.optional(
 			z.record(z.string().check(z.regex(FORM_ID_PATTERN)), formSpellsSchema),
 		),
@@ -377,6 +383,7 @@ export type ChampionForm = z.infer<typeof championFormSchema>
 export type AbilitySlot = z.infer<typeof abilitySlotSchema>
 export type AbilityRankValue = z.infer<typeof abilityRankValueSchema>
 export type ChampionSpell = z.infer<typeof championSpellSchema>
+export type ChampionPassive = z.infer<typeof passiveSchema>
 export type ChampionAbilities = z.infer<typeof championAbilitiesSchema>
 export type SkillRules = z.infer<typeof skillRulesSchema>
 export type RankStat = z.infer<typeof rankStatSchema>
