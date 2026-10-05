@@ -4,6 +4,7 @@ import { GameIcon } from "@/components/common/game-icon"
 import { cn } from "@/lib/cn"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import { formatAbilityValue, rankTableLines } from "../lib/ability-values"
+import { UnavailableReason } from "./unavailable-reason"
 
 type AbilityDetailsProps = {
 	abilities: ChampionAbilities
@@ -30,6 +31,7 @@ export function AbilityDetails({ abilities, ranks }: AbilityDetailsProps) {
 					name={spell.name}
 					tag={`${spell.slot} · Rank ${ranks?.[spell.slot] ?? 0}/${spell.maxRank}`}
 					description={spell.description}
+					unavailableReason={spell.unavailable?.reason}
 				>
 					<RankTable spell={spell} rank={ranks?.[spell.slot] ?? 0} />
 				</AbilityCard>
@@ -43,6 +45,8 @@ type AbilityCardProps = {
 	name: string
 	tag: string
 	description: string
+	/** Why the selected form can't cast it, when it can't. */
+	unavailableReason?: string
 	children?: React.ReactNode
 }
 
@@ -51,17 +55,26 @@ function AbilityCard({
 	name,
 	tag,
 	description,
+	unavailableReason,
 	children,
 }: AbilityCardProps) {
 	const titleId = useId()
+	const reasonId = useId()
 
 	return (
 		<article
 			aria-labelledby={titleId}
+			aria-describedby={unavailableReason ? reasonId : undefined}
 			className="flex flex-col gap-2 rounded-xl bg-surface-sunken p-3"
 		>
 			<div className="flex items-center gap-3">
-				<GameIcon src={icon} name={name} className="size-10 rounded-lg" />
+				<GameIcon
+					src={icon}
+					name={name}
+					className={cn("size-10 rounded-lg", {
+						grayscale: !!unavailableReason,
+					})}
+				/>
 				<div className="flex flex-col">
 					<h3 id={titleId} className="font-bold font-display text-sm">
 						{name}
@@ -69,6 +82,11 @@ function AbilityCard({
 					<span className="text-subtle text-xs">{tag}</span>
 				</div>
 			</div>
+			{unavailableReason && (
+				<UnavailableReason id={reasonId} className="text-xs">
+					{unavailableReason}
+				</UnavailableReason>
+			)}
 			{description && (
 				<p className="whitespace-pre-line text-prose text-xs leading-relaxed">
 					{description}

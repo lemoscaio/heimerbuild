@@ -1,6 +1,6 @@
 import type { ChampionSpell } from "@schemas/champion"
 import { cva } from "class-variance-authority"
-import { Plus } from "lucide-react"
+import { Ban, Plus } from "lucide-react"
 import { useId, useState } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import {
@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/cn"
 import { formatAbilityValue, rankUpChanges } from "../lib/ability-values"
 import type { SpendBlocker } from "../lib/skill-history"
+import { UnavailableReason } from "./unavailable-reason"
 
 const rankPipVariants = cva("h-1.5 flex-1 rounded-full", {
 	variants: {
@@ -47,7 +48,10 @@ type AbilityRankButtonProps = {
 	statChanges?: React.ReactNode
 }
 
-/** One ability: its icon and rank pips. Pressing it spends the next point on it; the tooltip shows what the next rank changes. */
+/**
+ * One ability: its icon and rank pips. Pressing it spends the next point on it; the tooltip shows what
+ * the next rank changes. An ability the form can't cast says why, and still takes points (ranks are per slot).
+ */
 export function AbilityRankButton({
 	spell,
 	rank,
@@ -58,8 +62,10 @@ export function AbilityRankButton({
 	statChanges,
 }: AbilityRankButtonProps) {
 	const tooltipId = useId()
+	const reasonId = useId()
 	const [open, setOpen] = useState(false)
 	const canSpend = !blocker
+	const { unavailable } = spell
 
 	return (
 		<div className="flex flex-col items-center gap-1">
@@ -68,7 +74,9 @@ export function AbilityRankButton({
 					type="button"
 					closeOnClick={false}
 					aria-label={`${spell.name} (${spell.slot}), rank ${rank} of ${spell.maxRank}${isSuggested ? ", suggested next point" : ""}`}
-					aria-describedby={open ? tooltipId : undefined}
+					aria-describedby={
+						open ? tooltipId : unavailable ? reasonId : undefined
+					}
 					aria-disabled={!canSpend}
 					className={cn("relative block rounded-lg p-0 outline-offset-2", {
 						"cursor-not-allowed": !canSpend,
@@ -82,10 +90,25 @@ export function AbilityRankButton({
 					<GameIcon
 						src={spell.icon}
 						name={spell.name}
-						className={abilityIconVariants({
-							state: !canSpend ? "blocked" : isSuggested ? "suggested" : "open",
-						})}
+						className={cn(
+							abilityIconVariants({
+								state: !canSpend
+									? "blocked"
+									: isSuggested
+										? "suggested"
+										: "open",
+							}),
+							{ grayscale: !!unavailable },
+						)}
 					/>
+					{unavailable && (
+						<span
+							aria-hidden="true"
+							className="absolute -top-1.5 -left-1.5 flex size-4.5 items-center justify-center rounded-full bg-surface-sunken text-warning"
+						>
+							<Ban className="size-3" strokeWidth={3} />
+						</span>
+					)}
 					<span
 						aria-hidden="true"
 						className="absolute -bottom-1 -left-1 rounded-sm bg-surface-sunken px-1 font-bold font-display text-[10px] text-white leading-tight"
@@ -112,6 +135,11 @@ export function AbilityRankButton({
 					/>
 				</TooltipContent>
 			</Tooltip>
+			{unavailable && (
+				<span id={reasonId} hidden>
+					{unavailable.reason}
+				</span>
+			)}
 			<RankPips
 				maxRank={spell.maxRank}
 				rank={rank}
@@ -188,6 +216,9 @@ function RankUpDetails({
 						: `Rank ${rank} → ${rank + 1}`}
 				</span>
 			</p>
+			{spell.unavailable && (
+				<UnavailableReason>{spell.unavailable.reason}</UnavailableReason>
+			)}
 			{blocker ? (
 				<p className="text-prose">{blockerMessage(blocker)}</p>
 			) : (
