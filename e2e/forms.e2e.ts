@@ -204,3 +204,55 @@ test("dismounted Kled has Pocket Pistol and keeps his other abilities", async ({
 		row.getByRole("button", { name: /^Jousting \(E\), rank 0/ }),
 	).toBeVisible()
 })
+
+test("Mini Gnar's GNAR! says why it can't be cast and still takes points", async ({
+	page,
+}) => {
+	await page.goto("/champions/Gnar?lvl=6&skills=QWEQW")
+	const gnar = skillsRow(page).getByRole("button", { name: /^GNAR! \(R\)/ })
+	await expect(gnar).toHaveAccessibleDescription(/Unavailable as Mini Gnar/)
+
+	await gnar.click()
+	await expect(page).toHaveURL(/[?&]skills=QWEQWR\b/)
+
+	await page.getByRole("tab", { name: "Skills" }).click()
+	await expect(
+		page.getByRole("article", { name: "GNAR!" }),
+	).toHaveAccessibleDescription(/Unavailable as Mini Gnar/)
+
+	await formButton(page, "Mega Gnar").click()
+	await expect(
+		skillsRow(page).getByRole("button", { name: /^GNAR! \(R\), rank 1/ }),
+	).not.toHaveAccessibleDescription(/Unavailable/)
+})
+
+test("dismounted Kled says why he can't cast Violent Tendencies, Jousting and Chaaaaaaaarge!!!", async ({
+	page,
+}) => {
+	await page.goto("/champions/Kled?lvl=3&skills=QWE&form=dismounted&tab=skills")
+	const row = skillsRow(page)
+	const dismounted = /can't cast this while dismounted/
+	for (const name of [
+		/^Violent Tendencies \(W\)/,
+		/^Jousting \(E\)/,
+		/^Chaaaaaaaarge!!! \(R\)/,
+	]) {
+		await expect(row.getByRole("button", { name })).toHaveAccessibleDescription(
+			dismounted,
+		)
+	}
+	await expect(
+		row.getByRole("button", { name: /^Pocket Pistol \(Q\)/ }),
+	).not.toHaveAccessibleDescription(dismounted)
+	await expect(
+		page.getByRole("article", { name: "Violent Tendencies" }),
+	).toHaveAccessibleDescription(dismounted)
+
+	await page
+		.getByRole("group", { name: "Form" })
+		.getByRole("button", { name: "Mounted", exact: true })
+		.click()
+	await expect(
+		row.getByRole("button", { name: /^Violent Tendencies \(W\)/ }),
+	).not.toHaveAccessibleDescription(dismounted)
+})

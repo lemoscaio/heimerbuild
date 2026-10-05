@@ -160,6 +160,30 @@ describe("normalizeFormAbilities", () => {
 		})
 	})
 
+	test("flags an ability the form can't cast, keeping only the reason to show", () => {
+		const unavailable = { reason: "Unavailable as Hammer", source: "test" }
+		const keeps = jayce([
+			{
+				...CANNON,
+				spells: { Q: { spell: "JayceToTheSkies", default: { unavailable } } },
+			},
+		]).abilities
+		const swaps = jayce([
+			{ ...CANNON, spells: { Q: { spell: "JayceShockBlast", unavailable } } },
+		]).abilities
+
+		expect(championAbilitiesSchema.safeParse(keeps).success).toBe(true)
+		expect(keeps.spells[0].unavailable).toEqual({
+			reason: "Unavailable as Hammer",
+		})
+		expect(keeps.forms?.cannon?.Q?.unavailable).toBeUndefined()
+		expect(championAbilitiesSchema.safeParse(swaps).success).toBe(true)
+		expect(swaps.spells[0].unavailable).toBeUndefined()
+		expect(swaps.forms?.cannon?.Q?.unavailable).toEqual({
+			reason: "Unavailable as Hammer",
+		})
+	})
+
 	test("fails on a spell or line the game files lack", () => {
 		expect(() =>
 			jayce([{ ...CANNON, spells: { Q: { spell: "JayceRenamed" } } }]),

@@ -125,6 +125,15 @@ function pickLines(spell: ChampionSpell, labels: readonly string[]) {
 	})
 }
 
+/** The synced flag of an ability the form can't cast: the reason only, the source stays in the rules. */
+function unavailableIn(display: FormDisplay | undefined) {
+	return (
+		display?.unavailable && {
+			unavailable: { reason: display.unavailable.reason },
+		}
+	)
+}
+
 /** How a form shows a slot whose ability stays: its icon, its lines, its mode's name and text. */
 function applyDisplay(
 	spell: ChampionSpell,
@@ -154,6 +163,7 @@ function applyDisplay(
 			name: `${baseName} (${mode.title})`,
 			description: mode.text,
 		}),
+		...unavailableIn(display),
 	}
 }
 
@@ -221,6 +231,7 @@ export function normalizeFormSpell(
 			...defaultSpell,
 			name: names.defaultName,
 			description: defaultDescription,
+			...unavailableIn(rule.default),
 		},
 		formSpell: {
 			slot: defaultSpell.slot,
@@ -231,6 +242,7 @@ export function normalizeFormSpell(
 			cooldown,
 			cost,
 			rankValues: lines,
+			...unavailableIn(rule),
 		},
 		skipped,
 	}
