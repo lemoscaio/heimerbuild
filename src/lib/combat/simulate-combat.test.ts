@@ -1216,3 +1216,114 @@ describe("the combo's time is its last damage (issue 338, decision 1a)", async (
 		expect(result.duration).toBe((result.steps[1]?.time ?? Number.NaN) + 4)
 	})
 })
+
+describe("Hail of Blades (issue 338)", async () => {
+	const quinn: Setup = {
+		champion: await champion("Quinn"),
+		level: 9,
+		ranks: { Q: 4, W: 1, E: 3, R: 1 },
+		items: [item("Long Sword"), item("Long Sword"), item("Long Sword")],
+		runes: [rune("HailOfBlades")],
+	}
+	const ready = marker("hail-of-blades")
+	const attack: CombatItem = { kind: "attack" }
+	const run = (setup: Setup, items: readonly CombatItem[]) =>
+		simulateCombat(inputOf(setup, items))
+	// Wiki: 2 + 18 / 17 × (level − 1) (+ 12% bonus AD) true damage; 60% bonus attack speed ranged, 90% melee.
+	const trueDamage = (level: number, bonusAD: number) =>
+		2 + (18 / 17) * (level - 1) + 0.12 * bonusAD
+
+	test("ready at the top, Quinn's first 3 attacks are faster and deal its true damage, then it goes on cooldown", () => {
+		const result = run(quinn, [ready, attack, attack, attack, attack])
+		const atRest = computeBuildStats(buildOf(quinn)).attackSpeed.total
+		const ratio = quinn.champion.stats.attackSpeed.ratio
+
+		expect(result.steps[2]?.time).toBeCloseTo(1 / (atRest + ratio * 0.6))
+		expect(hits(result, 1)[1]).toEqual({
+			type: "true",
+			raw: expect.closeTo(trueDamage(9, 30)),
+			final: expect.closeTo(trueDamage(9, 30)),
+		})
+		expect(hits(result, 4)).toHaveLength(1)
+		expect(outcomeOf(result, 4, "hail-of-blades")).toMatchObject({
+			happened: false,
+			readyAt: expect.closeTo((result.steps[3]?.time ?? 0) + 10),
+		})
+	})
+
+	test("the rune coming back mid-combo: a second marker after the cooldown empowers the next attacks again", () => {
+		const result = run(quinn, [
+			ready,
+			attack,
+			attack,
+			attack,
+			{ kind: "wait", seconds: 10 },
+			ready,
+			attack,
+		])
+
+		expect(result.steps[5]?.situation?.status).toBe("applied")
+		expect(outcomeOf(result, 6, "hail-of-blades")?.charge).toEqual({
+			used: 1,
+			max: 3,
+		})
+	})
+
+	test("a melee champion gets 90% bonus attack speed", async () => {
+		const darius: Setup = {
+			champion: await champion("Darius"),
+			level: 9,
+			ranks: { Q: 1, W: 1, E: 1, R: 1 },
+			runes: [rune("HailOfBlades")],
+		}
+		const result = run(darius, [ready, attack, attack])
+		const atRest = computeBuildStats(buildOf(darius)).attackSpeed.total
+		const ratio = darius.champion.stats.attackSpeed.ratio
+
+		expect(result.steps[2]?.time).toBeCloseTo(1 / (atRest + ratio * 0.9))
+	})
+})
+
+describe("Decimate and Super Mega Death Rocket!: the player picks how the cast lands (issue 338)", async () => {
+	// No point in Apprehend, whose passive armor penetration would lower the armor.
+	const darius: Setup = {
+		champion: await champion("Darius"),
+		level: 9,
+		ranks: { Q: 5, W: 1, E: 0, R: 1 },
+	}
+	const jinx: Setup = {
+		champion: await champion("Jinx"),
+		level: 11,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+		items: [item("Long Sword")],
+	}
+	const cast = (
+		setup: Setup,
+		slot: "Q" | "R",
+		variant?: string,
+	): DealtDamage[] =>
+		hits(
+			simulate(setup, [{ kind: "ability", slot, ...(variant && { variant }) }]),
+			0,
+		)
+
+	test("Decimate deals the blade's damage by default, and 35% with the handle", () => {
+		const ad = computeBuildStats(buildOf(darius)).attackDamage.total
+		// Wiki: rank 5, 170 (+ 140% AD); the handle deals 35%.
+		const blade = 170 + 1.4 * ad
+
+		expect(cast(darius, "Q")[0]?.final).toBeCloseTo(physical(blade))
+		expect(cast(darius, "Q", "handle")[0]?.final).toBeCloseTo(
+			physical(0.35 * blade),
+		)
+	})
+
+	test("Super Mega Death Rocket! deals its maximum far and 10% near, plus the missing health part either way", () => {
+		// Wiki: rank 1, 200 (+ 120% bonus AD) far, 20 (+ 12% bonus AD) near; full target: no missing health part.
+		expect(cast(jinx, "R").map(({ raw }) => raw)).toEqual([
+			expect.closeTo(200 + 1.2 * 10),
+			0,
+		])
+		expect(cast(jinx, "R", "near")[0]?.raw).toBeCloseTo(20 + 0.12 * 10)
+	})
+})

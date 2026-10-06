@@ -121,6 +121,28 @@ export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 		sourceUrl: `${WIKI}Nautilus/Titan's_Wrath`,
 	},
 	{
+		// The handle (inner radius) deals 35% of the blade's damage.
+		championKey: "Darius",
+		slot: "Q",
+		variants: [
+			{ id: "blade", label: "Outer blade", damage: "BladeDamage" },
+			{ id: "handle", label: "Inner handle", damage: "HandleDamage" },
+		],
+		since: "16.19",
+		sourceUrl: `${WIKI}Darius/Decimate`,
+	},
+	{
+		// 10% to 100% of its damage over the first 1500 units; the missing health part doesn't scale.
+		championKey: "Jinx",
+		slot: "R",
+		variants: [
+			{ id: "far", label: "Far", damage: ["DamageMax", "PercentDamage"] },
+			{ id: "near", label: "Near", damage: ["DamageFloor", "PercentDamage"] },
+		],
+		since: "16.19",
+		sourceUrl: `${WIKI}Jinx/Super_Mega_Death_Rocket!`,
+	},
+	{
 		championKey: "Morgana",
 		slot: "W",
 		notModeled:

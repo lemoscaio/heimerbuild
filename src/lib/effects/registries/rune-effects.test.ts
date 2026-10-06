@@ -212,3 +212,46 @@ describe("Gathering Storm", () => {
 		)
 	})
 })
+
+describe("Hail of Blades", () => {
+	const effect = RUNE_EFFECTS.find(({ id }) => id === "hail-of-blades")
+
+	test("matches the current patch's rune text: speed by attack type, damage, attacks and cooldown", async () => {
+		const rune = await currentRune("HailOfBlades")
+		const text = rune.longDescription
+			.flat(2)
+			.map(({ text }) => text)
+			.join(" ")
+
+		expect(text).toContain(
+			"Gain 90% (60% for ranged champions) Attack Speed and bonus true damage when you attack an enemy champion for up to 3 attacks.",
+		)
+		expect(text).toContain("No more than 3s can elapse between attacks")
+		expect(text).toContain("Cooldown: 10s.")
+		expect(text).toContain(
+			"On-Hit Damage: 2 - 20 (+0.12 bonus AD, +0.1 AP) damage.",
+		)
+		expect(effect).toMatchObject({ charges: 3, duration: 3, cooldown: 10 })
+	})
+
+	// Wiki: 2 + (20 − 2) / 17 × (level − 1) true damage (+ 12% bonus AD) (+ 10% AP).
+	test("its true damage grows evenly from 2 at level 1 to 20 at level 18", () => {
+		const grant = effect?.grants.find(({ kind }) => kind === "onAttackDamage")
+		const base =
+			grant?.kind === "onAttackDamage" &&
+			typeof grant.base === "object" &&
+			grant.base.by === "championLevel"
+				? grant.base.steps
+				: []
+
+		expect(base.map(({ value }) => value).at(0)).toBe(2)
+		expect(base.find(({ from }) => from === 9)?.value).toBeCloseTo(
+			2 + (18 / 17) * 8,
+		)
+		expect(base.map(({ value }) => value).at(-1)).toBeCloseTo(20)
+		expect(grant).toMatchObject({
+			damageType: "true",
+			ratios: { bonusAttackDamage: 0.12, abilityPower: 0.1 },
+		})
+	})
+})
