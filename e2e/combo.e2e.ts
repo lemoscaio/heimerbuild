@@ -14,7 +14,7 @@ function damageTotal(page: Page) {
 	return combo(page).getByLabel("Combo result").getByRole("definition").first()
 }
 
-test("Quinn's combo adds steps, reorders them by keyboard, removes one, and keeps out of the link", async ({
+test("Quinn's combo adds steps, moves one up with its button, removes one, and keeps out of the link", async ({
 	page,
 }) => {
 	await page.goto(
@@ -31,18 +31,21 @@ test("Quinn's combo adds steps, reorders them by keyboard, removes one, and keep
 	const withVaultFirst = await damageTotal(page).textContent()
 
 	// The attack consumes Vault's mark only after it; moved first, it deals less.
-	const attackHandle = combo(page).getByRole("button", {
-		name: "Move step 2. Attack",
-		exact: true,
-	})
-	await attackHandle.focus()
-	await page.keyboard.press("ArrowUp")
 	await expect(
-		combo(page).getByRole("button", {
-			name: "Move step 1. Attack",
-			exact: true,
-		}),
-	).toBeFocused()
+		combo(page).getByRole("button", { name: "Move step 1, E · Vault up" }),
+	).toBeDisabled()
+	await expect(
+		combo(page).getByRole("button", { name: "Move step 3, Ignite down" }),
+	).toBeDisabled()
+	await combo(page)
+		.getByRole("button", { name: "Move step 2, Attack up" })
+		.click()
+	// The button keeps the focus at the top, where it can't move further.
+	const attackUp = combo(page).getByRole("button", {
+		name: "Move step 1, Attack up",
+	})
+	await expect(attackUp).toBeFocused()
+	await expect(attackUp).toBeDisabled()
 	await expect(damageTotal(page)).not.toHaveText(withVaultFirst ?? "")
 
 	await combo(page)
@@ -116,12 +119,8 @@ test("a situation marker sets Harrier's mark from where it is, and only the buil
 		.click()
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
 	await combo(page)
-		.getByRole("button", {
-			name: "Move marker Target marked by Harrier",
-			exact: true,
-		})
-		.focus()
-	await page.keyboard.press("ArrowUp")
+		.getByRole("button", { name: "Move marker Target marked by Harrier up" })
+		.click()
 	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
 
 	await page.goto("/champions/Annie?lvl=9&skills=QWEQEQRQE&tab=combo")
@@ -148,14 +147,14 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 	await combo(page)
 		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
 		.click()
-	const handle = combo(page).getByRole("button", {
-		name: "Move marker Hail of Blades ready",
-		exact: true,
+	const up = combo(page).getByRole("button", {
+		name: "Move marker Hail of Blades ready up",
 	})
-	await handle.focus()
-	await page.keyboard.press("ArrowUp")
-	await page.keyboard.press("ArrowUp")
-	await expect(handle).toBeFocused()
+	await up.focus()
+	await page.keyboard.press("Enter")
+	await page.keyboard.press("Enter")
+	await expect(up).toBeFocused()
+	await expect(up).toBeDisabled()
 	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
 	const empowered = await damageTotal(page).textContent()
 
@@ -165,7 +164,7 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
 	await combo(page).getByRole("button", { name: "Undo" }).click()
 	await expect(damageTotal(page)).toHaveText(empowered ?? "")
-	await expect(handle).toBeVisible()
+	await expect(up).toBeVisible()
 })
 
 test("free mode sets an outcome per step, keeps the choice across toggles, and restores the computed one", async ({
