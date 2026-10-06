@@ -29,7 +29,8 @@ export function evaluateDamage(
 	damage: AbilityDamage,
 	input: FormulaInput,
 ): number | undefined {
-	if (damage.notModeled) return undefined
+	// A share of the target's health needs the target, which this input lacks.
+	if (damage.notModeled || damage.ofTargetHealth) return undefined
 	let sum = 0
 	for (const part of damage.parts) {
 		if ("value" in part) {
