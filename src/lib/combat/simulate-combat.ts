@@ -8,6 +8,7 @@ import { isInPatchRange } from "@schemas/patch-range"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
+	Amount,
 	BuildEffect,
 	EndsOn,
 	Grant,
@@ -62,6 +63,8 @@ export type CombatInput = {
 	summoners: readonly (SummonerSpell | undefined)[]
 	target: CombatTarget
 	actions: readonly CombatAction[]
+	/** The starting situation: the ids of the effects whose `start` option is chosen (Harrier's mark). */
+	start?: readonly string[]
 }
 
 export type SimulateCombatOptions = {
@@ -77,9 +80,14 @@ type Instance = {
 	stacks: number
 	/** Ticks of a damage over time dealt so far. */
 	ticks: number
+	/** Running from the combo's starting situation. */
+	fromStart?: true
 }
 
-type Mark = MarkApplication & { endsAt: number }
+/** A mark and the effect that applied it, whose cooldown may start when it leaves (`cooldownFrom`). */
+type PendingMark = MarkApplication & { by: BuildEffect }
+
+type Mark = PendingMark & { endsAt: number; fromStart?: true }
 
 type Simulation = {
 	input: CombatInput
@@ -98,6 +106,8 @@ type Simulation = {
 	effectsReadyAt: Map<string, number>
 	active: Instance[]
 	marks: Mark[]
+	/** When each mark last left the target, which a periodic effect's `idle` waits on. */
+	markClearedAt: Map<string, number>
 	health: number
 	log: CombatEvent[]
 	step: number
@@ -105,7 +115,46 @@ type Simulation = {
 }
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
-type PendingMarks = MarkApplication[]
+type PendingMarks = PendingMark[]
+
+function isPeriodic({ effect }: BuildEffect) {
+	return effect.trigger.kind === "periodic"
+}
+
+/**
+ * The chosen starting situation: marks on the target and effects running from 0. A periodic
+ * effect not started that way starts on its cooldown, as if it had just been used.
+ */
+function applyStart(sim: Simulation) {
+	const chosen = new Set(sim.input.start ?? [])
+	for (const effect of sim.input.effects) {
+		if (!isInForm(effect, sim.formId)) continue
+		const { start, applies } = effect.effect
+		if (!start || !chosen.has(effect.id)) {
+			if (isPeriodic(effect)) startCooldown(sim, effect)
+			continue
+		}
+		if (start.kind === "marked" && applies) {
+			sim.marks.push({
+				...applies,
+				by: effect,
+				endsAt: applies.duration,
+				fromStart: true,
+			})
+		}
+		if (start.kind === "running") {
+			sim.active.push({
+				effect,
+				holder: effect.effect.holder ?? "attacker",
+				startedAt: 0,
+				endsAt: effectDuration(effect, sim.context) ?? Number.POSITIVE_INFINITY,
+				stacks: 1,
+				ticks: 0,
+				fromStart: true,
+			})
+		}
+	}
+}
 
 function createSimulation(
 	input: CombatInput,
@@ -116,7 +165,7 @@ function createSimulation(
 	const startsOn = input.effects.filter(
 		({ effect }) => isOnByDefault(effect) && effect.holder !== "target",
 	)
-	return {
+	const sim: Simulation = {
 		input,
 		hitRules,
 		spells: abilitiesInForm(champion.abilities, formId).spells,
@@ -145,10 +194,13 @@ function createSimulation(
 			ticks: 0,
 		})),
 		marks: [],
+		markClearedAt: new Map(),
 		health: input.target.health,
 		log: [],
 		step: 0,
 	}
+	applyStart(sim)
+	return sim
 }
 
 /** The attacker's stats now: `computeBuildStats` with the effects running on the attacker. */
@@ -250,12 +302,18 @@ function dealGrantNow(sim: Simulation, grant: Grant, effect: BuildEffect) {
 	})
 }
 
+/** An amount of the effect now, reading the attacker's stats when it needs them (Harrier's cooldown). */
+function amountNow(sim: Simulation, amount: Amount, effect: BuildEffect) {
+	return resolveAmount(amount, effect, {
+		...sim.context,
+		totals: statsNow(sim),
+	})
+}
+
 function startCooldown(sim: Simulation, effect: BuildEffect) {
 	const { cooldown } = effect.effect
 	const seconds =
-		cooldown === undefined
-			? undefined
-			: resolveAmount(cooldown, effect, sim.context)
+		cooldown === undefined ? undefined : amountNow(sim, cooldown, effect)
 	if (seconds !== undefined) {
 		sim.effectsReadyAt.set(effect.id, sim.time + seconds)
 	}
@@ -287,15 +345,18 @@ function nextTickAt(instance: Instance): number | undefined {
 
 /**
  * Starts an effect whose trigger matched: its mark waits for the hit, an `abilityDamage` lands
- * now, and one with a duration runs (or refreshes, one more stack). Its cooldown gates it.
+ * now (or when an on-hit spends it), and one with a duration runs (or refreshes, one more stack).
+ * Its cooldown gates it.
  */
 function trigger(sim: Simulation, effect: BuildEffect, pending: PendingMarks) {
 	if (!isInForm(effect, sim.formId)) return
 	if ((sim.effectsReadyAt.get(effect.id) ?? 0) > sim.time) return
-	const { applies, endsOn, holder, stacks } = effect.effect
-	if (applies) pending.push(applies)
-	for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
-	if (!endsOn) startCooldown(sim, effect)
+	const { applies, endsOn, holder, stacks, cooldownFrom } = effect.effect
+	if (applies) pending.push({ ...applies, by: effect })
+	if (endsOn !== "on-hit") {
+		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
+	}
+	if (!endsOn && !cooldownFrom) startCooldown(sim, effect)
 
 	const duration = effectDuration(effect, sim.context)
 	if (!duration) return
@@ -360,11 +421,19 @@ function onHit(sim: Simulation, pending: PendingMarks) {
 	)
 	for (const instance of spent) {
 		const stats = statsNow(sim)
+		const source: DamageSource = {
+			kind: "effect",
+			effectId: instance.effect.id,
+			...(instance.fromStart && { fromStart: instance.fromStart }),
+		}
 		for (const grant of instance.effect.effect.grants) {
+			if (grant.kind === "abilityDamage") {
+				dealAbilityDamage(sim, grant.ability, grant.name, source)
+			}
 			if (grant.kind !== "damage") continue
 			const { baseAttackDamage = 0, abilityPower = 0 } = grant.ratios
 			deal(sim, {
-				source: { kind: "effect", effectId: instance.effect.id },
+				source,
 				type: grant.damageType,
 				raw:
 					baseAttackDamage * stats.attackDamage.base +
@@ -376,6 +445,12 @@ function onHit(sim: Simulation, pending: PendingMarks) {
 	}
 }
 
+/** A mark left the target (consumed, expired or overwritten): its applier's cooldown may start now. */
+function markLeft(sim: Simulation, { mark, by }: Mark) {
+	sim.markClearedAt.set(mark, sim.time)
+	if (by.effect.cooldownFrom === "mark-end") startCooldown(sim, by)
+}
+
 function consumeMarks(
 	sim: Simulation,
 	by: MarkConsumer,
@@ -383,8 +458,15 @@ function consumeMarks(
 ) {
 	const consumed = sim.marks.filter(({ consumedBy }) => consumedBy.includes(by))
 	sim.marks = sim.marks.filter((mark) => !consumed.includes(mark))
-	for (const { mark } of consumed) {
-		sim.log.push({ kind: "mark-consumed", time: sim.time, mark })
+	for (const consumedMark of consumed) {
+		const { mark, fromStart } = consumedMark
+		sim.log.push({
+			kind: "mark-consumed",
+			time: sim.time,
+			mark,
+			...(fromStart && { fromStart }),
+		})
+		markLeft(sim, consumedMark)
 		triggerWhere(
 			sim,
 			(trigger) => trigger.kind === "on-mark-consumed" && trigger.mark === mark,
@@ -396,10 +478,14 @@ function consumeMarks(
 function applyMarks(sim: Simulation, pending: PendingMarks) {
 	for (const application of pending) {
 		const endsAt = sim.time + application.duration
+		const overwritten = sim.marks.filter(
+			({ mark }) => mark === application.mark,
+		)
 		sim.marks = [
-			...sim.marks.filter(({ mark }) => mark !== application.mark),
+			...sim.marks.filter((mark) => !overwritten.includes(mark)),
 			{ ...application, endsAt },
 		]
+		for (const mark of overwritten) markLeft(sim, mark)
 		sim.log.push({
 			kind: "mark-applied",
 			time: sim.time,
@@ -409,8 +495,48 @@ function applyMarks(sim: Simulation, pending: PendingMarks) {
 	}
 }
 
-/** What happens next on its own before `until`: a tick, an effect or a mark running out. */
-function nextTimedEvent(sim: Simulation, until: number) {
+/**
+ * When a periodic effect triggers next: once its cooldown is over and its mark has been off the
+ * target for `idle` seconds; never while it runs or its mark is on the target.
+ */
+function periodicAt(sim: Simulation, effect: BuildEffect): number | undefined {
+	const { trigger, applies, duration } = effect.effect
+	if (trigger.kind !== "periodic" || !isInForm(effect, sim.formId)) {
+		return undefined
+	}
+	// Without a mark or a duration, nothing would stop it from triggering again at once.
+	if (!applies && duration === undefined) return undefined
+	if (sim.active.some((instance) => instance.effect.id === effect.id)) {
+		return undefined
+	}
+	if (applies && sim.marks.some(({ mark }) => mark === applies.mark)) {
+		return undefined
+	}
+	const clearedAt = applies && sim.markClearedAt.get(applies.mark)
+	return Math.max(
+		sim.time,
+		sim.effectsReadyAt.get(effect.id) ?? 0,
+		clearedAt === undefined ? 0 : clearedAt + (trigger.idle ?? 0),
+	)
+}
+
+function triggerPeriodic(sim: Simulation, effect: BuildEffect) {
+	const pending: PendingMarks = []
+	trigger(sim, effect, pending)
+	applyMarks(sim, pending)
+}
+
+type AdvanceOptions = {
+	/** Periodic effects trigger on the way (true); the tail after the last action only runs out what is running. */
+	periodic?: boolean
+}
+
+/** What happens next on its own before `until`: a tick, an effect or a mark running out, a periodic effect. */
+function nextTimedEvent(
+	sim: Simulation,
+	until: number,
+	{ periodic = true }: AdvanceOptions = {},
+) {
 	let next: { at: number; run: () => void } | undefined
 	const consider = (at: number | undefined, run: () => void) => {
 		if (at !== undefined && at <= until && (!next || at < next.at)) {
@@ -427,17 +553,23 @@ function nextTimedEvent(sim: Simulation, until: number) {
 		consider(mark.endsAt, () => {
 			sim.marks = sim.marks.filter((running) => running !== mark)
 			sim.log.push({ kind: "expire", time: sim.time, mark: mark.mark })
+			markLeft(sim, mark)
 		})
+	}
+	if (periodic) {
+		for (const effect of sim.input.effects) {
+			consider(periodicAt(sim, effect), () => triggerPeriodic(sim, effect))
+		}
 	}
 	return next
 }
 
-/** Moves the clock to `until`, running every tick and expiry on the way, in time order. */
-function advance(sim: Simulation, until: number) {
+/** Moves the clock to `until`, running every tick, expiry and periodic effect on the way, in time order. */
+function advance(sim: Simulation, until: number, options?: AdvanceOptions) {
 	for (
-		let next = nextTimedEvent(sim, until);
+		let next = nextTimedEvent(sim, until, options);
 		next;
-		next = nextTimedEvent(sim, until)
+		next = nextTimedEvent(sim, until, options)
 	) {
 		sim.time = Math.max(sim.time, next.at)
 		next.run()
@@ -534,6 +666,17 @@ function abilityRefusal(
 	return undefined
 }
 
+/** Every effect with `reducedOnCast` gets that much closer to ready (Short Fuse, at the cast's start). */
+function reduceCooldownsOnCast(sim: Simulation) {
+	for (const effect of sim.input.effects) {
+		const { reducedOnCast } = effect.effect
+		const readyAt = sim.effectsReadyAt.get(effect.id)
+		if (reducedOnCast === undefined || readyAt === undefined) continue
+		const seconds = amountNow(sim, reducedOnCast, effect) ?? 0
+		sim.effectsReadyAt.set(effect.id, Math.max(sim.time, readyAt - seconds))
+	}
+}
+
 function castAbility(sim: Simulation, slot: AbilitySlot): string | undefined {
 	const spell = sim.spells.find((ability) => ability.slot === slot)
 	const rank = sim.input.build.ranks?.[slot] ?? 0
@@ -547,6 +690,7 @@ function castAbility(sim: Simulation, slot: AbilitySlot): string | undefined {
 		time: sim.time,
 		source: { kind: "ability", slot },
 	})
+	reduceCooldownsOnCast(sim)
 	endEffects(sim, "cast")
 	triggerWhere(
 		sim,
@@ -688,7 +832,8 @@ export function simulateCombat(
 		})
 		advance(sim, sim.busyUntil)
 	}
-	advance(sim, Number.POSITIVE_INFINITY)
+	// After the last action, only what runs plays out: a periodic effect would come back forever.
+	advance(sim, Number.POSITIVE_INFINITY, { periodic: false })
 	closeStep()
 	return {
 		steps,
