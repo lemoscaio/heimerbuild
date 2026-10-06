@@ -20,6 +20,7 @@ import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
 import { BuildEffectsList } from "./build-effects-list"
 import { ChampionSkills } from "./champion-skills"
+import { ComboTab } from "./combo-tab"
 import type { BuildPage } from "./hooks/use-build-page"
 
 type OverviewPageProps = {
@@ -132,6 +133,13 @@ export function OverviewPage({
 							abilities={build.abilities ?? champion.abilities}
 							skills={build.skills}
 							layout="grid"
+						/>
+					}
+					combo={
+						<ComboTab
+							combat={build.combat}
+							champion={champion}
+							summoners={build.summoners.slots}
 						/>
 					}
 				/>

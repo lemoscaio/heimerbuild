@@ -20,6 +20,7 @@ import { SummonerSlots } from "@/features/summoners/components/summoner-slots"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { BuildEffectsList } from "./build-effects-list"
 import { ChampionSkills } from "./champion-skills"
+import { ComboTab } from "./combo-tab"
 import type { BuildPage } from "./hooks/use-build-page"
 
 type MobileBuildPageProps = {
@@ -152,6 +153,13 @@ export function MobileBuildPage({
 					abilities={build.abilities ?? champion.abilities}
 					skills={build.skills}
 					layout="list"
+				/>
+			}
+			combo={
+				<ComboTab
+					combat={build.combat}
+					champion={champion}
+					summoners={build.summoners.slots}
 				/>
 			}
 			bottom={
