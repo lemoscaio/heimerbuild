@@ -18,12 +18,13 @@ export type SituationMarker = { kind: "situation"; effectId: string }
 export type CombatItem = CombatAction | SituationMarker
 
 /**
- * What a marker did. `forced`: the rules didn't allow it there (the effect's cooldown ran until
- * `readyAt`) and it applied anyway; `no-effect`: its situation already held, or the build lacks the
- * effect. `readyAt` on an applied one: when its cooldown had run out.
+ * What a marker did. While a use in the combo still has its effect on cooldown (until `readyAt`),
+ * strict mode `ignored` it and free mode `forced` it. `no-effect`: its situation already held, or
+ * the build lacks the effect. `readyAt` on an applied one: when that cooldown had run out.
  */
 export type SituationStatus =
 	| { status: "applied"; readyAt?: number }
+	| { status: "ignored"; readyAt: number }
 	| { status: "forced"; readyAt: number }
 	| {
 			status: "no-effect"
@@ -143,6 +144,11 @@ export type CombatResult = {
 	byType: Record<DamageType, DamageTotals>
 	/** When the target's health reached 0, and the step it fell in (its index, markers included). */
 	kill?: { time: number; step: number }
-	/** Seconds from the first action until the last event (a burn ticking on). */
+	/**
+	 * The combo's time: when its last damage landed, a burn's ticks after the last action included;
+	 * never an effect running out or the idle time after the last hit. 0 without damage.
+	 */
 	duration: number
+	/** When the last effect or mark still running ran out (Heightened Senses after the last hit). */
+	activeUntil: number
 }

@@ -136,6 +136,8 @@ type Simulation = {
 	/** Where the action running starts in the log, and what its `on-attack` effects did. */
 	actionStart: number
 	empowered: Map<string, Empowered>
+	/** Effects whose cooldown is still the one assumed at the start, not a use in the combo. */
+	assumedCooldowns: Set<string>
 }
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
@@ -157,7 +159,10 @@ function startCooldowns(sim: Simulation) {
 	for (const effect of sim.input.effects) {
 		const { trigger, start } = effect.effect
 		if (!isInForm(effect, sim.formId) || leading.has(effect.id)) continue
-		if (trigger.kind === "periodic" || start) startCooldown(sim, effect)
+		if (trigger.kind === "periodic" || start) {
+			startCooldown(sim, effect)
+			sim.assumedCooldowns.add(effect.id)
+		}
 	}
 }
 
@@ -178,9 +183,27 @@ function newInstance(
 	}
 }
 
+/** Why a marker's situation already holds, if it does: nothing for it to change. */
+function situationHolds(
+	sim: Simulation,
+	effect: BuildEffect,
+): SituationStatus | undefined {
+	const { start, applies } = effect.effect
+	if (start?.kind === "marked") {
+		if (!applies) return { status: "no-effect", reason: "unavailable" }
+		return sim.marks.some(({ mark }) => mark === applies.mark)
+			? { status: "no-effect", reason: "already-marked" }
+			: undefined
+	}
+	return sim.active.some((instance) => instance.effect === effect)
+		? { status: "no-effect", reason: "already-running" }
+		: undefined
+}
+
 /**
  * A marker sets its effect's situation from here: its mark on the target, the effect running, or
- * its cooldown over. Strict mode applies one the rules don't allow anyway, and says it was forced.
+ * its cooldown over. While a use in the combo has it on cooldown, strict mode ignores the marker
+ * and free mode forces it; the cooldown assumed at the start blocks nothing.
  */
 function applySituation(sim: Simulation, effectId: string): SituationStatus {
 	const effect = sim.input.effects.find(({ id }) => id === effectId)
@@ -188,15 +211,16 @@ function applySituation(sim: Simulation, effectId: string): SituationStatus {
 	if (!effect || !start || !isInForm(effect, sim.formId)) {
 		return { status: "no-effect", reason: "unavailable" }
 	}
+	const holds = situationHolds(sim, effect)
+	if (holds) return holds
 	const readyAt = sim.effectsReadyAt.get(effect.id)
-	const running = sim.active.some((instance) => instance.effect === effect)
+	const assumed = sim.assumedCooldowns.has(effect.id)
+	const blocked = readyAt !== undefined && readyAt > sim.time && !assumed
+	if (blocked && !sim.free) return { status: "ignored", readyAt }
 	const { applies } = effect.effect
 	switch (start.kind) {
 		case "marked":
 			if (!applies) return { status: "no-effect", reason: "unavailable" }
-			if (sim.marks.some(({ mark }) => mark === applies.mark)) {
-				return { status: "no-effect", reason: "already-marked" }
-			}
 			sim.marks.push({
 				...applies,
 				by: effect,
@@ -205,7 +229,6 @@ function applySituation(sim: Simulation, effectId: string): SituationStatus {
 			})
 			break
 		case "running":
-			if (running) return { status: "no-effect", reason: "already-running" }
 			sim.active.push({
 				...newInstance(
 					sim,
@@ -216,13 +239,13 @@ function applySituation(sim: Simulation, effectId: string): SituationStatus {
 			})
 			break
 		case "ready":
-			if (running) return { status: "no-effect", reason: "already-running" }
 			sim.effectsReadyAt.delete(effect.id)
+			sim.assumedCooldowns.delete(effect.id)
 			break
 	}
-	if (readyAt === undefined) return { status: "applied" }
-	return readyAt > sim.time && !sim.free
-		? { status: "forced", readyAt }
+	if (blocked) return { status: "forced", readyAt }
+	return readyAt === undefined || assumed
+		? { status: "applied" }
 		: { status: "applied", readyAt }
 }
 
@@ -272,6 +295,7 @@ function createSimulation(
 		free: !!input.free,
 		actionStart: 0,
 		empowered: new Map(),
+		assumedCooldowns: new Set(),
 	}
 	startCooldowns(sim)
 	return sim
@@ -390,6 +414,7 @@ function startCooldown(sim: Simulation, effect: BuildEffect) {
 		cooldown === undefined ? undefined : amountNow(sim, cooldown, effect)
 	if (seconds !== undefined) {
 		sim.effectsReadyAt.set(effect.id, sim.time + seconds)
+		sim.assumedCooldowns.delete(effect.id)
 	}
 }
 
@@ -1129,11 +1154,13 @@ export function simulateCombat(
 	// After the last action, only what runs plays out: a periodic effect would come back forever.
 	advance(sim, Number.POSITIVE_INFINITY, { periodic: false })
 	closeStep()
+	const duration = sim.log.findLast(({ kind }) => kind === "hit")?.time ?? 0
 	return {
 		steps,
 		...totals(sim.log),
 		...(sim.kill && { kill: sim.kill }),
-		duration: Math.max(sim.time, sim.log.at(-1)?.time ?? 0),
+		duration,
+		activeUntil: Math.max(duration, sim.log.at(-1)?.time ?? 0),
 	}
 }
 
