@@ -84,11 +84,15 @@ describe("ignite", () => {
 			runes: [],
 		})
 		const [grant] = ignite?.effect.grants ?? []
-		if (!ignite || grant?.kind !== "damageOverTime") {
+		if (
+			!ignite ||
+			grant?.kind !== "damageOverTime" ||
+			grant.tick.by !== "amount"
+		) {
 			throw new Error("Ignite has no damage over time")
 		}
-		const tick = (level: number) =>
-			resolveAmount(grant.amount, ignite, { level })
+		const { amount } = grant.tick
+		const tick = (level: number) => resolveAmount(amount, ignite, { level })
 
 		expect(ignite.effect.holder).toBe("target")
 		expect(

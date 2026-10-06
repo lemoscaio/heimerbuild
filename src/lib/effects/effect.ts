@@ -1,4 +1,9 @@
-import type { AbilityRankValue, AbilitySlot, RankStat } from "@schemas/champion"
+import type {
+	AbilityRankValue,
+	AbilitySlot,
+	RankStat,
+	TargetHealth,
+} from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import type { PatchRange } from "@schemas/patch-range"
 import type { SummonerSpell } from "@schemas/summoner-spell"
@@ -96,10 +101,44 @@ export type DamageRatios = Partial<
 export type GrantStat = StatKey | "adaptiveForce"
 
 /**
+ * What one tick of a damage over time deals: an amount (Ignite: a fifth of the spell's total), the
+ * source ability's synced formula by name times `scale` (Toxic Shot: `TotalDotDamage` ÷ 4), or a
+ * `ratio` of the target's health when the tick lands (Liandry's Torment: 1% of its maximum).
+ */
+export type TickDamage =
+	| { by: "amount"; damageType: DamageType; amount: Amount }
+	| {
+			by: "abilityDamage"
+			ability: AbilitySlot | "passive"
+			name: string
+			scale: number
+	  }
+	| {
+			by: "targetHealth"
+			damageType: DamageType
+			health: TargetHealth
+			ratio: number
+	  }
+
+/**
+ * A damage dealt every `every` seconds while its effect runs, each tick at its own time. The first
+ * lands at the application (Ignite: 0 to 4 s of 5), or `delayed` one `every` later, the last at the
+ * end (Toxic Shot: 1 to 4 s of 4). A refresh keeps the tick timer; each stack adds one tick's damage.
+ */
+export type DamageOverTimeGrant = {
+	kind: "damageOverTime"
+	tick: TickDamage
+	every: number
+	firstTick?: "delayed"
+	/** Up to this share more as the target's missing health grows to 100% (Tormented Shadow: 1). */
+	missingHealthBonus?: number
+}
+
+/**
  * Stats fold into the totals; an attack speed multiplier scales the bonus or total attack speed
  * after them; shields and heals are values of their own. The damage grants are the combat
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
- * source ability's synced formula by name, `damageOverTime` dealt every `every` seconds while it lasts,
+ * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
  * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true damage).
  */
 export type Grant =
@@ -109,12 +148,7 @@ export type Grant =
 	| { kind: "heal"; amount: Amount }
 	| { kind: "damage"; damageType: DamageType; ratios: DamageRatios }
 	| { kind: "abilityDamage"; ability: AbilitySlot | "passive"; name: string }
-	| {
-			kind: "damageOverTime"
-			damageType: DamageType
-			amount: Amount
-			every: number
-	  }
+	| DamageOverTimeGrant
 	| {
 			kind: "onAttackDamage"
 			damageType: DamageType
@@ -126,11 +160,12 @@ export type Grant =
 export type EffectCondition = "not-damaged-recently"
 
 /**
- * When an effect starts. `on-attack`, `on-cast`, `on-mark-consumed` and `periodic` exist only in the
- * combat simulator: a basic attack starting, before its hit (Hail of Blades); a cast of one of
- * `slots` (any ability without them); the attacker consuming `mark` on the target; or on its own once
- * its cooldown is over, while it isn't running and its mark has been off the target for `idle`
- * seconds (Valor's Harrier, Ziggs's Short Fuse).
+ * When an effect starts. `on-attack`, `on-cast`, `on-mark-consumed`, `periodic` and
+ * `on-ability-damage` exist only in the combat simulator: a basic attack starting, before its hit
+ * (Hail of Blades); a cast of one of `slots` (any ability without them); the attacker consuming
+ * `mark` on the target; on its own once its cooldown is over, while it isn't running and its mark
+ * has been off the target for `idle` seconds (Valor's Harrier, Ziggs's Short Fuse); or an ability's
+ * damage landing, its ticks included (Liandry's Torment).
  */
 export type Trigger =
 	| { kind: "always" }
@@ -143,6 +178,7 @@ export type Trigger =
 	| { kind: "on-cast"; slots?: readonly AbilitySlot[] }
 	| { kind: "on-mark-consumed"; mark: string }
 	| { kind: "periodic"; idle?: number }
+	| { kind: "on-ability-damage" }
 
 export type TriggerKind = Trigger["kind"]
 
@@ -210,6 +246,7 @@ export type Effect = PatchRange & {
 	reducedOnCast?: Amount
 	/** The situation a combo marker can set with it, which the Combo tab offers. */
 	start?: StartOption
+	/** Each new application adds one up to `max`: stats scale by stacks / max, a damage over time ticks once per stack. */
 	stacks?: { max: number }
 	/** The basic attacks it empowers, the triggering one included; it ends after the last. */
 	charges?: number
@@ -217,7 +254,7 @@ export type Effect = PatchRange & {
 	endsOn?: EndsOn | readonly EndsOn[]
 	/** The mark it puts on the target when it triggers (combat simulator). */
 	applies?: MarkApplication
-	/** Who holds it: the attacker (absent), or the target (Ignite's burn). */
+	/** Who holds it: the attacker (absent), or the target (Ignite's burn, Toxic Shot's poison). */
 	holder?: "target"
 	/** Replaces the trigger's default (`isOnByDefault`). */
 	defaultOn?: boolean

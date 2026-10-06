@@ -15,6 +15,7 @@ const ON_BY_TRIGGER = {
 	"on-cast": false,
 	"on-mark-consumed": false,
 	periodic: false,
+	"on-ability-damage": false,
 } as const satisfies Record<TriggerKind, boolean>
 
 export function isOnByDefault({ trigger, defaultOn }: Effect): boolean {
@@ -33,13 +34,14 @@ const SWITCHABLE_BY_TRIGGER = {
 	"on-cast": true,
 	"on-mark-consumed": true,
 	periodic: true,
+	"on-ability-damage": true,
 } as const satisfies Record<TriggerKind, boolean>
 
 export function isSwitchable({ trigger }: Effect): boolean {
 	return SWITCHABLE_BY_TRIGGER[trigger.kind]
 }
 
-/** Triggers only a combat sequence fires (an attack starting, a cast's mark, a mark consumed, a periodic one): no switch in the stats panel. */
+/** Triggers only a combat sequence fires (an attack starting, a cast's mark, a mark consumed, a periodic one, ability damage): no switch in the stats panel. */
 const LISTED_BY_TRIGGER = {
 	always: true,
 	while: true,
@@ -51,6 +53,7 @@ const LISTED_BY_TRIGGER = {
 	"on-cast": false,
 	"on-mark-consumed": false,
 	periodic: false,
+	"on-ability-damage": false,
 } as const satisfies Record<TriggerKind, boolean>
 
 /** The stats panel lists the attacker's own effects that a switch can stand in for; the combat simulator reads them all. */
