@@ -37,6 +37,8 @@ export function conditionText({ effect, duration }: Condition): string {
 			return lasting(duration, "after casting")
 		case "on-mark-consumed":
 			return lasting(duration, "after consuming a mark")
+		case "periodic":
+			return lasting(duration, "periodically")
 	}
 }
 

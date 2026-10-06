@@ -12,6 +12,8 @@ function tableAmounts(amount: Amount): TableAmount[] {
 			return [amount.max]
 		case "gameTime":
 			return [amount.step]
+		case "statDecay":
+			return []
 		default:
 			return [amount]
 	}
