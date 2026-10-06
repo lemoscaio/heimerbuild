@@ -40,7 +40,7 @@ export function CombatVariantInput({
 					<ToggleGroupItem
 						key={variant.id}
 						value={variant.id}
-						className="h-5 min-w-0 rounded-full px-1.5 text-[0.625rem] data-pressed:bg-input-line data-pressed:text-white max-lg:h-8"
+						className="h-5 min-w-0 rounded-full px-1.5 text-[0.625rem] data-pressed:bg-input-ink data-pressed:font-semibold data-pressed:text-input-fill max-lg:h-8"
 					>
 						{variant.label}
 					</ToggleGroupItem>
