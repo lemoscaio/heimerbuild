@@ -206,12 +206,18 @@ function notModeledHit(
 	sim.log.push({ kind: "hit", time: sim.time, source, notModeled: reasons })
 }
 
+type AbilityDamageOptions = {
+	/** The target's health its share reads; the current one by default. */
+	targetHealth?: number
+}
+
 /** A synced ability damage by name (`abilityDamage` grant or a cast's hit), at the ability's rank. */
 function dealAbilityDamage(
 	sim: Simulation,
 	ability: AbilitySlot | "passive",
 	name: string,
 	source: DamageSource,
+	{ targetHealth = sim.health }: AbilityDamageOptions = {},
 ) {
 	const { champion, ranks, level } = sim.input.build
 	const damage =
@@ -227,6 +233,7 @@ function dealAbilityDamage(
 		stats: statsNow(sim),
 		level,
 		...(ability !== "passive" && { rank: ranks?.[ability] }),
+		target: { maximum: sim.input.target.health, current: targetHealth },
 	})
 	if (raw === undefined) {
 		notModeledHit(sim, source, formula.notModeled ?? ["a value it lacks"])
@@ -469,23 +476,45 @@ function hitRule(sim: Simulation, slot: AbilitySlot) {
 	)
 }
 
-/** The cast's hit: its rule's damage, else the tooltip's first; it may apply on-hit, and it consumes the marks abilities do. */
+/** The tooltip damages a cast deals: its rule's (one, several or none), else the tooltip's first. */
+function castDamages(
+	spell: ChampionSpell,
+	rule: AbilityHitRule | undefined,
+): readonly string[] {
+	if (rule?.damage === undefined) {
+		const first = spell.damage?.[0]?.name
+		return first ? [first] : []
+	}
+	if (rule.damage === null) return []
+	return typeof rule.damage === "string" ? [rule.damage] : rule.damage
+}
+
+/** The cast's hits, one per damage it deals; it may apply on-hit, and it consumes the marks abilities do. */
 function abilityHit(
 	sim: Simulation,
 	spell: ChampionSpell,
 	pending: PendingMarks,
 ) {
 	const rule = hitRule(sim, spell.slot)
-	const name =
-		rule?.damage === undefined ? spell.damage?.[0]?.name : rule.damage
-	if (!rule?.notModeled && !name) return
-	const source = {
-		kind: "ability",
-		slot: spell.slot,
-		name: name ?? spell.damage?.[0]?.name ?? spell.name,
-	} as const
-	if (rule?.notModeled) notModeledHit(sim, source, [rule.notModeled])
-	else if (name) dealAbilityDamage(sim, spell.slot, name, source)
+	const names = castDamages(spell, rule)
+	if (rule?.notModeled) {
+		notModeledHit(
+			sim,
+			{
+				kind: "ability",
+				slot: spell.slot,
+				name: names[0] ?? spell.damage?.[0]?.name ?? spell.name,
+			},
+			[rule.notModeled],
+		)
+	} else {
+		// The cast's damages are one hit: a share of health reads it before any of them lands.
+		const targetHealth = sim.health
+		for (const name of names) {
+			const source = { kind: "ability", slot: spell.slot, name } as const
+			dealAbilityDamage(sim, spell.slot, name, source, { targetHealth })
+		}
+	}
 	if (rule?.onHit) onHit(sim, pending)
 	consumeMarks(sim, "ability", pending)
 }
