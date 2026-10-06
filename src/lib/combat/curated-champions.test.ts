@@ -34,15 +34,21 @@ describe("ABILITY_HIT_RULES", () => {
 	test.each(
 		ABILITY_HIT_RULES.map((rule) => [rule.championKey, rule.slot, rule]),
 	)(
-		"%s %s names a champion of the list and a damage its ability has",
+		"%s %s names a champion of the list, unless it only offers variants, and damages its ability has",
 		async (key, slot, rule) => {
 			const spell = (await champion(key)).abilities.spells.find(
 				(ability) => ability.slot === slot,
 			)
+			const variantsOnly =
+				!!rule.variants && !rule.damage && !rule.onHit && !rule.notModeled
 
-			expect(CURATED_COMBAT_CHAMPIONS).toContain(key)
+			if (!variantsOnly) expect(CURATED_COMBAT_CHAMPIONS).toContain(key)
 			const names = spell?.damage?.map(({ name }) => name)
-			for (const damage of [rule.damage ?? []].flat()) {
+			const damages = [
+				rule.damage ?? [],
+				...(rule.variants ?? []).map(({ damage }) => damage),
+			].flat()
+			for (const damage of damages) {
 				expect(names).toContain(damage)
 			}
 		},
