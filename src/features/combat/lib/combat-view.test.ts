@@ -498,6 +498,32 @@ describe("damage over time on its step (issue 345)", () => {
 		})
 	})
 
+	test("a delayed one says when it took effect, and runs until its last tick", () => {
+		const trap = stepView(
+			{
+				...STEP,
+				damageOverTime: [
+					{
+						effectId: "teemo-e",
+						application: "applied",
+						stacks: 1,
+						ticks: [3.45, 4.45].map((time) => ({
+							time,
+							damage: { type: "magic", raw: 30, final: 20 },
+						})),
+						endsAt: 6.45,
+						delayed: { label: "detonates", at: 2.45 },
+					},
+				],
+			},
+			{ names: NAMES, target: TARGET },
+		)
+		expect(trap.damageOverTime[0]).toMatchObject({
+			delayed: { label: "detonates", at: 2.45 },
+			until: 4.45,
+		})
+	})
+
 	test("strict mode's chips leave out an applied one: its line says it", () => {
 		const outcomes = outcomeViews(
 			[
