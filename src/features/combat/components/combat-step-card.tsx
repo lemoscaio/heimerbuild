@@ -7,7 +7,7 @@ import {
 	formatDamage,
 	formatSeconds,
 } from "../lib/combat-format"
-import type { HitView, StepView } from "../lib/combat-view"
+import { FROM_START, type HitView, type StepView } from "../lib/combat-view"
 
 /** Damage colors, each with its type's name next to it: never color alone. */
 const DAMAGE_COLORS = {
@@ -113,9 +113,10 @@ export function CombatStepCard({
 							{formatSeconds(time)}
 						</span>
 					)}
-					{view?.marks.map(({ mark, change }) => (
+					{view?.marks.map(({ mark, change, fromStart }) => (
 						<span key={`${mark}-${change}`} className="text-gold">
 							{mark} mark {change}
+							{fromStart && ` ${FROM_START}`}
 						</span>
 					))}
 				</p>
