@@ -42,7 +42,7 @@ export function combatNames({
 			if (source.kind === "attack") return "Attack"
 			if (source.kind === "effect") {
 				const name = effectById.get(source.effectId)?.name ?? source.effectId
-				return source.fromStart ? `${name} ${FROM_START}` : name
+				return source.fromSituation ? `${name} ${FROM_START}` : name
 			}
 			if (source.slot === "passive") return passiveName
 			return (
@@ -145,7 +145,8 @@ export function stepView(
 								event.kind === "mark-applied"
 									? ("applied" as const)
 									: ("consumed" as const),
-							fromStart: event.kind === "mark-consumed" && !!event.fromStart,
+							fromStart:
+								event.kind === "mark-consumed" && !!event.fromSituation,
 						},
 					]
 				: [],

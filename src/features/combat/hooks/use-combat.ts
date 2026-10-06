@@ -18,7 +18,29 @@ import {
 } from "../lib/combat-sequence"
 
 /** What the combo runs on, injected: the build, its effects (`combatEffects`), its summoner slots, the target and the starting situation. */
-export type CombatInput = Omit<SimulationInput, "actions">
+export type CombatInput = Omit<SimulationInput, "actions" | "free"> & {
+	/** The starting situation's effect ids: markers before the first step. */
+	start?: readonly string[]
+}
+
+/** The combo's result with the starting situation's markers in front of the steps. */
+function simulateWithStart(
+	{ start = [], ...input }: CombatInput,
+	actions: readonly CombatAction[],
+) {
+	const markers = start.map((effectId) => ({
+		kind: "situation" as const,
+		effectId,
+	}))
+	const result = simulateCombat({ ...input, actions: [...markers, ...actions] })
+	return {
+		...result,
+		steps: result.steps.slice(markers.length),
+		...(result.kill && {
+			kill: { ...result.kill, step: result.kill.step - markers.length },
+		}),
+	}
+}
 
 type UseCombatOptions = {
 	/** Undefined while the build's data loads. */
@@ -40,7 +62,10 @@ function isCurated({ key }: Champion) {
 export function useCombat({ input, value, onChange }: UseCombatOptions) {
 	const result =
 		input &&
-		simulateCombat({ ...input, actions: value.map(({ action }) => action) })
+		simulateWithStart(
+			input,
+			value.map(({ action }) => action),
+		)
 	const champion = input?.build.champion
 	const formId = input && combatFormId(input.build)
 	const spells = champion
