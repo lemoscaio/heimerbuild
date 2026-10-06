@@ -64,6 +64,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 	},
 	{
 		// Torment: ability damage burns for 1% of the target's maximum health every 0.5 s for 3 s (wiki).
+		// To verify: the first tick's time (0.5 s after) is not on the wiki page in `sourceUrl`.
 		id: "liandrys-torment-burn",
 		source: { kind: "item", itemId: "6653" },
 		trigger: { kind: "on-ability-damage" },

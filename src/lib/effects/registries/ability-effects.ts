@@ -579,10 +579,11 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Teemo/Toxic_Shot`,
 	},
 	{
-		// The trap goes off under the target at the cast (no arming or travel): a tick every second for 4 s.
+		// The target steps on the trap once it arms, 1 s after the cast (wiki "Arming Time"); then a tick every second for 4 s.
 		id: "teemo-r",
 		source: { kind: "ability", championKey: "Teemo", slot: "R" },
 		trigger: { kind: "after-use" },
+		delay: { seconds: 1, label: "detonates" },
 		holder: "target",
 		duration: 4,
 		grants: [
