@@ -170,6 +170,7 @@ describe("combatTotals", () => {
 		total: { raw: 150, final: 90 },
 		byType: {} as CombatResult["byType"],
 		duration: 1.2,
+		activeUntil: 1.2,
 	} satisfies CombatResult
 
 	test("gives the damage, its share of the target's health, the time and the health left", () => {

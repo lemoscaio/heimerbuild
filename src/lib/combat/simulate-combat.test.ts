@@ -557,7 +557,9 @@ describe("Ignite with Nimbus Cloak (worked example 3)", async () => {
 		)
 		expect(result.total.final).toBeCloseTo(total)
 		expect(result.byType.true.final).toBeCloseTo(total)
-		expect(result.duration).toBe(5)
+		// The combo's time is its last damage: the fifth tick, not the burn running out at 5 s.
+		expect(result.duration).toBe(4)
+		expect(result.activeUntil).toBe(5)
 	})
 
 	test("Nimbus Cloak runs on the attacker for 2 s and Ignite on the target for 5 s", () => {
@@ -921,15 +923,25 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 		expect(outcomeOf(result, 6, "rush")?.charge).toEqual({ used: 1, max: 3 })
 	})
 
-	test("a marker the rules don't allow yet is forced: it applies, and says until when it was on cooldown", () => {
+	test("a marker while a use in the combo still has its effect on cooldown is ignored, and says until when", () => {
 		const result = run([rush, attack, attack, attack, rush, attack])
 		const readyAt = (result.steps[3]?.time ?? 0) + 10
 
 		expect(result.steps[4]?.situation).toEqual({
-			status: "forced",
+			status: "ignored",
 			readyAt: expect.closeTo(readyAt),
 		})
-		expect(outcomeOf(result, 5, "rush")?.charge).toEqual({ used: 1, max: 3 })
+		expect(outcomeOf(result, 5, "rush")).toMatchObject({
+			happened: false,
+			readyAt: expect.closeTo(readyAt),
+		})
+	})
+
+	test("the cooldown assumed at the start blocks no marker: the rune ready after the first attack applies", () => {
+		const result = run([attack, rush, attack])
+
+		expect(result.steps[1]?.situation).toEqual({ status: "applied" })
+		expect(outcomeOf(result, 2, "rush")?.charge).toEqual({ used: 1, max: 3 })
 	})
 
 	test("reordering across a marker moves the effect to the steps after it", () => {
@@ -975,10 +987,11 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 		})
 	})
 
-	test("a mark marker while its applier is on cooldown is forced", () => {
-		const result = run([harrier, attack, harrier])
+	test("a mark marker while its applier is on cooldown from a use in the combo is ignored", () => {
+		const result = run([harrier, attack, harrier, attack])
 
-		expect(result.steps[2]?.situation).toMatchObject({ status: "forced" })
+		expect(result.steps[2]?.situation).toMatchObject({ status: "ignored" })
+		expect(outcomeOf(result, 3, "quinn-harrier")?.happened).toBe(false)
 	})
 
 	test("a marker the build lacks has no effect", () => {
@@ -1100,11 +1113,29 @@ describe("free mode (issue 338)", async () => {
 		expect(outcomeOf(result, 2, "rush")).toBeUndefined()
 	})
 
-	test("markers apply without being forced", () => {
-		const items = [marker("rush"), attack, attack, attack, marker("rush")]
+	test("a marker strict mode ignores is forced, and applies", () => {
+		const items = [
+			marker("rush"),
+			attack,
+			attack,
+			attack,
+			marker("rush"),
+			attack,
+		]
 		const { result } = simulateFreeCombat(input(items), [])
 
-		expect(result.steps[4]?.situation).toMatchObject({ status: "applied" })
+		expect(result.steps[4]?.situation).toMatchObject({ status: "forced" })
+		expect(outcomeOf(result, 5, "rush")?.charge).toEqual({ used: 1, max: 3 })
+	})
+
+	test("times follow the actions as in strict mode, without cooldowns", () => {
+		const strict = simulateCombat(input(combo))
+		const { result } = simulateFreeCombat(input(combo), [])
+
+		expect(result.steps.map(({ time }) => time)).toEqual(
+			strict.steps.map(({ time }) => time),
+		)
+		expect(result.duration).toBeCloseTo(strict.duration)
 	})
 })
 
@@ -1140,5 +1171,48 @@ describe("ability variants: an input per step (issue 338)", async () => {
 
 		expect(hits(decimate("blade"), 0)[0]?.raw).toBe(blade)
 		expect(hits(decimate("handle"), 0)[0]?.raw).toBeCloseTo(blade * 0.35)
+	})
+})
+
+describe("the combo's time is its last damage (issue 338, decision 1a)", async () => {
+	// Level 18, no items: 1.02 attacks a second, so the attacks land at 0, 0.98 and 1.96 s.
+	const quinn: Setup = {
+		champion: await champion("Quinn"),
+		level: 18,
+		ranks: { Q: 5, W: 5, E: 5, R: 3 },
+	}
+	const attack: CombatItem = { kind: "attack" }
+	const harrier = marker("quinn-harrier-valor")
+	const run = (items: readonly CombatItem[]) =>
+		simulateCombat(inputOf(quinn, items))
+
+	test("3 attacks: the third hit, not the attack period after it", () => {
+		const result = run([attack, attack, attack])
+
+		expect(result.duration).toBeCloseTo(1.96, 2)
+		expect(result.duration).toBe(result.steps[2]?.time ?? Number.NaN)
+	})
+
+	test("a Harrier marker before the third attack: still its hit, though Heightened Senses runs 2 s more", () => {
+		const result = run([attack, attack, harrier, attack])
+
+		expect(result.duration).toBeCloseTo(1.96, 2)
+		expect(result.activeUntil).toBeCloseTo(3.96, 2)
+	})
+
+	test("a Harrier marker before the first attack: Heightened Senses' attack speed makes it shorter", () => {
+		expect(run([harrier, attack, attack, attack]).duration).toBeLessThan(1.95)
+	})
+
+	test("Ignite's ticks after the last action extend it, 4 s after the cast", async () => {
+		const ignite = spell("SummonerDot")
+		const result = simulateCombat(
+			inputOf({ ...quinn, summoners: [ignite] }, [
+				attack,
+				{ kind: "summoner", slot: 0 },
+			]),
+		)
+
+		expect(result.duration).toBe((result.steps[1]?.time ?? Number.NaN) + 4)
 	})
 })
