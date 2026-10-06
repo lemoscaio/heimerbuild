@@ -1,5 +1,6 @@
-// Quinn: Q, E and R casts mark the target with Harrier, and Valor marks it on its own (7 s, less with crit).
-// Her next attack consumes the mark: Harrier's damage and Heightened Senses' speeds. Skystrike isn't simulated.
+// Quinn: Q, E and R casts mark the target with Harrier; Valor marks it on its own (7 s, less with crit).
+// Her next attack consumes the mark: Harrier's damage and Heightened Senses' speeds.
+// Skystrike (R's recast) isn't simulated.
 import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect, MarkApplication } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"

@@ -1,5 +1,5 @@
 // Ezreal: Mystic Shot applies on-hit effects like an attack (it spends a spellblade).
-// Essence Flux deals nothing on its own: it marks the target, and his next attack or ability detonates it.
+// Essence Flux deals nothing by itself: it marks the target, and his next attack or ability detonates it.
 import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"

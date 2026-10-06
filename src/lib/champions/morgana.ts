@@ -1,4 +1,4 @@
-// Morgana: Tormented Shadow ticks every 0.5 s for 5 s, up to twice as much as the target's missing health grows.
+// Morgana: Tormented Shadow ticks every 0.5 s for 5 s, up to twice as much on a hurt target.
 import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
