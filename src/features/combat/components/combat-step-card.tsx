@@ -1,5 +1,5 @@
 import type { DamageType } from "@schemas/champion"
-import { CircleAlert, GripVertical, X } from "lucide-react"
+import { CircleAlert, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 import {
@@ -7,7 +7,7 @@ import {
 	formatDamage,
 	formatSeconds,
 } from "../lib/combat-format"
-import { FROM_START, type HitView, type StepView } from "../lib/combat-view"
+import { FROM_MARKER, type HitView, type StepView } from "../lib/combat-view"
 
 /** Damage colors, each with its type's name next to it: never color alone. */
 const DAMAGE_COLORS = {
@@ -17,19 +17,19 @@ const DAMAGE_COLORS = {
 } as const satisfies Record<DamageType, string>
 
 type CombatStepCardProps = {
-	/** 1-based, as the list counts. */
-	position: number
+	/** 1-based, among the actions (markers aren't counted). */
+	number: number
 	label: string
 	icon: React.ReactNode
-	/** When it ran; absent while the build loads. */
+	/** When it ran, shown first; absent while the build loads. */
 	time?: number
 	/** Why it did not run; the totals leave it out. */
 	refused?: string
 	view?: StepView
-	/** The reorder handle's events (`useStepReorder`). */
-	handleProps: React.ComponentProps<"button">
+	/** Its "Move up" and "Move down" buttons (`CombatMoveButtons`). */
+	moves: React.ReactNode
 	onRemove: () => void
-	/** Extra controls of the step: a wait's length. */
+	/** Extra parts of the step: a wait's length, its input, its outcomes. */
 	children?: React.ReactNode
 } & React.ComponentProps<"li">
 
@@ -73,50 +73,42 @@ function HealthBar({ share }: { share: number }) {
 
 /** A step of the combo: time, action, marks, effects running, its damage and the target's health. */
 export function CombatStepCard({
-	position,
+	number,
 	label,
 	icon,
 	time,
 	refused,
 	view,
-	handleProps,
+	moves,
 	onRemove,
 	children,
 	className,
 	...props
 }: CombatStepCardProps) {
-	const title = `${position}. ${label}`
+	const title = `${number}. ${label}`
 	return (
 		<li
 			className={cn(
-				"grid grid-cols-[auto_auto_1fr_auto_auto] items-start gap-x-2 rounded-lg border border-line bg-surface-sunken px-2 py-2 data-dragging:border-lilac data-dragging:bg-surface-raised",
+				"grid grid-cols-[auto_auto_1fr_auto_auto] items-start gap-x-2 rounded-lg border border-line bg-surface-sunken px-1 py-1.5",
 				{ "border-error/70": !!refused },
 				className,
 			)}
 			{...props}
 		>
-			<button
-				type="button"
-				aria-label={`Move step ${title}`}
-				aria-description="Drag, or press the up and down arrow keys"
-				className="flex h-8 w-6 cursor-grab touch-none items-center justify-center rounded text-subtle hover:text-white focus-visible:outline-2 focus-visible:outline-ring active:cursor-grabbing"
-				{...handleProps}
-			>
-				<GripVertical aria-hidden="true" className="size-4" />
-			</button>
-			<span className={cn({ "opacity-50": !!refused })}>{icon}</span>
+			{moves}
+			<span className={cn("pt-0.5", { "opacity-50": !!refused })}>{icon}</span>
 			<div className="flex min-w-0 flex-col gap-1">
 				<p className="flex flex-wrap items-baseline gap-x-2 text-white text-xs">
-					<span className="font-semibold">{title}</span>
 					{time !== undefined && (
-						<span className="text-subtle tabular-nums">
+						<span className="font-bold font-display text-sm tabular-nums">
 							{formatSeconds(time)}
 						</span>
 					)}
-					{view?.marks.map(({ mark, change, fromStart }) => (
+					<span className="font-semibold">{title}</span>
+					{view?.marks.map(({ mark, change, fromMarker }) => (
 						<span key={`${mark}-${change}`} className="text-gold">
 							{mark} mark {change}
-							{fromStart && ` ${FROM_START}`}
+							{fromMarker && ` ${FROM_MARKER}`}
 						</span>
 					))}
 				</p>
@@ -177,6 +169,7 @@ export function CombatStepCard({
 				size="icon-sm"
 				aria-label={`Remove step ${title}`}
 				onClick={onRemove}
+				className="max-lg:size-11"
 			>
 				<X aria-hidden="true" />
 			</Button>

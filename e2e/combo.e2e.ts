@@ -14,7 +14,7 @@ function damageTotal(page: Page) {
 	return combo(page).getByLabel("Combo result").getByRole("definition").first()
 }
 
-test("Quinn's combo adds steps, reorders them by keyboard, removes one, and keeps out of the link", async ({
+test("Quinn's combo adds steps, moves one up with its button, removes one, and keeps out of the link", async ({
 	page,
 }) => {
 	await page.goto(
@@ -31,18 +31,21 @@ test("Quinn's combo adds steps, reorders them by keyboard, removes one, and keep
 	const withVaultFirst = await damageTotal(page).textContent()
 
 	// The attack consumes Vault's mark only after it; moved first, it deals less.
-	const attackHandle = combo(page).getByRole("button", {
-		name: "Move step 2. Attack",
-		exact: true,
-	})
-	await attackHandle.focus()
-	await page.keyboard.press("ArrowUp")
 	await expect(
-		combo(page).getByRole("button", {
-			name: "Move step 1. Attack",
-			exact: true,
-		}),
-	).toBeFocused()
+		combo(page).getByRole("button", { name: "Move step 1, E · Vault up" }),
+	).toBeDisabled()
+	await expect(
+		combo(page).getByRole("button", { name: "Move step 3, Ignite down" }),
+	).toBeDisabled()
+	await combo(page)
+		.getByRole("button", { name: "Move step 2, Attack up" })
+		.click()
+	// The button keeps the focus at the top, where it can't move further.
+	const attackUp = combo(page).getByRole("button", {
+		name: "Move step 1, Attack up",
+	})
+	await expect(attackUp).toBeFocused()
+	await expect(attackUp).toBeDisabled()
 	await expect(damageTotal(page)).not.toHaveText(withVaultFirst ?? "")
 
 	await combo(page)
@@ -101,36 +104,175 @@ test("Zac's Unstable Matter deals a share of the target's maximum health, so a t
 	await expect.poll(total).toBeGreaterThan(onDummy)
 })
 
-test("the combo starts from a chosen situation: Harrier's mark adds to the first attack, and only the build's options show", async ({
+test("a situation marker sets Harrier's mark from where it is, and only the build's situations show", async ({
 	page,
 }) => {
 	await page.goto("/champions/Quinn?lvl=9&skills=QWEQEQRQE&tab=combo")
-	const start = combo(page).getByRole("region", {
-		name: "Starting situation",
-	})
-	const marked = start.getByRole("switch", {
-		name: "Target marked by Harrier",
-	})
-	await expect(marked).not.toBeChecked()
-
 	await combo(page).getByRole("button", { name: "Add Attack" }).click()
 	await expect(damageTotal(page)).not.toHaveText("0")
 	const plain = await damageTotal(page).textContent()
 
-	await marked.focus()
-	await page.keyboard.press("Space")
-	await expect(marked).toBeChecked()
-	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
-
-	await marked.click()
-	await expect(marked).not.toBeChecked()
+	// Added at the end, after the attack: nothing changes until it moves above it.
+	const situation = combo(page).getByRole("region", { name: "Situation" })
+	await situation
+		.getByRole("button", { name: "Add marker: Target marked by Harrier" })
+		.click()
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	await combo(page)
+		.getByRole("button", { name: "Move marker Target marked by Harrier up" })
+		.click()
+	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
 
 	await page.goto("/champions/Annie?lvl=9&skills=QWEQEQRQE&tab=combo")
 	await expect(
 		combo(page).getByRole("button", { name: "Add Attack" }),
 	).toBeVisible()
 	await expect(
-		combo(page).getByRole("region", { name: "Starting situation" }),
+		combo(page).getByRole("region", { name: "Situation" }),
 	).toHaveCount(0)
+})
+
+test("Hail of Blades' marker moves and is removed like a step, with Undo", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+	)
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	await attack.click()
+	await attack.click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const plain = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
+		.click()
+	const up = combo(page).getByRole("button", {
+		name: "Move marker Hail of Blades ready up",
+	})
+	await up.focus()
+	await page.keyboard.press("Enter")
+	await page.keyboard.press("Enter")
+	await expect(up).toBeFocused()
+	await expect(up).toBeDisabled()
+	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
+	const empowered = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Remove marker Hail of Blades ready" })
+		.click()
+	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	await combo(page).getByRole("button", { name: "Undo" }).click()
+	await expect(damageTotal(page)).toHaveText(empowered ?? "")
+	await expect(up).toBeVisible()
+})
+
+test("free mode sets an outcome per step, keeps the choice across toggles, and restores the computed one", async ({
+	page,
+}) => {
+	await page.goto("/champions/Quinn?lvl=9&skills=QWEQEQRQE&tab=combo")
+	await combo(page).getByRole("button", { name: "Add E, Vault" }).click()
+	await combo(page).getByRole("button", { name: "Add Attack" }).click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const strict = await damageTotal(page).textContent()
+
+	const free = combo(page).getByRole("switch", { name: "Free mode" })
+	await free.click()
+	await expect(damageTotal(page)).toHaveText(strict ?? "")
+	const consumed = combo(page).getByRole("button", {
+		name: "Harrier: consumes the mark: Yes",
+	})
+	const kept = combo(page).getByRole("button", {
+		name: "Harrier: consumes the mark: No",
+	})
+	await expect(consumed).toHaveAttribute("aria-pressed", "true")
+	await kept.click()
+	await expect(kept).toHaveAttribute("aria-pressed", "true")
+	await expect(damageTotal(page)).not.toHaveText(strict ?? "")
+
+	await free.click()
+	await expect(damageTotal(page)).toHaveText(strict ?? "")
+	await free.click()
+	await expect(kept).toHaveAttribute("aria-pressed", "true")
+
+	await combo(page).getByRole("button", { name: "Restore computed" }).click()
+	await expect(consumed).toHaveAttribute("aria-pressed", "true")
+	await expect(damageTotal(page)).toHaveText(strict ?? "")
+})
+
+test("Decimate's inner handle deals less than its outer blade, in either mode", async ({
+	page,
+}) => {
+	await page.goto("/champions/Darius?lvl=9&skills=QWEQQRQEQ&tab=combo")
+	await combo(page).getByRole("button", { name: "Add Q, Decimate" }).click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const total = async () =>
+		Number((await damageTotal(page).textContent())?.replace(/\D/g, ""))
+	const blade = await total()
+
+	const lands = combo(page).getByRole("group", { name: "How it lands" })
+	await lands.getByRole("button", { name: "Inner handle" }).click()
+	await expect.poll(total).toBeLessThan(blade)
+
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	await expect(
+		lands.getByRole("button", { name: "Inner handle" }),
+	).toHaveAttribute("aria-pressed", "true")
+	await expect.poll(total).toBeLessThan(blade)
+})
+
+test("Hail of Blades again right after its 3 attacks is ignored in strict mode and forced in free mode", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+	)
+	const ready = combo(page).getByRole("button", {
+		name: "Add marker: Hail of Blades ready",
+	})
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	await ready.click()
+	for (let count = 0; count < 4; count++) await attack.click()
+	await expect(steps(page)).toHaveCount(4)
+	const once = await damageTotal(page).textContent()
+
+	// The second marker goes before the 4th attack, while the rune is on cooldown.
+	await ready.click()
+	await combo(page)
+		.getByRole("button", { name: "Move marker Hail of Blades ready up" })
+		.nth(1)
+		.click()
+	await expect(damageTotal(page)).toHaveText(once ?? "")
+
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	await expect(damageTotal(page)).not.toHaveText(once ?? "")
+})
+
+test("the combo's time is its last hit, not a buff running on after it", async ({
+	page,
+}) => {
+	await page.goto("/champions/Quinn?lvl=18&skills=QWEQQRQWQWRWWEEREE&tab=combo")
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	for (let count = 0; count < 3; count++) await attack.click()
+	const time = combo(page)
+		.getByLabel("Combo result")
+		.getByRole("definition")
+		.nth(2)
+	await expect(time).not.toHaveText("0.00 s")
+	const plain = await time.textContent()
+
+	// Harrier before the third attack adds Heightened Senses after it: the time stays.
+	await combo(page)
+		.getByRole("button", { name: "Add marker: Target marked by Harrier" })
+		.click()
+	const up = combo(page).getByRole("button", {
+		name: "Move marker Target marked by Harrier up",
+	})
+	await up.click()
+	await expect(time).toHaveText(plain ?? "")
+
+	// Before the first attack, its attack speed shortens the combo.
+	await up.click()
+	await up.click()
+	await expect(time).not.toHaveText(plain ?? "")
 })

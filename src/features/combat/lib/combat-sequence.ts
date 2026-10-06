@@ -1,9 +1,12 @@
-import type { CombatAction } from "@/lib/combat/combat"
+import type { CombatItem } from "@/lib/combat/combat"
 
-/** One step of the combo the user builds: an action with an id that follows it when steps move. */
-export type CombatEntry = { id: number; action: CombatAction }
+/**
+ * One entry of the combo the user builds: an action or a situation marker, with an id that follows
+ * it when entries move.
+ */
+export type CombatEntry = { id: number; action: CombatItem }
 
-/** Longer combos stop adding: a fight is a few seconds of actions. */
+/** Longer combos stop adding: a fight is a few seconds of actions (markers count too). */
 export const MAX_COMBAT_STEPS = 30
 
 /** A wait lasts 0.25 to 30 s, in quarter seconds; a new one lasts 1 s. */
@@ -22,7 +25,7 @@ function nextId(entries: readonly CombatEntry[]): number {
 /** The combo with `action` at its end; unchanged once full. */
 export function addStep(
 	entries: readonly CombatEntry[],
-	action: CombatAction,
+	action: CombatItem,
 ): CombatEntry[] {
 	if (entries.length >= MAX_COMBAT_STEPS) return [...entries]
 	const added =
@@ -65,6 +68,19 @@ export function setWaitSeconds(
 					...entry,
 					action: { ...entry.action, seconds: clampWaitSeconds(seconds) },
 				}
+			: entry,
+	)
+}
+
+/** The combo with an ability step's variant picked (Decimate's inner handle); other steps are left alone. */
+export function setStepVariant(
+	entries: readonly CombatEntry[],
+	id: number,
+	variant: string,
+): CombatEntry[] {
+	return entries.map((entry) =>
+		entry.id === id && entry.action.kind === "ability"
+			? { ...entry, action: { ...entry.action, variant } }
 			: entry,
 	)
 }

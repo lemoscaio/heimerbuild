@@ -4,29 +4,44 @@ import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { NumberField } from "@/components/ui/number-field"
 import type { CombatAction } from "@/lib/combat/combat"
+import type { CombatListItem, CombatStepItem } from "../hooks/use-combat-view"
 import { useStepReorder } from "../hooks/use-step-reorder"
 import { actionLabel } from "../lib/combat-format"
 import { WAIT_SECONDS } from "../lib/combat-sequence"
-import type { StepView } from "../lib/combat-view"
+import { outcomeChoice } from "../lib/combat-view"
 import { CombatActionIcon } from "./combat-action-icon"
+import { CombatMarkerLine } from "./combat-marker-line"
+import { CombatMoveButtons } from "./combat-move-buttons"
+import { CombatOutcomeChips } from "./combat-outcome-chips"
+import { CombatOutcomeChoices } from "./combat-outcome-choices"
 import { CombatStepCard } from "./combat-step-card"
+import { CombatVariantInput } from "./combat-variant-input"
 
-export type CombatStepItem = {
-	id: number
-	action: CombatAction
-	time?: number
-	refused?: string
-	view?: StepView
-}
+/** Strict: outcomes are read-only; free: outcomes are answered per step. */
+export type CombatListMode =
+	| { kind: "strict" }
+	| {
+			kind: "free"
+			onChoiceChange: (
+				id: number,
+				outcome: string,
+				happened: boolean | undefined,
+			) => void
+	  }
 
 type CombatStepListProps = {
-	steps: readonly CombatStepItem[]
+	items: readonly CombatListItem[]
+	mode: CombatListMode
 	/** The abilities as the form shows them, and the summoner slots, for the steps' names and icons. */
 	spells: readonly Pick<ChampionSpell, "slot" | "name" | "icon">[]
 	summoners: readonly (SummonerSpell | undefined)[]
+	/** The marker just added, pointed out. */
+	newMarkerId?: number
 	onMove: (id: number, to: number) => void
 	onRemove: (id: number) => void
+	onRemoveMarker: (id: number) => void
 	onWaitChange: (id: number, seconds: number) => void
+	onVariantChange: (id: number, variant: string) => void
 }
 
 function stepIcon(
@@ -44,81 +59,161 @@ function stepIcon(
 	return undefined
 }
 
-/** The combo's steps in order, as cards: reordered by dragging or the arrow keys, removed with ×. */
+/** A step's outcomes: read-only in strict mode, answered in free mode. */
+function StepOutcomes({
+	step,
+	mode,
+}: {
+	step: CombatStepItem
+	mode: CombatListMode
+}) {
+	if (step.refused) return null
+	if (mode.kind === "strict")
+		return <CombatOutcomeChips outcomes={step.outcomes} />
+	return (
+		<CombatOutcomeChoices
+			outcomes={step.outcomes}
+			note={step.attacksOnly}
+			onAnswer={(id, answer) => {
+				const outcome = step.outcomes.find((entry) => entry.id === id)
+				if (outcome) {
+					mode.onChoiceChange(step.id, id, outcomeChoice(outcome, answer))
+				}
+			}}
+		/>
+	)
+}
+
+/** A wait's length, in quarter seconds; an emptied field keeps the last length. */
+function WaitLength({
+	seconds,
+	onChange,
+}: {
+	seconds: number
+	onChange: (seconds: number) => void
+}) {
+	return (
+		<div className="flex items-center gap-1.5 text-xs">
+			<NumberField
+				label="Wait in seconds"
+				min={WAIT_SECONDS.min}
+				max={WAIT_SECONDS.max}
+				step={WAIT_SECONDS.step}
+				value={seconds}
+				onValueChange={(next) => {
+					if (next !== null) onChange(next)
+				}}
+				className="[&_input]:w-12"
+			/>
+			<span aria-hidden className="text-subtle">
+				s
+			</span>
+		</div>
+	)
+}
+
+/**
+ * The combo in order: action cards and situation marker lines, moved one place with their up and
+ * down buttons, removed with ×.
+ */
 export function CombatStepList({
-	steps,
+	items,
+	mode,
 	spells,
 	summoners,
+	newMarkerId,
 	onMove,
 	onRemove,
+	onRemoveMarker,
 	onWaitChange,
+	onVariantChange,
 }: CombatStepListProps) {
 	const titleId = useId()
-	const byId = new Map(steps.map((step) => [step.id, step]))
+	const byId = new Map(items.map((item) => [item.id, item]))
 	const names = {
 		ability: (slot: string) =>
 			spells.find((spell) => spell.slot === slot)?.name ?? slot,
 		summoner: (slot: number) => summoners[slot]?.name ?? "Summoner spell",
 	}
 	const reorder = useStepReorder({
-		ids: steps.map(({ id }) => id),
+		ids: items.map(({ id }) => id),
 		onMove,
 		describeMove(id, to) {
-			const step = byId.get(id)
-			const label = step ? actionLabel(step.action, names) : "The step"
-			return `${label} is now step ${to + 1} of ${steps.length}`
+			const item = byId.get(id)
+			const label =
+				item?.kind === "marker"
+					? `Marker ${item.view.label}`
+					: item
+						? actionLabel(item.action, names)
+						: "The step"
+			return `${label} is now item ${to + 1} of ${items.length}`
 		},
 	})
-	// An emptied field keeps the last length.
-	function changeWait(id: number, seconds: number | null) {
-		if (seconds !== null) onWaitChange(id, seconds)
-	}
 
 	return (
 		<section aria-labelledby={titleId} className="flex flex-col gap-1.5">
 			<h3 id={titleId} className="sr-only">
 				Steps
 			</h3>
-			<ol ref={reorder.listRef} className="flex flex-col gap-1.5">
-				{reorder.order.map((id, index) => {
-					const step = byId.get(id)
-					if (!step) return null
-					const { action } = step
+			<ol className="flex flex-col gap-1.5">
+				{items.map((item) => {
+					const { id } = item
+					const moves = reorder.moves(id)
+					if (item.kind === "marker") {
+						return (
+							<CombatMarkerLine
+								key={id}
+								view={item.view}
+								isNew={newMarkerId === id}
+								moves={
+									<CombatMoveButtons
+										label={`marker ${item.view.label}`}
+										{...moves}
+									/>
+								}
+								onRemove={() => onRemoveMarker(id)}
+							/>
+						)
+					}
+					const { action } = item
+					const label = actionLabel(action, names)
 					return (
 						<CombatStepCard
 							key={id}
-							data-step-id={id}
-							data-dragging={reorder.draggedId === id || undefined}
-							position={index + 1}
-							label={actionLabel(action, names)}
+							number={item.number}
+							label={label}
 							icon={
 								<CombatActionIcon
 									kind={action.kind}
 									icon={stepIcon(action, { spells, summoners })}
 								/>
 							}
-							time={step.time}
-							refused={step.refused}
-							view={step.view}
-							handleProps={reorder.handleProps(id)}
+							time={item.time}
+							refused={item.refused}
+							view={item.view}
+							moves={
+								<CombatMoveButtons
+									label={`step ${item.number}, ${label}`}
+									className="flex-col"
+									{...moves}
+								/>
+							}
 							onRemove={() => onRemove(id)}
 						>
 							{action.kind === "wait" && (
-								<div className="flex items-center gap-1.5 text-xs">
-									<NumberField
-										label="Wait in seconds"
-										min={WAIT_SECONDS.min}
-										max={WAIT_SECONDS.max}
-										step={WAIT_SECONDS.step}
-										value={action.seconds}
-										onValueChange={(next) => changeWait(id, next)}
-										className="[&_input]:w-12"
-									/>
-									<span aria-hidden className="text-subtle">
-										s
-									</span>
-								</div>
+								<WaitLength
+									seconds={action.seconds}
+									onChange={(seconds) => onWaitChange(id, seconds)}
+								/>
 							)}
+							{action.kind === "ability" && (
+								<CombatVariantInput
+									variants={item.variants}
+									value={action.variant}
+									onValueChange={(variant) => onVariantChange(id, variant)}
+								/>
+							)}
+							<StepOutcomes step={item} mode={mode} />
 						</CombatStepCard>
 					)
 				})}

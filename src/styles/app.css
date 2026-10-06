@@ -28,6 +28,14 @@
 	--color-magic: #6aa8ff;
 	--color-true-damage: #f3f1fb;
 	--color-health: #5fb87a;
+	/* The combo's per-step inputs (blue) and computed outcomes (gold), and a forced marker. */
+	--color-input-ink: #bfe0ff;
+	--color-input-line: #2f5f86;
+	--color-input-fill: #14283a;
+	--color-outcome-ink: #ecd99a;
+	--color-outcome-line: #6b5a26;
+	--color-outcome-fill: #2a2414;
+	--color-forced: #e8896a;
 
 	/* Rune tree accents, as in the game client. */
 	--color-precision: #c8aa6e;

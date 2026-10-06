@@ -1,52 +1,42 @@
-import type { Champion } from "@schemas/champion"
+import type { AbilitySlot, Champion } from "@schemas/champion"
 import type { CombatAction } from "@/lib/combat/combat"
 import { CURATED_COMBAT_CHAMPIONS } from "@/lib/combat/curated-champions"
+import { outcomeKeys } from "@/lib/combat/outcomes"
+import { abilityVariants } from "@/lib/combat/registries/ability-hits"
 import {
 	type CombatInput as SimulationInput,
 	simulateCombat,
+	simulateFreeCombat,
 } from "@/lib/combat/simulate-combat"
+import { combatStartOptions } from "@/lib/combat/start-options"
 import { abilitiesInForm } from "@/lib/form-abilities"
 import { combatFormId } from "../lib/combat-form"
 import { combatKeys } from "../lib/combat-keys"
 import {
 	addStep,
-	type CombatEntry,
 	MAX_COMBAT_STEPS,
 	moveStep,
-	removeStep,
+	setStepVariant,
 	setWaitSeconds,
 } from "../lib/combat-sequence"
+import { combatSituations } from "../lib/combat-situations"
+import {
+	type CombatState,
+	changedChoices,
+	choicesByItem,
+	EMPTY_COMBAT,
+	removeEntry,
+	setFreeChoice,
+} from "../lib/combat-state"
 
-/** What the combo runs on, injected: the build, its effects (`combatEffects`), its summoner slots, the target and the starting situation. */
-export type CombatInput = Omit<SimulationInput, "actions" | "free"> & {
-	/** The starting situation's effect ids: markers before the first step. */
-	start?: readonly string[]
-}
-
-/** The combo's result with the starting situation's markers in front of the steps. */
-function simulateWithStart(
-	{ start = [], ...input }: CombatInput,
-	actions: readonly CombatAction[],
-) {
-	const markers = start.map((effectId) => ({
-		kind: "situation" as const,
-		effectId,
-	}))
-	const result = simulateCombat({ ...input, actions: [...markers, ...actions] })
-	return {
-		...result,
-		steps: result.steps.slice(markers.length),
-		...(result.kill && {
-			kill: { ...result.kill, step: result.kill.step - markers.length },
-		}),
-	}
-}
+/** What the combo runs on, injected: the build, its effects (`combatEffects`), its summoner slots and the target. */
+export type CombatInput = Omit<SimulationInput, "actions" | "free">
 
 type UseCombatOptions = {
 	/** Undefined while the build's data loads. */
 	input: CombatInput | undefined
-	value: readonly CombatEntry[]
-	onChange: (value: CombatEntry[]) => void
+	value: CombatState
+	onChange: (value: CombatState) => void
 }
 
 export type Combat = ReturnType<typeof useCombat>
@@ -55,26 +45,50 @@ function isCurated({ key }: Champion) {
 	return CURATED_COMBAT_CHAMPIONS.includes(key)
 }
 
+/** The combo's result: strict, or free mode's with the outcomes it computed (`seed`, by item). */
+function simulate(input: CombatInput, { entries, free, choices }: CombatState) {
+	const actions = entries.map(({ action }) => action)
+	if (!free) return { result: simulateCombat({ ...input, actions }) }
+	return simulateFreeCombat(
+		{ ...input, actions },
+		choicesByItem(entries, choices),
+	)
+}
+
 /**
- * The combo, controlled by `value` (its steps) and simulated on the injected build and target.
- * It never reads the stats panel's switches (`simulateCombat` starts from the trigger defaults).
+ * The combo, controlled by `value` (its entries, free mode and its choices) and simulated on the
+ * injected build and target. It never reads the stats panel's switches (`simulateCombat` starts
+ * from the trigger defaults). The actions that add or remove return the value they saved.
  */
 export function useCombat({ input, value, onChange }: UseCombatOptions) {
-	const result =
-		input &&
-		simulateWithStart(
-			input,
-			value.map(({ action }) => action),
-		)
+	const { entries } = value
+	const simulated = input && simulate(input, value)
 	const champion = input?.build.champion
 	const formId = input && combatFormId(input.build)
 	const spells = champion
 		? abilitiesInForm(champion.abilities, formId).spells
 		: []
+	const effects = input?.effects ?? []
+
+	function save(next: CombatState) {
+		onChange(next)
+		return next
+	}
+	const saveEntries = (next: CombatState["entries"]) =>
+		save({ ...value, entries: next })
 
 	return {
-		steps: value,
-		result,
+		value,
+		entries,
+		free: value.free,
+		result: simulated?.result,
+		/** Free mode's computed outcomes by item, which the choices start from. */
+		seed: simulated && "seed" in simulated ? simulated.seed : undefined,
+		/** How many free mode choices differ from the computed outcomes. */
+		changes:
+			simulated && "seed" in simulated
+				? changedChoices(entries, value.choices, simulated.seed)
+				: 0,
 		keys: input
 			? combatKeys({
 					spells,
@@ -82,16 +96,45 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 					summoners: input.summoners,
 				})
 			: [],
+		/** The situations the build supports, which a marker can set. */
+		situations: combatSituations(combatStartOptions(effects, formId)),
+		/** The outcomes an attack can have, which ability steps say they lack. */
+		attackOutcomes: outcomeKeys({ kind: "attack" }, effects, formId),
+		/** The ways an ability's cast can land, picked per step (Decimate's blade or handle). */
+		variants: (slot: AbilitySlot) =>
+			input
+				? abilityVariants({
+						championKey: input.build.champion.key,
+						patch: input.build.patch,
+						slot,
+					})
+				: [],
 		/** The champion's abilities as the selected form shows them. */
 		spells,
 		/** The champion's damage was checked on the wiki (`CURATED_COMBAT_CHAMPIONS`). */
 		isCurated: champion ? isCurated(champion) : true,
-		isFull: value.length >= MAX_COMBAT_STEPS,
-		add: (action: CombatAction) => onChange(addStep(value, action)),
-		remove: (id: number) => onChange(removeStep(value, id)),
-		move: (id: number, to: number) => onChange(moveStep(value, id, to)),
+		isFull: entries.length >= MAX_COMBAT_STEPS,
+		add: (action: CombatAction) => saveEntries(addStep(entries, action)),
+		/** Puts a marker of the effect's situation at the end. */
+		addSituation: (effectId: string) =>
+			saveEntries(addStep(entries, { kind: "situation", effectId })),
+		remove: (id: number) => save(removeEntry(value, id, effects)),
+		move: (id: number, to: number) => saveEntries(moveStep(entries, id, to)),
 		setWait: (id: number, seconds: number) =>
-			onChange(setWaitSeconds(value, id, seconds)),
-		clear: () => onChange([]),
+			saveEntries(setWaitSeconds(entries, id, seconds)),
+		setVariant: (id: number, variant: string) =>
+			saveEntries(setStepVariant(entries, id, variant)),
+		setFree: (free: boolean) => save({ ...value, free }),
+		/** Sets an outcome at a step in free mode; `undefined` goes back to the computed one. */
+		setChoice: (id: number, outcome: string, happened: boolean | undefined) =>
+			save({
+				...value,
+				choices: setFreeChoice(value.choices, id, outcome, happened),
+			}),
+		/** Free mode back to the computed outcomes. */
+		restore: () => save({ ...value, choices: {} }),
+		clear: () => save({ ...EMPTY_COMBAT, free: value.free }),
+		/** Puts back a value saved before (undo). */
+		replace: (next: CombatState) => save(next),
 	}
 }
