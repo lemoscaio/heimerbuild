@@ -6,18 +6,23 @@ import {
 	type FormulaPart,
 	type FormulaStat,
 	type FormulaValue,
+	type TargetHealth,
 } from "./schemas/champion"
 
 /**
  * The game's stat ids in calculation parts (`mStat`, absent is 0), checked against the wiki's
- * ratios: Ezreal's Q reads 2 (130% AD), Rammus's W 1 and 6, Braum's Q 12 (maximum health).
+ * ratios: Ezreal's Q reads 2 (130% AD), Rammus's W 1 and 6, Braum's Q 12 (maximum health),
+ * Janna's passive 7 (bonus movement speed), Twisted Fate's W 8, Pyke's R 29 (lethality).
  */
 const GAME_STATS: Readonly<Record<number, FormulaStat>> = {
 	0: "abilityPower",
 	1: "armor",
 	2: "attackDamage",
 	6: "magicResist",
+	7: "movementSpeed",
+	8: "critChance",
 	12: "health",
+	29: "lethality",
 }
 
 /** `mStatFormula`: absent or 0 reads the total, 1 the base part, 2 the bonus part. */
@@ -29,12 +34,9 @@ const STAT_PARTS: Readonly<Record<number, "base" | "bonus" | undefined>> = {
 
 /** Part types the formulas don't read yet, by what the coverage report calls them. */
 const UNREAD_PARTS: Readonly<Record<string, string>> = {
-	SumOfSubPartsCalculationPart: "summed sub-parts",
-	ProductOfSubPartsCalculationPart: "multiplied sub-parts",
 	ClampSubPartsCalculationPart: "clamped sub-parts",
 	BuffCounterByNamedDataValueCalculationPart: "a buff counter",
 	BuffCounterByCoefficientCalculationPart: "a buff counter",
-	ByCharLevelFormulaCalculationPart: "a per-level table",
 	EffectValueCalculationPart: "an effect value",
 	AbilityResourceByCoefficientCalculationPart: "the ability resource",
 	CooldownMultiplierCalculationPart: "the cooldown",
@@ -47,8 +49,9 @@ type Part = Record<string, unknown> & { __type?: string }
 export type GameStrings = (key: string) => string | undefined
 
 function round(value: number): number {
-	// CommunityDragon stores float32 values (1.2999999523162842).
-	return Math.round(value * 10_000) / 10_000
+	// CommunityDragon stores float32 values (1.2999999523162842); 6 significant digits drop the
+	// noise and keep a small ratio whole (2.5% per 100 bonus AD is 0.00025).
+	return Number(value.toPrecision(6))
 }
 
 /** What a formula reads: the spell's values, its other calculations and its ranks (none for a passive). */
@@ -155,8 +158,21 @@ function breakpoints(part: Part): FormulaValue {
 	})
 }
 
+/** `values[level]` for levels 1 to 18 (index 0 is level 0, the rest past 18 is unused). */
+function levelTable(part: Part): Read<FormulaValue> {
+	const list = (part.values ?? []) as unknown[]
+	const levels = list.slice(1, CHAMPION_LEVELS + 1)
+	if (levels.length !== CHAMPION_LEVELS) {
+		return notModeled("a per-level table the data lacks levels of")
+	}
+	return {
+		value: byLevel((level) => number(levels[level - 1])),
+		notModeled: [],
+	}
+}
+
 /** A part that is one number: fixed, by rank, or by champion level. */
-function valuePart(part: Part, context: FormulaContext): Read<FormulaValue> {
+function numberPart(part: Part, context: FormulaContext): Read<FormulaValue> {
 	switch (part.__type) {
 		case "NumberCalculationPart":
 			return { value: number(part.mNumber), notModeled: [] }
@@ -166,6 +182,8 @@ function valuePart(part: Part, context: FormulaContext): Read<FormulaValue> {
 			return { value: interpolation(part), notModeled: [] }
 		case "ByCharLevelBreakpointsCalculationPart":
 			return { value: breakpoints(part), notModeled: [] }
+		case "ByCharLevelFormulaCalculationPart":
+			return levelTable(part)
 		default:
 			return notModeled(
 				UNREAD_PARTS[part.__type ?? ""] ?? `a game part (${part.__type})`,
@@ -173,7 +191,18 @@ function valuePart(part: Part, context: FormulaContext): Read<FormulaValue> {
 	}
 }
 
-function statPart(part: Part, ratio: Read<FormulaValue>): Read<FormulaPart> {
+/** A part read as one number: its addends must all be numbers (no stat inside a ratio). */
+function valuePart(part: Part, context: FormulaContext): Read<FormulaValue> {
+	const read = formulaParts(part, context)
+	if (!read.value || read.notModeled.length)
+		return { notModeled: read.notModeled }
+	const value = constant(read.value)
+	return value === undefined
+		? notModeled("a stat inside a ratio")
+		: { value, notModeled: [] }
+}
+
+function statPart(part: Part, ratio: Read<FormulaValue>): Read<FormulaPart[]> {
 	const statId = number(part.mStat)
 	const stat = GAME_STATS[statId]
 	const formula = number(part.mStatFormula)
@@ -185,12 +214,16 @@ function statPart(part: Part, ratio: Read<FormulaValue>): Read<FormulaPart> {
 	if (ratio.value === undefined) return { notModeled: ratio.notModeled }
 	const statPart = STAT_PARTS[formula]
 	return {
-		value: { stat, ...(statPart && { part: statPart }), ratio: ratio.value },
+		value: [{ stat, ...(statPart && { part: statPart }), ratio: ratio.value }],
 		notModeled: [],
 	}
 }
 
-function formulaPart(part: Part, context: FormulaContext): Read<FormulaPart> {
+/** The addends a part stands for: a summed part adds its sub-parts, a multiplied one scales them. */
+function formulaParts(
+	part: Part,
+	context: FormulaContext,
+): Read<FormulaPart[]> {
 	switch (part.__type) {
 		case "StatByCoefficientCalculationPart":
 			return statPart(part, {
@@ -201,12 +234,31 @@ function formulaPart(part: Part, context: FormulaContext): Read<FormulaPart> {
 			return statPart(part, namedValue(part.mDataValue, context))
 		case "StatBySubPartCalculationPart":
 			return statPart(part, valuePart((part.mSubpart ?? {}) as Part, context))
+		case "SumOfSubPartsCalculationPart":
+			return sum(
+				((part.mSubparts ?? []) as Part[]).map((sub) =>
+					formulaParts(sub, context),
+				),
+			)
+		case "ProductOfSubPartsCalculationPart":
+			return product(
+				formulaParts((part.mPart1 ?? {}) as Part, context),
+				formulaParts((part.mPart2 ?? {}) as Part, context),
+			)
 		default: {
-			const read = valuePart(part, context)
+			const read = numberPart(part, context)
 			return read.value === undefined
 				? { notModeled: read.notModeled }
-				: { value: { value: read.value }, notModeled: [] }
+				: { value: [{ value: read.value }], notModeled: [] }
 		}
+	}
+}
+
+/** Addends read side by side; the ones that could not be read leave their reasons. */
+function sum(reads: readonly Read<FormulaPart[]>[]): Read<FormulaPart[]> {
+	return {
+		value: reads.flatMap((read) => read.value ?? []),
+		notModeled: reads.flatMap((read) => read.notModeled),
 	}
 }
 
@@ -220,25 +272,79 @@ function toList(value: FormulaValue): {
 		: { key: "byLevel", list: value.byLevel }
 }
 
-/** The product of two values, when it is one of the shapes (a rank list times a level list is not). */
-function multiply(a: FormulaValue, b: FormulaValue): FormulaValue | undefined {
+/** Two values combined entry by entry, when it is one of the shapes (a rank list with a level list is not). */
+function combine(
+	a: FormulaValue,
+	b: FormulaValue,
+	operation: (left: number, right: number) => number,
+): FormulaValue | undefined {
 	const left = toList(a)
 	const right = toList(b)
 	if (left.key && right.key && left.key !== right.key) return undefined
 	const key = left.key ?? right.key
-	if (!key) return round((left.list as number) * (right.list as number))
+	if (!key) return round(operation(left.list as number, right.list as number))
 	const length = Array.isArray(left.list)
 		? left.list.length
 		: (right.list as number[]).length
 	const at = (list: number[] | number, index: number) =>
 		Array.isArray(list) ? (list[index] ?? 0) : list
-	const product = Array.from({ length }, (_, index) =>
-		round(at(left.list, index) * at(right.list, index)),
+	const result = Array.from({ length }, (_, index) =>
+		round(operation(at(left.list, index), at(right.list, index))),
 	)
-	return compact(product, key)
+	return compact(result, key)
 }
 
-type Formula = Pick<AbilityDamage, "parts" | "multiplier">
+function multiply(a: FormulaValue, b: FormulaValue): FormulaValue | undefined {
+	return combine(a, b, (left, right) => left * right)
+}
+
+/** The parts' sum when every one is a number; undefined when one reads a stat. */
+function constant(parts: readonly FormulaPart[]): FormulaValue | undefined {
+	let total: FormulaValue | undefined = 0
+	for (const part of parts) {
+		if (!("value" in part) || total === undefined) return undefined
+		total = combine(total, part.value, (left, right) => left + right)
+	}
+	return total
+}
+
+/** Every part times `factor`: a flat value, or a stat's ratio. */
+function scaleParts(
+	parts: readonly FormulaPart[],
+	factor: FormulaValue,
+): FormulaPart[] | undefined {
+	const scaled: FormulaPart[] = []
+	for (const part of parts) {
+		const value = multiply("value" in part ? part.value : part.ratio, factor)
+		if (value === undefined) return undefined
+		scaled.push("value" in part ? { value } : { ...part, ratio: value })
+	}
+	return scaled
+}
+
+/** A product of two sums, when one of them is a number (a stat times a stat is not a formula). */
+function product(
+	a: Read<FormulaPart[]>,
+	b: Read<FormulaPart[]>,
+): Read<FormulaPart[]> {
+	const reasons = [...a.notModeled, ...b.notModeled]
+	if (!a.value || !b.value || reasons.length) return { notModeled: reasons }
+	const left = constant(a.value)
+	const right = constant(b.value)
+	if (left === undefined && right === undefined) {
+		return notModeled("a stat multiplied by a stat")
+	}
+	const parts =
+		left === undefined
+			? scaleParts(a.value, right as FormulaValue)
+			: scaleParts(b.value, left)
+	return parts
+		? { value: parts, notModeled: [] }
+		: notModeled("a multiplier by rank and by champion level")
+}
+
+/** `percent`: the game shows the result as a percentage (`mDisplayAsPercent`). */
+type Formula = Pick<AbilityDamage, "parts" | "multiplier"> & { percent?: true }
 
 /** A calculation by name, following `mModifiedGameCalculation` to the one it scales. */
 function calculation(
@@ -273,7 +379,13 @@ function calculation(
 				context,
 				new Set([...seen, key]),
 			)
-			return scaled(base, valuePart((calc.mMultiplier ?? {}) as Part, context))
+			const result = scaled(
+				base,
+				formulaParts((calc.mMultiplier ?? {}) as Part, context),
+			)
+			return calc.mDisplayAsPercent === true && result.value
+				? { ...result, value: { ...result.value, percent: true } }
+				: result
 		}
 		case "GameCalculationConditional":
 			return notModeled("a calculation that depends on a buff")
@@ -292,46 +404,62 @@ function valueAsFormula(name: string, context: FormulaContext): Read<Formula> {
 		: { value: { parts: [{ value: read.value }] }, notModeled: [] }
 }
 
+/**
+ * A formula times a multiplier. A multiplier that reads a stat (Lucian's R: shots × the damage of
+ * one) needs a formula that is a number, and its parts take the product.
+ */
 function scaled(
 	base: Read<Formula>,
-	multiplier: Read<FormulaValue>,
+	multiplier: Read<FormulaPart[]>,
 ): Read<Formula> {
 	const reasons = [...base.notModeled, ...multiplier.notModeled]
-	if (!base.value || multiplier.value === undefined)
-		return { notModeled: reasons }
-	const product =
-		base.value.multiplier === undefined
-			? multiplier.value
-			: multiply(base.value.multiplier, multiplier.value)
+	if (!base.value || !multiplier.value) return { notModeled: reasons }
+	const { parts, multiplier: own, percent } = base.value
+	const factor = constant(multiplier.value)
+	if (factor === undefined) {
+		const count = constant(parts)
+		const times =
+			count === undefined || own === undefined ? count : multiply(count, own)
+		const scaledParts =
+			times === undefined ? undefined : scaleParts(multiplier.value, times)
+		if (!scaledParts) return notModeled("a stat multiplied by a stat")
+		return {
+			value: { parts: scaledParts, ...(percent && { percent }) },
+			notModeled: reasons,
+		}
+	}
+	const product = own === undefined ? factor : multiply(own, factor)
 	if (product === undefined) {
 		return notModeled("a multiplier by rank and by champion level")
 	}
 	return {
 		value: {
-			parts: base.value.parts,
+			parts,
 			...(product !== 1 && { multiplier: product }),
+			...(percent && { percent }),
 		},
 		notModeled: reasons,
 	}
 }
 
 function gameCalculation(calc: Part, context: FormulaContext): Read<Formula> {
-	if (calc.mDisplayAsPercent === true) {
-		return notModeled("a percentage, such as a share of the target's health")
-	}
 	if (calc.ResultModifier !== undefined) {
 		return notModeled("a modified result")
 	}
-	const parts: FormulaPart[] = []
-	const reasons: string[] = []
-	for (const raw of (calc.mFormulaParts ?? []) as Part[]) {
-		const read = formulaPart(raw, context)
-		if (read.value) parts.push(read.value)
-		reasons.push(...read.notModeled)
+	const read = sum(
+		((calc.mFormulaParts ?? []) as Part[]).map((raw) =>
+			formulaParts(raw, context),
+		),
+	)
+	const formula: Read<Formula> = {
+		value: {
+			parts: read.value ?? [],
+			...(calc.mDisplayAsPercent === true && { percent: true }),
+		},
+		notModeled: read.notModeled,
 	}
-	const formula: Read<Formula> = { value: { parts }, notModeled: reasons }
 	return calc.mMultiplier
-		? scaled(formula, valuePart(calc.mMultiplier as Part, context))
+		? scaled(formula, formulaParts(calc.mMultiplier as Part, context))
 		: formula
 }
 
@@ -339,6 +467,9 @@ const DAMAGE_TAG = /<(physical|magic|true)Damage>(.*?)<\/\1Damage>/gis
 const VALUE_TOKEN = /@([^@]+)@(%?)/g
 /** Tooltip values for other targets than a champion. */
 const NOT_CHAMPION = /minion|monster|turret|structure/i
+/** The text after a percentage that names the target's health: "% max Health", "of their maximum Health". */
+const HEALTH_TEXT =
+	/^\s*(?:of (?:the target's|their)\s+)?(max(?:imum)?|current|missing)[\s-]+health/i
 
 const TAG_TYPES: Readonly<Record<string, DamageType>> = {
 	physical: "physical",
@@ -346,26 +477,76 @@ const TAG_TYPES: Readonly<Record<string, DamageType>> = {
 	true: "true",
 }
 
+function targetHealth(text: string): TargetHealth | undefined {
+	const word = HEALTH_TEXT.exec(text)?.[1]?.toLowerCase()
+	if (!word) return undefined
+	return word.startsWith("max") ? "maximum" : (word as TargetHealth)
+}
+
+/** One damage value of a tooltip: `@Name*scale@%`, and the target's health the text after it names. */
+export type TooltipDamage = {
+	name: string
+	type: DamageType
+	/** The tooltip multiplies the value (`@PercentHealth*100@`). */
+	scale?: number
+	/** The tooltip shows it with a percent sign. */
+	percent: boolean
+	ofTargetHealth?: TargetHealth
+}
+
 /** The tooltip's damage texts in order: each value inside a `<physicalDamage>`-like tag, by name. */
-export function tooltipDamages(
-	markup: string | undefined,
-): { name: string; type: DamageType; percent: boolean }[] {
-	const found: { name: string; type: DamageType; percent: boolean }[] = []
+export function tooltipDamages(markup: string | undefined): TooltipDamage[] {
+	const found: TooltipDamage[] = []
 	for (const [, tag = "", text = ""] of (markup ?? "").matchAll(DAMAGE_TAG)) {
 		const type = TAG_TYPES[tag.toLowerCase()]
 		if (!type) continue
-		for (const [, token = "", percentSign] of text.matchAll(VALUE_TOKEN)) {
-			const [name = "", scale] = token.split("*")
+		for (const token of text.matchAll(VALUE_TOKEN)) {
+			const [match, value = "", percentSign] = token
+			const [name = "", scale] = value.split("*")
 			if (NOT_CHAMPION.test(name)) continue
 			if (
 				found.some((damage) => damage.name.toLowerCase() === name.toLowerCase())
 			) {
 				continue
 			}
-			found.push({ name, type, percent: !!scale || !!percentSign })
+			const health = targetHealth(text.slice(token.index + match.length))
+			found.push({
+				name,
+				type,
+				...(scale !== undefined && { scale: Number(scale) }),
+				percent: !!percentSign,
+				...(health && { ofTargetHealth: health }),
+			})
 		}
 	}
 	return found
+}
+
+/**
+ * A tooltip value as a formula. A percentage of the target's health becomes a fraction of it: the
+ * game's own percent display is one already, a value followed by "%" is in hundredths.
+ */
+function tooltipFormula(
+	damage: TooltipDamage,
+	context: FormulaContext,
+): Read<Formula> & { ofTargetHealth?: TargetHealth } {
+	const read = calculation(damage.name, context)
+	const displayed = read.value?.percent === true
+	if (!displayed && !damage.percent) {
+		return damage.scale === undefined
+			? read
+			: notModeled(`a tooltip value scaled by ${damage.scale}`)
+	}
+	if (!damage.ofTargetHealth) {
+		return notModeled(
+			"a percentage of something other than the target's health",
+		)
+	}
+	const factor = (displayed ? 1 : 0.01) * (damage.scale ?? 1)
+	return {
+		...scaled(read, { value: [{ value: factor }], notModeled: [] }),
+		ofTargetHealth: damage.ofTargetHealth,
+	}
 }
 
 /** The damage a tooltip shows, each as its formula or with what the sync could not read. Pure. */
@@ -373,20 +554,20 @@ export function abilityDamage(
 	markup: string | undefined,
 	context: FormulaContext,
 ): AbilityDamage[] {
-	return tooltipDamages(markup).map(({ name, type, percent }) => {
-		const read = percent
-			? notModeled<Formula>(
-					"a percentage, such as a share of the target's health",
-				)
-			: calculation(name, context)
+	return tooltipDamages(markup).map((damage) => {
+		const read = tooltipFormula(damage, context)
 		const reasons = [...new Set(read.notModeled)]
 		return {
-			name,
-			type,
+			name: damage.name,
+			type: damage.type,
 			parts: read.value?.parts ?? [],
 			...(read.value?.multiplier !== undefined && {
 				multiplier: read.value.multiplier,
 			}),
+			...(read.value &&
+				read.ofTargetHealth && {
+					ofTargetHealth: read.ofTargetHealth,
+				}),
 			...(reasons.length && { notModeled: reasons }),
 		}
 	})
