@@ -4,11 +4,20 @@ import { CircleAlert } from "lucide-react"
 import { useId } from "react"
 import { Button } from "@/components/ui/button"
 import { CombatActionKeys } from "@/features/combat/components/combat-action-keys"
+import { CombatFreeBanner } from "@/features/combat/components/combat-free-banner"
+import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-mode-switch"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
-import { CombatStartControl } from "@/features/combat/components/combat-start-control"
-import { CombatStepList } from "@/features/combat/components/combat-step-list"
+import { CombatSituationChips } from "@/features/combat/components/combat-situation-chips"
+import {
+	type CombatListMode,
+	CombatStepList,
+} from "@/features/combat/components/combat-step-list"
+import { CombatTiming } from "@/features/combat/components/combat-timing"
+import { CombatTotal } from "@/features/combat/components/combat-total"
 import { CombatTotals } from "@/features/combat/components/combat-totals"
+import { CombatUndoNotice } from "@/features/combat/components/combat-undo-notice"
 import { useCombatView } from "@/features/combat/hooks/use-combat-view"
+import { useMarkerUndo } from "@/features/combat/hooks/use-marker-undo"
 import { TargetEditor } from "@/features/target/components/target-editor"
 import type { BuildCombat } from "./hooks/use-build-combat"
 
@@ -18,35 +27,48 @@ type ComboTabProps = {
 	summoners: readonly (SummonerSpell | undefined)[]
 }
 
-/** The Combo tab: the action keys and the target, the totals, then one card per step (issue 265). */
+/**
+ * The Combo tab (issue 265, option A; markers and free mode, issue 338 option A2): the action keys,
+ * the situation chips and the target, free mode, the totals, then the steps and markers.
+ */
 export function ComboTab({
 	combat: buildCombat,
 	champion,
 	summoners,
 }: ComboTabProps) {
 	const titleId = useId()
-	const { combat, target, start, effects } = buildCombat
+	const { combat, target, effects } = buildCombat
 	const view = useCombatView({
 		combat,
 		target: target.target,
 		effects,
 		passiveName: champion.abilities.passive.name,
 	})
+	const markers = useMarkerUndo(combat)
+	const mode: CombatListMode = combat.free
+		? { kind: "free", onChoiceChange: combat.setChoice }
+		: { kind: "strict" }
 
 	return (
 		<section
 			aria-labelledby={titleId}
 			className="flex flex-col gap-4 text-white"
 		>
-			<div className="flex items-center justify-between gap-2">
+			<div className="flex flex-wrap items-center justify-between gap-2">
 				<h2 id={titleId} className="font-bold font-display text-base">
 					Combo
 				</h2>
-				{!!combat.steps.length && (
-					<Button variant="secondary" size="sm" onClick={combat.clear}>
-						Clear
-					</Button>
-				)}
+				<div className="flex flex-wrap items-center gap-2">
+					<CombatFreeModeSwitch
+						checked={combat.free}
+						onCheckedChange={combat.setFree}
+					/>
+					{!!combat.entries.length && (
+						<Button variant="secondary" size="sm" onClick={combat.clear}>
+							Clear
+						</Button>
+					)}
+				</div>
 			</div>
 			<div className="grid gap-4 md:grid-cols-[1fr_auto]">
 				<div className="flex flex-col gap-1.5">
@@ -59,9 +81,10 @@ export function ComboTab({
 						Pick an action to add it at the end. Drag a step's handle or use its
 						arrow keys to reorder; × removes it.
 					</p>
-					<CombatStartControl
-						options={start.options}
-						onOptionChange={start.toggle}
+					<CombatSituationChips
+						situations={combat.situations}
+						onAdd={markers.add}
+						disabled={combat.isFull}
 						className="mt-2"
 					/>
 				</div>
@@ -78,15 +101,40 @@ export function ComboTab({
 					why.
 				</p>
 			)}
-			{view.totals && <CombatTotals totals={view.totals} />}
-			{combat.steps.length ? (
+			{markers.notice && (
+				<CombatUndoNotice
+					message={markers.notice.message}
+					onUndo={markers.undo}
+				/>
+			)}
+			{combat.free && (
+				<CombatFreeBanner changes={combat.changes} onRestore={combat.restore} />
+			)}
+			{view.totals && (
+				<CombatTotals totals={view.totals}>
+					{combat.free ? (
+						<CombatTotal term="Time">
+							<span className="font-normal font-sans text-subtle text-xs">
+								Hidden in free mode
+							</span>
+						</CombatTotal>
+					) : (
+						<CombatTiming totals={view.totals} />
+					)}
+				</CombatTotals>
+			)}
+			{combat.entries.length ? (
 				<CombatStepList
-					steps={view.steps}
+					items={view.items}
+					mode={mode}
 					spells={combat.spells}
 					summoners={summoners}
+					newMarkerId={markers.notice?.markerId}
 					onMove={combat.move}
 					onRemove={combat.remove}
+					onRemoveMarker={markers.remove}
 					onWaitChange={combat.setWait}
+					onVariantChange={combat.setVariant}
 				/>
 			) : (
 				<p className="rounded-lg border border-line border-dashed p-4 text-center text-subtle text-xs">

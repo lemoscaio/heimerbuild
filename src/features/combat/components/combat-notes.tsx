@@ -18,8 +18,8 @@ export function CombatNotes({
 			</li>
 			<li className="flex items-start gap-1.5">
 				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
-				The combo starts from each effect's default and the starting situation
-				picked above, and ignores the stats panel's switches.
+				The combo starts from each effect's default and the situation markers
+				placed in it, and ignores the stats panel's switches.
 			</li>
 		</ul>
 	)

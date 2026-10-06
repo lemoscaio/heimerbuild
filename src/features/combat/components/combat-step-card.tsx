@@ -7,7 +7,7 @@ import {
 	formatDamage,
 	formatSeconds,
 } from "../lib/combat-format"
-import { FROM_START, type HitView, type StepView } from "../lib/combat-view"
+import { FROM_MARKER, type HitView, type StepView } from "../lib/combat-view"
 
 /** Damage colors, each with its type's name next to it: never color alone. */
 const DAMAGE_COLORS = {
@@ -17,11 +17,11 @@ const DAMAGE_COLORS = {
 } as const satisfies Record<DamageType, string>
 
 type CombatStepCardProps = {
-	/** 1-based, as the list counts. */
-	position: number
+	/** 1-based, among the actions (markers aren't counted). */
+	number: number
 	label: string
 	icon: React.ReactNode
-	/** When it ran; absent while the build loads. */
+	/** When it ran; absent while the build loads, and in free mode. */
 	time?: number
 	/** Why it did not run; the totals leave it out. */
 	refused?: string
@@ -29,7 +29,7 @@ type CombatStepCardProps = {
 	/** The reorder handle's events (`useStepReorder`). */
 	handleProps: React.ComponentProps<"button">
 	onRemove: () => void
-	/** Extra controls of the step: a wait's length. */
+	/** Extra parts of the step: a wait's length, its input, its outcomes. */
 	children?: React.ReactNode
 } & React.ComponentProps<"li">
 
@@ -73,7 +73,7 @@ function HealthBar({ share }: { share: number }) {
 
 /** A step of the combo: time, action, marks, effects running, its damage and the target's health. */
 export function CombatStepCard({
-	position,
+	number,
 	label,
 	icon,
 	time,
@@ -85,7 +85,7 @@ export function CombatStepCard({
 	className,
 	...props
 }: CombatStepCardProps) {
-	const title = `${position}. ${label}`
+	const title = `${number}. ${label}`
 	return (
 		<li
 			className={cn(
@@ -113,10 +113,10 @@ export function CombatStepCard({
 							{formatSeconds(time)}
 						</span>
 					)}
-					{view?.marks.map(({ mark, change, fromStart }) => (
+					{view?.marks.map(({ mark, change, fromMarker }) => (
 						<span key={`${mark}-${change}`} className="text-gold">
 							{mark} mark {change}
-							{fromStart && ` ${FROM_START}`}
+							{fromMarker && ` ${FROM_MARKER}`}
 						</span>
 					))}
 				</p>
