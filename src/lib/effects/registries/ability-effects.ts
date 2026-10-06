@@ -554,4 +554,120 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Ziggs/Short_Fuse`,
 	},
+	{
+		// Each attack's on-hit deals the impact, then poisons: a tick every second for 4 s; an attack refreshes it.
+		id: "teemo-e",
+		source: { kind: "ability", championKey: "Teemo", slot: "E" },
+		trigger: { kind: "on-hit" },
+		holder: "target",
+		duration: 4,
+		grants: [
+			{ kind: "abilityDamage", ability: "E", name: "ImpactCalculatedDamage" },
+			{
+				kind: "damageOverTime",
+				tick: {
+					by: "abilityDamage",
+					ability: "E",
+					name: "TotalDotDamage",
+					scale: 1 / 4,
+				},
+				every: 1,
+				firstTick: "delayed",
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Teemo/Toxic_Shot`,
+	},
+	{
+		// The trap goes off under the target at the cast (no arming or travel): a tick every second for 4 s.
+		id: "teemo-r",
+		source: { kind: "ability", championKey: "Teemo", slot: "R" },
+		trigger: { kind: "after-use" },
+		holder: "target",
+		duration: 4,
+		grants: [
+			{
+				kind: "damageOverTime",
+				tick: {
+					by: "abilityDamage",
+					ability: "R",
+					name: "TotalDamage",
+					scale: 1 / 4,
+				},
+				every: 1,
+				firstTick: "delayed",
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Teemo/Noxious_Trap`,
+	},
+	{
+		// Each attack adds a stack (up to 6) and refreshes the 6 s; every second, the synced damage per stack.
+		id: "twitch-deadly-venom",
+		source: { kind: "ability", championKey: "Twitch", slot: "passive" },
+		trigger: { kind: "on-hit" },
+		holder: "target",
+		duration: 6,
+		stacks: { max: 6 },
+		grants: [
+			{
+				kind: "damageOverTime",
+				tick: {
+					by: "abilityDamage",
+					ability: "passive",
+					name: "DamagePerSecond",
+					scale: 1,
+				},
+				every: 1,
+				firstTick: "delayed",
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Twitch/Deadly_Venom`,
+	},
+	{
+		// A cast is one pass through the trail: 2 s of poison, a tick every 0.25 s from the first contact.
+		id: "singed-q",
+		source: { kind: "ability", championKey: "Singed", slot: "Q" },
+		trigger: { kind: "after-use" },
+		holder: "target",
+		duration: 2,
+		grants: [
+			{
+				kind: "damageOverTime",
+				tick: {
+					by: "abilityDamage",
+					ability: "Q",
+					name: "DamagePerSecond",
+					scale: 1 / 4,
+				},
+				every: 0.25,
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Singed/Poison_Trail`,
+	},
+	{
+		// A tick at the cast and every 0.5 s for 5 s, up to twice as much as the target's missing health grows.
+		id: "morgana-w",
+		source: { kind: "ability", championKey: "Morgana", slot: "W" },
+		trigger: { kind: "after-use" },
+		holder: "target",
+		duration: 5,
+		grants: [
+			{
+				kind: "damageOverTime",
+				tick: {
+					by: "abilityDamage",
+					ability: "W",
+					name: "TotalMinDamage",
+					scale: 1 / 2,
+				},
+				every: 0.5,
+				missingHealthBonus: 1,
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Morgana/Tormented_Shadow`,
+	},
 ]
