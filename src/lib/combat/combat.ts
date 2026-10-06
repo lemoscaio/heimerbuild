@@ -144,6 +144,8 @@ export type DamageOverTimeSummary = {
 	ticks: DamageOverTimeTick[]
 	/** When it runs out after the step's last application. */
 	endsAt: number
+	/** Its effect's delay, when the step's first application came after it ("detonates" at 3.45 s). */
+	delayed?: { label: string; at: number }
 }
 
 /**

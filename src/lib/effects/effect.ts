@@ -238,6 +238,11 @@ export type Effect = PatchRange & {
 	trigger: Trigger
 	/** Seconds it lasts once triggered. */
 	duration?: Amount
+	/**
+	 * It takes effect `seconds` after its trigger, all of it then: damage, duration, ticks, marks
+	 * (Noxious Trap arms for 1 s). `label` names that moment on its step ("detonates").
+	 */
+	delay?: { seconds: number; label: string }
 	/** Seconds before it can trigger again. */
 	cooldown?: Amount
 	/** When the cooldown starts, if not when it triggers or ends (`endsOn`). */

@@ -162,7 +162,11 @@ type Simulation = {
 	owner?: number
 	/** Ability damage is triggering its effects now, so their own damage doesn't loop. */
 	onAbilityDamage: boolean
+	/** Effects with a `delay` waiting to take effect, and the step that triggered each. */
+	delayed: Delayed[]
 }
+
+type Delayed = { at: number; effect: BuildEffect; owner: number }
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
 type PendingMarks = PendingMark[]
@@ -324,6 +328,7 @@ function createSimulation(
 		assumedCooldowns: new Set(),
 		applications: [],
 		onAbilityDamage: false,
+		delayed: [],
 	}
 	startCooldowns(sim)
 	return sim
@@ -576,6 +581,7 @@ function recordApplication(
 	sim: Simulation,
 	instance: Instance,
 	{ owner, kind }: Pick<DamageOverTimeApplication, "owner" | "kind">,
+	{ landing = false }: Pick<TriggerOptions, "landing"> = {},
 ) {
 	instance.stats = statsNow(sim)
 	const last = instance.applications.at(-1)
@@ -592,6 +598,8 @@ function recordApplication(
 		kind,
 		stacks: instance.stacks,
 	}
+	const delay = instance.effect.effect.delay
+	if (landing && delay) application.delayed = delay.label
 	instance.applications.push(application)
 	sim.applications.push(application)
 }
@@ -599,6 +607,8 @@ function recordApplication(
 type TriggerOptions = {
 	/** Free mode's choice makes it happen whatever its cooldown. */
 	ignoreCooldown?: boolean
+	/** Its `delay` is over: it takes effect now. */
+	landing?: boolean
 }
 
 /**
@@ -610,12 +620,17 @@ function trigger(
 	sim: Simulation,
 	effect: BuildEffect,
 	pending: PendingMarks,
-	{ ignoreCooldown = false }: TriggerOptions = {},
+	{ ignoreCooldown = false, landing = false }: TriggerOptions = {},
 ) {
 	if (!isInForm(effect, sim.formId)) return
 	const readyAt = sim.effectsReadyAt.get(effect.id) ?? 0
 	if (readyAt > sim.time && !ignoreCooldown) return
-	const { applies, endsOn, stacks, cooldownFrom } = effect.effect
+	const { applies, endsOn, stacks, cooldownFrom, delay } = effect.effect
+	if (delay && !landing) {
+		const owner = sim.owner ?? sim.step
+		sim.delayed.push({ at: sim.time + delay.seconds, effect, owner })
+		return
+	}
 	if (applies) pending.push({ ...applies, by: effect })
 	if (!isEndedBy(effect, "on-hit")) {
 		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
@@ -636,15 +651,26 @@ function trigger(
 		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
 		if (dot) {
 			const kind = running.stacks > before ? "stacked" : "refreshed"
-			recordApplication(sim, running, { owner, kind })
+			recordApplication(sim, running, { owner, kind }, { landing })
 		}
 		return
 	}
 	const instance = newInstance(sim, effect, duration)
 	sim.active.push(instance)
 	if (!dot) return
-	recordApplication(sim, instance, { owner, kind: "applied" })
+	recordApplication(sim, instance, { owner, kind: "applied" }, { landing })
 	if (nextTickAt(instance) === sim.time) tick(sim, instance)
+}
+
+/** A delayed effect takes effect, for the step that triggered it (Noxious Trap detonating). */
+function land(sim: Simulation, delayed: Delayed) {
+	sim.delayed = sim.delayed.filter((entry) => entry !== delayed)
+	const pending: PendingMarks = []
+	const previous = sim.owner
+	sim.owner = delayed.owner
+	trigger(sim, delayed.effect, pending, { ignoreCooldown: true, landing: true })
+	sim.owner = previous
+	applyMarks(sim, pending)
 }
 
 function triggerWhere(
@@ -952,7 +978,7 @@ type AdvanceOptions = {
 	periodic?: boolean
 }
 
-/** What happens next on its own before `until`: a tick, an effect or a mark running out, a periodic effect. */
+/** What happens next on its own before `until`: a delayed effect, a tick, an effect or a mark running out, a periodic effect. */
 function nextTimedEvent(
 	sim: Simulation,
 	until: number,
@@ -963,6 +989,9 @@ function nextTimedEvent(
 		if (at !== undefined && at <= until && (!next || at < next.at)) {
 			next = { at, run }
 		}
+	}
+	for (const delayed of sim.delayed) {
+		consider(delayed.at, () => land(sim, delayed))
 	}
 	for (const instance of sim.active) {
 		consider(nextTickAt(instance), () => tick(sim, instance))
@@ -1247,7 +1276,11 @@ function forceChosenDamageOverTime(
 ) {
 	const chosen = sim.input.free?.outcomes?.[index]
 	if (!chosen) return
-	const own = sim.applications.filter(({ owner }) => owner === index)
+	// A delayed one the step triggered counts as applied: it takes effect later.
+	const own = [
+		...sim.applications,
+		...sim.delayed.map(({ effect, owner }) => ({ effectId: effect.id, owner })),
+	].filter(({ owner }) => owner === index)
 	const ticksAbilityDamage = own.some(({ effectId }) =>
 		isAbilityDamage(sim, { kind: "effect", effectId }),
 	)

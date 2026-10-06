@@ -16,6 +16,8 @@ export type DamageOverTimeApplication = {
 	endsAt: number
 	kind: DamageOverTimeSummary["application"]
 	stacks: number
+	/** Its effect's `delay` label when it took effect after its trigger ("detonates"). */
+	delayed?: string
 }
 
 type TickTiming = Pick<DamageOverTimeGrant, "every" | "firstTick">
@@ -84,7 +86,8 @@ export function damageOverTimeSummaries(
 		{ length: items },
 		() => new Map<string, DamageOverTimeSummary>(),
 	)
-	for (const { effectId, owner, endsAt, kind, stacks } of applications) {
+	for (const application of applications) {
+		const { effectId, owner, at, endsAt, kind, stacks, delayed } = application
 		const summaries = byStep[owner]
 		if (!summaries) continue
 		const summary = summaries.get(effectId)
@@ -99,6 +102,7 @@ export function damageOverTimeSummaries(
 			stacks,
 			ticks: ownTicks(events, owner, effectId),
 			endsAt,
+			...(delayed && { delayed: { label: delayed, at } }),
 		})
 	}
 	return byStep.map((summaries) => [...summaries.values()])
