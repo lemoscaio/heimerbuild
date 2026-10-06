@@ -230,13 +230,56 @@ describe("Teemo's Toxic Shot: applied on-hit by every attack", async () => {
 		})
 	})
 
-	test("Noxious Trap poisons for 4 ticks a second apart, the synced total over 4 s", () => {
-		// Wiki, rank 1 without AP: 200 over 4 s.
+	test("Noxious Trap detonates once armed, 1 s after the cast, then poisons for 4 ticks a second apart", () => {
+		// Wiki, rank 1 without AP: 200 over 4 s; the trap arms in 1 s.
 		const result = simulate(teemo, [{ kind: "ability", slot: "R" }])
 		const ticks = ticksOf(result, "teemo-r")
+		const [trap] = result.steps
 
-		expect(ticks.map(({ time }) => time)).toEqual([1, 2, 3, 4])
+		expect(trap?.damageOverTime[0]?.delayed).toEqual({
+			label: "detonates",
+			at: 1,
+		})
+		expect(ticks.map(({ time }) => time)).toEqual([2, 3, 4, 5])
 		for (const { damage } of ticks) expect(damage.final).toBeCloseTo(magic(50))
+		expect(trap?.damageOverTime[0]?.endsAt).toBe(5)
+		expect(result.duration).toBe(5)
+	})
+
+	test("an action during the trap's arming second goes on; the trap still detonates at 1 s, for its own step", () => {
+		const result = simulate(teemo, [
+			{ kind: "ability", slot: "R" },
+			{ kind: "ability", slot: "Q" },
+		])
+		const [trap, dart] = result.steps
+
+		// Blinding Dart is cast once the trap's 0.25 s cast ends, inside the arming second.
+		expect(dart?.time).toBe(0.25)
+		expect(
+			dart?.events.some(
+				(event) => event.kind === "hit" && event.source.kind === "ability",
+			),
+		).toBe(true)
+		expect(dart?.damageOverTime).toEqual([])
+		expect(trap?.damageOverTime[0]?.delayed?.at).toBe(1)
+		expect(trap?.damageOverTime[0]?.ticks.map(({ time }) => time)).toEqual([
+			2, 3, 4, 5,
+		])
+		expect(result.duration).toBe(5)
+	})
+
+	test("a kill by the trap's poison happens at that tick's delayed time", () => {
+		const dart =
+			allHits(simulate(teemo, [{ kind: "ability", slot: "Q" }]))[0]?.damage
+				.final ?? 0
+		// Enough health for the dart and one poison tick: the second tick, at 3 s, kills.
+		const health = dart + magic(50) * 1.5
+		const result = simulate({ ...teemo, target: { ...DUMMY, health } }, [
+			{ kind: "ability", slot: "R" },
+			{ kind: "ability", slot: "Q" },
+		])
+
+		expect(result.kill?.time).toBe(3)
 	})
 })
 
@@ -440,8 +483,8 @@ describe("damage over time from ability casts", async () => {
 		)
 
 		expect(seed[0]?.["damage-over-time:liandrys-torment-burn"]).toBe(true)
-		// The trap's first tick, at 1 s, applies it; its first tick is 0.5 s later.
-		expect(burn?.ticks[0]?.time).toBe(1.5)
+		// The trap's first tick, at 2 s (armed at 1 s), applies it; its first tick is 0.5 s later.
+		expect(burn?.ticks[0]?.time).toBe(2.5)
 	})
 })
 
