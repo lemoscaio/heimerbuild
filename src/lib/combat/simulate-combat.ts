@@ -463,7 +463,7 @@ function trigger(
 	if (readyAt > sim.time && !ignoreCooldown) return
 	const { applies, endsOn, stacks, cooldownFrom } = effect.effect
 	if (applies) pending.push({ ...applies, by: effect })
-	if (endsOn !== "on-hit") {
+	if (!isEndedBy(effect, "on-hit")) {
 		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
 	}
 	if (!endsOn && !cooldownFrom) startCooldown(sim, effect)
@@ -511,11 +511,18 @@ function end(sim: Simulation, instance: Instance) {
 	}
 }
 
+/** Whether `reason` ends the effect early: its `endsOn` is that reason, or a list with it. */
+function isEndedBy({ effect }: BuildEffect, reason: EndsOn): boolean {
+	const { endsOn } = effect
+	return typeof endsOn === "string"
+		? endsOn === reason
+		: !!endsOn?.includes(reason)
+}
+
 /** Ends the attacker's effects that stop on `reason`; their cooldown starts now. */
 function endEffects(sim: Simulation, reason: EndsOn) {
 	for (const instance of sim.active.filter(
-		({ effect, holder }) =>
-			holder === "attacker" && effect.effect.endsOn === reason,
+		({ effect, holder }) => holder === "attacker" && isEndedBy(effect, reason),
 	)) {
 		expire(sim, instance)
 		startCooldown(sim, instance.effect)
@@ -551,7 +558,7 @@ function onHit(sim: Simulation, pending: PendingMarks) {
 	triggerWhere(sim, ({ kind }) => kind === "on-hit", pending)
 	const spent = sim.active.filter(
 		({ effect, holder }) =>
-			holder === "attacker" && effect.effect.endsOn === "on-hit",
+			holder === "attacker" && isEndedBy(effect, "on-hit"),
 	)
 	for (const instance of spent) {
 		const stats = statsNow(sim)

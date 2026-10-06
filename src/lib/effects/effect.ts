@@ -167,8 +167,9 @@ export type MarkApplication = {
 }
 
 /**
- * What ends an effect early: Teemo's W passive stops when he takes damage; Viego's E when he
- * attacks or casts; a spellblade on the next on-hit, which deals its damage and uses it up.
+ * What ends an effect early: Teemo's W passive stops when he takes damage; Rengar's R when he
+ * attacks or casts (a list ends on any of them); a spellblade on the next on-hit, which deals its
+ * damage and uses it up.
  */
 export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit"
 
@@ -213,7 +214,7 @@ export type Effect = PatchRange & {
 	/** The basic attacks it empowers, the triggering one included; it ends after the last. */
 	charges?: number
 	/** What ends it early; its `cooldown` then starts from that moment instead of the trigger. */
-	endsOn?: EndsOn
+	endsOn?: EndsOn | readonly EndsOn[]
 	/** The mark it puts on the target when it triggers (combat simulator). */
 	applies?: MarkApplication
 	/** Who holds it: the attacker (absent), or the target (Ignite's burn). */
