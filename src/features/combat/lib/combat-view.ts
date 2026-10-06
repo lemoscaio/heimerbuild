@@ -5,8 +5,13 @@ import type {
 	CombatStep,
 	CombatTarget,
 	DamageSource,
+	OutcomeChoices,
+	OutcomeKey,
+	StepOutcome,
 } from "@/lib/combat/combat"
-import type { BuildEffect } from "@/lib/effects/effect"
+import { outcomeId } from "@/lib/combat/outcomes"
+import type { BuildEffect, StartOption } from "@/lib/effects/effect"
+import { formatSeconds } from "./combat-format"
 
 /** The names the combo shows for the abilities, effects and marks it reports by id. */
 export type CombatNames = {
@@ -23,8 +28,8 @@ type CombatNamesInput = {
 
 const PART_NAMES = { passive: "passive", active: "active" } as const
 
-/** What a step says when its result comes from the combo's starting situation. */
-export const FROM_START = "(from start)"
+/** What a step says when its result comes from a situation marker. */
+export const FROM_MARKER = "(from marker)"
 
 function effectName({ name, effect }: BuildEffect) {
 	const detail = effect.label ?? (effect.part && PART_NAMES[effect.part])
@@ -42,7 +47,7 @@ export function combatNames({
 			if (source.kind === "attack") return "Attack"
 			if (source.kind === "effect") {
 				const name = effectById.get(source.effectId)?.name ?? source.effectId
-				return source.fromSituation ? `${name} ${FROM_START}` : name
+				return source.fromSituation ? `${name} ${FROM_MARKER}` : name
 			}
 			if (source.slot === "passive") return passiveName
 			return (
@@ -80,8 +85,8 @@ export type StepView = {
 	total: { raw: number; final: number }
 	/** The type of most of its damage, which colors the total. */
 	mainType?: DamageType
-	/** `fromStart`: the mark was on the target from the starting situation. */
-	marks: { mark: string; change: "applied" | "consumed"; fromStart: boolean }[]
+	/** The marks it moved that no outcome reports (Valor marking during a wait); `fromMarker`: a marker put it there. */
+	marks: { mark: string; change: "applied" | "consumed"; fromMarker: boolean }[]
 	effects: string[]
 	healthShare: number
 }
@@ -119,6 +124,12 @@ export function stepView(
 	step: CombatStep,
 	{ names, target }: { names: CombatNames; target: CombatTarget },
 ): StepView {
+	const reported = new Set(step.outcomes.map(outcomeId))
+	const empowering = new Set(
+		step.outcomes.flatMap((outcome) =>
+			outcome.kind === "empowered" ? [outcome.effectId] : [],
+		),
+	)
 	const hits = hitViews(step.events, names)
 	const total = { raw: 0, final: 0 }
 	const byType = new Map<DamageType, number>()
@@ -137,7 +148,8 @@ export function stepView(
 		total,
 		...(mainType && { mainType }),
 		marks: step.events.flatMap((event) =>
-			event.kind === "mark-applied" || event.kind === "mark-consumed"
+			(event.kind === "mark-applied" || event.kind === "mark-consumed") &&
+			!reported.has(outcomeId({ kind: event.kind, mark: event.mark }))
 				? [
 						{
 							mark: names.mark(event.mark),
@@ -145,32 +157,48 @@ export function stepView(
 								event.kind === "mark-applied"
 									? ("applied" as const)
 									: ("consumed" as const),
-							fromStart:
+							fromMarker:
 								event.kind === "mark-consumed" && !!event.fromSituation,
 						},
 					]
 				: [],
 		),
+		// An effect its outcome already reports (Hail of Blades 2/3) gets no chip of its own.
 		effects: [
 			...new Set(
-				step.active.map(({ effectId, holder }) =>
-					holder === "target"
-						? `${names.effect(effectId)} on the target`
-						: names.effect(effectId),
-				),
+				step.active.flatMap(({ effectId, holder }) => {
+					if (empowering.has(effectId)) return []
+					return holder === "target"
+						? [`${names.effect(effectId)} on the target`]
+						: [names.effect(effectId)]
+				}),
 			),
 		],
 		healthShare: step.targetHealth / target.health,
 	}
 }
 
-/** The combo's totals: damage after mitigation, its share of the target's health, the time, the kill. */
+/**
+ * The combo's totals: damage after mitigation, its share of the target's health, the time, the kill
+ * (its step counted among the actions), and the markers strict mode had to force.
+ */
 export type CombatTotals = {
 	final: number
 	healthShare: number
 	duration: number
 	kill?: { time: number; step: number }
 	healthLeft: number
+	forcedMarkers: number
+}
+
+/** Each item's number among the actions, 1-based; markers have none. */
+export function actionNumbers(
+	items: readonly Pick<CombatStep, "action">[],
+): (number | undefined)[] {
+	let count = 0
+	return items.map(({ action }) =>
+		action.kind === "situation" ? undefined : ++count,
+	)
 }
 
 export function combatTotals(
@@ -178,11 +206,170 @@ export function combatTotals(
 	target: CombatTarget,
 ): CombatTotals {
 	const final = result.total.final
+	const kill = result.kill && {
+		time: result.kill.time,
+		step: actionNumbers(result.steps)[result.kill.step] ?? 0,
+	}
 	return {
 		final,
 		healthShare: Math.min(1, final / target.health),
 		duration: result.duration,
-		...(result.kill && { kill: result.kill }),
+		...(kill && { kill }),
 		healthLeft: Math.max(0, target.health - final),
+		forcedMarkers: result.steps.filter(
+			({ situation }) => situation?.status === "forced",
+		).length,
+	}
+}
+
+/**
+ * An outcome as its chip shows it: "Hail of Blades" with its charge (1/3) or when it is ready
+ * again, "Harrier: consumes the mark". `changed`: free mode's choice differs from the computed one.
+ */
+export type OutcomeView = {
+	id: string
+	label: string
+	happened: boolean
+	detail?: string
+	changed: boolean
+}
+
+/** What an outcome is about: the effect's name, or the mark's. */
+function outcomeSubject(key: OutcomeKey, names: CombatNames) {
+	return key.kind === "empowered"
+		? names.effect(key.effectId)
+		: names.mark(key.mark)
+}
+
+function outcomeLabel(key: OutcomeKey, names: CombatNames) {
+	const subject = outcomeSubject(key, names)
+	switch (key.kind) {
+		case "empowered":
+			return subject
+		case "mark-applied":
+			return `${subject}: applies the mark`
+		case "mark-consumed":
+			return `${subject}: consumes the mark`
+	}
+}
+
+function outcomeDetail({ happened, charge, readyAt }: StepOutcome) {
+	if (charge) return `${charge.used}/${charge.max}`
+	if (!happened && readyAt !== undefined) {
+		return `on cooldown · ready at ${formatSeconds(readyAt)}`
+	}
+	return undefined
+}
+
+type OutcomeViewsOptions = {
+	names: CombatNames
+	/** Free mode's computed outcomes at the step, which `changed` compares with. */
+	seed?: OutcomeChoices
+}
+
+export function outcomeViews(
+	outcomes: readonly StepOutcome[],
+	{ names, seed }: OutcomeViewsOptions,
+): OutcomeView[] {
+	return outcomes.map((outcome) => {
+		const id = outcomeId(outcome)
+		const detail = outcomeDetail(outcome)
+		const seeded = seed?.[id]
+		return {
+			id,
+			label: outcomeLabel(outcome, names),
+			happened: outcome.happened,
+			...(detail && { detail }),
+			changed: seeded !== undefined && seeded !== outcome.happened,
+		}
+	})
+}
+
+/** The choice to keep when the user answers an outcome: none when it is the computed one again. */
+export function outcomeChoice(
+	{ happened, changed }: Pick<OutcomeView, "happened" | "changed">,
+	answer: boolean,
+): boolean | undefined {
+	const computed = changed ? !happened : happened
+	return answer === computed ? undefined : answer
+}
+
+/**
+ * What an ability step says about the outcomes only attacks have: "Hail of Blades and Harrier:
+ * attacks only". Nothing when every attack outcome applies to it too.
+ */
+export function attacksOnlyNote(
+	stepOutcomes: readonly OutcomeKey[],
+	attackOutcomes: readonly OutcomeKey[],
+	names: CombatNames,
+): string | undefined {
+	const own = new Set(stepOutcomes.map(outcomeId))
+	const subjects = [
+		...new Set(
+			attackOutcomes
+				.filter((key) => !own.has(outcomeId(key)))
+				.map((key) => outcomeSubject(key, names)),
+		),
+	]
+	if (!subjects.length) return undefined
+	const list =
+		subjects.length === 1
+			? subjects[0]
+			: `${subjects.slice(0, -1).join(", ")} and ${subjects.at(-1)}`
+	return `${list}: attacks only`
+}
+
+/** A marker line: its situation, and what it did ("at the start", "on cooldown until 10.40 s · forced"). */
+export type MarkerView = {
+	label: string
+	detail: string
+	tone: "applied" | "forced" | "no-effect"
+}
+
+const NO_EFFECT_DETAILS = {
+	"already-marked": "already marked · no effect",
+	"already-running": "already active · no effect",
+	unavailable: "not in this build · no effect",
+} as const
+
+type MarkerViewOptions = {
+	label: string
+	/** No action before it: the old starting situation. */
+	atStart: boolean
+	/** Free mode: a marker only applies its result. */
+	free: boolean
+	/** Its situation's kind: a "ready" one says when its effect came back. */
+	kind?: StartOption["kind"]
+}
+
+export function markerView(
+	step: Pick<CombatStep, "situation">,
+	{ label, atStart, free, kind }: MarkerViewOptions,
+): MarkerView {
+	const where = atStart ? "at the start" : "from here"
+	const { situation } = step
+	if (situation?.status === "no-effect") {
+		return {
+			label,
+			detail: NO_EFFECT_DETAILS[situation.reason],
+			tone: "no-effect",
+		}
+	}
+	if (free) return { label, detail: `applies: ${where}`, tone: "applied" }
+	if (situation?.status === "forced") {
+		return {
+			label,
+			detail: `on cooldown until ${formatSeconds(situation.readyAt)} · forced`,
+			tone: "forced",
+		}
+	}
+	const readyAt = situation?.readyAt
+	return {
+		label,
+		detail:
+			readyAt === undefined || atStart || kind !== "ready"
+				? where
+				: `ready again here (since ${formatSeconds(readyAt)})`,
+		tone: "applied",
 	}
 }
