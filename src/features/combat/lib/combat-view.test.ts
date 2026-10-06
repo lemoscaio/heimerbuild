@@ -33,6 +33,7 @@ const NAMES = combatNames({
 const STEP: CombatStep = {
 	action: { kind: "attack" },
 	time: 0,
+	outcomes: [],
 	events: [
 		{
 			kind: "hit",
@@ -137,7 +138,7 @@ describe("stepView", () => {
 						kind: "mark-consumed",
 						time: 0,
 						mark: "quinn-harrier",
-						fromStart: true,
+						fromSituation: true,
 					},
 					{
 						kind: "hit",
@@ -145,7 +146,7 @@ describe("stepView", () => {
 						source: {
 							kind: "effect",
 							effectId: "trinity-force-spellblade",
-							fromStart: true,
+							fromSituation: true,
 						},
 						damage: { type: "magic", raw: 50, final: 30 },
 					},

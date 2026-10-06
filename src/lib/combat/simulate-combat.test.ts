@@ -13,11 +13,18 @@ import type { AbilityRanks } from "../stats/rank-stats"
 import type {
 	CombatAction,
 	CombatEvent,
+	CombatItem,
 	CombatResult,
 	CombatTarget,
 	DealtDamage,
+	OutcomeChoices,
 } from "./combat"
-import { type CombatBuild, simulateCombat } from "./simulate-combat"
+import { outcomeChoices } from "./outcomes"
+import {
+	type CombatBuild,
+	simulateCombat,
+	simulateFreeCombat,
+} from "./simulate-combat"
 
 // Real current-patch data (public/data); the expected numbers are the wiki's formulas.
 const DATA = new URL("../../../public/data/", import.meta.url)
@@ -69,7 +76,7 @@ type Setup = {
 	summoners?: readonly SummonerSpell[]
 	runes?: readonly Rune[]
 	target?: CombatTarget
-	/** The starting situation: the chosen effects' ids. */
+	/** Markers before the first action, by effect id (the starting situation). */
 	start?: readonly string[]
 }
 
@@ -88,18 +95,28 @@ function effectsOf(setup: Setup): BuildEffect[] {
 	})
 }
 
-function simulate(
-	setup: Setup,
-	actions: readonly CombatAction[],
-): CombatResult {
-	return simulateCombat({
+function inputOf(setup: Setup, actions: readonly CombatItem[]) {
+	return {
 		build: buildOf(setup),
 		effects: effectsOf(setup),
 		summoners: setup.summoners ?? [],
 		target: setup.target ?? DUMMY,
 		actions,
-		...(setup.start && { start: setup.start }),
-	})
+	}
+}
+
+function marker(effectId: string): CombatItem {
+	return { kind: "situation", effectId }
+}
+
+/** The combo after the setup's starting markers, with the actions' steps only. */
+function simulate(
+	setup: Setup,
+	actions: readonly CombatAction[],
+): CombatResult {
+	const markers = (setup.start ?? []).map(marker)
+	const result = simulateCombat(inputOf(setup, [...markers, ...actions]))
+	return { ...result, steps: result.steps.slice(markers.length) }
 }
 
 /** The damage dealt in a step, in order. */
@@ -257,7 +274,7 @@ describe("Quinn's starting situation and Valor's periodic mark (issue 330)", asy
 			kind: "mark-consumed",
 			time: 0,
 			mark: "quinn-harrier",
-			fromStart: true,
+			fromSituation: true,
 		})
 		expect(hits(result, 0)[1]?.final).toBeCloseTo(harrier)
 		expect(result.steps[0]?.active.map(({ effectId }) => effectId)).toContain(
@@ -387,7 +404,7 @@ describe("Ziggs's Short Fuse: ready at the start, periodic, shortened by casts (
 				source: {
 					kind: "effect",
 					effectId: "ziggs-short-fuse",
-					fromStart: true,
+					fromSituation: true,
 				},
 			}),
 		)
@@ -772,5 +789,356 @@ describe("a share of the target's health", async () => {
 			expect.closeTo(0.25 * (1800 - healthBefore(justice))),
 		])
 		expect(healthBefore(justice)).toBeLessThan(1800)
+	})
+})
+
+/** An attack-empowering effect shaped like Hail of Blades, so these rules don't depend on its data. */
+const RUSH: BuildEffect = {
+	id: "rush",
+	name: "Rush",
+	icon: "rush.png",
+	effect: {
+		id: "rush",
+		source: { kind: "rune", runeKey: "Rush" },
+		trigger: { kind: "on-attack" },
+		charges: 3,
+		duration: 3,
+		cooldown: 10,
+		cooldownFrom: "end",
+		start: { kind: "ready" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				amount: { by: "attackType", melee: 0.9, ranged: 0.6 },
+			},
+			{
+				kind: "onAttackDamage",
+				damageType: "true",
+				base: 10,
+				ratios: { bonusAttackDamage: 0.5 },
+			},
+		],
+		since: "16.19",
+		sourceUrl: "https://wiki.leagueoflegends.com/en-us/",
+	},
+}
+
+function outcomeOf(result: CombatResult, step: number, id: string) {
+	return result.steps[step]?.outcomes.find(
+		(outcome) =>
+			("effectId" in outcome ? outcome.effectId : outcome.mark) === id,
+	)
+}
+
+describe("situation markers anywhere in the combo (issue 338)", async () => {
+	const setup: Setup = {
+		champion: await champion("Quinn"),
+		level: 9,
+		ranks: { Q: 4, W: 1, E: 3, R: 1 },
+		items: [item("Long Sword"), item("Long Sword"), item("Long Sword")],
+	}
+	const run = (items: readonly CombatItem[]) =>
+		simulateCombat({
+			...inputOf(setup, items),
+			effects: [...effectsOf(setup), RUSH],
+		})
+	const rushed = (result: CombatResult) =>
+		result.steps.map((step) =>
+			outcomeOf(result, result.steps.indexOf(step), "rush"),
+		)
+	const attack: CombatItem = { kind: "attack" }
+	const rush = marker("rush")
+	const harrier = marker("quinn-harrier-valor")
+	// Ranged: +60% bonus attack speed, scaled by the champion's ratio like any bonus.
+	const atRest = computeBuildStats(buildOf(setup)).attackSpeed.total
+	const hastened = atRest + setup.champion.stats.attackSpeed.ratio * 0.6
+
+	test("without a marker, a situational effect starts on its cooldown, as if just used", () => {
+		const result = run([attack])
+
+		expect(outcomeOf(result, 0, "rush")).toEqual({
+			kind: "empowered",
+			effectId: "rush",
+			happened: false,
+			readyAt: 10,
+		})
+	})
+
+	test("a marker at the top empowers the next 3 attacks, 1/3 to 3/3, faster and with its damage", () => {
+		const result = run([rush, attack, attack, attack, attack])
+
+		expect(result.steps[0]?.situation).toEqual({ status: "applied" })
+		expect(
+			[1, 2, 3, 4].map((step) => outcomeOf(result, step, "rush")?.charge),
+		).toEqual([
+			{ used: 1, max: 3 },
+			{ used: 2, max: 3 },
+			{ used: 3, max: 3 },
+			undefined,
+		])
+		expect(result.steps[2]?.time).toBeCloseTo(1 / hastened)
+		// 10 + 50% of the 30 bonus AD, true damage.
+		expect(hits(result, 1)[1]).toEqual({ type: "true", raw: 25, final: 25 })
+		expect(hits(result, 4)).toHaveLength(1)
+	})
+
+	test("once its charges are used, its cooldown starts from the last one", () => {
+		const result = run([rush, attack, attack, attack, attack])
+		const third = result.steps[3]?.time ?? 0
+
+		expect(outcomeOf(result, 4, "rush")).toMatchObject({
+			happened: false,
+			readyAt: expect.closeTo(third + 10),
+		})
+	})
+
+	test("unused for 3 s, it ends and its cooldown starts then", () => {
+		const result = run([rush, attack, { kind: "wait", seconds: 5 }, attack])
+
+		expect(outcomeOf(result, 3, "rush")).toMatchObject({
+			happened: false,
+			readyAt: 13,
+		})
+	})
+
+	test("a second marker after its cooldown is the rune coming back: the next attack is 1/3 again", () => {
+		const result = run([
+			rush,
+			attack,
+			attack,
+			attack,
+			{ kind: "wait", seconds: 11 },
+			rush,
+			attack,
+		])
+		const readyAt = (result.steps[3]?.time ?? 0) + 10
+
+		expect(result.steps[5]?.situation).toEqual({
+			status: "applied",
+			readyAt: expect.closeTo(readyAt),
+		})
+		expect(outcomeOf(result, 6, "rush")?.charge).toEqual({ used: 1, max: 3 })
+	})
+
+	test("a marker the rules don't allow yet is forced: it applies, and says until when it was on cooldown", () => {
+		const result = run([rush, attack, attack, attack, rush, attack])
+		const readyAt = (result.steps[3]?.time ?? 0) + 10
+
+		expect(result.steps[4]?.situation).toEqual({
+			status: "forced",
+			readyAt: expect.closeTo(readyAt),
+		})
+		expect(outcomeOf(result, 5, "rush")?.charge).toEqual({ used: 1, max: 3 })
+	})
+
+	test("reordering across a marker moves the effect to the steps after it", () => {
+		const before = run([rush, attack, attack])
+		const after = run([attack, rush, attack])
+
+		expect(rushed(before).map((outcome) => outcome?.happened)).toEqual([
+			undefined,
+			true,
+			true,
+		])
+		expect(rushed(after).map((outcome) => outcome?.happened)).toEqual([
+			false,
+			undefined,
+			true,
+		])
+		expect(outcomeOf(after, 2, "rush")?.charge).toEqual({ used: 1, max: 3 })
+	})
+
+	test("a mark marker mid-sequence marks the target from there, and the next attack consumes it", () => {
+		const result = run([attack, harrier, attack])
+
+		expect(hits(result, 0)).toHaveLength(1)
+		expect(result.steps[2]?.events).toContainEqual(
+			expect.objectContaining({
+				kind: "mark-consumed",
+				mark: "quinn-harrier",
+				fromSituation: true,
+			}),
+		)
+		expect(outcomeOf(result, 2, "quinn-harrier")).toMatchObject({
+			kind: "mark-consumed",
+			happened: true,
+		})
+	})
+
+	test("a mark marker on a target already marked has no effect", () => {
+		const result = run([{ kind: "ability", slot: "E" }, harrier, attack])
+
+		expect(result.steps[1]?.situation).toEqual({
+			status: "no-effect",
+			reason: "already-marked",
+		})
+	})
+
+	test("a mark marker while its applier is on cooldown is forced", () => {
+		const result = run([harrier, attack, harrier])
+
+		expect(result.steps[2]?.situation).toMatchObject({ status: "forced" })
+	})
+
+	test("a marker the build lacks has no effect", () => {
+		const result = run([marker("ghost"), attack])
+
+		expect(result.steps[0]?.situation).toEqual({
+			status: "no-effect",
+			reason: "unavailable",
+		})
+	})
+
+	test("a marker owns no events: what follows an action stays with it", () => {
+		const result = run([
+			{ kind: "ability", slot: "E" },
+			harrier,
+			{ kind: "wait", seconds: 5 },
+		])
+
+		expect(result.steps[1]?.events).toEqual([])
+		expect(result.steps[2]?.events).toContainEqual({
+			kind: "expire",
+			time: 4,
+			mark: "quinn-harrier",
+		})
+	})
+})
+
+describe("free mode (issue 338)", async () => {
+	const setup: Setup = {
+		champion: await champion("Quinn"),
+		level: 9,
+		ranks: { Q: 4, W: 1, E: 3, R: 1 },
+		items: [item("Long Sword"), item("Long Sword"), item("Long Sword")],
+	}
+	const input = (items: readonly CombatItem[]) => ({
+		...inputOf(setup, items),
+		effects: [...effectsOf(setup), RUSH],
+	})
+	const attack: CombatItem = { kind: "attack" }
+	const vault: CombatItem = { kind: "ability", slot: "E" }
+	const combo: CombatItem[] = [
+		marker("rush"),
+		attack,
+		vault,
+		attack,
+		attack,
+		attack,
+	]
+
+	test("a cooldown never refuses an action", () => {
+		const strict = simulateCombat(input([vault, vault]))
+		const free = simulateFreeCombat(input([vault, vault]), [])
+
+		expect(strict.steps[1]?.refused).toBeDefined()
+		expect(free.result.steps[1]?.refused).toBeUndefined()
+	})
+
+	test("without choices, its outcomes are the strict result's, and so is the damage", () => {
+		const strict = simulateCombat(input(combo))
+		const free = simulateFreeCombat(input(combo), [])
+
+		expect(free.seed).toEqual(outcomeChoices(strict))
+		expect(free.result.total.final).toBeCloseTo(strict.total.final)
+	})
+
+	test("choices equal to the computed outcomes change nothing", () => {
+		const { seed, result } = simulateFreeCombat(input(combo), [])
+		const forced = simulateCombat({
+			...input(combo),
+			free: { outcomes: seed },
+		})
+
+		expect(forced.total.final).toBeCloseTo(result.total.final)
+		expect(outcomeChoices(forced)).toEqual(seed)
+	})
+
+	test("an attack the rules left out can be empowered, and only it changes", () => {
+		const { seed, result } = simulateFreeCombat(input(combo), [])
+		const choices = combo.map((_, index) =>
+			index === 5 ? { "empowered:rush": true } : undefined,
+		)
+		const changed = simulateFreeCombat(input(combo), choices)
+
+		expect(seed[5]?.["empowered:rush"]).toBe(false)
+		expect(outcomeOf(changed.result, 5, "rush")?.happened).toBe(true)
+		expect(hits(changed.result, 5)).toHaveLength(hits(result, 5).length + 1)
+		expect(outcomeChoices(changed.result).slice(0, 5)).toEqual(seed.slice(0, 5))
+	})
+
+	test("an attack can skip the effect, and Harrier's mark can be kept or consumed at will", () => {
+		const choices: (OutcomeChoices | undefined)[] = [
+			undefined,
+			{ "empowered:rush": false },
+			undefined,
+			{ "mark-consumed:quinn-harrier": false },
+			undefined,
+			{ "mark-consumed:quinn-harrier": true },
+		]
+		const { result } = simulateFreeCombat(input(combo), choices)
+
+		expect(outcomeOf(result, 1, "rush")?.happened).toBe(false)
+		expect(hits(result, 1)).toHaveLength(1)
+		expect(outcomeOf(result, 3, "quinn-harrier")?.happened).toBe(false)
+		expect(result.steps[3]?.marks.map(({ mark }) => mark)).toEqual([
+			"quinn-harrier",
+		])
+		expect(outcomeOf(result, 5, "quinn-harrier")?.happened).toBe(true)
+	})
+
+	test("a cast's mark can be prevented, and a choice for an outcome the step can't have is ignored", () => {
+		const choices: (OutcomeChoices | undefined)[] = [
+			undefined,
+			undefined,
+			{ "mark-applied:quinn-harrier": false, "empowered:rush": true },
+		]
+		const { result } = simulateFreeCombat(input(combo), choices)
+
+		expect(marksApplied(result, 2)).toEqual([])
+		expect(outcomeOf(result, 2, "rush")).toBeUndefined()
+	})
+
+	test("markers apply without being forced", () => {
+		const items = [marker("rush"), attack, attack, attack, marker("rush")]
+		const { result } = simulateFreeCombat(input(items), [])
+
+		expect(result.steps[4]?.situation).toMatchObject({ status: "applied" })
+	})
+})
+
+describe("ability variants: an input per step (issue 338)", async () => {
+	const darius = await champion("Darius")
+	const setup: Setup = {
+		champion: darius,
+		level: 9,
+		ranks: { Q: 5, W: 1, E: 1, R: 1 },
+	}
+	const hitRules = [
+		{
+			championKey: "Darius",
+			slot: "Q",
+			variants: [
+				{ id: "blade", label: "Blade", damage: "BladeDamage" },
+				{ id: "handle", label: "Handle", damage: "HandleDamage" },
+			],
+			since: "16.19",
+			sourceUrl: "test",
+		},
+	] as const
+	const decimate = (variant?: string) =>
+		simulateCombat(
+			inputOf(setup, [
+				{ kind: "ability", slot: "Q", ...(variant && { variant }) },
+			]),
+			{ hitRules },
+		)
+
+	test("the first variant is the default, and another deals its own damage", () => {
+		const blade = hits(decimate(), 0)[0]?.raw ?? 0
+
+		expect(hits(decimate("blade"), 0)[0]?.raw).toBe(blade)
+		expect(hits(decimate("handle"), 0)[0]?.raw).toBeCloseTo(blade * 0.35)
 	})
 })
