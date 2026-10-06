@@ -66,6 +66,7 @@ export type HitView =
 			type: DamageType
 			raw: number
 			final: number
+			/** Hits at different moments: a cast's base and share of health land together, once. */
 			count: number
 	  }
 	| { name: string; notModeled: readonly string[] }
@@ -84,6 +85,7 @@ export type StepView = {
 /** The step's hits, those of one source and type added up into one line. */
 function hitViews(events: readonly CombatEvent[], names: CombatNames) {
 	const views: HitView[] = []
+	const lastHitAt = new Map<HitView, number>()
 	for (const event of events) {
 		if (event.kind !== "hit") continue
 		const name = names.source(event.source)
@@ -98,8 +100,13 @@ function hitViews(events: readonly CombatEvent[], names: CombatNames) {
 		if (same && "type" in same) {
 			same.raw += raw
 			same.final += final
-			same.count++
-		} else views.push({ name, type, raw, final, count: 1 })
+			if (lastHitAt.get(same) !== event.time) same.count++
+			lastHitAt.set(same, event.time)
+		} else {
+			const view = { name, type, raw, final, count: 1 }
+			views.push(view)
+			lastHitAt.set(view, event.time)
+		}
 	}
 	return views
 }
