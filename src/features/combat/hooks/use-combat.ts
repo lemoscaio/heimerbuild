@@ -6,7 +6,7 @@ import {
 	simulateCombat,
 } from "@/lib/combat/simulate-combat"
 import { abilitiesInForm } from "@/lib/form-abilities"
-import { selectedForm } from "@/lib/stats/champion-forms"
+import { combatFormId } from "../lib/combat-form"
 import { combatKeys } from "../lib/combat-keys"
 import {
 	addStep,
@@ -17,7 +17,7 @@ import {
 	setWaitSeconds,
 } from "../lib/combat-sequence"
 
-/** What the combo runs on, injected: the build, its effects (`combatEffects`), its summoner slots and the target. */
+/** What the combo runs on, injected: the build, its effects (`combatEffects`), its summoner slots, the target and the starting situation. */
 export type CombatInput = Omit<SimulationInput, "actions">
 
 type UseCombatOptions = {
@@ -42,10 +42,7 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		input &&
 		simulateCombat({ ...input, actions: value.map(({ action }) => action) })
 	const champion = input?.build.champion
-	const formId =
-		champion &&
-		selectedForm(champion.forms, input.build.form, { ranks: input.build.ranks })
-			?.id
+	const formId = input && combatFormId(input.build)
 	const spells = champion
 		? abilitiesInForm(champion.abilities, formId).spells
 		: []
