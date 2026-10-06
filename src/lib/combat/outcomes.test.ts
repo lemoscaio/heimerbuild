@@ -80,3 +80,49 @@ describe("outcomeKeys: which outcomes a step can have, from the effects' trigger
 		)
 	})
 })
+
+describe("outcomeKeys: damage over time (issue 345)", () => {
+	const dot = {
+		kind: "damageOverTime",
+		tick: { by: "amount", damageType: "magic", amount: 10 },
+		every: 1,
+	} as const
+	const poison = bound({
+		id: "poison",
+		trigger: { kind: "on-hit" },
+		source: { kind: "ability", championKey: "Test", slot: "E" },
+		grants: [dot],
+	})
+	const trap = bound({
+		id: "trap",
+		trigger: { kind: "after-use" },
+		source: { kind: "ability", championKey: "Test", slot: "R" },
+		grants: [dot],
+	})
+	const burn = bound({
+		id: "burn",
+		trigger: { kind: "on-ability-damage" },
+		source: { kind: "item", itemId: "6653" },
+		grants: [dot],
+	})
+
+	test("an attack: the damage over time its on-hit applies", () => {
+		expect(ids({ kind: "attack" }, [poison, trap], undefined)).toEqual([
+			"damage-over-time:poison",
+		])
+	})
+
+	test("a cast: its own, and the ones ability damage applies", () => {
+		expect(
+			ids({ kind: "ability", slot: "R" }, [poison, trap, burn], undefined),
+		).toEqual(["damage-over-time:trap", "damage-over-time:burn"])
+	})
+
+	test("ability damage applies on attacks only while an ability's effect deals damage on them", () => {
+		expect(ids({ kind: "attack" }, [burn], undefined)).toEqual([])
+		expect(ids({ kind: "attack" }, [poison, burn], undefined)).toEqual([
+			"damage-over-time:poison",
+			"damage-over-time:burn",
+		])
+	})
+})
