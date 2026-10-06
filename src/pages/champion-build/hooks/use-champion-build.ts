@@ -15,7 +15,12 @@ import { useMatchState } from "@/features/match/hooks/use-match-state"
 import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
-import { availableEffects } from "@/lib/effects/available-effects"
+import type { CombatBuild } from "@/lib/combat/simulate-combat"
+import {
+	availableEffects,
+	combatEffects,
+	type EffectsBuild,
+} from "@/lib/effects/available-effects"
 import { abilitiesInForm } from "@/lib/form-abilities"
 import { selectedRunes } from "@/lib/rune-selection"
 import { itemsAdaptiveType } from "@/lib/stats/adaptive-force"
@@ -101,16 +106,17 @@ export function useChampionBuild({
 		onChange: (value) => save({ summoners: value }, EDIT_HISTORY.summoners),
 	})
 	// Conditions read the other domains: the ranked abilities, the spells and the page's runes.
-	const effects =
+	const effectsBuild: EffectsBuild | undefined =
 		champion && skills.ranks && summonerSpells && runes
-			? availableEffects({
+			? {
 					patch,
 					champion,
 					ranks: skills.ranks,
 					spells: summoners.slots.filter((spell) => spell !== undefined),
 					runes: selectedRunes(runePage.selection, runes),
-				})
+				}
 			: undefined
+	const effects = effectsBuild && availableEffects(effectsBuild)
 	const basisInput = statsInput()
 	const conditions = useConditions({
 		available: effects,
@@ -185,6 +191,21 @@ export function useChampionBuild({
 		}
 	}
 
+	/**
+	 * What the combo runs on: the build and match state, every effect its sources have (items
+	 * included) and the summoner slots; never the effect switches (issue 265, decision 7).
+	 */
+	function combatInput() {
+		const input = statsInput()
+		if (!champion || !input || !effectsBuild) return undefined
+		const { effects: _switches, ...build } = input
+		return {
+			build: { ...build, champion } satisfies CombatBuild,
+			effects: combatEffects({ ...effectsBuild, items: items.list }),
+			summoners: summoners.slots,
+		}
+	}
+
 	/** The build's totals with `change` applied: every preview is the same call with one input changed. */
 	function whatIf(change: Partial<BuildStatsInput> = {}) {
 		const input = statsInput(change)
@@ -208,6 +229,8 @@ export function useChampionBuild({
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes: whatIf({ shards: [] }),
 		whatIf,
+		/** The combo's build, effects and summoner slots; undefined while the data loads. */
+		combat: combatInput(),
 		/** The checked values: known items, checked runes, summoner spells and effects, the default form left out. */
 		values,
 	}
