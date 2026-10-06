@@ -1,4 +1,9 @@
-import type { Amount, Effect, RankValueAmount } from "../effect"
+import type {
+	Amount,
+	Effect,
+	MarkApplication,
+	RankValueAmount,
+} from "../effect"
 import { VERIFIED_ON } from "./verified-on"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
@@ -33,6 +38,11 @@ const HAMMER_RESIST_FROM_AD: Amount = {
 }
 
 const HARRIER = "quinn-harrier"
+const HARRIER_MARK = {
+	mark: HARRIER,
+	duration: 4,
+	consumedBy: ["attack"],
+} as const satisfies MarkApplication
 const ESSENCE_FLUX = "ezreal-w"
 
 /**
@@ -440,7 +450,26 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		id: "quinn-harrier-mark",
 		source: { kind: "ability", championKey: "Quinn", slot: "passive" },
 		trigger: { kind: "on-cast", slots: ["Q", "E", "R"] },
-		applies: { mark: HARRIER, duration: 4, consumedBy: ["attack"] },
+		applies: HARRIER_MARK,
+		grants: [],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Quinn/Harrier`,
+	},
+	{
+		// Valor marks on its own: 7 × 0.99 per 1% crit chance, from when the last mark left (wiki).
+		id: "quinn-harrier-valor",
+		source: { kind: "ability", championKey: "Quinn", slot: "passive" },
+		trigger: { kind: "periodic", idle: 1 },
+		applies: HARRIER_MARK,
+		cooldown: {
+			by: "statDecay",
+			stat: "critChance",
+			base: 7,
+			factor: 0.99,
+			per: 0.01,
+		},
+		cooldownFrom: "mark-end",
+		start: { kind: "marked" },
 		grants: [],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Quinn/Harrier`,
@@ -498,5 +527,28 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		grants: [{ kind: "abilityDamage", ability: "W", name: "Damage" }],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Ezreal/Essence_Flux`,
+	},
+	{
+		// Every 12 s (from the attack that spends it) the next attack deals the synced bonus damage (wiki).
+		id: "ziggs-short-fuse",
+		source: { kind: "ability", championKey: "Ziggs", slot: "passive" },
+		trigger: { kind: "periodic" },
+		duration: Number.POSITIVE_INFINITY,
+		endsOn: "on-hit",
+		cooldown: 12,
+		reducedOnCast: {
+			by: "championLevel",
+			steps: [
+				{ from: 1, value: 4 },
+				{ from: 7, value: 5 },
+				{ from: 13, value: 6 },
+			],
+		},
+		start: { kind: "running" },
+		grants: [
+			{ kind: "abilityDamage", ability: "passive", name: "TotalDamage" },
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Ziggs/Short_Fuse`,
 	},
 ]

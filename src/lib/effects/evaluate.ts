@@ -105,7 +105,7 @@ function resolveTableAmount(
 	}
 }
 
-/** The amount's number at the build's state; undefined when the data lacks it, or a `stat` amount without totals. */
+/** The amount's number at the build's state; undefined when the data lacks it, or a stat-reading amount without totals. */
 export function resolveAmount(
 	amount: Amount,
 	effect: BuildEffect,
@@ -131,6 +131,12 @@ export function resolveAmount(
 			const step = resolveTableAmount(amount.step, effect, context)
 			const steps = gameTimeSteps(amount.every, context.gameTime ?? GAME_START)
 			return step === undefined ? undefined : step * triangularSteps(steps)
+		}
+		case "statDecay": {
+			const read = context.totals?.[amount.stat].total
+			return read === undefined
+				? undefined
+				: amount.base * amount.factor ** (read / amount.per)
 		}
 		default:
 			return resolveTableAmount(amount, effect, context)

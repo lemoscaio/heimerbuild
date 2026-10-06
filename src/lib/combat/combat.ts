@@ -19,11 +19,14 @@ export type CombatTarget = {
 	level: number
 }
 
-/** What dealt a hit: a basic attack, an ability's synced damage by name, or an effect (spellblade, Ignite). */
+/**
+ * What dealt a hit: a basic attack, an ability's synced damage by name, or an effect (spellblade,
+ * Ignite); `fromStart` when the effect was running from the combo's starting situation.
+ */
 export type DamageSource =
 	| { kind: "attack" }
 	| { kind: "ability"; slot: AbilitySlot | "passive"; name: string }
-	| { kind: "effect"; effectId: string }
+	| { kind: "effect"; effectId: string; fromStart?: true }
 
 /** A hit's damage before (`raw`) and after (`final`) the target's resistances. */
 export type DealtDamage = { type: DamageType; raw: number; final: number }
@@ -49,7 +52,8 @@ export type CombatEvent =
 	  }
 	| { kind: "on-hit"; time: number }
 	| { kind: "mark-applied"; time: number; mark: string; endsAt: number }
-	| { kind: "mark-consumed"; time: number; mark: string }
+	/** `fromStart`: the mark was on the target from the combo's starting situation. */
+	| { kind: "mark-consumed"; time: number; mark: string; fromStart?: true }
 	| { kind: "expire"; time: number; effectId: string; holder: EffectHolder }
 	| { kind: "expire"; time: number; mark: string }
 

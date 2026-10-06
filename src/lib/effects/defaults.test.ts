@@ -34,6 +34,7 @@ describe("isOnByDefault", () => {
 			expect(isOnByDefault(effect({ kind }))).toBe(false)
 		}
 		expect(isOnByDefault(effect({ kind: "on-cast" }))).toBe(false)
+		expect(isOnByDefault(effect({ kind: "periodic" }))).toBe(false)
 		expect(
 			isOnByDefault(effect({ kind: "on-mark-consumed", mark: "test" })),
 		).toBe(false)
@@ -61,6 +62,7 @@ describe("isListed", () => {
 	test("the stats panel leaves out what only a combat sequence fires, and what the target holds", () => {
 		expect(isListed(effect({ kind: "after-use" }))).toBe(true)
 		expect(isListed(effect({ kind: "on-cast", slots: ["Q"] }))).toBe(false)
+		expect(isListed(effect({ kind: "periodic", idle: 1 }))).toBe(false)
 		expect(isListed(effect({ kind: "on-mark-consumed", mark: "test" }))).toBe(
 			false,
 		)

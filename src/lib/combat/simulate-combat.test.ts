@@ -69,6 +69,8 @@ type Setup = {
 	summoners?: readonly SummonerSpell[]
 	runes?: readonly Rune[]
 	target?: CombatTarget
+	/** The starting situation: the chosen effects' ids. */
+	start?: readonly string[]
 }
 
 function buildOf({ champion, level, ranks, items = [] }: Setup): CombatBuild {
@@ -96,6 +98,7 @@ function simulate(
 		summoners: setup.summoners ?? [],
 		target: setup.target ?? DUMMY,
 		actions,
+		...(setup.start && { start: setup.start }),
 	})
 }
 
@@ -219,6 +222,205 @@ describe("Quinn: Harrier and Heightened Senses (worked example 1)", async () => 
 			],
 		})
 		expect(skystrike.total.final).toBe(0)
+	})
+})
+
+/** The marks applied in a step, with when. */
+function marksApplied(result: CombatResult, step: number) {
+	return (result.steps[step]?.events ?? []).flatMap((event) =>
+		event.kind === "mark-applied" ? [event.time] : [],
+	)
+}
+
+describe("Quinn's starting situation and Valor's periodic mark (issue 330)", async () => {
+	const setup: Setup = {
+		champion: await champion("Quinn"),
+		level: 9,
+		ranks: { Q: 4, W: 1, E: 3, R: 1 },
+		items: [item("Long Sword"), item("Long Sword"), item("Long Sword")],
+	}
+	const marked: Setup = { ...setup, start: ["quinn-harrier-valor"] }
+	// Wiki: Harrier deals 15 + 105 / 17 × (level − 1) (+ 40% bonus AD); Valor's cooldown is 7 × 0.99 per 1% crit chance.
+	const harrier = physical(15 + (105 / 17) * 8 + 0.4 * 30)
+
+	test("without a starting mark, the first attack deals no Harrier damage", () => {
+		const result = simulate(setup, [{ kind: "attack" }])
+
+		expect(hits(result, 0)).toHaveLength(1)
+		expect(result.steps[0]?.marks).toEqual([])
+	})
+
+	test("a starting mark is consumed by the first attack, from the start, with Harrier's damage and the W passive", () => {
+		const result = simulate(marked, [{ kind: "attack" }])
+
+		expect(result.steps[0]?.events).toContainEqual({
+			kind: "mark-consumed",
+			time: 0,
+			mark: "quinn-harrier",
+			fromStart: true,
+		})
+		expect(hits(result, 0)[1]?.final).toBeCloseTo(harrier)
+		expect(result.steps[0]?.active.map(({ effectId }) => effectId)).toContain(
+			"quinn-w-passive",
+		)
+	})
+
+	test("after a wait, Valor marks again 7 s after the mark was consumed, and the next attack consumes it", () => {
+		const result = simulate(marked, [
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 8 },
+			{ kind: "attack" },
+		])
+
+		expect(marksApplied(result, 1)).toEqual([7])
+		expect(result.steps[1]?.marks).toEqual([
+			{ mark: "quinn-harrier", endsAt: 11 },
+		])
+		const consumed = result.steps[2]?.events.find(
+			(event) => event.kind === "mark-consumed",
+		)
+		expect(consumed).toEqual({
+			kind: "mark-consumed",
+			time: result.steps[2]?.time ?? 0,
+			mark: "quinn-harrier",
+		})
+		expect(hits(result, 2)[1]?.final).toBeCloseTo(harrier)
+	})
+
+	test("from a clean start, Valor's cooldown runs from 0: the mark comes at 7 s", () => {
+		const result = simulate(setup, [{ kind: "wait", seconds: 7.5 }])
+
+		expect(marksApplied(result, 0)).toEqual([7])
+	})
+
+	test("an unused starting mark runs out at 4 s, and Valor marks again 7 s later", () => {
+		const result = simulate(marked, [{ kind: "wait", seconds: 12 }])
+
+		expect(result.steps[0]?.events).toContainEqual({
+			kind: "expire",
+			time: 4,
+			mark: "quinn-harrier",
+		})
+		expect(marksApplied(result, 0)).toEqual([11])
+	})
+
+	test("once an ability's mark leaves, Valor waits 1 s with no mark on the target", () => {
+		const result = simulate(marked, [
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 5 },
+			{ kind: "ability", slot: "E" },
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 1 },
+		])
+		const consumedAt = result.steps[3]?.time ?? 0
+		const applied = result.steps
+			.slice(3)
+			.flatMap((_, index) => marksApplied(result, index + 3))
+
+		// Valor's own cooldown ends at 7 s; Vault's mark, consumed after 6 s, pushes it to 1 s later.
+		expect(consumedAt).toBeGreaterThan(6)
+		expect(applied).toEqual([consumedAt + 1])
+	})
+
+	test("an ability's mark overwrites the starting one, and Valor's cooldown starts then", () => {
+		const result = simulate(marked, [
+			{ kind: "ability", slot: "E" },
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 7.5 },
+		])
+
+		expect(
+			result.steps[1]?.events.find((event) => event.kind === "mark-consumed"),
+		).toEqual({ kind: "mark-consumed", time: 0, mark: "quinn-harrier" })
+		expect(marksApplied(result, 2)).toEqual([7])
+	})
+
+	test("critical strike chance shortens Valor's cooldown", () => {
+		const critical = {
+			...marked,
+			items: [item("Cloak of Agility"), item("Cloak of Agility")],
+		}
+		const crit = computeBuildStats(buildOf(critical)).critChance.total
+		const result = simulate(critical, [
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 7 },
+		])
+
+		expect(crit).toBeCloseTo(0.3)
+		expect(marksApplied(result, 1)[0]).toBeCloseTo(7 * 0.99 ** 30)
+	})
+
+	test("after the last action, Valor marks nothing more", () => {
+		const result = simulate(marked, [{ kind: "attack" }])
+
+		expect(result.steps[0]?.events.map(({ kind }) => kind)).not.toContain(
+			"mark-applied",
+		)
+	})
+})
+
+describe("Ziggs's Short Fuse: ready at the start, periodic, shortened by casts (issue 330)", async () => {
+	const setup: Setup = {
+		champion: await champion("Ziggs"),
+		level: 9,
+		ranks: { Q: 5, W: 1, E: 3, R: 1 },
+	}
+	const ready: Setup = { ...setup, start: ["ziggs-short-fuse"] }
+	// Wiki: 20 + 4 per level to 6, then 8 per level to 12, then 12 (+ 50% AP): 64 at level 9, no AP.
+	const shortFuse = magic(64)
+
+	test("without it ready, the first attack is a plain one", () => {
+		expect(hits(simulate(setup, [{ kind: "attack" }]), 0)).toHaveLength(1)
+	})
+
+	test("ready from the start, the first attack spends it for its bonus magic damage", () => {
+		const result = simulate(ready, [{ kind: "attack" }, { kind: "attack" }])
+
+		expect(hits(result, 0)[1]).toEqual({
+			type: "magic",
+			raw: 64,
+			final: shortFuse,
+		})
+		expect(result.steps[0]?.events).toContainEqual(
+			expect.objectContaining({
+				kind: "hit",
+				source: {
+					kind: "effect",
+					effectId: "ziggs-short-fuse",
+					fromStart: true,
+				},
+			}),
+		)
+		expect(hits(result, 1)).toHaveLength(1)
+	})
+
+	test("comes back 12 s after the attack that spent it", () => {
+		const result = simulate(ready, [
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 12 },
+			{ kind: "attack" },
+		])
+
+		expect(
+			result.steps[1]?.active.find(
+				({ effectId }) => effectId === "ziggs-short-fuse",
+			)?.startedAt,
+		).toBe(12)
+		expect(hits(result, 2)[1]?.final).toBeCloseTo(shortFuse)
+	})
+
+	test("each ability cast takes 5 s off its cooldown at level 9", () => {
+		const result = simulate(ready, [
+			{ kind: "attack" },
+			{ kind: "ability", slot: "Q" },
+			{ kind: "wait", seconds: 8 },
+		])
+
+		expect(
+			result.steps[2]?.active.find(
+				({ effectId }) => effectId === "ziggs-short-fuse",
+			)?.startedAt,
+		).toBe(7)
 	})
 })
 

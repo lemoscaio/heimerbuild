@@ -321,6 +321,26 @@ describe("resolveAmount, amounts that read the build", () => {
 		expect(resolveAmount(amount, malphiteW, context)).toBeUndefined()
 	})
 
+	test("a stat decay amount shrinks by its factor per step of the stat: Harrier's 7 s at 0 to 2.56 s at 100% crit", () => {
+		const amount = {
+			by: "statDecay",
+			stat: "critChance",
+			base: 7,
+			factor: 0.99,
+			per: 0.01,
+		} as const
+		const at = (critChance: number) =>
+			resolveAmount(amount, malphiteW, {
+				...context,
+				totals: totalsWith({ critChance }),
+			})
+
+		expect(at(0)).toBe(7)
+		expect(at(1)).toBeCloseTo(2.56, 2)
+		expect(at(0.5)).toBeCloseTo(7 * 0.99 ** 50)
+		expect(resolveAmount(amount, malphiteW, context)).toBeUndefined()
+	})
+
 	test("a stat amount with part bonus reads only the stat's bonus", () => {
 		const amount = {
 			by: "stat",

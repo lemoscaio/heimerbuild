@@ -50,13 +50,27 @@ export type RankValueAmount = {
  * (its bonus part with `part: "bonus"`) before the stat-dependent bonuses (evaluation step 4);
  * `missingHealth` grows from 0 at full health to `max` at `fullAt` percent missing health, read from
  * the current health condition;
- * `gameTime` grows every `every` minutes of the game time condition (see `GameTimeAmount`).
+ * `gameTime` grows every `every` minutes of the game time condition (see `GameTimeAmount`);
+ * `statDecay` shrinks as a stat grows (see `StatDecayAmount`).
  */
 export type Amount =
 	| TableAmount
 	| { by: "stat"; stat: StatName; part?: "bonus"; ratio: TableAmount }
 	| { by: "missingHealth"; max: TableAmount; fullAt: number }
 	| GameTimeAmount
+	| StatDecayAmount
+
+/**
+ * `base` × `factor` ^ (the stat's total ÷ `per`): Harrier's cooldown is 7 × 0.99 per 1% critical
+ * strike chance (`per: 0.01`), 7 s down to 2.56 s.
+ */
+export type StatDecayAmount = {
+	by: "statDecay"
+	stat: StatName
+	base: number
+	factor: number
+	per: number
+}
 
 /**
  * Grows once per full `every` minutes. `triangular`: step n adds n × `step`, so the total after n
@@ -103,8 +117,10 @@ export type Grant =
 export type EffectCondition = "not-damaged-recently"
 
 /**
- * When an effect starts. `on-cast` and `on-mark-consumed` exist only in the combat simulator:
- * a cast of one of `slots` (any ability without them), the attacker consuming `mark` on the target.
+ * When an effect starts. `on-cast`, `on-mark-consumed` and `periodic` exist only in the combat
+ * simulator: a cast of one of `slots` (any ability without them), the attacker consuming `mark` on
+ * the target, or on its own once its cooldown is over, while it isn't running and its mark has been
+ * off the target for `idle` seconds (Valor's Harrier, Ziggs's Short Fuse).
  */
 export type Trigger =
 	| { kind: "always" }
@@ -115,6 +131,7 @@ export type Trigger =
 	| { kind: "after-ability" }
 	| { kind: "on-cast"; slots?: readonly AbilitySlot[] }
 	| { kind: "on-mark-consumed"; mark: string }
+	| { kind: "periodic"; idle?: number }
 
 export type TriggerKind = Trigger["kind"]
 
@@ -145,6 +162,18 @@ export type MarkApplication = {
 export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit"
 
 /**
+ * A situation the combo can start in, which the effect supports (combat simulator): its mark
+ * already on the target (`marked`: Harrier), or the effect already running (`running`: Short Fuse ready).
+ */
+export type StartOption = { kind: "marked" } | { kind: "running" }
+
+/**
+ * When its cooldown starts: when it triggers (absent), when its `endsOn` ends it, or when its
+ * mark leaves the target (`mark-end`: consumed, expired or overwritten; Harrier's is "post-effect").
+ */
+export type CooldownFrom = "mark-end"
+
+/**
  * A conditional effect as typed, sourced data: what it grants, when, for how long. `since` is the
  * patch its numbers were checked on; a change in a later patch is a new entry with the same id.
  */
@@ -158,6 +187,12 @@ export type Effect = PatchRange & {
 	duration?: Amount
 	/** Seconds before it can trigger again. */
 	cooldown?: Amount
+	/** When the cooldown starts, if not when it triggers or ends (`endsOn`). */
+	cooldownFrom?: CooldownFrom
+	/** Seconds its cooldown loses whenever the champion casts an ability (Short Fuse: 4 to 6). */
+	reducedOnCast?: Amount
+	/** The situation the combo can start in with it, which the Combo tab offers. */
+	start?: StartOption
 	stacks?: { max: number }
 	/** What ends it early; its `cooldown` then starts from that moment instead of the trigger. */
 	endsOn?: EndsOn
