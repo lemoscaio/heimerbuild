@@ -1,3 +1,19 @@
+import { AMBESSA_ARMOR_PENETRATION_RANK_STAT } from "./champions/ambessa"
+import { ANNIE_MAGIC_PENETRATION_RANK_STAT } from "./champions/annie"
+import { DARIUS_ARMOR_PENETRATION_RANK_STAT } from "./champions/darius"
+import { JANNA_MOVEMENT_SPEED_RANK_STAT } from "./champions/janna"
+import { JARVAN_IV_ATTACK_SPEED_RANK_STAT } from "./champions/jarvan-iv"
+import { KOG_MAW_ATTACK_SPEED_RANK_STAT } from "./champions/kog-maw"
+import { MORDEKAISER_MAGIC_PENETRATION_RANK_STAT } from "./champions/mordekaiser"
+import { NOCTURNE_ATTACK_SPEED_RANK_STAT } from "./champions/nocturne"
+import {
+	OLAF_ARMOR_RANK_STAT,
+	OLAF_MAGIC_RESIST_RANK_STAT,
+} from "./champions/olaf"
+import { PANTHEON_ARMOR_PENETRATION_RANK_STAT } from "./champions/pantheon"
+import { TEEMO_MOVEMENT_SPEED_RANK_STAT } from "./champions/teemo"
+import { TWISTED_FATE_ATTACK_SPEED_RANK_STAT } from "./champions/twisted-fate"
+import { ZAAHEN_ARMOR_PENETRATION_RANK_STAT } from "./champions/zaahen"
 import type { AbilitySlot, RankStat } from "./schemas/champion"
 
 export type RankStatRule = {
@@ -14,132 +30,26 @@ export type RankStatRule = {
 	source: string
 }
 
-const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
-
 /**
  * Stats an ability grants by its rank alone. The values come from the game files, so a patch
- * that changes a number updates the data; a renamed value fails the sync.
+ * that changes a number updates the data; a renamed value fails the sync. One file per champion
+ * in `champions/`.
  */
 export const RANK_STAT_RULES: readonly RankStatRule[] = [
-	{
-		championKey: "TwistedFate",
-		slot: "E",
-		stat: "attackSpeedPercent",
-		dataValue: "AttackSpeedBonus",
-		scale: 0.01,
-		reason: "Stacked Deck passively grants bonus attack speed",
-		source: `${WIKI}Twisted_Fate/Stacked_Deck`,
-	},
-	{
-		championKey: "KogMaw",
-		slot: "Q",
-		stat: "attackSpeedPercent",
-		dataValue: "AttackSpeed",
-		reason: "Caustic Spittle passively grants bonus attack speed",
-		source: `${WIKI}Kog%27Maw/Caustic_Spittle`,
-	},
-	{
-		championKey: "JarvanIV",
-		slot: "E",
-		stat: "attackSpeedPercent",
-		dataValue: "PermanentAttackSpeed",
-		reason: "Demacian Standard passively grants bonus attack speed",
-		source: `${WIKI}Jarvan_IV/Demacian_Standard`,
-	},
-	{
-		championKey: "Nocturne",
-		slot: "W",
-		stat: "attackSpeedPercent",
-		dataValue: "ActiveAS",
-		scale: 0.01,
-		reason:
-			"Shroud of Darkness passively grants bonus attack speed (doubled for 5 s after blocking a spell, not applied)",
-		source: `${WIKI}Nocturne/Shroud_of_Darkness`,
-	},
-	{
-		championKey: "Olaf",
-		slot: "R",
-		stat: "armor",
-		dataValue: "Resists",
-		reason: "Ragnarok passively grants bonus armor while it is not active",
-		source: `${WIKI}Olaf/Ragnarok`,
-	},
-	{
-		championKey: "Olaf",
-		slot: "R",
-		stat: "magicResist",
-		dataValue: "Resists",
-		reason:
-			"Ragnarok passively grants bonus magic resistance while it is not active",
-		source: `${WIKI}Olaf/Ragnarok`,
-	},
-	{
-		championKey: "Darius",
-		slot: "E",
-		stat: "armorPenetrationPercent",
-		dataValue: "PassivePercentArmorPen",
-		scale: 0.01,
-		reason: "Apprehend passively grants armor penetration",
-		source: `${WIKI}Darius/Apprehend`,
-	},
-	{
-		championKey: "Pantheon",
-		slot: "R",
-		stat: "armorPenetrationPercent",
-		dataValue: "ArmorPenetration",
-		reason: "Grand Starfall passively grants armor penetration",
-		source: `${WIKI}Pantheon/Grand_Starfall`,
-	},
-	{
-		championKey: "Ambessa",
-		slot: "R",
-		stat: "armorPenetrationPercent",
-		dataValue: "Armor_Penetration",
-		reason: "Public Execution passively grants armor penetration",
-		source: `${WIKI}Ambessa/Public_Execution`,
-	},
-	{
-		championKey: "Zaahen",
-		slot: "R",
-		stat: "armorPenetrationPercent",
-		dataValue: "ArmorPen",
-		reason: "Grim Deliverance passively grants armor penetration",
-		source: `${WIKI}Zaahen/Grim_Deliverance`,
-	},
-	{
-		championKey: "Annie",
-		slot: "R",
-		stat: "magicPenetrationPercent",
-		dataValue: "RPercentPenBuff",
-		reason: "Summon: Tibbers passively grants magic penetration",
-		source: `${WIKI}Annie/Summon:_Tibbers`,
-	},
-	{
-		championKey: "Mordekaiser",
-		slot: "E",
-		stat: "magicPenetrationPercent",
-		dataValue: "MagicPen",
-		reason: "Death's Grasp passively grants magic penetration",
-		source: `${WIKI}Mordekaiser/Death%27s_Grasp`,
-	},
-	{
-		championKey: "Janna",
-		slot: "W",
-		stat: "movementSpeedPercent",
-		dataValue: "MSPercent",
-		reason:
-			"Zephyr passively grants bonus movement speed; the app applies it, with its +2% per 100 AP, as the janna-w-passive effect",
-		source: `${WIKI}Janna/Zephyr`,
-	},
-	{
-		championKey: "Teemo",
-		slot: "W",
-		stat: "movementSpeedPercent",
-		dataValue: "PassiveMoveSpeedBonus",
-		reason:
-			"Move Quick passively grants bonus movement speed while Teemo was not hit by a champion or turret for 5 s; the app applies it as the teemo-w-passive effect, on by default",
-		source: `${WIKI}Teemo/Move_Quick`,
-	},
+	AMBESSA_ARMOR_PENETRATION_RANK_STAT,
+	ANNIE_MAGIC_PENETRATION_RANK_STAT,
+	DARIUS_ARMOR_PENETRATION_RANK_STAT,
+	JANNA_MOVEMENT_SPEED_RANK_STAT,
+	JARVAN_IV_ATTACK_SPEED_RANK_STAT,
+	KOG_MAW_ATTACK_SPEED_RANK_STAT,
+	MORDEKAISER_MAGIC_PENETRATION_RANK_STAT,
+	NOCTURNE_ATTACK_SPEED_RANK_STAT,
+	OLAF_ARMOR_RANK_STAT,
+	OLAF_MAGIC_RESIST_RANK_STAT,
+	PANTHEON_ARMOR_PENETRATION_RANK_STAT,
+	TEEMO_MOVEMENT_SPEED_RANK_STAT,
+	TWISTED_FATE_ATTACK_SPEED_RANK_STAT,
+	ZAAHEN_ARMOR_PENETRATION_RANK_STAT,
 ]
 
 /** A rule's value per rank, from rank 1; fails when the game files lack it. */
