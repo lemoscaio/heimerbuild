@@ -37,6 +37,8 @@ export type EffectContext = {
 	form?: string
 	/** Stacks an effect has by its id (the combat simulator's); absent means its full value, all stacks. */
 	stacks?: Readonly<Record<string, number>>
+	/** Melee or ranged in the form and at the level, which `attackType` amounts read. */
+	attackType?: Champion["attackType"]
 }
 
 /** A stat grant that reads another stat: `ratio` of its total, or of its bonus part. */
@@ -138,6 +140,11 @@ export function resolveAmount(
 				? undefined
 				: amount.base * amount.factor ** (read / amount.per)
 		}
+		case "attackType":
+			return (
+				context.attackType &&
+				resolveTableAmount(amount[context.attackType], effect, context)
+			)
 		default:
 			return resolveTableAmount(amount, effect, context)
 	}
@@ -212,6 +219,7 @@ function resolveFullGrant(
 		case "damage":
 		case "abilityDamage":
 		case "damageOverTime":
+		case "onAttackDamage":
 			return []
 	}
 }

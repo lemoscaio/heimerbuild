@@ -51,7 +51,8 @@ export type RankValueAmount = {
  * `missingHealth` grows from 0 at full health to `max` at `fullAt` percent missing health, read from
  * the current health condition;
  * `gameTime` grows every `every` minutes of the game time condition (see `GameTimeAmount`);
- * `statDecay` shrinks as a stat grows (see `StatDecayAmount`).
+ * `statDecay` shrinks as a stat grows (see `StatDecayAmount`);
+ * `attackType` is one value for melee and another for ranged (Hail of Blades: 90% and 60%).
  */
 export type Amount =
 	| TableAmount
@@ -59,6 +60,7 @@ export type Amount =
 	| { by: "missingHealth"; max: TableAmount; fullAt: number }
 	| GameTimeAmount
 	| StatDecayAmount
+	| { by: "attackType"; melee: TableAmount; ranged: TableAmount }
 
 /**
  * `base` × `factor` ^ (the stat's total ÷ `per`): Harrier's cooldown is 7 × 0.99 per 1% critical
@@ -87,7 +89,7 @@ export type DamageType = "physical" | "magic" | "true"
 
 /** Damage as ratios of the attacker's stats: 2 base AD is 200% of base attack damage. */
 export type DamageRatios = Partial<
-	Record<"baseAttackDamage" | "abilityPower", number>
+	Record<"baseAttackDamage" | "bonusAttackDamage" | "abilityPower", number>
 >
 
 /** A stat, or Adaptive Force: AD or AP by the build's adaptive type, like the stat shards. */
@@ -97,7 +99,8 @@ export type GrantStat = StatKey | "adaptiveForce"
  * Stats fold into the totals; an attack speed multiplier scales the bonus or total attack speed
  * after them; shields and heals are values of their own. The damage grants are the combat
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
- * source ability's synced formula by name, `damageOverTime` dealt every `every` seconds while it lasts.
+ * source ability's synced formula by name, `damageOverTime` dealt every `every` seconds while it lasts,
+ * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true damage).
  */
 export type Grant =
 	| { kind: "stat"; stat: GrantStat; amount: Amount }
@@ -112,15 +115,22 @@ export type Grant =
 			amount: Amount
 			every: number
 	  }
+	| {
+			kind: "onAttackDamage"
+			damageType: DamageType
+			base?: TableAmount
+			ratios: DamageRatios
+	  }
 
 /** A state the champion holds while the effect lasts. */
 export type EffectCondition = "not-damaged-recently"
 
 /**
- * When an effect starts. `on-cast`, `on-mark-consumed` and `periodic` exist only in the combat
- * simulator: a cast of one of `slots` (any ability without them), the attacker consuming `mark` on
- * the target, or on its own once its cooldown is over, while it isn't running and its mark has been
- * off the target for `idle` seconds (Valor's Harrier, Ziggs's Short Fuse).
+ * When an effect starts. `on-attack`, `on-cast`, `on-mark-consumed` and `periodic` exist only in the
+ * combat simulator: a basic attack starting, before its hit (Hail of Blades); a cast of one of
+ * `slots` (any ability without them); the attacker consuming `mark` on the target; or on its own once
+ * its cooldown is over, while it isn't running and its mark has been off the target for `idle`
+ * seconds (Valor's Harrier, Ziggs's Short Fuse).
  */
 export type Trigger =
 	| { kind: "always" }
@@ -129,6 +139,7 @@ export type Trigger =
 	| { kind: "after-summoner" }
 	| { kind: "on-hit" }
 	| { kind: "after-ability" }
+	| { kind: "on-attack" }
 	| { kind: "on-cast"; slots?: readonly AbilitySlot[] }
 	| { kind: "on-mark-consumed"; mark: string }
 	| { kind: "periodic"; idle?: number }
@@ -162,16 +173,21 @@ export type MarkApplication = {
 export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit"
 
 /**
- * A situation the combo can start in, which the effect supports (combat simulator): its mark
- * already on the target (`marked`: Harrier), or the effect already running (`running`: Short Fuse ready).
+ * A situation a combo marker can set, which the effect supports (combat simulator): its mark on
+ * the target (`marked`: Harrier), the effect running (`running`: Short Fuse ready), or its cooldown
+ * over so its trigger fires next (`ready`: Hail of Blades ready).
  */
-export type StartOption = { kind: "marked" } | { kind: "running" }
+export type StartOption =
+	| { kind: "marked" }
+	| { kind: "running" }
+	| { kind: "ready" }
 
 /**
- * When its cooldown starts: when it triggers (absent), when its `endsOn` ends it, or when its
- * mark leaves the target (`mark-end`: consumed, expired or overwritten; Harrier's is "post-effect").
+ * When its cooldown starts: when it triggers (absent), when its `endsOn` ends it, when its mark
+ * leaves the target (`mark-end`: consumed, expired or overwritten; Harrier's is "post-effect"), or
+ * when it ends in any way (`end`: its charges used or its duration over; Hail of Blades).
  */
-export type CooldownFrom = "mark-end"
+export type CooldownFrom = "mark-end" | "end"
 
 /**
  * A conditional effect as typed, sourced data: what it grants, when, for how long. `since` is the
@@ -191,9 +207,11 @@ export type Effect = PatchRange & {
 	cooldownFrom?: CooldownFrom
 	/** Seconds its cooldown loses whenever the champion casts an ability (Short Fuse: 4 to 6). */
 	reducedOnCast?: Amount
-	/** The situation the combo can start in with it, which the Combo tab offers. */
+	/** The situation a combo marker can set with it, which the Combo tab offers. */
 	start?: StartOption
 	stacks?: { max: number }
+	/** The basic attacks it empowers, the triggering one included; it ends after the last. */
+	charges?: number
 	/** What ends it early; its `cooldown` then starts from that moment instead of the trigger. */
 	endsOn?: EndsOn
 	/** The mark it puts on the target when it triggers (combat simulator). */

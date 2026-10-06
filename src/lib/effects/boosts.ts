@@ -2,7 +2,7 @@ import { ABILITY_SLOTS, type AbilitySlot } from "@schemas/champion"
 import type { AbilityRanks } from "../stats/rank-stats"
 import type { Amount, BuildEffect, Effect, TableAmount } from "./effect"
 
-/** The table amounts an amount reads: itself, or its ratio, max or step. */
+/** The table amounts an amount reads: itself, or its ratio, max, step or values by attack type. */
 function tableAmounts(amount: Amount): TableAmount[] {
 	if (typeof amount === "number") return [amount]
 	switch (amount.by) {
@@ -14,6 +14,8 @@ function tableAmounts(amount: Amount): TableAmount[] {
 			return [amount.step]
 		case "statDecay":
 			return []
+		case "attackType":
+			return [amount.melee, amount.ranged]
 		default:
 			return [amount]
 	}
