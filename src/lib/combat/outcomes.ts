@@ -24,7 +24,7 @@ function isAttackAbilityDamage({ effect }: BuildEffect): boolean {
 	const onAttack =
 		effect.trigger.kind === "on-hit" ||
 		effect.trigger.kind === "on-attack" ||
-		effect.endsOn === "on-hit"
+		[effect.endsOn].flat().includes("on-hit")
 	return (
 		onAttack &&
 		effect.source.kind === "ability" &&
