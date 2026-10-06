@@ -57,11 +57,14 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 		grants: [
 			{
 				kind: "damageOverTime",
-				damageType: "true",
-				amount: {
-					by: "level",
-					value: "tooltiptruedamagecalculation",
-					scale: 0.2,
+				tick: {
+					by: "amount",
+					damageType: "true",
+					amount: {
+						by: "level",
+						value: "tooltiptruedamagecalculation",
+						scale: 0.2,
+					},
 				},
 				every: 1,
 			},

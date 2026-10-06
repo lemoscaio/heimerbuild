@@ -7,7 +7,7 @@ const WIKI = "https://wiki.leagueoflegends.com/en-us/"
  * Item effects, read only by the combat simulator: the stats panel lists none yet. The ratios match
  * CommunityDragon's 16.19 item data (`SpellbladeMultiplier`, `SpellbladeADRatio`, `LichBaneAPValue`).
  * A spellblade is primed at an ability's cast and spent by the next on-hit, which deals its damage
- * and starts its cooldown (wiki "Spellblade").
+ * and starts its cooldown (wiki "Spellblade"). Liandry's burn checked on the wiki on 2026-10-06.
  */
 export const ITEM_EFFECTS: readonly Effect[] = [
 	{
@@ -61,5 +61,29 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Lich_Bane`,
+	},
+	{
+		// Torment: ability damage burns for 1% of the target's maximum health every 0.5 s for 3 s (wiki).
+		// To verify: the first tick's time (0.5 s after) is not on the wiki page in `sourceUrl`.
+		id: "liandrys-torment-burn",
+		source: { kind: "item", itemId: "6653" },
+		trigger: { kind: "on-ability-damage" },
+		holder: "target",
+		duration: 3,
+		grants: [
+			{
+				kind: "damageOverTime",
+				tick: {
+					by: "targetHealth",
+					damageType: "magic",
+					health: "maximum",
+					ratio: 0.01,
+				},
+				every: 0.5,
+				firstTick: "delayed",
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Liandry%27s_Torment`,
 	},
 ]

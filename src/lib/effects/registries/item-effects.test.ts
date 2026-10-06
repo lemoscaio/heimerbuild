@@ -8,12 +8,15 @@ function grantsOf(id: string) {
 // Wiki and CommunityDragon 16.19: the next attack within 10 s of an ability, 1.5 s cooldown.
 describe("spellblade items", () => {
 	test("follow an ability, last 10 s and come back after 1.5 s", () => {
-		expect(ITEM_EFFECTS.map(({ source }) => source)).toEqual([
+		const spellblades = ITEM_EFFECTS.filter(({ id }) =>
+			id.endsWith("-spellblade"),
+		)
+		expect(spellblades.map(({ source }) => source)).toEqual([
 			{ kind: "item", itemId: "3057" },
 			{ kind: "item", itemId: "3078" },
 			{ kind: "item", itemId: "3100" },
 		])
-		for (const effect of ITEM_EFFECTS) {
+		for (const effect of spellblades) {
 			expect(effect.trigger).toEqual({ kind: "after-ability" })
 			expect(effect.duration).toBe(10)
 			expect(effect.cooldown).toBe(1.5)
@@ -42,6 +45,31 @@ describe("spellblade items", () => {
 				ratios: { baseAttackDamage: 0.75, abilityPower: 0.45 },
 			},
 			{ kind: "stat", stat: "attackSpeedPercent", amount: 0.5 },
+		])
+	})
+})
+
+// Wiki 2026-10-06: Torment burns for 1% of maximum health every 0.5 s over 3 s (6% in all).
+describe("Liandry's Torment", () => {
+	test("ability damage burns the target for 6 ticks of 1% of its maximum health over 3 s", () => {
+		const burn = ITEM_EFFECTS.find(({ id }) => id === "liandrys-torment-burn")
+
+		expect(burn?.source).toEqual({ kind: "item", itemId: "6653" })
+		expect(burn?.trigger).toEqual({ kind: "on-ability-damage" })
+		expect(burn?.holder).toBe("target")
+		expect(burn?.duration).toBe(3)
+		expect(burn?.grants).toEqual([
+			{
+				kind: "damageOverTime",
+				tick: {
+					by: "targetHealth",
+					damageType: "magic",
+					health: "maximum",
+					ratio: 0.01,
+				},
+				every: 0.5,
+				firstTick: "delayed",
+			},
 		])
 	})
 })

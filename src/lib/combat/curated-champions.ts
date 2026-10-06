@@ -18,6 +18,7 @@ export const CURATED_COMBAT_CHAMPIONS: readonly string[] = [
 	"Quinn",
 	"Singed",
 	"Taric",
+	"Teemo",
 	"Veigar",
 	"Zac",
 	"Ziggs",

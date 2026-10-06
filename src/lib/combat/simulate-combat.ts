@@ -9,6 +9,7 @@ import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
 	Amount,
 	BuildEffect,
+	DamageOverTimeGrant,
 	DamageRatios,
 	EndsOn,
 	Grant,
@@ -48,10 +49,23 @@ import type {
 	OutcomeKey,
 	SituationStatus,
 	StepOutcome,
+	TickOwner,
 } from "./combat"
-import { abilityCooldown, evaluateDamage } from "./damage-formula"
+import { abilityCooldown, evaluateDamage, targetHealth } from "./damage-formula"
+import {
+	coversTick,
+	type DamageOverTimeApplication,
+	damageOverTimeSummaries,
+	tickOwner,
+	tickTime,
+} from "./damage-over-time"
 import { mitigate } from "./mitigation"
-import { outcomeChoices, outcomeId, outcomeKeys } from "./outcomes"
+import {
+	dealsDamageOverTime,
+	outcomeChoices,
+	outcomeId,
+	outcomeKeys,
+} from "./outcomes"
 import {
 	ABILITY_HIT_RULES,
 	type AbilityHitRule,
@@ -92,6 +106,10 @@ type Instance = {
 	stacks: number
 	/** Ticks of a damage over time dealt so far. */
 	ticks: number
+	/** A damage over time's applications, which own its ticks (`tickOwner`). */
+	applications: DamageOverTimeApplication[]
+	/** The attacker's stats its ticks read, taken at each application (Toxic Shot doesn't follow later AP). */
+	stats?: ComputedStats
 	/** The attacks it empowered of its `charges` (Hail of Blades). */
 	charges?: { used: number; max: number }
 	/** Running from a situation marker. */
@@ -138,7 +156,17 @@ type Simulation = {
 	empowered: Map<string, Empowered>
 	/** Effects whose cooldown is still the one assumed at the start, not a use in the combo. */
 	assumedCooldowns: Set<string>
+	/** Every application of a damage over time, in order. */
+	applications: DamageOverTimeApplication[]
+	/** The step whose tick is landing now, which owns what the tick triggers (Liandry's burn). */
+	owner?: number
+	/** Ability damage is triggering its effects now, so their own damage doesn't loop. */
+	onAbilityDamage: boolean
+	/** Effects with a `delay` waiting to take effect, and the step that triggered each. */
+	delayed: Delayed[]
 }
+
+type Delayed = { at: number; effect: BuildEffect; owner: number }
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
 type PendingMarks = PendingMark[]
@@ -179,6 +207,7 @@ function newInstance(
 		endsAt: sim.time + duration,
 		stacks: 1,
 		ticks: 0,
+		applications: [],
 		...(charges && { charges: { used: 0, max: charges } }),
 	}
 }
@@ -286,6 +315,7 @@ function createSimulation(
 			endsAt: Number.POSITIVE_INFINITY,
 			stacks: 1,
 			ticks: 0,
+			applications: [],
 		})),
 		marks: [],
 		markClearedAt: new Map(),
@@ -296,6 +326,9 @@ function createSimulation(
 		actionStart: 0,
 		empowered: new Map(),
 		assumedCooldowns: new Set(),
+		applications: [],
+		onAbilityDamage: false,
+		delayed: [],
 	}
 	startCooldowns(sim)
 	return sim
@@ -324,14 +357,15 @@ function statsNow(sim: Simulation): ComputedStats {
 	})
 }
 
-function deal(
-	sim: Simulation,
-	{
-		source,
-		type,
-		raw,
-	}: { source: DamageSource; type: DamageType; raw: number },
-) {
+type Damage = {
+	source: DamageSource
+	type: DamageType
+	raw: number
+	/** A damage over time's tick, and the step it belongs to. */
+	tick?: TickOwner
+}
+
+function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	const final = mitigate(raw, type, {
 		target: sim.input.target,
 		attacker: statsNow(sim),
@@ -345,20 +379,61 @@ function deal(
 		time: sim.time,
 		source,
 		damage: { type, raw, final },
+		...(tick && { tick }),
 	})
+	triggerOnAbilityDamage(sim, source)
 }
 
 function notModeledHit(
 	sim: Simulation,
 	source: DamageSource,
 	reasons: readonly string[],
+	tick?: TickOwner,
 ) {
-	sim.log.push({ kind: "hit", time: sim.time, source, notModeled: reasons })
+	sim.log.push({
+		kind: "hit",
+		time: sim.time,
+		source,
+		notModeled: reasons,
+		...(tick && { tick }),
+	})
+	triggerOnAbilityDamage(sim, source)
+}
+
+/** An ability's damage: its cast's, or an effect's whose source is an ability (Toxic Shot's poison). */
+function isAbilityDamage(sim: Simulation, source: DamageSource) {
+	if (source.kind === "ability") return true
+	if (source.kind !== "effect") return false
+	const effect = sim.input.effects.find(({ id }) => id === source.effectId)
+	return effect?.effect.source.kind === "ability"
+}
+
+/** Ability damage landing triggers the `on-ability-damage` effects (Liandry's burn). */
+function triggerOnAbilityDamage(sim: Simulation, source: DamageSource) {
+	if (sim.onAbilityDamage || !isAbilityDamage(sim, source)) return
+	sim.onAbilityDamage = true
+	const pending: PendingMarks = []
+	triggerWhere(sim, ({ kind }) => kind === "on-ability-damage", pending)
+	applyMarks(sim, pending)
+	sim.onAbilityDamage = false
 }
 
 type AbilityDamageOptions = {
 	/** The target's health its share reads; the current one by default. */
 	targetHealth?: number
+}
+
+/** An ability's synced damage formula by name, as the form shows the ability. */
+function abilityFormula(
+	sim: Simulation,
+	ability: AbilitySlot | "passive",
+	name: string,
+) {
+	const damage =
+		ability === "passive"
+			? sim.input.build.champion.abilities.passive.damage
+			: sim.spells.find(({ slot }) => slot === ability)?.damage
+	return damage?.find((entry) => entry.name === name)
 }
 
 /** A synced ability damage by name (`abilityDamage` grant or a cast's hit), at the ability's rank. */
@@ -369,12 +444,8 @@ function dealAbilityDamage(
 	source: DamageSource,
 	{ targetHealth = sim.health }: AbilityDamageOptions = {},
 ) {
-	const { champion, ranks, level } = sim.input.build
-	const damage =
-		ability === "passive"
-			? champion.abilities.passive.damage
-			: sim.spells.find(({ slot }) => slot === ability)?.damage
-	const formula = damage?.find((entry) => entry.name === name)
+	const { ranks, level } = sim.input.build
+	const formula = abilityFormula(sim, ability, name)
 	if (!formula) {
 		notModeledHit(sim, source, [`no synced damage named ${name}`])
 		return
@@ -418,33 +489,126 @@ function startCooldown(sim: Simulation, effect: BuildEffect) {
 	}
 }
 
-/** One damage over time tick: the grant's amount, now. */
-function tick(sim: Simulation, instance: Instance) {
-	for (const grant of instance.effect.effect.grants) {
-		if (grant.kind !== "damageOverTime") continue
-		const raw = resolveAmount(grant.amount, instance.effect, sim.context)
-		const source = { kind: "effect", effectId: instance.effect.id } as const
-		if (raw === undefined) notModeledHit(sim, source, ["a value it lacks"])
-		else deal(sim, { source, type: grant.damageType, raw })
+function damageOverTimeGrants({ effect }: BuildEffect): DamageOverTimeGrant[] {
+	return effect.grants.flatMap((grant) =>
+		grant.kind === "damageOverTime" ? [grant] : [],
+	)
+}
+
+/** One tick's raw damage for one stack, the target's health read now; undefined when a value is missing. */
+function tickDamage(
+	sim: Simulation,
+	instance: Instance,
+	{ tick: damage }: DamageOverTimeGrant,
+): { type: DamageType; raw: number } | undefined {
+	const target = { maximum: sim.input.target.health, current: sim.health }
+	switch (damage.by) {
+		case "amount": {
+			const raw = resolveAmount(damage.amount, instance.effect, sim.context)
+			return raw === undefined ? undefined : { type: damage.damageType, raw }
+		}
+		case "targetHealth":
+			return {
+				type: damage.damageType,
+				raw: damage.ratio * targetHealth(damage.health, target),
+			}
+		case "abilityDamage": {
+			const formula = abilityFormula(sim, damage.ability, damage.name)
+			if (!formula) return undefined
+			const { ranks, level } = sim.input.build
+			const { ability } = damage
+			const raw = evaluateDamage(formula, {
+				stats: instance.stats ?? statsNow(sim),
+				level,
+				...(ability !== "passive" && { rank: ranks?.[ability] }),
+				target,
+			})
+			return raw === undefined
+				? undefined
+				: { type: formula.type, raw: raw * damage.scale }
+		}
 	}
+}
+
+/** Up to `missingHealthBonus` more as the target's missing health grows (Tormented Shadow). */
+function missingHealthFactor(sim: Simulation, grant: DamageOverTimeGrant) {
+	const missing = 1 - sim.health / sim.input.target.health
+	return 1 + (grant.missingHealthBonus ?? 0) * missing
+}
+
+/** One tick of each damage over time grant, one tick's damage per stack, owned by the application covering it. */
+function tick(sim: Simulation, instance: Instance) {
+	const grants = damageOverTimeGrants(instance.effect)
+	const [timing] = grants
+	if (!timing) return
+	const owner =
+		tickOwner(instance.applications, sim.time, timing)?.owner ?? sim.step
+	const previous = sim.owner
+	sim.owner = owner
+	const source = { kind: "effect", effectId: instance.effect.id } as const
+	for (const grant of grants) {
+		const damage = tickDamage(sim, instance, grant)
+		if (!damage) {
+			notModeledHit(sim, source, ["a value it lacks"], { owner })
+			continue
+		}
+		const raw = damage.raw * instance.stacks * missingHealthFactor(sim, grant)
+		deal(sim, { source, type: damage.type, raw, tick: { owner } })
+	}
+	sim.owner = previous
 	instance.ticks++
 }
 
-function tickEvery({ effect }: Instance): number | undefined {
-	return effect.effect.grants.find((grant) => grant.kind === "damageOverTime")
-		?.every
+function nextTickAt(instance: Instance): number | undefined {
+	const [timing] = damageOverTimeGrants(instance.effect)
+	if (!timing) return undefined
+	const at = tickTime(instance.startedAt, instance.ticks, timing)
+	return coversTick(at, instance.endsAt, timing) ? at : undefined
 }
 
-function nextTickAt(instance: Instance): number | undefined {
-	const every = tickEvery(instance)
-	if (every === undefined) return undefined
-	const at = instance.startedAt + instance.ticks * every
-	return at < instance.endsAt ? at : undefined
+/** Free mode's choice for a damage over time the step `owner` applies; undefined follows the rules. */
+function damageOverTimeChoice(
+	sim: Simulation,
+	owner: number,
+	effectId: string,
+): boolean | undefined {
+	const id = outcomeId({ kind: "damage-over-time", effectId })
+	return sim.input.free?.outcomes?.[owner]?.[id]
+}
+
+/** Records an application, which owns the ticks no earlier one covers; one per step and moment. */
+function recordApplication(
+	sim: Simulation,
+	instance: Instance,
+	{ owner, kind }: Pick<DamageOverTimeApplication, "owner" | "kind">,
+	{ landing = false }: Pick<TriggerOptions, "landing"> = {},
+) {
+	instance.stats = statsNow(sim)
+	const last = instance.applications.at(-1)
+	if (last?.owner === owner && last.at === sim.time) {
+		last.endsAt = instance.endsAt
+		last.stacks = instance.stacks
+		return
+	}
+	const application: DamageOverTimeApplication = {
+		effectId: instance.effect.id,
+		owner,
+		at: sim.time,
+		endsAt: instance.endsAt,
+		kind,
+		stacks: instance.stacks,
+	}
+	const delay = instance.effect.effect.delay
+	if (landing && delay) application.delayed = delay.label
+	instance.applications.push(application)
+	sim.applications.push(application)
 }
 
 type TriggerOptions = {
 	/** Free mode's choice makes it happen whatever its cooldown. */
 	ignoreCooldown?: boolean
+	/** Its `delay` is over: it takes effect now. */
+	landing?: boolean
 }
 
 /**
@@ -456,12 +620,17 @@ function trigger(
 	sim: Simulation,
 	effect: BuildEffect,
 	pending: PendingMarks,
-	{ ignoreCooldown = false }: TriggerOptions = {},
+	{ ignoreCooldown = false, landing = false }: TriggerOptions = {},
 ) {
 	if (!isInForm(effect, sim.formId)) return
 	const readyAt = sim.effectsReadyAt.get(effect.id) ?? 0
 	if (readyAt > sim.time && !ignoreCooldown) return
-	const { applies, endsOn, stacks, cooldownFrom } = effect.effect
+	const { applies, endsOn, stacks, cooldownFrom, delay } = effect.effect
+	if (delay && !landing) {
+		const owner = sim.owner ?? sim.step
+		sim.delayed.push({ at: sim.time + delay.seconds, effect, owner })
+		return
+	}
 	if (applies) pending.push({ ...applies, by: effect })
 	if (!isEndedBy(effect, "on-hit")) {
 		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
@@ -470,17 +639,38 @@ function trigger(
 
 	const duration = effectDuration(effect, sim.context)
 	if (!duration) return
+	const dot = dealsDamageOverTime(effect)
+	const owner = sim.owner ?? sim.step
+	if (dot && damageOverTimeChoice(sim, owner, effect.id) === false) return
 	const running = sim.active.find(
 		(instance) => instance.effect.id === effect.id,
 	)
 	if (running) {
+		const before = running.stacks
 		running.endsAt = sim.time + duration
 		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
+		if (dot) {
+			const kind = running.stacks > before ? "stacked" : "refreshed"
+			recordApplication(sim, running, { owner, kind }, { landing })
+		}
 		return
 	}
 	const instance = newInstance(sim, effect, duration)
 	sim.active.push(instance)
-	if (tickEvery(instance) !== undefined) tick(sim, instance)
+	if (!dot) return
+	recordApplication(sim, instance, { owner, kind: "applied" }, { landing })
+	if (nextTickAt(instance) === sim.time) tick(sim, instance)
+}
+
+/** A delayed effect takes effect, for the step that triggered it (Noxious Trap detonating). */
+function land(sim: Simulation, delayed: Delayed) {
+	sim.delayed = sim.delayed.filter((entry) => entry !== delayed)
+	const pending: PendingMarks = []
+	const previous = sim.owner
+	sim.owner = delayed.owner
+	trigger(sim, delayed.effect, pending, { ignoreCooldown: true, landing: true })
+	sim.owner = previous
+	applyMarks(sim, pending)
 }
 
 function triggerWhere(
@@ -788,7 +978,7 @@ type AdvanceOptions = {
 	periodic?: boolean
 }
 
-/** What happens next on its own before `until`: a tick, an effect or a mark running out, a periodic effect. */
+/** What happens next on its own before `until`: a delayed effect, a tick, an effect or a mark running out, a periodic effect. */
 function nextTimedEvent(
 	sim: Simulation,
 	until: number,
@@ -799,6 +989,9 @@ function nextTimedEvent(
 		if (at !== undefined && at <= until && (!next || at < next.at)) {
 			next = { at, run }
 		}
+	}
+	for (const delayed of sim.delayed) {
+		consider(delayed.at, () => land(sim, delayed))
 	}
 	for (const instance of sim.active) {
 		consider(nextTickAt(instance), () => tick(sim, instance))
@@ -935,6 +1128,8 @@ function abilityRefusal(
 ): string | undefined {
 	if (rank < 1) return `${spell.name} has no point yet`
 	if (spell.unavailable) return spell.unavailable.reason
+	const noCast = hitRule(sim, spell.slot)?.noCast
+	if (noCast) return noCast
 	const readyAt = sim.cooldowns.get(spell.slot) ?? 0
 	if (readyAt > sim.time && !sim.free) {
 		return `${spell.name} is on cooldown until ${round(readyAt)} s`
@@ -1059,12 +1254,73 @@ function stepOutcomes(
 						(event) => event.kind === key.kind && event.mark === key.mark,
 					),
 				}
+			// Its ticks may still apply it after the action (`settleDamageOverTime`).
+			case "damage-over-time":
+				return { happened: false }
 		}
 	}
 	return outcomeKeys(action, sim.input.effects, sim.formId).map((key) => ({
 		...key,
 		...happened(key),
 	}))
+}
+
+/**
+ * Free mode's "yes" for a damage over time the action's rules didn't apply: it applies now. Not
+ * when one the step applied will trigger it with its ticks (Liandry's from Tormented Shadow).
+ */
+function forceChosenDamageOverTime(
+	sim: Simulation,
+	item: CombatAction,
+	index: number,
+) {
+	const chosen = sim.input.free?.outcomes?.[index]
+	if (!chosen) return
+	// A delayed one the step triggered counts as applied: it takes effect later.
+	const own = [
+		...sim.applications,
+		...sim.delayed.map(({ effect, owner }) => ({ effectId: effect.id, owner })),
+	].filter(({ owner }) => owner === index)
+	const ticksAbilityDamage = own.some(({ effectId }) =>
+		isAbilityDamage(sim, { kind: "effect", effectId }),
+	)
+	for (const key of outcomeKeys(item, sim.input.effects, sim.formId)) {
+		if (key.kind !== "damage-over-time" || !chosen[outcomeId(key)]) continue
+		if (own.some(({ effectId }) => effectId === key.effectId)) continue
+		const effect = sim.input.effects.find(({ id }) => id === key.effectId)
+		if (!effect) continue
+		const byTicks = effect.effect.trigger.kind === "on-ability-damage"
+		if (byTicks && ticksAbilityDamage) continue
+		const pending: PendingMarks = []
+		sim.owner = index
+		trigger(sim, effect, pending, { ignoreCooldown: true })
+		sim.owner = undefined
+		applyMarks(sim, pending)
+	}
+}
+
+/** Once every tick landed: each step's damage over time, and whether its outcomes happened. */
+function settleDamageOverTime(sim: Simulation, steps: CombatStep[]) {
+	const summaries = damageOverTimeSummaries(
+		sim.applications,
+		sim.log,
+		steps.length,
+	)
+	for (const [index, step] of steps.entries()) {
+		step.damageOverTime = summaries[index] ?? []
+		step.outcomes = step.outcomes.map((outcome) =>
+			outcome.kind === "damage-over-time"
+				? {
+						...outcome,
+						happened:
+							!step.refused &&
+							step.damageOverTime.some(
+								({ effectId }) => effectId === outcome.effectId,
+							),
+					}
+				: outcome,
+		)
+	}
 }
 
 function snapshot(sim: Simulation): Pick<CombatStep, "active" | "marks"> {
@@ -1132,6 +1388,7 @@ export function simulateCombat(
 				situation: applySituation(sim, item.effectId),
 				outcomes: [],
 				events: [],
+				damageOverTime: [],
 				...snapshot(sim),
 				targetHealth: sim.health,
 			})
@@ -1146,12 +1403,14 @@ export function simulateCombat(
 			item.kind === "attack" ? sim.nextAttackAt : sim.time,
 		)
 		const refused = run(sim, item)
+		if (!refused) forceChosenDamageOverTime(sim, item, index)
 		steps.push({
 			action: item,
 			time: startedAt,
 			...(refused && { refused }),
 			outcomes: stepOutcomes(sim, item, refused),
 			events: [],
+			damageOverTime: [],
 			...snapshot(sim),
 			targetHealth: sim.health,
 		})
@@ -1161,6 +1420,7 @@ export function simulateCombat(
 	// After the last action, only what runs plays out: a periodic effect would come back forever.
 	advance(sim, Number.POSITIVE_INFINITY, { periodic: false })
 	closeStep()
+	settleDamageOverTime(sim, steps)
 	const duration = sim.log.findLast(({ kind }) => kind === "hit")?.time ?? 0
 	return {
 		steps,
