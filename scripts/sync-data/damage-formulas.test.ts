@@ -228,9 +228,10 @@ describe("abilityDamage", () => {
 	test("marks what it can't read as not modeled, with why, and keeps no number for it", () => {
 		const damages = abilityDamage(
 			[
-				`<magicDamage>@PercentDamage@</magicDamage>`,
-				`<magicDamage>@Summed@</magicDamage>`,
-				`<magicDamage>@MovementScaled@</magicDamage>`,
+				`<magicDamage>@PercentDamage@ increased damage</magicDamage>`,
+				`<magicDamage>@Stacked@</magicDamage>`,
+				`<magicDamage>@SpeedScaled@</magicDamage>`,
+				`<magicDamage>@StatTimesStat@</magicDamage>`,
 				`<magicDamage>@Missing@</magicDamage>`,
 			].join(" "),
 			{
@@ -242,20 +243,33 @@ describe("abilityDamage", () => {
 						mDisplayAsPercent: true,
 						mFormulaParts: [],
 					},
-					Summed: {
+					Stacked: {
 						__type: "GameCalculation",
 						mFormulaParts: [
 							{ __type: "NumberCalculationPart", mNumber: 50 },
-							{ __type: "SumOfSubPartsCalculationPart", mSubparts: [] },
+							{ __type: "BuffCounterByCoefficientCalculationPart" },
 						],
 					},
-					MovementScaled: {
+					SpeedScaled: {
 						__type: "GameCalculation",
 						mFormulaParts: [
 							{
 								__type: "StatByCoefficientCalculationPart",
-								mStat: 7,
+								mStat: 4,
 								mCoefficient: 0.5,
+							},
+						],
+					},
+					StatTimesStat: {
+						__type: "GameCalculation",
+						mFormulaParts: [
+							{
+								__type: "ProductOfSubPartsCalculationPart",
+								mPart1: { __type: "StatByCoefficientCalculationPart" },
+								mPart2: {
+									__type: "StatByCoefficientCalculationPart",
+									mStat: 2,
+								},
 							},
 						],
 					},
@@ -266,11 +280,225 @@ describe("abilityDamage", () => {
 		expect(damages.map(({ name, notModeled }) => [name, notModeled])).toEqual([
 			[
 				"PercentDamage",
-				["a percentage, such as a share of the target's health"],
+				["a percentage of something other than the target's health"],
 			],
-			["Summed", ["summed sub-parts"]],
-			["MovementScaled", ["a stat the formulas don't read (game stat 7)"]],
+			["Stacked", ["a buff counter"]],
+			["SpeedScaled", ["a stat the formulas don't read (game stat 4)"]],
+			["StatTimesStat", ["a stat multiplied by a stat"]],
 			["Missing", ["a value the data lacks (Missing)"]],
+		])
+	})
+
+	test("reads a share of the target's maximum health shown by the game as a percent, with the AP that scales it (Shen's Q: 2% + 1.5% per 100 AP)", () => {
+		const [damage] = abilityDamage(
+			"<magicDamage>@BasePercentHealth@ max Health magic damage</magicDamage>",
+			{
+				maxRank: 5,
+				values: values({ BasePercentDamage: [1.5, 2, 2.5, 3, 3.5, 4, 4.5] }),
+				calculations: {
+					BasePercentHealth: {
+						__type: "GameCalculation",
+						mDisplayAsPercent: true,
+						mFormulaParts: [
+							{
+								__type: "NamedDataValueCalculationPart",
+								mDataValue: "BasePercentDamage",
+							},
+							{
+								__type: "StatByCoefficientCalculationPart",
+								mCoefficient: 0.015,
+							},
+						],
+						mMultiplier: { __type: "NumberCalculationPart", mNumber: 0.01 },
+					},
+				},
+			},
+		)
+
+		expect(damage).toEqual({
+			name: "BasePercentHealth",
+			type: "magic",
+			parts: [
+				{ value: { byRank: [2, 2.5, 3, 3.5, 4] } },
+				{ stat: "abilityPower", ratio: 0.015 },
+			],
+			multiplier: 0.01,
+			ofTargetHealth: "maximum",
+		})
+	})
+
+	test("reads a percentage the tooltip scales (`*100`) or shows in hundredths (`@X@%`) as a fraction of the target's health", () => {
+		const context: FormulaContext = {
+			maxRank: 3,
+			values: values({
+				ExecutePercent: [0, 0.25, 0.3, 0.35],
+				CurrentPercent: [0, 4, 6, 8],
+			}),
+			calculations: {},
+		}
+		const [missing, current] = abilityDamage(
+			[
+				"<trueDamage>@ExecutePercent*100@% missing Health true damage</trueDamage>",
+				"<magicDamage>@CurrentPercent@% current Health magic damage</magicDamage>",
+			].join(" "),
+			context,
+		)
+
+		expect(missing).toEqual({
+			name: "ExecutePercent",
+			type: "true",
+			parts: [{ value: { byRank: [0.25, 0.3, 0.35] } }],
+			ofTargetHealth: "missing",
+		})
+		expect(current).toEqual({
+			name: "CurrentPercent",
+			type: "magic",
+			parts: [{ value: { byRank: [4, 6, 8] } }],
+			multiplier: 0.01,
+			ofTargetHealth: "current",
+		})
+	})
+
+	test("adds summed sub-parts and scales multiplied ones (Twitch's E: 6 stacks of 10 + 35% bonus AD)", () => {
+		const [damage] = abilityDamage(physical("MaxDamage"), {
+			maxRank: 2,
+			values: values({
+				PerStack: [0, 10, 15],
+				RatioPerStack: [0.35, 0.35, 0.35],
+				MaxStacks: [6, 6, 6],
+			}),
+			calculations: {
+				MaxDamage: {
+					__type: "GameCalculation",
+					mFormulaParts: [
+						{
+							__type: "SumOfSubPartsCalculationPart",
+							mSubparts: [
+								{ __type: "NumberCalculationPart", mNumber: 20 },
+								{
+									__type: "ProductOfSubPartsCalculationPart",
+									mPart1: {
+										__type: "NamedDataValueCalculationPart",
+										mDataValue: "MaxStacks",
+									},
+									mPart2: {
+										__type: "SumOfSubPartsCalculationPart",
+										mSubparts: [
+											{
+												__type: "NamedDataValueCalculationPart",
+												mDataValue: "PerStack",
+											},
+											{
+												__type: "StatByNamedDataValueCalculationPart",
+												mStat: 2,
+												mStatFormula: 2,
+												mDataValue: "RatioPerStack",
+											},
+										],
+									},
+								},
+							],
+						},
+					],
+				},
+			},
+		})
+
+		expect(damage?.parts).toEqual([
+			{ value: 20 },
+			{ value: { byRank: [60, 90] } },
+			{ stat: "attackDamage", part: "bonus", ratio: 2.1 },
+		])
+		expect(damage?.notModeled).toBeUndefined()
+	})
+
+	test("scales a stat-dependent multiplier by a calculation that is a number (Lucian's R: shots × damage per shot)", () => {
+		const [damage] = abilityDamage(physical("TotalDamage"), {
+			maxRank: 3,
+			values: values({
+				NumShots: [22, 22, 22, 22],
+				BaseDamage: [0, 15, 30, 45],
+			}),
+			calculations: {
+				Shots: {
+					__type: "GameCalculation",
+					mFormulaParts: [
+						{
+							__type: "NamedDataValueCalculationPart",
+							mDataValue: "NumShots",
+						},
+					],
+				},
+				TotalDamage: {
+					__type: "GameCalculationModified",
+					mModifiedGameCalculation: "Shots",
+					mMultiplier: {
+						__type: "SumOfSubPartsCalculationPart",
+						mSubparts: [
+							{
+								__type: "NamedDataValueCalculationPart",
+								mDataValue: "BaseDamage",
+							},
+							{
+								__type: "StatByCoefficientCalculationPart",
+								mStat: 2,
+								mCoefficient: 0.25,
+							},
+						],
+					},
+				},
+			},
+		})
+
+		expect(damage?.parts).toEqual([
+			{ value: { byRank: [330, 660, 990] } },
+			{ stat: "attackDamage", ratio: 5.5 },
+		])
+	})
+
+	test("reads a per-level table at levels 1 to 18 (Sett's Right Punch: 5 to 90)", () => {
+		const [damage] = abilityDamage(physical("RightPunchBonus"), {
+			values: values({}),
+			calculations: {
+				RightPunchBonus: {
+					__type: "GameCalculation",
+					mFormulaParts: [
+						{
+							__type: "ByCharLevelFormulaCalculationPart",
+							values: Array.from({ length: 31 }, (_, level) => level * 5),
+						},
+					],
+				},
+			},
+		})
+		const [part] = damage?.parts ?? []
+		const value = part && "value" in part ? part.value : undefined
+
+		expect([1, 2, 18].map((level) => byLevelAt(value, level))).toEqual([
+			5, 10, 90,
+		])
+	})
+
+	test("reads bonus movement speed, critical strike chance and lethality ratios", () => {
+		const [damage] = abilityDamage(physical("Damage"), {
+			values: values({}),
+			calculations: {
+				Damage: {
+					__type: "GameCalculation",
+					mFormulaParts: [7, 8, 29].map((mStat) => ({
+						__type: "StatByCoefficientCalculationPart",
+						mStat,
+						...(mStat === 7 && { mStatFormula: 2 }),
+						mCoefficient: 0.3,
+					})),
+				},
+			},
+		})
+
+		expect(damage?.parts).toEqual([
+			{ stat: "movementSpeed", part: "bonus", ratio: 0.3 },
+			{ stat: "critChance", ratio: 0.3 },
+			{ stat: "lethality", ratio: 0.3 },
 		])
 	})
 
@@ -300,14 +528,36 @@ describe("tooltipDamages", () => {
 		])
 	})
 
-	test("leaves out damage to minions and monsters, and flags percentages", () => {
+	test("leaves out damage to minions and monsters, and reads a percentage's scale and the health it names", () => {
 		const markup = [
 			"<magicDamage>@DamageMinionMonster@</magicDamage>",
 			"<magicDamage>@PercentHealth*100@% max Health</magicDamage>",
+			"<trueDamage>@Execute@% missing-Health true damage</trueDamage>",
+			"<magicDamage>@Current@ of their current Health</magicDamage>",
+			"<magicDamage>@Amp*100@% increased damage</magicDamage>",
 		].join(" ")
 
 		expect(tooltipDamages(markup)).toEqual([
-			{ name: "PercentHealth", type: "magic", percent: true },
+			{
+				name: "PercentHealth",
+				type: "magic",
+				scale: 100,
+				percent: true,
+				ofTargetHealth: "maximum",
+			},
+			{
+				name: "Execute",
+				type: "true",
+				percent: true,
+				ofTargetHealth: "missing",
+			},
+			{
+				name: "Current",
+				type: "magic",
+				percent: false,
+				ofTargetHealth: "current",
+			},
+			{ name: "Amp", type: "magic", scale: 100, percent: true },
 		])
 	})
 })
@@ -379,6 +629,33 @@ describe("synced damage formulas", () => {
 		expect(spells[2]?.damage?.[0]?.parts).toEqual([
 			{ value: { byRank: [40, 65, 90, 115, 140] } },
 			{ stat: "attackDamage", part: "bonus", ratio: 0.2 },
+		])
+	})
+
+	test("Vayne: Silver Bolts 4% to 10% of the target's maximum health; Camille: Tactical Sweep's outer cone 7% to 9% (+2.5% per 100 bonus AD)", async () => {
+		const vayneW = (await currentChampion("Vayne")).abilities.spells[1]
+		const camilleW = (await currentChampion("Camille")).abilities.spells[1]
+
+		expect(vayneW?.damage?.[0]).toMatchObject({
+			type: "true",
+			parts: [{ value: { byRank: [0.04, 0.055, 0.07, 0.085, 0.1] } }],
+			ofTargetHealth: "maximum",
+		})
+		expect(camilleW?.damage?.[1]).toMatchObject({
+			parts: [
+				{ value: { byRank: [0.07, 0.075, 0.08, 0.085, 0.09] } },
+				{ stat: "attackDamage", part: "bonus", ratio: 0.00025 },
+			],
+			ofTargetHealth: "maximum",
+		})
+	})
+
+	test("Darius: Decimate's blade 50 to 170 (+100% to 140% AD)", async () => {
+		const decimate = (await currentChampion("Darius")).abilities.spells[0]
+
+		expect(decimate?.damage?.[0]?.parts).toEqual([
+			{ value: { byRank: [50, 80, 110, 140, 170] } },
+			{ stat: "attackDamage", ratio: { byRank: [1, 1.1, 1.2, 1.3, 1.4] } },
 		])
 	})
 
