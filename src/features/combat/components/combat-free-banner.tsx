@@ -24,8 +24,8 @@ export function CombatFreeBanner({
 			{...props}
 		>
 			<p className="min-w-0 flex-1">
-				Free mode: markers only apply their situation, and cooldowns and time
-				don't block. Each outcome starts from the computed one.
+				Free mode: no cooldown holds back a step, and markers apply even while
+				their effect is on cooldown. Each outcome starts from the computed one.
 			</p>
 			<p className="font-semibold text-gold" aria-live="polite">
 				{changes === 1 ? "1 change" : `${changes} changes`}

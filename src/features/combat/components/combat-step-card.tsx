@@ -21,7 +21,7 @@ type CombatStepCardProps = {
 	number: number
 	label: string
 	icon: React.ReactNode
-	/** When it ran; absent while the build loads, and in free mode. */
+	/** When it ran, shown first; absent while the build loads. */
 	time?: number
 	/** Why it did not run; the totals leave it out. */
 	refused?: string
@@ -99,12 +99,12 @@ export function CombatStepCard({
 			<span className={cn("pt-0.5", { "opacity-50": !!refused })}>{icon}</span>
 			<div className="flex min-w-0 flex-col gap-1">
 				<p className="flex flex-wrap items-baseline gap-x-2 text-white text-xs">
-					<span className="font-semibold">{title}</span>
 					{time !== undefined && (
-						<span className="text-subtle tabular-nums">
+						<span className="font-bold font-display text-sm tabular-nums">
 							{formatSeconds(time)}
 						</span>
 					)}
+					<span className="font-semibold">{title}</span>
 					{view?.marks.map(({ mark, change, fromMarker }) => (
 						<span key={`${mark}-${change}`} className="text-gold">
 							{mark} mark {change}

@@ -17,7 +17,7 @@ import { CombatOutcomeChoices } from "./combat-outcome-choices"
 import { CombatStepCard } from "./combat-step-card"
 import { CombatVariantInput } from "./combat-variant-input"
 
-/** Strict: outcomes are read-only and steps show their time; free: outcomes are answered per step. */
+/** Strict: outcomes are read-only; free: outcomes are answered per step. */
 export type CombatListMode =
 	| { kind: "strict" }
 	| {
@@ -188,7 +188,7 @@ export function CombatStepList({
 									icon={stepIcon(action, { spells, summoners })}
 								/>
 							}
-							time={mode.kind === "strict" ? item.time : undefined}
+							time={item.time}
 							refused={item.refused}
 							view={item.view}
 							moves={

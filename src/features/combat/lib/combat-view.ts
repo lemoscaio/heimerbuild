@@ -166,11 +166,15 @@ export function stepView(
 		// An effect its outcome already reports (Hail of Blades 2/3) gets no chip of its own.
 		effects: [
 			...new Set(
-				step.active.flatMap(({ effectId, holder }) => {
+				step.active.flatMap(({ effectId, holder, endsAt }) => {
 					if (empowering.has(effectId)) return []
-					return holder === "target"
-						? [`${names.effect(effectId)} on the target`]
-						: [names.effect(effectId)]
+					const name =
+						holder === "target"
+							? `${names.effect(effectId)} on the target`
+							: names.effect(effectId)
+					return Number.isFinite(endsAt)
+						? [`${name} · until ${formatSeconds(endsAt)}`]
+						: [name]
 				}),
 			),
 		],
@@ -189,6 +193,8 @@ export type CombatTotals = {
 	kill?: { time: number; step: number }
 	healthLeft: number
 	forcedMarkers: number
+	/** When the last effect or mark still running after the last damage ran out. */
+	activeUntil: number
 }
 
 /** Each item's number among the actions, 1-based; markers have none. */
@@ -216,6 +222,7 @@ export function combatTotals(
 		duration: result.duration,
 		...(kill && { kill }),
 		healthLeft: Math.max(0, target.health - final),
+		activeUntil: result.activeUntil,
 		forcedMarkers: result.steps.filter(
 			({ situation }) => situation?.status === "forced",
 		).length,
@@ -323,7 +330,7 @@ export function attacksOnlyNote(
 export type MarkerView = {
 	label: string
 	detail: string
-	tone: "applied" | "forced" | "no-effect"
+	tone: "applied" | "forced" | "ignored" | "no-effect"
 }
 
 const NO_EFFECT_DETAILS = {
@@ -355,7 +362,13 @@ export function markerView(
 			tone: "no-effect",
 		}
 	}
-	if (free) return { label, detail: `applies: ${where}`, tone: "applied" }
+	if (situation?.status === "ignored") {
+		return {
+			label,
+			detail: `on cooldown until ${formatSeconds(situation.readyAt)} · ignored (use Free mode to force it)`,
+			tone: "ignored",
+		}
+	}
 	if (situation?.status === "forced") {
 		return {
 			label,
@@ -363,6 +376,7 @@ export function markerView(
 			tone: "forced",
 		}
 	}
+	if (free) return { label, detail: `applies: ${where}`, tone: "applied" }
 	const readyAt = situation?.readyAt
 	return {
 		label,

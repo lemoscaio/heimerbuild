@@ -4,6 +4,7 @@ import { CircleAlert } from "lucide-react"
 import { useId } from "react"
 import { Button } from "@/components/ui/button"
 import { CombatActionKeys } from "@/features/combat/components/combat-action-keys"
+import { CombatClosingLine } from "@/features/combat/components/combat-closing-line"
 import { CombatFreeBanner } from "@/features/combat/components/combat-free-banner"
 import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-mode-switch"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
@@ -13,7 +14,6 @@ import {
 	CombatStepList,
 } from "@/features/combat/components/combat-step-list"
 import { CombatTiming } from "@/features/combat/components/combat-timing"
-import { CombatTotal } from "@/features/combat/components/combat-total"
 import { CombatTotals } from "@/features/combat/components/combat-totals"
 import { CombatUndoNotice } from "@/features/combat/components/combat-undo-notice"
 import { useCombatView } from "@/features/combat/hooks/use-combat-view"
@@ -112,16 +112,13 @@ export function ComboTab({
 			)}
 			{view.totals && (
 				<CombatTotals totals={view.totals}>
-					{combat.free ? (
-						<CombatTotal term="Time">
-							<span className="font-normal font-sans text-subtle text-xs">
-								Hidden in free mode
-							</span>
-						</CombatTotal>
-					) : (
-						<CombatTiming totals={view.totals} />
-					)}
+					<CombatTiming totals={view.totals} />
 				</CombatTotals>
+			)}
+			{combat.free && (
+				<p className="-mt-2 text-subtle text-xs">
+					Free mode: times ignore cooldowns.
+				</p>
 			)}
 			{combat.entries.length ? (
 				<CombatStepList
@@ -140,6 +137,9 @@ export function ComboTab({
 				<p className="rounded-lg border border-line border-dashed p-4 text-center text-subtle text-xs">
 					No steps yet. Pick an attack, an ability or a summoner spell above.
 				</p>
+			)}
+			{!!combat.entries.length && view.totals && (
+				<CombatClosingLine totals={view.totals} />
 			)}
 			<CombatNotes />
 		</section>

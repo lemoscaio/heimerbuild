@@ -11,7 +11,8 @@ const markerLine = cva(
 			tone: {
 				applied: "text-lilac",
 				forced: "text-forced",
-				"no-effect": "text-subtle opacity-70",
+				ignored: "text-subtle",
+				"no-effect": "text-subtle",
 			},
 			emphasis: {
 				new: "outline-1 outline-gold",
@@ -27,6 +28,7 @@ const rule = cva("h-0 min-w-4 flex-1 border-t-2 max-sm:hidden", {
 		tone: {
 			applied: "border-lilac",
 			forced: "border-forced",
+			ignored: "border-line-strong border-dashed",
 			"no-effect": "border-line-strong border-dashed",
 		},
 	},

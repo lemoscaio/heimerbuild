@@ -133,7 +133,7 @@ describe("stepView", () => {
 		expect(view.marks).toEqual([
 			{ mark: "Harrier", change: "consumed", fromMarker: false },
 		])
-		expect(view.effects).toEqual(["Heightened Senses (passive)"])
+		expect(view.effects).toEqual(["Heightened Senses (passive) · until 2.00 s"])
 		expect(view.healthShare).toBe(0.91)
 	})
 
@@ -207,6 +207,7 @@ describe("combatTotals", () => {
 			healthShare: 0.09,
 			duration: 1.2,
 			healthLeft: 910,
+			activeUntil: 1.2,
 			forcedMarkers: 0,
 		})
 	})
@@ -364,9 +365,19 @@ describe("markerView", () => {
 		).toBe("ready again here (since 10.40 s)")
 	})
 
-	test("a forced marker says until when it was on cooldown, and a useless one that it has no effect", () => {
+	test("a marker on cooldown is ignored in strict mode and forced in free mode, and a useless one has no effect", () => {
 		expect(
-			markerView({ situation: { status: "forced", readyAt: 10.4 } }, options),
+			markerView({ situation: { status: "ignored", readyAt: 7.6 } }, options),
+		).toEqual({
+			label: "Hail of Blades ready",
+			detail: "on cooldown until 7.60 s · ignored (use Free mode to force it)",
+			tone: "ignored",
+		})
+		expect(
+			markerView(
+				{ situation: { status: "forced", readyAt: 10.4 } },
+				{ ...options, free: true },
+			),
 		).toEqual({
 			label: "Hail of Blades ready",
 			detail: "on cooldown until 10.40 s · forced",
