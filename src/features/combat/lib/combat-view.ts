@@ -102,6 +102,8 @@ export type DamageOverTimeView = {
 	final: number
 	/** Its last tick, or when it runs out when it owns none (a refresh that added none). */
 	until: number
+	/** When its effect took effect after a delay ("detonates" at 3.45 s). */
+	delayed?: { label: string; at: number }
 	notModeled: readonly string[]
 }
 
@@ -149,7 +151,14 @@ function hitViews(events: readonly CombatEvent[], names: CombatNames) {
 }
 
 export function damageOverTimeView(
-	{ effectId, application, stacks, ticks, endsAt }: DamageOverTimeSummary,
+	{
+		effectId,
+		application,
+		stacks,
+		ticks,
+		endsAt,
+		delayed,
+	}: DamageOverTimeSummary,
 	names: CombatNames,
 ): DamageOverTimeView {
 	const views = ticks.map(
@@ -175,6 +184,7 @@ export function damageOverTimeView(
 		raw,
 		final,
 		until: ticks.at(-1)?.time ?? endsAt,
+		...(delayed && { delayed }),
 		notModeled: [
 			...new Set(
 				views.flatMap((tick) => ("notModeled" in tick ? tick.notModeled : [])),
