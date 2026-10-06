@@ -231,6 +231,15 @@ describe("the registries", () => {
 		}
 	})
 
+	test("a periodic effect has a mark or a duration that stops it, and a marked start a mark", () => {
+		for (const { trigger, applies, duration, start } of effects) {
+			if (trigger.kind === "periodic") {
+				expect(applies ?? duration).toBeDefined()
+			}
+			if (start?.kind === "marked") expect(applies).toBeDefined()
+		}
+	})
+
 	test("a stacking group has one rule, and a replace group distinct priorities", () => {
 		const groups = Map.groupBy(
 			effects.filter(({ stacking }) => stacking),
@@ -265,6 +274,7 @@ describe("combatEffects", () => {
 	test("binds a passive's effects, the chosen items' and the target's, which the stats panel leaves out", () => {
 		expect(ids(combatEffects(quinn))).toEqual([
 			"quinn-harrier-mark",
+			"quinn-harrier-valor",
 			"quinn-harrier",
 			"quinn-w-passive",
 			"ignite",
