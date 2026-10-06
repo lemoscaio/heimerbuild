@@ -119,6 +119,15 @@ describe("outcomeKeys: damage over time (issue 345)", () => {
 	})
 
 	test("ability damage applies on attacks only while an ability's effect deals damage on them", () => {
+		const spellblade = bound({
+			id: "spellblade",
+			trigger: { kind: "after-ability" },
+			endsOn: ["on-hit", "cast"],
+			grants: [{ kind: "abilityDamage", ability: "passive", name: "Bonus" }],
+		})
+		expect(ids({ kind: "attack" }, [spellblade, burn], undefined)).toEqual([
+			"damage-over-time:burn",
+		])
 		expect(ids({ kind: "attack" }, [burn], undefined)).toEqual([])
 		expect(ids({ kind: "attack" }, [poison, burn], undefined)).toEqual([
 			"damage-over-time:poison",
