@@ -101,36 +101,123 @@ test("Zac's Unstable Matter deals a share of the target's maximum health, so a t
 	await expect.poll(total).toBeGreaterThan(onDummy)
 })
 
-test("the combo starts from a chosen situation: Harrier's mark adds to the first attack, and only the build's options show", async ({
+test("a situation marker sets Harrier's mark from where it is, and only the build's situations show", async ({
 	page,
 }) => {
 	await page.goto("/champions/Quinn?lvl=9&skills=QWEQEQRQE&tab=combo")
-	const start = combo(page).getByRole("region", {
-		name: "Starting situation",
-	})
-	const marked = start.getByRole("switch", {
-		name: "Target marked by Harrier",
-	})
-	await expect(marked).not.toBeChecked()
-
 	await combo(page).getByRole("button", { name: "Add Attack" }).click()
 	await expect(damageTotal(page)).not.toHaveText("0")
 	const plain = await damageTotal(page).textContent()
 
-	await marked.focus()
-	await page.keyboard.press("Space")
-	await expect(marked).toBeChecked()
-	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
-
-	await marked.click()
-	await expect(marked).not.toBeChecked()
+	// Added at the end, after the attack: nothing changes until it moves above it.
+	const situation = combo(page).getByRole("region", { name: "Situation" })
+	await situation
+		.getByRole("button", { name: "Add marker: Target marked by Harrier" })
+		.click()
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	await combo(page)
+		.getByRole("button", {
+			name: "Move marker Target marked by Harrier",
+			exact: true,
+		})
+		.focus()
+	await page.keyboard.press("ArrowUp")
+	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
 
 	await page.goto("/champions/Annie?lvl=9&skills=QWEQEQRQE&tab=combo")
 	await expect(
 		combo(page).getByRole("button", { name: "Add Attack" }),
 	).toBeVisible()
 	await expect(
-		combo(page).getByRole("region", { name: "Starting situation" }),
+		combo(page).getByRole("region", { name: "Situation" }),
 	).toHaveCount(0)
+})
+
+test("Hail of Blades' marker moves and is removed like a step, with Undo", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+	)
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	await attack.click()
+	await attack.click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const plain = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
+		.click()
+	const handle = combo(page).getByRole("button", {
+		name: "Move marker Hail of Blades ready",
+		exact: true,
+	})
+	await handle.focus()
+	await page.keyboard.press("ArrowUp")
+	await page.keyboard.press("ArrowUp")
+	await expect(handle).toBeFocused()
+	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
+	const empowered = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Remove marker Hail of Blades ready" })
+		.click()
+	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	await combo(page).getByRole("button", { name: "Undo" }).click()
+	await expect(damageTotal(page)).toHaveText(empowered ?? "")
+	await expect(handle).toBeVisible()
+})
+
+test("free mode sets an outcome per step, keeps the choice across toggles, and restores the computed one", async ({
+	page,
+}) => {
+	await page.goto("/champions/Quinn?lvl=9&skills=QWEQEQRQE&tab=combo")
+	await combo(page).getByRole("button", { name: "Add E, Vault" }).click()
+	await combo(page).getByRole("button", { name: "Add Attack" }).click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const strict = await damageTotal(page).textContent()
+
+	const free = combo(page).getByRole("switch", { name: "Free mode" })
+	await free.click()
+	await expect(damageTotal(page)).toHaveText(strict ?? "")
+	const consumed = combo(page).getByRole("button", {
+		name: "Harrier: consumes the mark: Yes",
+	})
+	const kept = combo(page).getByRole("button", {
+		name: "Harrier: consumes the mark: No",
+	})
+	await expect(consumed).toHaveAttribute("aria-pressed", "true")
+	await kept.click()
+	await expect(kept).toHaveAttribute("aria-pressed", "true")
+	await expect(damageTotal(page)).not.toHaveText(strict ?? "")
+
+	await free.click()
+	await expect(damageTotal(page)).toHaveText(strict ?? "")
+	await free.click()
+	await expect(kept).toHaveAttribute("aria-pressed", "true")
+
+	await combo(page).getByRole("button", { name: "Restore computed" }).click()
+	await expect(consumed).toHaveAttribute("aria-pressed", "true")
+	await expect(damageTotal(page)).toHaveText(strict ?? "")
+})
+
+test("Decimate's inner handle deals less than its outer blade, in either mode", async ({
+	page,
+}) => {
+	await page.goto("/champions/Darius?lvl=9&skills=QWEQQRQEQ&tab=combo")
+	await combo(page).getByRole("button", { name: "Add Q, Decimate" }).click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const total = async () =>
+		Number((await damageTotal(page).textContent())?.replace(/\D/g, ""))
+	const blade = await total()
+
+	const lands = combo(page).getByRole("group", { name: "How it lands" })
+	await lands.getByRole("button", { name: "Inner handle" }).click()
+	await expect.poll(total).toBeLessThan(blade)
+
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	await expect(
+		lands.getByRole("button", { name: "Inner handle" }),
+	).toHaveAttribute("aria-pressed", "true")
+	await expect.poll(total).toBeLessThan(blade)
 })
