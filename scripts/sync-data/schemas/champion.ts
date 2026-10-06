@@ -342,7 +342,7 @@ function perAbility<Schema extends z.ZodMiniType>(schema: Schema) {
 
 /**
  * How a champion's skill points differ from the game's default: one point per level, a basic
- * ability's rank n at level 2n - 1, R at 6/11/16. Curated in `overrides/champion-skill-rules.ts`.
+ * ability's rank n at level 2n - 1, R at 6/11/16. Curated in `champions/<champion>.ts` (`CHAMPION_SKILL_RULES`).
  */
 export const skillRulesSchema = z.strictObject({
 	/** Ranks the champion starts with, without spending a point (Elise's R, Yuumi's W). */
@@ -460,9 +460,9 @@ export const championSchema = z.strictObject({
 	skillRules: z.optional(skillRulesSchema),
 	/** Applied by the stats engine from the ability ranks; synced by `RANK_STAT_RULES`. */
 	rankStats: z.optional(z.array(rankStatSchema).check(z.minLength(1))),
-	/** Applied by the stats engine from the selected level; curated in `overrides/champion-level-states.ts`. */
+	/** Applied by the stats engine from the selected level; curated in `champions/<champion>.ts` (`CHAMPION_LEVEL_STATES`). */
 	levelStates: z.optional(levelStatesSchema),
-	/** Picked by the player, applied by the stats engine; curated in `overrides/champion-forms.ts`. */
+	/** Picked by the player, applied by the stats engine; curated in `champions/<champion>.ts` (`CHAMPION_FORMS`). */
 	forms: z.optional(championFormsSchema),
 })
 

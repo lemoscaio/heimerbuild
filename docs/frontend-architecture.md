@@ -183,6 +183,10 @@ lib/effects/
 ├── available-effects.ts    combatEffects(build): the effects whose source is in the build; availableEffects: those the panel lists
 ├── effect-overrides.ts     the `effects` link param
 └── registries/             one registry per source: ability, summoner, rune, item effects; VERIFIED_ON
+
+lib/champions/
+├── <champion>.ts           one champion's ability effects and combo hit rules (see below)
+└── rule-helpers.ts         WIKI, percentLine
 ```
 
 - **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, its slot or `passive`; `summoner`, `rune`, `item`), `grants` (`stat`, `attackSpeedMultiplier`, `shield`, `heal`, and the damage grants only the [combat simulator](#combat) deals: `damage`, `abilityDamage`, `damageOverTime`, `onAttackDamage`) and a `trigger`. It holds for a patch range (`since`, optional `until`). It may also have a `duration`, a `delay`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group, a `part` (`passive` or `active`, the row label in its ability's card), a `form` (it holds only in that form; see [Forms](#forms)), a `label` (its row's name when neither the part nor the form says it: "Rev'd up"), the mark it `applies` and its `holder` (the target, for Ignite's burn), and it always has a `sourceUrl`. The combat simulator also reads `cooldownFrom` (`mark-end`: the cooldown starts when its mark leaves the target; `end`: when the effect ends, its charges used or its duration over), `charges` (the basic attacks it empowers, the triggering one included), `reducedOnCast` (seconds each ability cast takes off its cooldown) and `start`, the situation a combo marker can set with it (see [Combat](#combat)).
@@ -238,10 +242,19 @@ lib/effects/
 6. the movement speed soft caps (`lib/stats/movement-speed.ts`; wiki "Movement speed");
 7. the outputs: shields and heals, from `resolveGrants` per effect. The Effects list shows them on each row, on or off.
 
+### Where to find a champion's rules
+
+Everything specific to one champion lives in two files named after it (the champion key in kebab-case: `teemo.ts`, `dr-mundo.ts`), each opening with a short list of its quirks (keep it current when a rule changes):
+
+- `src/lib/champions/<champion>.ts`, the app: its ability effects (`TEEMO_EFFECTS`) and how its casts hit in the combo (`TEEMO_HIT_RULES`), each checked with `satisfies`.
+- `scripts/sync-data/champions/<champion>.ts`, the sync, which runs first: its data fixes, level states, forms, form abilities, skill rules and cast times, each export named after its override id (`GNAR_FORMS` is `gnar-forms`). README, Data overrides.
+
+Only champions with rules have a file. `ABILITY_EFFECTS`, `ABILITY_HIT_RULES` and the sync's tables (`CHAMPION_OVERRIDES` and its parts, `FORM_ABILITY_RULES`) are explicit import lists of those exports, alphabetical by champion (no barrels); the engines read only the rules' general properties, never a champion id. The rank stats an ability grants by rank alone stay in `RANK_STAT_RULES` (`scripts/sync-data/rank-stats.ts`).
+
 ### Adding an effect
 
 1. Find its numbers in the synced data (`summoner-spells.json` values, a champion's `rankStats`), or on the wiki or CommunityDragon when the data lacks them.
-2. Add one entry to the registry of its source in `lib/effects/registries/`, with a readable `id`, the trigger that decides its default, its `sourceUrl` and `since`: the patch you checked the numbers on (`VERIFIED_ON` for the stage-1 effects). Pick its amount:
+2. Add one entry to its source's list: an ability's effect in its champion's file, `lib/champions/<champion>.ts` (the champion's first rule creates the file and adds its export to `ABILITY_EFFECTS`), any other in its registry in `lib/effects/registries/`. Give it a readable `id`, the trigger that decides its default, its `sourceUrl` and `since`: the patch you checked the numbers on (`VERIFIED_ON` for the stage-1 effects). Pick its amount:
    - a per-rank number the tooltip shows: `rankValue` with the line's label (`scale: 0.01` for a percent line);
    - a basic ability's bonus that its ultimate (or any other ability) upgrades by rank: one effect in the basic ability's slot, with `rankValue` naming the upgrading `slot` and its `unranked` value (Hyper reads GNAR!'s line). Reusable for any such pair, never two rows;
    - a bonus that is a share of another stat: `stat` with that stat and the `ratio` (a number, or a `rankValue` per rank). It applies in step 4, after the other effects;
@@ -265,13 +278,13 @@ lib/effects/
 
 A champion's forms (Mini and Mega Gnar, Shyvana's Dragon, Jinx's Rockets) are a hybrid of data and effects:
 
-- **The form keeps its fixed part**, curated in `scripts/sync-data/overrides/champion-forms.ts` (README, Data overrides): attack type, the growth stats it replaces, its level states. `formStats` applies it in evaluation step 1.
-- **What varies is an effect bound to the form**, in the effects registry: a bonus by ability rank (Shyvana's Dragon health), by champion level (Jayce's Hammer resistances) or by another stat (Bel'Veth's 150% bonus AD as health) is an effect with `form: "<form id>"`. `computeBuildStats` puts the selected form in the effects' context, and `activeEffects` keeps a form-bound effect only in its form, so `whatIf({ form })` and the form's delta chips include it with no form code. Its row in the Effects list shows only while the form is selected, under the form's name; an `always` one is an informational row ("While in this form").
+- **The form keeps its fixed part**, curated in the champion's sync file, `scripts/sync-data/champions/<champion>.ts` (README, Data overrides): attack type, the growth stats it replaces, its level states. `formStats` applies it in evaluation step 1.
+- **What varies is an effect bound to the form**, in the champion's effects (`lib/champions/<champion>.ts`): a bonus by ability rank (Shyvana's Dragon health), by champion level (Jayce's Hammer resistances) or by another stat (Bel'Veth's 150% bonus AD as health) is an effect with `form: "<form id>"`. `computeBuildStats` puts the selected form in the effects' context, and `activeEffects` keeps a form-bound effect only in its form, so `whatIf({ form })` and the form's delta chips include it with no form code. Its row in the Effects list shows only while the form is selected, under the form's name; an `always` one is an informational row ("While in this form").
 - **A form may need an ability point:** `requires: { slot, minRank }`. Until the skills reach it, `selectedForm` falls back to the default form (stats, champion state and link), the toggle keeps the form visible but disabled with the reason (`formLocks`: "Learn R to unlock Dragon"), and the form is not compared. While the ranks load, nothing is locked.
 - **A form shows its own abilities** (Cannon Jayce's Shock Blast, Cougar Nidalee's Takedown) or its own look of the ones it keeps (Jinx's Pow-Pow and Fishbones Q, Jayce's cannon passive icon): the synced `abilities.forms.<form id>` holds them by slot, passive included (README, Game data). The composer derives `abilities` with `abilitiesInForm` (`lib/form-abilities.ts`) for the selected form, and the page passes them to the skills row and the Skills tab, so the names, icons, rank-up tooltips and per-rank tables follow the form while the skills feature knows nothing of forms. Ranks, the skill order and the `skills` link stay per slot. An effect bound to a form reads that form's ability in its slot (`spellInForm`: its row's name and `rankValue` lines); an unbound one reads the default form's. An ability the form can't cast (Mini Gnar's GNAR!, dismounted Kled's W, E and R) carries `unavailable.reason`: the skills row, its tooltip and the Skills tab card say it (icon, text and accessible description, not color only), and its points stay spendable and counted per slot. The combat simulator reads the same flag to refuse the cast ([Combat](#combat)).
 - **Dependencies are injected:** the composer passes the skills' ranks to `useChampionState` and the selected form to `useConditions`; no feature imports another.
 
-**Adding a form:** a `defineForms` entry (its `id` is the link value; the first form is the default, with only names), `requires` when it needs a point, then one registry entry per varying bonus with `form` set, its numbers from the synced tooltip lines where they exist (`rankValue`) or the wiki (`sourceUrl`), tested at a few ranks and levels against the current patch data (`ability-effects.test.ts`). A registry test checks that every form-bound effect names a form its champion has.
+**Adding a form:** a `defineForms` export in the champion's sync file, listed in `CHAMPION_FORMS` (its `id` is the link value; the first form is the default, with only names), `requires` when it needs a point, then one effect per varying bonus with `form` set in the champion's app file, its numbers from the synced tooltip lines where they exist (`rankValue`) or the wiki (`sourceUrl`), tested at a few ranks and levels against the current patch data (`ability-effects.test.ts`). A registry test checks that every form-bound effect names a form its champion has.
 
 ## Combat
 
@@ -288,7 +301,8 @@ lib/combat/
 ├── start-options.ts        combatStartOptions: the situations the build's effects support, which markers set
 ├── outcomes.ts             outcomeId, outcomeKeys (the outcomes a step can have, from triggers), outcomeChoices
 └── registries/
-    └── ability-hits.ts     ABILITY_HIT_RULES: how a cast hits when its tooltip's first damage isn't the whole story, and its variants
+    └── ability-hits.ts     ABILITY_HIT_RULES: how a cast hits when its tooltip's first damage isn't the whole story, and its variants;
+                            each champion's rules are in lib/champions/<champion>.ts
 ```
 
 - **Actions:** `attack`; `ability` (a slot of the selected form, `abilitiesInForm`, with the `variant` picked); `summoner` (a slot); `wait` (seconds). An ability without a point, one its form can't cast (`unavailable`, issue 314) or one on cooldown is refused with the reason, and the sequence goes on. Between them, `situation` markers (below).
@@ -339,8 +353,8 @@ pages/champion-build/combo-tab.tsx   assembles the two features; hooks/use-build
 ### Adding a champion to the combo
 
 1. Check the coverage report of the sync PR: every damage of the kit must be modeled (`bun run sync-data --coverage-report <file>`).
-2. Check each ability's synced formula and cast time against the wiki; a cast time the wiki disagrees with goes in `champion-cast-times.ts` (README, Data overrides).
-3. Add an `ABILITY_HIT_RULES` entry for each ability whose cast doesn't simply deal its first damage, and an effect in `lib/effects/registries/` for each mechanic (a mark and what consuming it does, an empowered next attack with `endsOn: "on-hit"`, a `periodic` one with its cooldown, attacks empowered by `on-attack` with `charges`, a damage over time held by the target with its tick rate, first tick and `stacks`; its cast's rule then deals `damage: null`). Continuous damage gets real ticks at the wiki's rate (Poison Trail every 0.25 s); a cast of a toggle is one pass through it. A situation players set up (a mark waiting, an empowered attack ready, a rune off cooldown) gets a `start` on that effect, and the Combo tab offers it as a marker. A way to land a cast the simulator can't know (the blade or the handle, near or far) is a `variants` list on the ability's rule; such a rule may name a champion off the curated list. A new mechanic is a type plus one evaluator case, never a check on an id.
+2. Check each ability's synced formula and cast time against the wiki; a cast time the wiki disagrees with goes in the champion's sync file with `defineCastTimes`, listed in `CHAMPION_CAST_TIMES` (README, Data overrides).
+3. In the champion's file, `lib/champions/<champion>.ts` (listed in `ABILITY_HIT_RULES` and `ABILITY_EFFECTS`), add a hit rule for each ability whose cast doesn't simply deal its first damage, and an effect for each mechanic (a mark and what consuming it does, an empowered next attack with `endsOn: "on-hit"`, a `periodic` one with its cooldown, attacks empowered by `on-attack` with `charges`, a damage over time held by the target with its tick rate, first tick and `stacks`; its cast's rule then deals `damage: null`). Continuous damage gets real ticks at the wiki's rate (Poison Trail every 0.25 s); a cast of a toggle is one pass through it. A situation players set up (a mark waiting, an empowered attack ready, a rune off cooldown) gets a `start` on that effect, and the Combo tab offers it as a marker. A way to land a cast the simulator can't know (the blade or the handle, near or far) is a `variants` list on the ability's rule; such a rule may name a champion off the curated list. A new mechanic is a type plus one evaluator case, never a check on an id.
 4. Add the champion to `CURATED_COMBAT_CHAMPIONS`; its test checks the current patch reads its whole kit.
 
 ## Where does new code go
