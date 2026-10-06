@@ -276,3 +276,37 @@ test("the combo's time is its last hit, not a buff running on after it", async (
 	await up.click()
 	await expect(time).not.toHaveText(plain ?? "")
 })
+
+test("Teemo's attacks apply Toxic Shot: one line on the attack that applied it, its ticks listed on demand", async ({
+	page,
+}) => {
+	await page.goto("/champions/Teemo?lvl=9&skills=EQWEERE&tab=combo")
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	await attack.click()
+	await attack.click()
+	await expect(steps(page)).toHaveCount(2)
+
+	// The poison is a side effect of the attack, not a step of its own.
+	const first = combo(page)
+		.getByRole("listitem")
+		.filter({
+			has: page.getByRole("button", { name: "Remove step 1. Attack" }),
+		})
+	await expect(
+		first.getByRole("list", { name: "Damage over time" }).getByRole("listitem"),
+	).toHaveCount(1)
+	const expand = first.getByRole("button", { name: "Toxic Shot ticks" })
+	await expect(expand).toHaveAttribute("aria-expanded", "false")
+	await expand.click()
+	await expect(expand).toHaveAttribute("aria-expanded", "true")
+	// Rank 4 at 1 s apart over 4 s: the first attack owns all 4, the second only adds later ones.
+	await expect(
+		first.getByRole("list", { name: "Toxic Shot ticks" }).getByRole("listitem"),
+	).toHaveCount(4)
+
+	// Free mode makes each application an answer: no poison, less damage.
+	const strict = await damageTotal(page).textContent()
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	await first.getByRole("button", { name: "Toxic Shot: applies: No" }).click()
+	await expect(damageTotal(page)).not.toHaveText(strict ?? "")
+})

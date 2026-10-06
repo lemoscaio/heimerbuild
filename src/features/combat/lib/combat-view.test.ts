@@ -9,6 +9,7 @@ import {
 	outcomeChoice,
 	outcomeViews,
 	stepView,
+	strictOutcomeViews,
 } from "./combat-view"
 
 const TARGET = { health: 1000, armor: 50, magicResist: 50, level: 9 }
@@ -35,6 +36,7 @@ const NAMES = combatNames({
 		),
 		bound({ id: "quinn-w-passive", part: "passive" }, "Heightened Senses"),
 		bound({ id: "trinity-force-spellblade" }, "Trinity Force"),
+		bound({ id: "teemo-e", holder: "target" }, "Toxic Shot"),
 	],
 })
 
@@ -90,7 +92,7 @@ describe("stepView", () => {
 		expect(view.mainType).toBe("physical")
 	})
 
-	test("adds up the hits of one source and type into one line (a burn's ticks)", () => {
+	test("adds up the hits of one source and type into one line", () => {
 		const tick = {
 			kind: "hit",
 			time: 0,
@@ -276,6 +278,7 @@ describe("outcomeViews", () => {
 		).toEqual([
 			{
 				id: "empowered:hail-of-blades",
+				kind: "empowered",
 				label: "Hail of Blades",
 				happened: true,
 				detail: "2/3",
@@ -283,6 +286,7 @@ describe("outcomeViews", () => {
 			},
 			{
 				id: "mark-consumed:quinn-harrier",
+				kind: "mark-consumed",
 				label: "Harrier: consumes the mark",
 				happened: false,
 				changed: false,
@@ -399,5 +403,112 @@ describe("markerView", () => {
 				{ ...options, free: true },
 			).detail,
 		).toBe("applies: from here")
+	})
+})
+
+describe("damage over time on its step (issue 345)", () => {
+	const poison = (time: number, owner: number) =>
+		({
+			kind: "hit",
+			time,
+			source: { kind: "effect", effectId: "teemo-e" },
+			damage: { type: "magic", raw: 30, final: 20 },
+			tick: { owner },
+		}) as const
+	const applied: CombatStep = {
+		...STEP,
+		events: [STEP.events[0] ?? poison(0, 0), poison(1, 0)],
+		active: [
+			{
+				effectId: "teemo-e",
+				holder: "target",
+				startedAt: 0,
+				endsAt: 4,
+				stacks: 1,
+			},
+		],
+		damageOverTime: [
+			{
+				effectId: "teemo-e",
+				application: "applied",
+				stacks: 1,
+				ticks: [1, 2, 3, 4].map((time) => ({
+					time,
+					damage: { type: "magic", raw: 30, final: 20 },
+				})),
+				endsAt: 4,
+			},
+		],
+	}
+	const view = stepView(applied, { names: NAMES, target: TARGET })
+
+	test("one line with its ticks, damage and last tick, instead of hit lines and a chip", () => {
+		expect(view.damageOverTime).toEqual([
+			{
+				effectId: "teemo-e",
+				name: "Toxic Shot",
+				application: "applied",
+				stacks: 1,
+				ticks: [1, 2, 3, 4].map((time) => ({
+					time,
+					type: "magic",
+					raw: 30,
+					final: 20,
+				})),
+				type: "magic",
+				raw: 120,
+				final: 80,
+				until: 4,
+				notModeled: [],
+			},
+		])
+		expect(view.hits.map(({ name }) => name)).toEqual(["Attack"])
+		expect(view.effects).toEqual([])
+	})
+
+	test("the step's total counts the ticks it owns, not those of another step landing during it", () => {
+		expect(view.total).toEqual({ raw: 220, final: 140 })
+		const later = stepView(
+			{ ...STEP, events: [poison(2, 0)], damageOverTime: [] },
+			{ names: NAMES, target: TARGET },
+		)
+		expect(later.total).toEqual({ raw: 0, final: 0 })
+	})
+
+	test("a refresh that added no tick runs until its end", () => {
+		const refresh = stepView(
+			{
+				...STEP,
+				damageOverTime: [
+					{
+						effectId: "teemo-e",
+						application: "refreshed",
+						stacks: 1,
+						ticks: [],
+						endsAt: 4.7,
+					},
+				],
+			},
+			{ names: NAMES, target: TARGET },
+		)
+		expect(refresh.damageOverTime[0]).toMatchObject({
+			application: "refreshed",
+			final: 0,
+			until: 4.7,
+		})
+	})
+
+	test("strict mode's chips leave out an applied one: its line says it", () => {
+		const outcomes = outcomeViews(
+			[
+				{ kind: "damage-over-time", effectId: "teemo-e", happened: true },
+				{ kind: "damage-over-time", effectId: "liandry", happened: false },
+			],
+			{ names: NAMES },
+		)
+		expect(strictOutcomeViews(outcomes).map(({ id }) => id)).toEqual([
+			"damage-over-time:liandry",
+		])
+		expect(outcomes[0]?.label).toBe("Toxic Shot: applies")
 	})
 })
