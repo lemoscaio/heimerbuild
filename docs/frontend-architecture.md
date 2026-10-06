@@ -22,7 +22,9 @@ src/
 │   ├── skills/           skill points: rank rules, suggested order and history, the skills row and Skills tab
 │   ├── summoners/        the two summoner spell slots: picks, swap, checks against the patch's spells
 │   ├── match/            the match state (useMatchState): the game time, one per match
-│   └── conditions/       the conditional effects turned on or off (useConditions) and the Effects list
+│   ├── conditions/       the conditional effects turned on or off (useConditions) and the Effects list
+│   ├── target/           the combo's target, a dummy with presets (useTarget, TargetEditor)
+│   └── combat/           the combo: its steps (useCombat, in memory), keys, step cards and totals
 ├── data/                 game data loading: fetch + Zod parsing, data hooks, query options
 │   ├── services/         fetchGameData, fetchManifest, fetchChampion, fetchItems
 │   ├── queries/          queryOptions() factories (gameDataQueries)
@@ -112,7 +114,8 @@ pages/champion-build/
 ├── hooks/
 │   ├── use-url-build-source.ts   the URL as the build source: writes the search, records recent builds
 │   ├── use-champion-build.ts     data hooks + domain hooks + stats on a build source (the composer)
-│   └── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch
+│   ├── use-build-combat.ts       the combo (target + steps) in memory, on the composer's combat input
+│   └── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch, the combo
 └── lib/
     └── condition-values.ts       dropUnusedConditionValues: the composer's cleanup on save
 ```
@@ -126,6 +129,8 @@ pages/champion-build/
 | Summoner spells | `useSummoners` (the two slots, pick, swap, clear) | `summoners` | `summoners` |
 | Match state | `useMatchState` (game time) | `match` | `gameTime` |
 | Conditions | `useConditions` (the effects turned on or off, with their values) | `conditions` | `effects` |
+| Target | `useTarget` (the combo's dummy: health, armor, magic resist) | `target` | in memory |
+| Combo | `useCombat` (the combo's steps, simulated on the build) | `combat` | in memory |
 
 Each rule about a value lives in one place:
 
@@ -144,6 +149,7 @@ Each rule about a value lives in one place:
 - **Grouped by subject, not by mechanism.** A value effects read lives with what it describes: the current health with the champion state (one per build), the game time with the match state (one per match). The conditions keep only the effects turned on or off.
 - **Match state is shared.** One match holds the game time and later its other values (expected gold, dragons). When a second build instance arrives (an opponent, issue 69), both builds read the same match state; the time is never kept per build.
 - **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` (`available`) and into the stats (`effects: { available, overrides }`). It injects the condition values as plain values too: `useConditions` gets them in its `context` (level, current health, game time, the selected form) only to show each row's value, and `computeBuildStats` gets `currentHealth` and `gameTime` as inputs. `useChampionState` and `useMatchState` never see the effects: the composer drops a condition value no effect uses when it saves. Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices and values stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step) and the build's adaptive type (`itemsAdaptiveType`, as the stat shards read it), so each row shows the bonus the stats add.
+- **The combo is in memory.** `useBuildCombat` (page layer) holds the target and the steps in `useState`, an experimental domain's non-URL source, and injects the composer's `combat` input: the build and match state, `combatEffects` (items' included) and the summoner slots. The effect switches never reach it (issue 265, decision 7). They join the link once the format is stable (issue 317).
 - **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
@@ -158,6 +164,7 @@ Shared links must keep opening the same build, so the link format has a version:
 - **`hp`** is the current health in percent of maximum health, 1 to 100 (`hp=40`), which health-dependent effects read (Tryndamere's Bloodlust). Full health means no param, and it is dropped on the next edit when no effect of the build reads it, like an `effects` choice. It came as a new optional param of v1 (no bump).
 - **`min`** is the game time in whole minutes, 0 to 120 (`min=30`), which time-dependent effects read (Gathering Storm). The game's start (0) means no param, and it is dropped on the next edit when no effect of the build reads it, like `hp`. 120 only guards typos. It came as a new optional param of v1 (no bump).
 - **`form`** is the selected form's id (`form=mega`); the default form means no param. An id the champion lacks, or a form whose ability rank is missing (`form=dragon` before Shyvana learns R), opens in the default form and is dropped on the next edit. New forms (`dragon`, `rockets`, `true-form`) are new accepted values of v1 (no bump).
+- **`tab`** is the open center tab: `runes`, `skills` or `combo` (the items tab means no param). It is page state, never recorded in recent builds; `combo` came as a new accepted value of v1 (no bump). The combo's steps and target are not in the link yet (issue 317).
 - **`skills`** holds one letter per level (`Q`, `W`, `E`, `R`), level 1 first, with `_` (`UNSPENT_LEVEL_MARK`, `lib/skill-order-param.ts`) for a level whose point is unspent: `Q_Q` is Q at levels 1 and 3. Levels after the last letter are unspent, so trailing `_` are never written. The `_` came as a new accepted value of v1 (no bump): older links never contain it and read as before.
 
 ## Effects
@@ -294,6 +301,24 @@ lib/combat/
 - **A summoner spell:** its `after-use` effects and the `after-summoner` effects bound to it (Nimbus Cloak).
 - **Damage:** `abilityDamage` deals the source ability's synced formula by name when the effect triggers (Harrier's bonus damage); `damage` deals ratios of the attacker's stats when spent; `damageOverTime` deals its amount every `every` seconds while it runs, the first tick at the start (Ignite). Each is mitigated: armor or magic resist after flat reduction, percent reduction, percent penetration, then lethality and flat penetration (wiki "Armor penetration"), × 100 / (100 + R), or × (2 − 100 / (100 − R)) below 0. True damage is not mitigated.
 - **Triggers and ends:** `on-cast` (`slots`, any ability without them) and `on-mark-consumed` (`mark`) start an effect. `applies: { mark, duration, consumedBy }` marks the target; the mark lasts `duration` and is consumed by an attack or an ability's hit (`consumedBy`). `endsOn` ends an effect early: `attack`, `cast` (Viego's E, Rengar's R) or `on-hit`; its `cooldown` then starts from that moment instead of the trigger (a spellblade's 1.5 s starts when spent). Re-triggering a running effect refreshes it and adds a stack up to `stacks.max`; the stats scale by stacks / max.
+
+### The Combo tab
+
+The tab (issue 265, option A of the design canvas) shows, top to bottom: the action keys and the target, the totals, then one card per step.
+
+```
+features/target/   useTarget (controlled: value + onChange, the level injected), TargetEditor; lib/target.ts: presets and ranges
+features/combat/   useCombat (controlled steps, simulated on the injected input), useCombatView (step cards and totals),
+                   useStepReorder (drag a handle with a mouse, pen or finger, or its arrow keys);
+                   lib: combat-sequence (add, remove, move, waits), combat-keys, combat-view, combat-format, ability-damage-status
+pages/champion-build/combo-tab.tsx   assembles the two features; hooks/use-build-combat.ts wires them in memory
+```
+
+- **Keys:** attack, the selected form's Q W E R, the chosen summoner spells and wait (1 s, editable on its card from 0.25 to 30 s). An ability whose damage the sync could not read in full says "Not modeled" or "Partly modeled" under its key, and in its accessible description.
+- **Cards:** time, the action, the marks applied or consumed, each hit by source (same-source hits add up: "Ignite ×5"), colored by damage type with the type's name, the effects running after it as chips, and a thin bar of the target's health. A refused step (cooldown, no point, unavailable in the form) is marked with its reason and adds nothing.
+- **Totals:** damage after mitigation, its share of the target's health, the time, and the kill (its time and step) or the health left.
+- **Notes:** projectile travel time isn't counted, and the combo ignores the stats panel's switches. A champion off `CURATED_COMBAT_CHAMPIONS` also gets a note that its numbers aren't checked against the wiki.
+- **Phones:** the same list in the Combo tab of the mobile layout.
 
 ### Adding a champion to the combo
 

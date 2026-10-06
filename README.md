@@ -17,6 +17,7 @@
 - **Know when a build isn't possible in-game.** Build what you want; if it breaks a game rule (two pairs of boots, two copies of a legendary), Heimerbuild tells you which rule and why.
 - **Find the right item fast.** Filter the shop by role or by stats, sort it by any stat, and check price, stats and description in a tooltip.
 - **Spend skill points like in the game.** Pick which ability gets each level's point, with the game's rank rules and the rank-up tooltip ("Damage 80 → 125"), and see the whole order and every ability's values per rank in the Skills tab; levels you leave alone follow the game's suggested order, and ranks that grant stats show on the stats panel.
+- **Try a combo.** In the Combo tab, add attacks, abilities, summoner spells and waits in order and see each step's damage against a target (presets or your own health, armor and magic resist), the effects running, and whether and when it kills. Checked on the wiki for Annie, Ezreal, Lissandra, Quinn, Veigar and Ziggs; other champions show what isn't modeled yet.
 - **Share a build with a link.** The champion, level, items and skill points live in the URL.
 - **Champion details:** roles, attack type and lore.
 
