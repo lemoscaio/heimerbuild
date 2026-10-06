@@ -72,12 +72,29 @@ describe("stepView", () => {
 
 	test("lists each hit by name, with not-modeled ones apart, and the step's total", () => {
 		expect(view.hits).toEqual([
-			{ name: "Attack", type: "physical", raw: 100, final: 60 },
-			{ name: "Trinity Force", type: "magic", raw: 50, final: 30 },
+			{ name: "Attack", type: "physical", raw: 100, final: 60, count: 1 },
+			{ name: "Trinity Force", type: "magic", raw: 50, final: 30, count: 1 },
 			{ name: "Harrier", notModeled: ["a buff counter"] },
 		])
 		expect(view.total).toEqual({ raw: 150, final: 90 })
 		expect(view.mainType).toBe("physical")
+	})
+
+	test("adds up the hits of one source and type into one line (a burn's ticks)", () => {
+		const tick = {
+			kind: "hit",
+			time: 0,
+			source: { kind: "effect", effectId: "trinity-force-spellblade" },
+			damage: { type: "magic", raw: 50, final: 30 },
+		} as const
+		const ticking = stepView(
+			{ ...STEP, events: [tick, { ...tick, time: 1 }] },
+			{ names: NAMES, target: TARGET },
+		)
+
+		expect(ticking.hits).toEqual([
+			{ name: "Trinity Force", type: "magic", raw: 100, final: 60, count: 2 },
+		])
 	})
 
 	test("names the marks it moved, the effects running after it and the target's health left", () => {
