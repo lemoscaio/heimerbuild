@@ -31,7 +31,7 @@ src/
 │   ├── ui/               primitives with no domain knowledge: button, slider, tooltip
 │   ├── motion/           generic motion primitives (Collapse, Stagger) and motion tokens
 │   └── common/           shared app UI: header, logo, app name
-├── lib/                  pure, React-free code: stats engine, effect model (lib/effects), cn(), formatters, analytics (track, flags)
+├── lib/                  pure, React-free code: stats engine, effect model (lib/effects), combat simulator (lib/combat), cn(), formatters, analytics (track, flags)
 ├── hooks/                hooks used by 2+ features, and generic ones (use-feature-flag.ts)
 ├── types/                types used by 2+ features (not derivable from a schema)
 ├── assets/               images imported by code
@@ -173,12 +173,12 @@ lib/effects/
 ├── game-time.ts            the game time condition: its range, usesGameTime, nextGameTimeStep
 ├── evaluate.ts             activeEffects, stackEffects, resolveGrants, effectStatsInput, alwaysOnRankStats
 ├── stacking.ts             resolveStacking: one pure function for the stacking groups
-├── available-effects.ts    availableEffects(build): the effects whose source is in the build
+├── available-effects.ts    combatEffects(build): the effects whose source is in the build; availableEffects: those the panel lists
 ├── effect-overrides.ts     the `effects` link param
 └── registries/             one registry per source: ability, summoner, rune, item effects; VERIFIED_ON
 ```
 
-- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, `summoner`, `rune`, `item`), `grants` (`stat`, `attackSpeedMultiplier`, `shield`, `heal`; `damage` waits for the combo timeline) and a `trigger`. It holds for a patch range (`since`, optional `until`). It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group, a `part` (`passive` or `active`, the row label in its ability's card), a `form` (it holds only in that form; see [Forms](#forms)) and a `label` (its row's name when neither the part nor the form says it: "Rev'd up"), and it always has a `sourceUrl`.
+- **An effect** has an `id` (readable, it goes in links), a `source` (`ability`, its slot or `passive`; `summoner`, `rune`, `item`), `grants` (`stat`, `attackSpeedMultiplier`, `shield`, `heal`, and the damage grants only the [combat simulator](#combat) deals: `damage`, `abilityDamage`, `damageOverTime`) and a `trigger`. It holds for a patch range (`since`, optional `until`). It may also have a `duration`, `cooldown`, `stacks`, `endsOn`, `defaultOn`, a `stacking` group, a `part` (`passive` or `active`, the row label in its ability's card), a `form` (it holds only in that form; see [Forms](#forms)), a `label` (its row's name when neither the part nor the form says it: "Rev'd up"), the mark it `applies` and its `holder` (the target, for Ignite's burn), and it always has a `sourceUrl`.
 - **Amounts** are a number or a table read at the build's state:
   - `level`: the summoner spell's synced value by champion level;
   - `rank`: the ability's synced rank stat by its rank, with a `scale`;
@@ -194,16 +194,16 @@ lib/effects/
 - **Adaptive Force:** a `stat` grant may give `adaptiveForce` instead of a stat. It becomes ability power or 0.6 attack damage per point by the build's adaptive type, read like the stat shards (`itemsAdaptiveType`: the items' bonus AP against bonus AD, the champion's `adaptiveType` on a tie).
 
   Numbers come from the synced data whenever it has them. A hand-written number (Nimbus Cloak's brackets, spellblade ratios) cites its page in `sourceUrl` and has a test against it.
-- **Defaults come from the trigger.** `always` and `while: <condition>` are on: the stats show a champion at rest. `after-use`, `after-summoner`, `on-hit` and `after-ability` are off. `defaultOn` overrides it as data.
+- **Defaults come from the trigger.** `always` and `while: <condition>` are on: the stats show a champion at rest. `after-use`, `after-summoner`, `on-hit`, `after-ability` and the combat triggers `on-cast` and `on-mark-consumed` are off. `defaultOn` overrides it as data.
 - **Always-on passives inform.** An `always` effect (Malphite's W, Janna's W) has no switch (`isSwitchable`): its row in the Effects list shows what it adds, so a bonus never appears from nowhere, and a link choice for it is ignored and dropped.
-- **Condition values** are build state that effects read, kept by the domain of their subject (the current health by the champion state, the game time by the match state) and the link. The **current health** (percent of maximum health, 1 to 100, default 100; link `hp`) is the first: `missingHealth` amounts read it, and every row whose effect reads it carries the `CurrentHealthInput` slider (`usesCurrentHealth`). The combo timeline and later health-dependent effects read the same value.
+- **Condition values** are build state that effects read, kept by the domain of their subject (the current health by the champion state, the game time by the match state) and the link. The **current health** (percent of maximum health, 1 to 100, default 100; link `hp`) is the first: `missingHealth` amounts read it, and every row whose effect reads it carries the `CurrentHealthInput` slider (`usesCurrentHealth`). The combat simulator passes it to the stats too, and later health-dependent effects read the same value.
   The **game time** (whole minutes, 0 to 120, default 0; link `min`) is the second: `gameTime` amounts read it, and every row whose effect reads it carries the `GameTimeInput` (minutes with − and +, presets 10 to 40; `usesGameTime`) and shows the next step ("+24 Ability Power (next: +48 Ability Power at 30 min)"). Every input is the same controlled value, so they stay in sync. Expected gold, item stacks and the expected level by minute will read it too.
 - **Which effects a build has:** `availableEffects` keeps:
   - an ability effect whose champion is the build's and whose ability has a rank;
   - a summoner effect whose spell is chosen;
   - a rune effect whose rune is on the page.
 
-  An `after-summoner` effect becomes one effect per chosen spell (`nimbus-cloak-flash`), since its value depends on the spell cast. Item effects are not listed yet (stage 1).
+  An `after-summoner` effect becomes one effect per chosen spell (`nimbus-cloak-flash`), since its value depends on the spell cast. That is `combatEffects`; the stats panel's `availableEffects` leaves out the items' effects (none on screen yet) and those `isListed` rejects: the combat triggers (`on-cast`, `on-mark-consumed`) and effects the target holds.
 - **Active** = available, filtered by the user's choice or else the default, then resolved by stacking group (`resolveStacking`). Effects without a group add up (Nimbus Cloak and Heal's movement speed sum, then the soft caps apply).
 - **Stacking groups** (`stacking: { group, rule, priority? }`); one effect per group applies:
 
@@ -246,7 +246,7 @@ lib/effects/
 
    An ability's buff after casting it (Udyr's stances, Viego's E, Rengar's R) gets the `after-use` trigger and its `duration`: a switch, off by default. One that procs after hits gets `on-hit` with its `stacks` (Mini Gnar's Hyper after 3 hits). A shield made of parts (a base plus ratios, Udyr's Iron Mantle) is one `shield` grant per part; its row shows their sum.
 
-   An always-on passive gets the `always` trigger: an informational row without a switch. A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins the state of its subject (`ChampionStateValue` for the champion, `MatchStateValue` for the match), the link (a new optional param) and the recent builds, like `currentHealth`.
+   An always-on passive gets the `always` trigger: an informational row without a switch. An effect only a combo fires (a mark, what consuming it does, a spellblade) gets a combat trigger or damage grant; see [Combat](#combat). A new kind of trigger, grant, amount or condition value is a type change plus one case in `defaults.ts` or `evaluate.ts`, never a check on an id. A new condition value also joins the state of its subject (`ChampionStateValue` for the champion, `MatchStateValue` for the match), the link (a new optional param) and the recent builds, like `currentHealth`.
 3. Decide how it stacks. By default it adds to every other effect. When the game lets only one of several apply, give them one `stacking.group` with the same rule: `replace` with a `priority` each (the higher one wins while on), `highest` (the largest value wins) or `unique` (applies once). Never compare ids in the evaluator. An ability's effects with a `part` share one card in the Effects list.
 4. When a later patch changes it, never edit the entry in place: give the old one an `until` (the last patch it held) and add a new entry with the same `id` and the new `since`. Ranges of one id must not overlap (a registry test checks it). The same goes for the soft caps, a new version in `MOVEMENT_SPEED_SOFT_CAPS`. Checking at sync time whether a rule is stale is a separate issue.
 5. Test it in the registry's test file against the page you cited (values at level 1 and 18, or per rank). An amount read from a tooltip line is tested against the current patch's data (`public/data`), so a sync that renames or changes the line fails the tests.
@@ -259,20 +259,48 @@ A champion's forms (Mini and Mega Gnar, Shyvana's Dragon, Jinx's Rockets) are a 
 - **The form keeps its fixed part**, curated in `scripts/sync-data/overrides/champion-forms.ts` (README, Data overrides): attack type, the growth stats it replaces, its level states. `formStats` applies it in evaluation step 1.
 - **What varies is an effect bound to the form**, in the effects registry: a bonus by ability rank (Shyvana's Dragon health), by champion level (Jayce's Hammer resistances) or by another stat (Bel'Veth's 150% bonus AD as health) is an effect with `form: "<form id>"`. `computeBuildStats` puts the selected form in the effects' context, and `activeEffects` keeps a form-bound effect only in its form, so `whatIf({ form })` and the form's delta chips include it with no form code. Its row in the Effects list shows only while the form is selected, under the form's name; an `always` one is an informational row ("While in this form").
 - **A form may need an ability point:** `requires: { slot, minRank }`. Until the skills reach it, `selectedForm` falls back to the default form (stats, champion state and link), the toggle keeps the form visible but disabled with the reason (`formLocks`: "Learn R to unlock Dragon"), and the form is not compared. While the ranks load, nothing is locked.
-- **A form shows its own abilities** (Cannon Jayce's Shock Blast, Cougar Nidalee's Takedown) or its own look of the ones it keeps (Jinx's Pow-Pow and Fishbones Q, Jayce's cannon passive icon): the synced `abilities.forms.<form id>` holds them by slot, passive included (README, Game data). The composer derives `abilities` with `abilitiesInForm` (`lib/form-abilities.ts`) for the selected form, and the page passes them to the skills row and the Skills tab, so the names, icons, rank-up tooltips and per-rank tables follow the form while the skills feature knows nothing of forms. Ranks, the skill order and the `skills` link stay per slot. An effect bound to a form reads that form's ability in its slot (`spellInForm`: its row's name and `rankValue` lines); an unbound one reads the default form's. An ability the form can't cast (Mini Gnar's GNAR!, dismounted Kled's W, E and R) carries `unavailable.reason`: the skills row, its tooltip and the Skills tab card say it (icon, text and accessible description, not color only), and its points stay spendable and counted per slot. The combo timeline (stage 2) reads the same flag to refuse the cast.
+- **A form shows its own abilities** (Cannon Jayce's Shock Blast, Cougar Nidalee's Takedown) or its own look of the ones it keeps (Jinx's Pow-Pow and Fishbones Q, Jayce's cannon passive icon): the synced `abilities.forms.<form id>` holds them by slot, passive included (README, Game data). The composer derives `abilities` with `abilitiesInForm` (`lib/form-abilities.ts`) for the selected form, and the page passes them to the skills row and the Skills tab, so the names, icons, rank-up tooltips and per-rank tables follow the form while the skills feature knows nothing of forms. Ranks, the skill order and the `skills` link stay per slot. An effect bound to a form reads that form's ability in its slot (`spellInForm`: its row's name and `rankValue` lines); an unbound one reads the default form's. An ability the form can't cast (Mini Gnar's GNAR!, dismounted Kled's W, E and R) carries `unavailable.reason`: the skills row, its tooltip and the Skills tab card say it (icon, text and accessible description, not color only), and its points stay spendable and counted per slot. The combat simulator reads the same flag to refuse the cast ([Combat](#combat)).
 - **Dependencies are injected:** the composer passes the skills' ranks to `useChampionState` and the selected form to `useConditions`; no feature imports another.
 
 **Adding a form:** a `defineForms` entry (its `id` is the link value; the first form is the default, with only names), `requires` when it needs a point, then one registry entry per varying bonus with `form` set, its numbers from the synced tooltip lines where they exist (`rankValue`) or the wiki (`sourceUrl`), tested at a few ranks and levels against the current patch data (`ability-effects.test.ts`). A registry test checks that every form-bound effect names a form its champion has.
 
-### Stage 2: the combo timeline (design)
+## Combat
 
-The combo builder (issue 69) simulates a sequence of actions: basic attacks, Q/W/E/R, summoner spells and waits. It reuses this model unchanged:
+The combo simulator (issue 265, stage 2) runs a sequence of actions against a target that doesn't react and reports the damage, the time to kill and the effects running at each step. It is one pure function, `simulateCombat`, and reuses the effect model unchanged: the same registries, evaluator, stacking groups and patch ranges.
 
-- **State:** time, the active effects with their end times, marks on the target, cooldowns and stacks.
-- **Events:** each action emits events (`on-cast`, `on-hit`, `after-ability`, `after-summoner`, `target-marked`, `mark-consumed`). An effect whose trigger matches an event starts with its `duration`. An effect with `endsOn` stops when its event happens. `cooldown` and `stacks` gate it.
-- **Each step's stats** are `computeBuildStats` with the effects active at that moment. Active comes from the event history instead of the switches; it is the same evaluator.
-- **Damage** grants (spellblade, already registered) resolve their `ratios` against that step's stats.
-- New trigger kinds (`on-cast`, `target-marked`, `mark-consumed`) and the simulator, another pure function, are the only additions.
+```
+lib/combat/
+├── combat.ts               CombatAction, CombatTarget, CombatEvent, CombatStep, CombatResult
+├── simulate-combat.ts      simulateCombat({ build, effects, summoners, target, actions }, { hitRules })
+├── damage-formula.ts       evaluateDamage (a synced DamageFormula at the rank, level and stats), abilityCooldown
+├── mitigation.ts           effectiveResist, damageMultiplier, mitigate
+├── curated-champions.ts    CURATED_COMBAT_CHAMPIONS: the champions v1 supports
+└── registries/
+    └── ability-hits.ts     ABILITY_HIT_RULES: how a cast hits when its tooltip's first damage isn't the whole story
+```
+
+- **Actions:** `attack`; `ability` (a slot of the selected form, `abilitiesInForm`); `summoner` (a slot); `wait` (seconds). An ability without a point, one its form can't cast (`unavailable`, issue 314) or one on cooldown is refused with the reason, and the sequence goes on.
+- **Timing:** an attack takes 1 / attack speed and waits for the attack timer; an ability takes its synced `castTime` (none means instant); a summoner spell is instant. No projectile travel or animation cancel. Ability cooldowns are the synced ones × 100 / (100 + ability haste); summoner spells keep theirs (`spellCooldown`).
+- **State:** the time, the cooldowns, the next attack time, the effects running (on the attacker or the target) with their end time and stacks, the target's health and marks.
+- **Events**, in order: `cast`, `hit` (a number, or `notModeled` with the reasons), `on-hit`, `mark-applied`, `mark-consumed`, `expire` (an effect or a mark). Each step owns the events from its action until the next one starts, so a burn's later ticks show in the step that cast it.
+- **Starting state (decision 7):** each effect's trigger default (`isOnByDefault`): `always` and `while` effects run, event effects don't. The stats panel's switches never reach the combo, and the combo never changes them; only the build and the match state are shared.
+- **Each moment's stats** are `computeBuildStats` with the effects running on the attacker (`overrides` from the running set, `stacks` by effect id), so the evaluation order, stacking groups and soft caps are the panel's.
+
+### What a hit does
+
+- **A basic attack:** its total attack damage (physical, no critical strikes yet), then `on-hit`, then the marks attacks consume.
+- **An ability's cast:** the effects it triggers (`after-ability`, `after-use` of that ability, `on-cast` of its slot), then its hit, then the marks those effects apply. The hit is the tooltip's first synced damage, or what its `ABILITY_HIT_RULES` entry says: another damage by name, none (`damage: null`: Essence Flux only marks), `onHit` (Mystic Shot spends a spellblade) or `notModeled` with the reason (Veigar's R grows with missing health). An ability's hit consumes the marks abilities do.
+- **On-hit:** the `on-hit` effects trigger (Rev'd up gains a stack), then each running effect with `endsOn: "on-hit"` deals its `damage` grant and ends (a spellblade).
+- **A summoner spell:** its `after-use` effects and the `after-summoner` effects bound to it (Nimbus Cloak).
+- **Damage:** `abilityDamage` deals the source ability's synced formula by name when the effect triggers (Harrier's bonus damage); `damage` deals ratios of the attacker's stats when spent; `damageOverTime` deals its amount every `every` seconds while it runs, the first tick at the start (Ignite). Each is mitigated: armor or magic resist after flat reduction, percent reduction, percent penetration, then lethality and flat penetration (wiki "Armor penetration"), × 100 / (100 + R), or × (2 − 100 / (100 − R)) below 0. True damage is not mitigated.
+- **Triggers and ends:** `on-cast` (`slots`, any ability without them) and `on-mark-consumed` (`mark`) start an effect. `applies: { mark, duration, consumedBy }` marks the target; the mark lasts `duration` and is consumed by an attack or an ability's hit (`consumedBy`). `endsOn` ends an effect early: `attack`, `cast` (Viego's E, Rengar's R) or `on-hit`; its `cooldown` then starts from that moment instead of the trigger (a spellblade's 1.5 s starts when spent). Re-triggering a running effect refreshes it and adds a stack up to `stacks.max`; the stats scale by stacks / max.
+
+### Adding a champion to the combo
+
+1. Check the coverage report of the sync PR: every damage of the kit must be modeled (`bun run sync-data --coverage-report <file>`).
+2. Check each ability's synced formula and cast time against the wiki; a cast time the wiki disagrees with goes in `champion-cast-times.ts` (README, Data overrides).
+3. Add an `ABILITY_HIT_RULES` entry for each ability whose cast doesn't simply deal its first damage, and an effect in `lib/effects/registries/` for each mechanic (a mark and what consuming it does, an empowered next attack with `endsOn: "on-hit"`). A new mechanic is a type plus one evaluator case, never a check on an id.
+4. Add the champion to `CURATED_COMBAT_CHAMPIONS`; its test checks the current patch reads its whole kit.
 
 ## Where does new code go
 

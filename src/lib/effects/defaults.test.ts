@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { isOnByDefault, isSwitchable } from "./defaults"
+import { isListed, isOnByDefault, isSwitchable } from "./defaults"
 import type { Effect, Trigger } from "./effect"
 
 function effect(trigger: Trigger, defaultOn?: boolean): Effect {
@@ -33,6 +33,10 @@ describe("isOnByDefault", () => {
 		] as const) {
 			expect(isOnByDefault(effect({ kind }))).toBe(false)
 		}
+		expect(isOnByDefault(effect({ kind: "on-cast" }))).toBe(false)
+		expect(
+			isOnByDefault(effect({ kind: "on-mark-consumed", mark: "test" })),
+		).toBe(false)
 	})
 
 	test("an explicit default wins over the trigger's", () => {
@@ -50,5 +54,18 @@ describe("isSwitchable", () => {
 			),
 		).toBe(true)
 		expect(isSwitchable(effect({ kind: "after-use" }))).toBe(true)
+	})
+})
+
+describe("isListed", () => {
+	test("the stats panel leaves out what only a combat sequence fires, and what the target holds", () => {
+		expect(isListed(effect({ kind: "after-use" }))).toBe(true)
+		expect(isListed(effect({ kind: "on-cast", slots: ["Q"] }))).toBe(false)
+		expect(isListed(effect({ kind: "on-mark-consumed", mark: "test" }))).toBe(
+			false,
+		)
+		expect(
+			isListed({ ...effect({ kind: "after-use" }), holder: "target" }),
+		).toBe(false)
 	})
 })

@@ -25,6 +25,8 @@ import { shardStatsInput } from "./rune-shards"
 export type BuildEffectsInput = {
 	available: readonly BuildEffect[]
 	overrides: EffectOverrides
+	/** Stacks by effect id, from a combat sequence; absent means each effect at all its stacks. */
+	stacks?: Readonly<Record<string, number>>
 }
 
 export type BuildStatsInput = {
@@ -75,6 +77,7 @@ function evaluateBuild({
 		gameTime,
 		adaptiveType: itemsAdaptiveType(champion.adaptiveType, items),
 		form: selectedForm(champion.forms, form, { ranks })?.id,
+		...(effects.stacks && { stacks: effects.stacks }),
 	}
 	const active = activeEffects(effects.available, effects.overrides, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)

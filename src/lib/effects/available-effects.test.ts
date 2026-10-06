@@ -8,6 +8,7 @@ import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import {
 	availableEffects,
+	combatEffects,
 	EFFECT_REGISTRIES,
 	type EffectsBuild,
 } from "./available-effects"
@@ -243,5 +244,39 @@ describe("the registries", () => {
 			expect(rules.size).toBe(1)
 			expect(new Set(priorities).size).toBe(priorities.length)
 		}
+	})
+})
+
+describe("combatEffects", () => {
+	const quinn: EffectsBuild = {
+		...build,
+		champion: {
+			key: "Quinn",
+			abilities: {
+				passive: { name: "Harrier", icon: "harrier.png" },
+				spells: [{ slot: "W", name: "Heightened Senses", icon: "w.png" }],
+			},
+		},
+		spells: [spell("SummonerDot", "Ignite")],
+		runes: [],
+		items: [{ id: "3078", name: "Trinity Force", icon: "trinity.png" }],
+	}
+
+	test("binds a passive's effects, the chosen items' and the target's, which the stats panel leaves out", () => {
+		expect(ids(combatEffects(quinn))).toEqual([
+			"quinn-harrier-mark",
+			"quinn-harrier",
+			"quinn-w-passive",
+			"ignite",
+			"trinity-force-spellblade",
+		])
+		expect(ids(availableEffects(quinn))).toEqual([])
+	})
+
+	test("a passive's effect is named after the passive", () => {
+		const [harrier] = combatEffects(quinn)
+
+		expect(harrier).toMatchObject({ name: "Harrier", icon: "harrier.png" })
+		expect(harrier?.slot).toBeUndefined()
 	})
 })

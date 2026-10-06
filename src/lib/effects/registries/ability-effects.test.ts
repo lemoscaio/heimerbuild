@@ -10,7 +10,7 @@ import { normalizeChampion } from "../../../../scripts/sync-data/normalize-champ
 import { computeBuildStats } from "../../stats/compute-build-stats"
 import type { ComputedStats, StatName } from "../../stats/compute-stats"
 import { softCapMovementSpeed } from "../../stats/movement-speed"
-import { availableEffects } from "../available-effects"
+import { availableEffects, combatEffects } from "../available-effects"
 import { type EffectContext, effectDuration, resolveGrants } from "../evaluate"
 import { ABILITY_EFFECTS } from "./ability-effects"
 
@@ -714,5 +714,47 @@ describe("form-bound effects", () => {
 			expect(champion.forms?.map((entry) => entry.id)).toContain(form)
 		}
 		expect(bound.length).toBeGreaterThan(0)
+	})
+})
+
+describe("combat-only ability effects", () => {
+	test("Heightened Senses' passive grants 28% to 80% attack speed and 20% to 40% move speed (wiki)", async () => {
+		const quinn = await currentChampion("Quinn")
+		const speeds = [1, 5].map((rank) => {
+			const effect = combatEffects({
+				patch: PATCH,
+				champion: quinn,
+				ranks: ranksWith("W", rank),
+				spells: [],
+				runes: [],
+			}).find(({ id }) => id === "quinn-w-passive")
+			if (!effect) throw new Error("quinn-w-passive is not available")
+			return resolveGrants(effect, {
+				level: 9,
+				ranks: ranksWith("W", rank),
+			}).map(({ value }) => value)
+		})
+
+		expect(speeds[0]?.[0]).toBeCloseTo(0.28)
+		expect(speeds[0]?.[1]).toBeCloseTo(0.2)
+		expect(speeds[1]?.[0]).toBeCloseTo(0.8)
+		expect(speeds[1]?.[1]).toBeCloseTo(0.4)
+	})
+
+	test("the damage they deal names a damage the current patch syncs for the ability", async () => {
+		for (const effect of ABILITY_EFFECTS) {
+			const { source } = effect
+			if (source.kind !== "ability") continue
+			for (const grant of effect.grants) {
+				if (grant.kind !== "abilityDamage") continue
+				const { abilities } = await currentChampion(source.championKey)
+				const damage =
+					grant.ability === "passive"
+						? abilities.passive.damage
+						: abilities.spells.find(({ slot }) => slot === grant.ability)
+								?.damage
+				expect(damage?.map(({ name }) => name)).toContain(grant.name)
+			}
+		}
 	})
 })

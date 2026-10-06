@@ -25,9 +25,7 @@ export function boostSlots({
 	cooldown,
 }: Effect): AbilitySlot[] {
 	const amounts = [
-		...grants.flatMap((grant) =>
-			grant.kind === "damage" ? [] : [grant.amount],
-		),
+		...grants.flatMap((grant) => ("amount" in grant ? [grant.amount] : [])),
 		...(duration === undefined ? [] : [duration]),
 		...(cooldown === undefined ? [] : [cooldown]),
 	]
