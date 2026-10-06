@@ -68,8 +68,8 @@ export const buildSearchSchema = z.object({
 	),
 	/** Page layout: the expanded shop; absent means the overview. */
 	view: z.catch(z.optional(z.literal("shop")), undefined),
-	/** Open center tab: the rune page or the skills; absent means the items. */
-	tab: z.catch(z.optional(z.enum(["runes", "skills"])), undefined),
+	/** Open center tab: the rune page, the skills or the combo; absent means the items. */
+	tab: z.catch(z.optional(z.enum(["runes", "skills", "combo"])), undefined),
 	/** The champion's form (`mega`); an id the champion does not have means its default form. */
 	form: z.catch(
 		z.optional(z.string().check(z.regex(FORM_ID_PATTERN))),
@@ -115,7 +115,7 @@ export function readBuildSearch(search: RawBuildSearch): BuildSearch {
 
 export type BuildView = "overview" | "shop"
 
-export type BuildTab = "items" | "runes" | "skills"
+export type BuildTab = "items" | "runes" | "skills" | "combo"
 
 export type BuildState = {
 	level: number

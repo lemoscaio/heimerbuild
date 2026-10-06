@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export type MobileTab = "stats" | "shop" | "runes" | "skills"
+export type MobileTab = "stats" | "shop" | "runes" | "skills" | "combo"
 
 type MobileLayoutProps = {
 	/** Champion, level and build slots, above the tabs. */
@@ -11,13 +11,14 @@ type MobileLayoutProps = {
 	shop: React.ReactNode
 	runes: React.ReactNode
 	skills: React.ReactNode
+	combo: React.ReactNode
 	/** Touch or focus on the Runes tab, before it opens (preloads its images). */
 	onRunesIntent?: () => void
 	/** Pinned to the bottom of the screen: item details and page actions. */
 	bottom: React.ReactNode
 }
 
-/** The champion page below `lg`: the build on top, then Stats | Shop | Runes | Skills tabs. */
+/** The champion page below `lg`: the build on top, then Stats | Shop | Runes | Skills | Combo tabs. */
 export function MobileLayout({
 	top,
 	tab,
@@ -26,6 +27,7 @@ export function MobileLayout({
 	shop,
 	runes,
 	skills,
+	combo,
 	onRunesIntent,
 	bottom,
 }: MobileLayoutProps) {
@@ -38,24 +40,27 @@ export function MobileLayout({
 					value={tab}
 					onValueChange={(value: MobileTab) => onTabChange(value)}
 				>
-					<TabsList className="grid w-full grid-cols-4">
-						<TabsTrigger value="stats" className="h-11">
+					<TabsList className="grid w-full grid-cols-5">
+						<TabsTrigger value="stats" className="h-11 px-1">
 							Stats
 						</TabsTrigger>
-						<TabsTrigger value="shop" className="h-11">
+						<TabsTrigger value="shop" className="h-11 px-1">
 							Shop
 						</TabsTrigger>
 						<TabsTrigger
 							value="runes"
-							className="h-11"
+							className="h-11 px-1"
 							onPointerEnter={onRunesIntent}
 							onPointerDown={onRunesIntent}
 							onFocus={onRunesIntent}
 						>
 							Runes
 						</TabsTrigger>
-						<TabsTrigger value="skills" className="h-11">
+						<TabsTrigger value="skills" className="h-11 px-1">
 							Skills
+						</TabsTrigger>
+						<TabsTrigger value="combo" className="h-11 px-1">
+							Combo
 						</TabsTrigger>
 					</TabsList>
 					<TabsContent value="stats" keepMounted>
@@ -66,6 +71,7 @@ export function MobileLayout({
 					</TabsContent>
 					<TabsContent value="runes">{runes}</TabsContent>
 					<TabsContent value="skills">{skills}</TabsContent>
+					<TabsContent value="combo">{combo}</TabsContent>
 				</Tabs>
 			</div>
 			{/* Sticky, not fixed: it parks at the end of the page, so the site footer below stays visible. */}
