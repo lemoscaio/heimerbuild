@@ -8,7 +8,7 @@ import type { CombatListItem, CombatStepItem } from "../hooks/use-combat-view"
 import { useStepReorder } from "../hooks/use-step-reorder"
 import { actionLabel } from "../lib/combat-format"
 import { WAIT_SECONDS } from "../lib/combat-sequence"
-import { outcomeChoice } from "../lib/combat-view"
+import { outcomeChoice, strictOutcomeViews } from "../lib/combat-view"
 import { CombatActionIcon } from "./combat-action-icon"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
@@ -69,7 +69,7 @@ function StepOutcomes({
 }) {
 	if (step.refused) return null
 	if (mode.kind === "strict")
-		return <CombatOutcomeChips outcomes={step.outcomes} />
+		return <CombatOutcomeChips outcomes={strictOutcomeViews(step.outcomes)} />
 	return (
 		<CombatOutcomeChoices
 			outcomes={step.outcomes}
