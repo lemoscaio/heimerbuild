@@ -14,7 +14,7 @@ import {
 	normalizeChampion,
 	writeChampions,
 } from "./normalize-champions"
-import { defineChampionOverride } from "./overrides/champion-overrides"
+import { defineChampionOverride } from "./overrides/define-champion-overrides"
 import { championSchema } from "./schemas/champion"
 
 // Fixtures are trimmed copies of the Data Dragon 16.19.1 / CommunityDragon 16.19 cache.
