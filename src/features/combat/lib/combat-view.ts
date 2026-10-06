@@ -59,9 +59,15 @@ export function combatNames({
 	}
 }
 
-/** One hit of a step, as its card lists it. */
+/** A step's hits from one source and of one type, as its card lists them (Ignite's 5 ticks are one line). */
 export type HitView =
-	| { name: string; type: DamageType; raw: number; final: number }
+	| {
+			name: string
+			type: DamageType
+			raw: number
+			final: number
+			count: number
+	  }
 	| { name: string; notModeled: readonly string[] }
 
 /** What a step's card shows: its hits and total, the marks it moved and the effects running after it. */
@@ -75,19 +81,34 @@ export type StepView = {
 	healthShare: number
 }
 
-function hitView(event: CombatEvent, names: CombatNames): HitView[] {
-	if (event.kind !== "hit") return []
-	const name = names.source(event.source)
-	return "damage" in event
-		? [{ name, ...event.damage }]
-		: [{ name, notModeled: event.notModeled }]
+/** The step's hits, those of one source and type added up into one line. */
+function hitViews(events: readonly CombatEvent[], names: CombatNames) {
+	const views: HitView[] = []
+	for (const event of events) {
+		if (event.kind !== "hit") continue
+		const name = names.source(event.source)
+		if (!("damage" in event)) {
+			views.push({ name, notModeled: event.notModeled })
+			continue
+		}
+		const { type, raw, final } = event.damage
+		const same = views.find(
+			(view) => "type" in view && view.name === name && view.type === type,
+		)
+		if (same && "type" in same) {
+			same.raw += raw
+			same.final += final
+			same.count++
+		} else views.push({ name, type, raw, final, count: 1 })
+	}
+	return views
 }
 
 export function stepView(
 	step: CombatStep,
 	{ names, target }: { names: CombatNames; target: CombatTarget },
 ): StepView {
-	const hits = step.events.flatMap((event) => hitView(event, names))
+	const hits = hitViews(step.events, names)
 	const total = { raw: 0, final: 0 }
 	const byType = new Map<DamageType, number>()
 	for (const hit of hits) {
@@ -96,7 +117,10 @@ export function stepView(
 		total.final += hit.final
 		byType.set(hit.type, (byType.get(hit.type) ?? 0) + hit.final)
 	}
-	const mainType = [...byType].sort(([, a], [, b]) => b - a)[0]?.[0]
+	let mainType: DamageType | undefined
+	for (const [type, final] of byType) {
+		if (!mainType || final > (byType.get(mainType) ?? 0)) mainType = type
+	}
 	return {
 		hits,
 		total,
@@ -115,7 +139,13 @@ export function stepView(
 				: [],
 		),
 		effects: [
-			...new Set(step.active.map(({ effectId }) => names.effect(effectId))),
+			...new Set(
+				step.active.map(({ effectId, holder }) =>
+					holder === "target"
+						? `${names.effect(effectId)} on the target`
+						: names.effect(effectId),
+				),
+			),
 		],
 		healthShare: step.targetHealth / target.health,
 	}

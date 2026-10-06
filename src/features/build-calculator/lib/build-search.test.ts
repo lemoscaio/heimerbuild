@@ -57,9 +57,10 @@ describe("buildSearchSchema", () => {
 		expect(parse({ view: 1 }).view).toBeUndefined()
 	})
 
-	test("accepts the runes and skills tabs and drops any other tab", () => {
+	test("accepts the runes, skills and combo tabs and drops any other tab", () => {
 		expect(parse({ tab: "runes" }).tab).toBe("runes")
 		expect(parse({ tab: "skills" }).tab).toBe("skills")
+		expect(parse({ tab: "combo" }).tab).toBe("combo")
 		expect(parse({ tab: "items" }).tab).toBeUndefined()
 		expect(parse({ tab: "masteries" }).tab).toBeUndefined()
 		expect(parse({ tab: 1 }).tab).toBeUndefined()

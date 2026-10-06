@@ -23,6 +23,11 @@
 	--color-success: #9fbf00;
 	--color-warning: #e3b95f;
 	--color-error: #f2727f;
+	/* Damage types and the target's health in the combo; each 4.5:1 or more on the page. */
+	--color-physical: #e08a3c;
+	--color-magic: #6aa8ff;
+	--color-true-damage: #f3f1fb;
+	--color-health: #5fb87a;
 
 	/* Rune tree accents, as in the game client. */
 	--color-precision: #c8aa6e;
