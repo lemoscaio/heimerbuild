@@ -299,6 +299,21 @@ describe("resolveAmount, champion level steps", () => {
 	})
 })
 
+describe("resolveAmount, by attack type", () => {
+	// Hail of Blades: 90% bonus attack speed for melee champions, 60% for ranged (wiki).
+	const amount = { by: "attackType", melee: 0.9, ranged: 0.6 } as const
+
+	test("reads the value of the champion's attack type, and nothing without one", () => {
+		const at = (attackType?: "melee" | "ranged") =>
+			resolveAmount(amount, malphiteW, {
+				level: 9,
+				...(attackType && { attackType }),
+			})
+
+		expect([at("melee"), at("ranged"), at()]).toEqual([0.9, 0.6, undefined])
+	})
+})
+
 describe("resolveAmount, amounts that read the build", () => {
 	test("a rank value reads the ability's synced tooltip line at its rank, scaled", () => {
 		expect(resolveAmount(ARMOR_RATIO, malphiteW, context)).toBeCloseTo(0.2)

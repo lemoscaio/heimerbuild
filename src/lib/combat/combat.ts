@@ -1,12 +1,57 @@
 import type { AbilitySlot, DamageType } from "@schemas/champion"
 import type { SummonerSlot } from "../summoner-slots"
 
-/** One step of a combo: a basic attack, an ability of the current form, a summoner spell, or a wait. */
+/**
+ * One step of a combo: a basic attack, an ability of the current form, a summoner spell, or a wait.
+ * An ability may name the `variant` the player picked (Decimate's outer blade or inner handle).
+ */
 export type CombatAction =
 	| { kind: "attack" }
-	| { kind: "ability"; slot: AbilitySlot }
+	| { kind: "ability"; slot: AbilitySlot; variant?: string }
 	| { kind: "summoner"; slot: SummonerSlot }
 	| { kind: "wait"; seconds: number }
+
+/** A point of the combo from which an effect's situation holds (Hail of Blades ready), by effect id. */
+export type SituationMarker = { kind: "situation"; effectId: string }
+
+/** What a combo is made of, in order: its actions and its situation markers. */
+export type CombatItem = CombatAction | SituationMarker
+
+/**
+ * What a marker did. While a use in the combo still has its effect on cooldown (until `readyAt`),
+ * strict mode `ignored` it and free mode `forced` it. `no-effect`: its situation already held, or
+ * the build lacks the effect. `readyAt` on an applied one: when that cooldown had run out.
+ */
+export type SituationStatus =
+	| { status: "applied"; readyAt?: number }
+	| { status: "ignored"; readyAt: number }
+	| { status: "forced"; readyAt: number }
+	| {
+			status: "no-effect"
+			reason: "already-marked" | "already-running" | "unavailable"
+	  }
+
+/**
+ * A result the rules decide at a step, which free mode lets the user set: an effect empowering an
+ * attack (Hail of Blades), a mark applied by a cast, a mark consumed.
+ */
+export type OutcomeKey =
+	| { kind: "empowered"; effectId: string }
+	| { kind: "mark-applied"; mark: string }
+	| { kind: "mark-consumed"; mark: string }
+
+/**
+ * An outcome at a step and whether it happened; `charge` is the attack's place among an effect's
+ * charges (Hail of Blades 2/3), `readyAt` when an effect that didn't empower it comes off cooldown.
+ */
+export type StepOutcome = OutcomeKey & {
+	happened: boolean
+	charge?: { used: number; max: number }
+	readyAt?: number
+}
+
+/** Free mode's outcomes at a step, by `outcomeId`: true makes one happen, false prevents it. */
+export type OutcomeChoices = Readonly<Record<string, boolean>>
 
 /**
  * What the combo is used against: a dummy now, later the opponent's build, in the same shape.
@@ -21,12 +66,12 @@ export type CombatTarget = {
 
 /**
  * What dealt a hit: a basic attack, an ability's synced damage by name, or an effect (spellblade,
- * Ignite); `fromStart` when the effect was running from the combo's starting situation.
+ * Ignite); `fromSituation` when a situation marker set the effect running.
  */
 export type DamageSource =
 	| { kind: "attack" }
 	| { kind: "ability"; slot: AbilitySlot | "passive"; name: string }
-	| { kind: "effect"; effectId: string; fromStart?: true }
+	| { kind: "effect"; effectId: string; fromSituation?: true }
 
 /** A hit's damage before (`raw`) and after (`final`) the target's resistances. */
 export type DealtDamage = { type: DamageType; raw: number; final: number }
@@ -52,8 +97,8 @@ export type CombatEvent =
 	  }
 	| { kind: "on-hit"; time: number }
 	| { kind: "mark-applied"; time: number; mark: string; endsAt: number }
-	/** `fromStart`: the mark was on the target from the combo's starting situation. */
-	| { kind: "mark-consumed"; time: number; mark: string; fromStart?: true }
+	/** `fromSituation`: a situation marker put the mark on the target. */
+	| { kind: "mark-consumed"; time: number; mark: string; fromSituation?: true }
 	| { kind: "expire"; time: number; effectId: string; holder: EffectHolder }
 	| { kind: "expire"; time: number; mark: string }
 
@@ -69,11 +114,17 @@ export type ActiveEffect = {
 
 export type TargetMark = { mark: string; endsAt: number }
 
-/** One action of the combo and what followed it, until the next one started. */
+/**
+ * One item of the combo. An action owns what followed it until the next action started; a marker
+ * owns no events and says what it did (`situation`).
+ */
 export type CombatStep = {
-	action: CombatAction
+	action: CombatItem
 	/** When it ran (an attack waits for the attack timer). */
 	time: number
+	situation?: SituationStatus
+	/** The outcomes the build's effects can have at this action (`outcomeKeys`), and which happened. */
+	outcomes: StepOutcome[]
 	/** Why it did not run; the rest of the combo goes on. */
 	refused?: string
 	events: CombatEvent[]
@@ -91,8 +142,13 @@ export type CombatResult = {
 	/** Damage dealt over the whole combo, by type and in all. */
 	total: DamageTotals
 	byType: Record<DamageType, DamageTotals>
-	/** When the target's health reached 0, and the step it fell in. */
+	/** When the target's health reached 0, and the step it fell in (its index, markers included). */
 	kill?: { time: number; step: number }
-	/** Seconds from the first action until the last event (a burn ticking on). */
+	/**
+	 * The combo's time: when its last damage landed, a burn's ticks after the last action included;
+	 * never an effect running out or the idle time after the last hit. 0 without damage.
+	 */
 	duration: number
+	/** When the last effect or mark still running ran out (Heightened Senses after the last hit). */
+	activeUntil: number
 }

@@ -17,6 +17,7 @@ import {
 	computeStats,
 	type ItemInput,
 } from "./compute-stats"
+import { attackTypeAtLevel } from "./level-states"
 import { capMovementSpeed } from "./movement-speed"
 import type { AbilityRanks } from "./rank-stats"
 import { shardStatsInput } from "./rune-shards"
@@ -30,7 +31,10 @@ export type BuildEffectsInput = {
 }
 
 export type BuildStatsInput = {
-	champion: ChampionInput & Pick<Champion, "adaptiveType">
+	/** With its attack type, which effects' `attackType` amounts read (Hail of Blades). */
+	champion: ChampionInput &
+		Pick<Champion, "adaptiveType"> &
+		Partial<Pick<Champion, "attackType">>
 	/** The build's patch ("16.19.1"): the rules in force on it apply (the movement speed soft caps). */
 	patch: string
 	level: number
@@ -77,6 +81,13 @@ function evaluateBuild({
 		gameTime,
 		adaptiveType: itemsAdaptiveType(champion.adaptiveType, items),
 		form: selectedForm(champion.forms, form, { ranks })?.id,
+		...(champion.attackType && {
+			attackType: attackTypeAtLevel(
+				{ ...champion, attackType: champion.attackType },
+				level,
+				{ form, ranks },
+			),
+		}),
 		...(effects.stacks && { stacks: effects.stacks }),
 	}
 	const active = activeEffects(effects.available, effects.overrides, context)

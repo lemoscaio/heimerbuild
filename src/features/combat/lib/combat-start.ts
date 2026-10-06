@@ -6,6 +6,7 @@ export type CombatStartOption = { id: string; label: string; on: boolean }
 const START_LABELS = {
 	marked: (name) => `Target marked by ${name}`,
 	running: (name) => `${name} ready`,
+	ready: (name) => `${name} ready`,
 } as const satisfies Record<StartOption["kind"], (name: string) => string>
 
 /** "Target marked by Harrier", "Short Fuse ready". */

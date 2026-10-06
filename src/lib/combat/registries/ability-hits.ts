@@ -1,7 +1,17 @@
 import type { AbilitySlot } from "@schemas/champion"
-import type { PatchRange } from "@schemas/patch-range"
+import { isInPatchRange, type PatchRange } from "@schemas/patch-range"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
+
+/**
+ * A way to land a cast the simulator can't know, which the player picks per step: Decimate's outer
+ * blade or inner handle, a rocket fired near or far. `damage` replaces the rule's.
+ */
+export type AbilityVariant = {
+	id: string
+	label: string
+	damage: string | readonly string[]
+}
 
 /**
  * How an ability's cast hits when its tooltip's first damage is not the whole story. Without a
@@ -19,6 +29,8 @@ export type AbilityHitRule = PatchRange & {
 	onHit?: true
 	/** The cast's damage is known not to be simulated, and why; the hit shows that instead of a number. */
 	notModeled?: string
+	/** The ways the cast can land, the first by default; each step picks one (an input, never an outcome). */
+	variants?: readonly AbilityVariant[]
 	sourceUrl: string
 }
 
@@ -117,3 +129,26 @@ export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 		sourceUrl: `${WIKI}Morgana/Tormented_Shadow`,
 	},
 ]
+
+type HitRuleQuery = { championKey: string; patch: string; slot: AbilitySlot }
+
+/** The rule of a champion's ability in force on the patch, if it has one. */
+export function findHitRule(
+	rules: readonly AbilityHitRule[],
+	{ championKey, patch, slot }: HitRuleQuery,
+): AbilityHitRule | undefined {
+	return rules.find(
+		(rule) =>
+			rule.championKey === championKey &&
+			rule.slot === slot &&
+			isInPatchRange(patch, rule),
+	)
+}
+
+/** The ways an ability's cast can land (`variants`), none when the simulator needs no choice. */
+export function abilityVariants(
+	query: HitRuleQuery,
+	rules: readonly AbilityHitRule[] = ABILITY_HIT_RULES,
+): readonly AbilityVariant[] {
+	return findHitRule(rules, query)?.variants ?? []
+}

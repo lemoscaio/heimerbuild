@@ -2,8 +2,8 @@ import type { BuildEffect } from "../effects/effect"
 import { isInForm } from "../effects/evaluate"
 
 /**
- * The starting situations the build supports: its effects that declare a `start` (Harrier's mark,
- * Short Fuse ready) and hold in the champion's form. Their ids are what `CombatInput.start` takes.
+ * The situations the build supports: its effects that declare a `start` (Harrier's mark, Short Fuse
+ * ready, Hail of Blades ready) and hold in the champion's form. A combo marker names one by its id.
  */
 export function combatStartOptions(
 	effects: readonly BuildEffect[],

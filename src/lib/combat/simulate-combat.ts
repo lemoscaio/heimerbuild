@@ -4,12 +4,12 @@ import type {
 	ChampionSpell,
 	DamageType,
 } from "@schemas/champion"
-import { isInPatchRange } from "@schemas/patch-range"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
 	Amount,
 	BuildEffect,
+	DamageRatios,
 	EndsOn,
 	Grant,
 	MarkApplication,
@@ -30,24 +30,32 @@ import {
 	computeBuildStats,
 } from "../stats/compute-build-stats"
 import type { ComputedStats } from "../stats/compute-stats"
+import { attackTypeAtLevel } from "../stats/level-states"
 import { spellCooldown } from "../summoner-rune-interactions"
 import type { SummonerSlot } from "../summoner-slots"
 import type {
 	ActiveEffect,
 	CombatAction,
 	CombatEvent,
+	CombatItem,
 	CombatResult,
 	CombatStep,
 	CombatTarget,
 	DamageSource,
 	DamageTotals,
 	EffectHolder,
+	OutcomeChoices,
+	OutcomeKey,
+	SituationStatus,
+	StepOutcome,
 } from "./combat"
 import { abilityCooldown, evaluateDamage } from "./damage-formula"
 import { mitigate } from "./mitigation"
+import { outcomeChoices, outcomeId, outcomeKeys } from "./outcomes"
 import {
 	ABILITY_HIT_RULES,
 	type AbilityHitRule,
+	findHitRule,
 } from "./registries/ability-hits"
 
 /** The build as the stats engine reads it, with the whole champion (its abilities and their damage). */
@@ -62,9 +70,13 @@ export type CombatInput = {
 	/** The summoner spells by slot. */
 	summoners: readonly (SummonerSpell | undefined)[]
 	target: CombatTarget
-	actions: readonly CombatAction[]
-	/** The starting situation: the ids of the effects whose `start` option is chosen (Harrier's mark). */
-	start?: readonly string[]
+	/** The actions and situation markers, in order (a marker's effect declares a `start`). */
+	actions: readonly CombatItem[]
+	/**
+	 * Free mode: cooldowns don't refuse an action, and `outcomes` (by item, `outcomeId`) set what
+	 * happens; an outcome without a choice follows the rules.
+	 */
+	free?: { outcomes?: readonly (OutcomeChoices | undefined)[] }
 }
 
 export type SimulateCombatOptions = {
@@ -80,14 +92,19 @@ type Instance = {
 	stacks: number
 	/** Ticks of a damage over time dealt so far. */
 	ticks: number
-	/** Running from the combo's starting situation. */
-	fromStart?: true
+	/** The attacks it empowered of its `charges` (Hail of Blades). */
+	charges?: { used: number; max: number }
+	/** Running from a situation marker. */
+	fromSituation?: true
 }
 
 /** A mark and the effect that applied it, whose cooldown may start when it leaves (`cooldownFrom`). */
 type PendingMark = MarkApplication & { by: BuildEffect }
 
-type Mark = PendingMark & { endsAt: number; fromStart?: true }
+type Mark = PendingMark & { endsAt: number; fromSituation?: true }
+
+/** What an `on-attack` effect did for the attack running. */
+type Empowered = Omit<StepOutcome, keyof OutcomeKey>
 
 type Simulation = {
 	input: CombatInput
@@ -112,48 +129,124 @@ type Simulation = {
 	log: CombatEvent[]
 	step: number
 	kill?: { time: number; step: number }
+	/** Free mode: no cooldown refuses an action. */
+	free: boolean
+	/** Free mode's choices for the action running. */
+	forced?: OutcomeChoices
+	/** Where the action running starts in the log, and what its `on-attack` effects did. */
+	actionStart: number
+	empowered: Map<string, Empowered>
+	/** Effects whose cooldown is still the one assumed at the start, not a use in the combo. */
+	assumedCooldowns: Set<string>
 }
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
 type PendingMarks = PendingMark[]
 
-function isPeriodic({ effect }: BuildEffect) {
-	return effect.trigger.kind === "periodic"
+/**
+ * A periodic or situational effect (Valor, Hail of Blades) starts the combo on its cooldown, as if
+ * just used, unless a marker before the first action sets its situation.
+ */
+function startCooldowns(sim: Simulation) {
+	const firstAction = sim.input.actions.findIndex(
+		(item) => item.kind !== "situation",
+	)
+	const leading = new Set(
+		sim.input.actions
+			.slice(0, firstAction === -1 ? undefined : firstAction)
+			.flatMap((item) => (item.kind === "situation" ? [item.effectId] : [])),
+	)
+	for (const effect of sim.input.effects) {
+		const { trigger, start } = effect.effect
+		if (!isInForm(effect, sim.formId) || leading.has(effect.id)) continue
+		if (trigger.kind === "periodic" || start) {
+			startCooldown(sim, effect)
+			sim.assumedCooldowns.add(effect.id)
+		}
+	}
+}
+
+function newInstance(
+	sim: Simulation,
+	effect: BuildEffect,
+	duration: number,
+): Instance {
+	const { holder, charges } = effect.effect
+	return {
+		effect,
+		holder: holder ?? "attacker",
+		startedAt: sim.time,
+		endsAt: sim.time + duration,
+		stacks: 1,
+		ticks: 0,
+		...(charges && { charges: { used: 0, max: charges } }),
+	}
+}
+
+/** Why a marker's situation already holds, if it does: nothing for it to change. */
+function situationHolds(
+	sim: Simulation,
+	effect: BuildEffect,
+): SituationStatus | undefined {
+	const { start, applies } = effect.effect
+	if (start?.kind === "marked") {
+		if (!applies) return { status: "no-effect", reason: "unavailable" }
+		return sim.marks.some(({ mark }) => mark === applies.mark)
+			? { status: "no-effect", reason: "already-marked" }
+			: undefined
+	}
+	return sim.active.some((instance) => instance.effect === effect)
+		? { status: "no-effect", reason: "already-running" }
+		: undefined
 }
 
 /**
- * The chosen starting situation: marks on the target and effects running from 0. A periodic
- * effect not started that way starts on its cooldown, as if it had just been used.
+ * A marker sets its effect's situation from here: its mark on the target, the effect running, or
+ * its cooldown over. While a use in the combo has it on cooldown, strict mode ignores the marker
+ * and free mode forces it; the cooldown assumed at the start blocks nothing.
  */
-function applyStart(sim: Simulation) {
-	const chosen = new Set(sim.input.start ?? [])
-	for (const effect of sim.input.effects) {
-		if (!isInForm(effect, sim.formId)) continue
-		const { start, applies } = effect.effect
-		if (!start || !chosen.has(effect.id)) {
-			if (isPeriodic(effect)) startCooldown(sim, effect)
-			continue
-		}
-		if (start.kind === "marked" && applies) {
+function applySituation(sim: Simulation, effectId: string): SituationStatus {
+	const effect = sim.input.effects.find(({ id }) => id === effectId)
+	const start = effect?.effect.start
+	if (!effect || !start || !isInForm(effect, sim.formId)) {
+		return { status: "no-effect", reason: "unavailable" }
+	}
+	const holds = situationHolds(sim, effect)
+	if (holds) return holds
+	const readyAt = sim.effectsReadyAt.get(effect.id)
+	const assumed = sim.assumedCooldowns.has(effect.id)
+	const blocked = readyAt !== undefined && readyAt > sim.time && !assumed
+	if (blocked && !sim.free) return { status: "ignored", readyAt }
+	const { applies } = effect.effect
+	switch (start.kind) {
+		case "marked":
+			if (!applies) return { status: "no-effect", reason: "unavailable" }
 			sim.marks.push({
 				...applies,
 				by: effect,
-				endsAt: applies.duration,
-				fromStart: true,
+				endsAt: sim.time + applies.duration,
+				fromSituation: true,
 			})
-		}
-		if (start.kind === "running") {
+			break
+		case "running":
 			sim.active.push({
-				effect,
-				holder: effect.effect.holder ?? "attacker",
-				startedAt: 0,
-				endsAt: effectDuration(effect, sim.context) ?? Number.POSITIVE_INFINITY,
-				stacks: 1,
-				ticks: 0,
-				fromStart: true,
+				...newInstance(
+					sim,
+					effect,
+					effectDuration(effect, sim.context) ?? Number.POSITIVE_INFINITY,
+				),
+				fromSituation: true,
 			})
-		}
+			break
+		case "ready":
+			sim.effectsReadyAt.delete(effect.id)
+			sim.assumedCooldowns.delete(effect.id)
+			break
 	}
+	if (blocked) return { status: "forced", readyAt }
+	return readyAt === undefined || assumed
+		? { status: "applied" }
+		: { status: "applied", readyAt }
 }
 
 function createSimulation(
@@ -178,6 +271,7 @@ function createSimulation(
 			gameTime: input.build.gameTime,
 			adaptiveType: itemsAdaptiveType(champion.adaptiveType, items),
 			form: formId,
+			attackType: attackTypeAtLevel(champion, level, { form: formId, ranks }),
 		},
 		time: 0,
 		busyUntil: 0,
@@ -198,8 +292,12 @@ function createSimulation(
 		health: input.target.health,
 		log: [],
 		step: 0,
+		free: !!input.free,
+		actionStart: 0,
+		empowered: new Map(),
+		assumedCooldowns: new Set(),
 	}
-	applyStart(sim)
+	startCooldowns(sim)
 	return sim
 }
 
@@ -316,6 +414,7 @@ function startCooldown(sim: Simulation, effect: BuildEffect) {
 		cooldown === undefined ? undefined : amountNow(sim, cooldown, effect)
 	if (seconds !== undefined) {
 		sim.effectsReadyAt.set(effect.id, sim.time + seconds)
+		sim.assumedCooldowns.delete(effect.id)
 	}
 }
 
@@ -343,15 +442,26 @@ function nextTickAt(instance: Instance): number | undefined {
 	return at < instance.endsAt ? at : undefined
 }
 
+type TriggerOptions = {
+	/** Free mode's choice makes it happen whatever its cooldown. */
+	ignoreCooldown?: boolean
+}
+
 /**
  * Starts an effect whose trigger matched: its mark waits for the hit, an `abilityDamage` lands
  * now (or when an on-hit spends it), and one with a duration runs (or refreshes, one more stack).
  * Its cooldown gates it.
  */
-function trigger(sim: Simulation, effect: BuildEffect, pending: PendingMarks) {
+function trigger(
+	sim: Simulation,
+	effect: BuildEffect,
+	pending: PendingMarks,
+	{ ignoreCooldown = false }: TriggerOptions = {},
+) {
 	if (!isInForm(effect, sim.formId)) return
-	if ((sim.effectsReadyAt.get(effect.id) ?? 0) > sim.time) return
-	const { applies, endsOn, holder, stacks, cooldownFrom } = effect.effect
+	const readyAt = sim.effectsReadyAt.get(effect.id) ?? 0
+	if (readyAt > sim.time && !ignoreCooldown) return
+	const { applies, endsOn, stacks, cooldownFrom } = effect.effect
 	if (applies) pending.push({ ...applies, by: effect })
 	if (endsOn !== "on-hit") {
 		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
@@ -368,14 +478,7 @@ function trigger(sim: Simulation, effect: BuildEffect, pending: PendingMarks) {
 		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
 		return
 	}
-	const instance: Instance = {
-		effect,
-		holder: holder ?? "attacker",
-		startedAt: sim.time,
-		endsAt: sim.time + duration,
-		stacks: 1,
-		ticks: 0,
-	}
+	const instance = newInstance(sim, effect, duration)
 	sim.active.push(instance)
 	if (tickEvery(instance) !== undefined) tick(sim, instance)
 }
@@ -400,6 +503,14 @@ function expire(sim: Simulation, instance: Instance) {
 	})
 }
 
+/** Ends a running effect; one whose cooldown runs from its end (`cooldownFrom: "end"`) starts it now. */
+function end(sim: Simulation, instance: Instance) {
+	expire(sim, instance)
+	if (instance.effect.effect.cooldownFrom === "end") {
+		startCooldown(sim, instance.effect)
+	}
+}
+
 /** Ends the attacker's effects that stop on `reason`; their cooldown starts now. */
 function endEffects(sim: Simulation, reason: EndsOn) {
 	for (const instance of sim.active.filter(
@@ -409,6 +520,29 @@ function endEffects(sim: Simulation, reason: EndsOn) {
 		expire(sim, instance)
 		startCooldown(sim, instance.effect)
 	}
+}
+
+function effectSource(instance: Instance): DamageSource {
+	return {
+		kind: "effect",
+		effectId: instance.effect.id,
+		...(instance.fromSituation && { fromSituation: instance.fromSituation }),
+	}
+}
+
+function ratioDamage(
+	{
+		baseAttackDamage = 0,
+		bonusAttackDamage = 0,
+		abilityPower = 0,
+	}: DamageRatios,
+	stats: ComputedStats,
+) {
+	return (
+		baseAttackDamage * stats.attackDamage.base +
+		bonusAttackDamage * stats.attackDamage.bonus +
+		abilityPower * stats.abilityPower.total
+	)
 }
 
 /** On-hit: the on-hit effects trigger, then each primed effect spent by an on-hit (a spellblade) deals its damage. */
@@ -421,23 +555,16 @@ function onHit(sim: Simulation, pending: PendingMarks) {
 	)
 	for (const instance of spent) {
 		const stats = statsNow(sim)
-		const source: DamageSource = {
-			kind: "effect",
-			effectId: instance.effect.id,
-			...(instance.fromStart && { fromStart: instance.fromStart }),
-		}
+		const source = effectSource(instance)
 		for (const grant of instance.effect.effect.grants) {
 			if (grant.kind === "abilityDamage") {
 				dealAbilityDamage(sim, grant.ability, grant.name, source)
 			}
 			if (grant.kind !== "damage") continue
-			const { baseAttackDamage = 0, abilityPower = 0 } = grant.ratios
 			deal(sim, {
 				source,
 				type: grant.damageType,
-				raw:
-					baseAttackDamage * stats.attackDamage.base +
-					abilityPower * stats.abilityPower.total,
+				raw: ratioDamage(grant.ratios, stats),
 			})
 		}
 		expire(sim, instance)
@@ -445,10 +572,107 @@ function onHit(sim: Simulation, pending: PendingMarks) {
 	}
 }
 
-/** A mark left the target (consumed, expired or overwritten): its applier's cooldown may start now. */
+/** Each running effect's `onAttackDamage`, dealt by a basic attack (Hail of Blades' true damage). */
+function dealOnAttackDamage(sim: Simulation) {
+	for (const instance of sim.active) {
+		if (instance.holder !== "attacker") continue
+		for (const grant of instance.effect.effect.grants) {
+			if (grant.kind !== "onAttackDamage") continue
+			const base =
+				grant.base === undefined
+					? 0
+					: resolveAmount(grant.base, instance.effect, sim.context)
+			const source = effectSource(instance)
+			if (base === undefined) {
+				notModeledHit(sim, source, ["a value it lacks"])
+				continue
+			}
+			deal(sim, {
+				source,
+				type: grant.damageType,
+				raw: base + ratioDamage(grant.ratios, statsNow(sim)),
+			})
+		}
+	}
+}
+
+/** Free mode's choice for an outcome of the action running; undefined follows the rules. */
+function choice(sim: Simulation, key: OutcomeKey): boolean | undefined {
+	return sim.forced?.[outcomeId(key)]
+}
+
+/**
+ * The attack's `on-attack` effects: a running one uses a charge and lasts longer (Hail of Blades
+ * 2/3), a ready one triggers with this attack as its first. Free mode's choice overrides both;
+ * returns the running ones it holds out of this attack.
+ */
+function empowerAttack(sim: Simulation, pending: PendingMarks): Instance[] {
+	const held: Instance[] = []
+	for (const effect of sim.input.effects) {
+		if (effect.effect.trigger.kind !== "on-attack") continue
+		if (!isInForm(effect, sim.formId)) continue
+		const chosen = choice(sim, { kind: "empowered", effectId: effect.id })
+		const find = () => sim.active.find((instance) => instance.effect === effect)
+		const running = find()
+		if (chosen === false) {
+			if (running) held.push(running)
+			sim.active = sim.active.filter((instance) => instance !== running)
+			sim.empowered.set(effect.id, { happened: false })
+			continue
+		}
+		if (!running) {
+			const readyAt = sim.effectsReadyAt.get(effect.id) ?? 0
+			if (readyAt > sim.time && !chosen) {
+				sim.empowered.set(effect.id, { happened: false, readyAt })
+				continue
+			}
+			trigger(sim, effect, pending, { ignoreCooldown: true })
+		}
+		const instance = find()
+		const duration = effectDuration(effect, sim.context)
+		if (instance && duration !== undefined) {
+			instance.endsAt = sim.time + duration
+		}
+		if (instance?.charges) instance.charges.used++
+		sim.empowered.set(effect.id, {
+			happened: !!instance,
+			...(instance?.charges && { charge: { ...instance.charges } }),
+		})
+	}
+	return held
+}
+
+/** Effects whose charges this attack used up end now (Hail of Blades after its third attack). */
+function endSpentCharges(sim: Simulation) {
+	for (const instance of sim.active.filter(
+		({ charges }) => charges && charges.used >= charges.max,
+	)) {
+		end(sim, instance)
+	}
+}
+
+/** A mark leaving the target (consumed, expired or overwritten): its applier's cooldown may start now. */
 function markLeft(sim: Simulation, { mark, by }: Mark) {
 	sim.markClearedAt.set(mark, sim.time)
 	if (by.effect.cooldownFrom === "mark-end") startCooldown(sim, by)
+}
+
+/** The marks free mode consumes though they aren't on the target, as their applier would put them. */
+function chosenMarks(sim: Simulation, by: MarkConsumer): Mark[] {
+	const marks = new Map<string, Mark>()
+	for (const effect of sim.input.effects) {
+		const { applies } = effect.effect
+		if (!applies?.consumedBy.includes(by) || marks.has(applies.mark)) continue
+		if (!isInForm(effect, sim.formId)) continue
+		const onTarget = sim.marks.some(({ mark }) => mark === applies.mark)
+		if (
+			!onTarget &&
+			choice(sim, { kind: "mark-consumed", mark: applies.mark })
+		) {
+			marks.set(applies.mark, { ...applies, by: effect, endsAt: sim.time })
+		}
+	}
+	return [...marks.values()]
 }
 
 function consumeMarks(
@@ -456,15 +680,20 @@ function consumeMarks(
 	by: MarkConsumer,
 	pending: PendingMarks,
 ) {
-	const consumed = sim.marks.filter(({ consumedBy }) => consumedBy.includes(by))
+	const consumed = sim.marks.filter(
+		({ consumedBy, mark }) =>
+			consumedBy.includes(by) &&
+			choice(sim, { kind: "mark-consumed", mark }) !== false,
+	)
+	const chosen = chosenMarks(sim, by)
 	sim.marks = sim.marks.filter((mark) => !consumed.includes(mark))
-	for (const consumedMark of consumed) {
-		const { mark, fromStart } = consumedMark
+	for (const consumedMark of [...consumed, ...chosen]) {
+		const { mark, fromSituation } = consumedMark
 		sim.log.push({
 			kind: "mark-consumed",
 			time: sim.time,
 			mark,
-			...(fromStart && { fromStart }),
+			...(fromSituation && { fromSituation }),
 		})
 		markLeft(sim, consumedMark)
 		triggerWhere(
@@ -473,6 +702,27 @@ function consumeMarks(
 			pending,
 		)
 	}
+}
+
+/** Free mode's choices for the marks the action applies: one prevented, or one its applier adds. */
+function chooseMarks(
+	sim: Simulation,
+	pending: PendingMarks,
+	item: CombatItem,
+): PendingMarks {
+	if (!sim.forced) return pending
+	const kept = pending.filter(
+		({ mark }) => choice(sim, { kind: "mark-applied", mark }) !== false,
+	)
+	for (const key of outcomeKeys(item, sim.input.effects, sim.formId)) {
+		if (key.kind !== "mark-applied" || !choice(sim, key)) continue
+		if (kept.some(({ mark }) => mark === key.mark)) continue
+		const by = sim.input.effects.find(
+			({ effect }) => effect.applies?.mark === key.mark,
+		)
+		if (by?.effect.applies) kept.push({ ...by.effect.applies, by })
+	}
+	return kept
 }
 
 function applyMarks(sim: Simulation, pending: PendingMarks) {
@@ -546,7 +796,7 @@ function nextTimedEvent(
 	for (const instance of sim.active) {
 		consider(nextTickAt(instance), () => tick(sim, instance))
 		if (Number.isFinite(instance.endsAt)) {
-			consider(instance.endsAt, () => expire(sim, instance))
+			consider(instance.endsAt, () => end(sim, instance))
 		}
 	}
 	for (const mark of sim.marks) {
@@ -577,21 +827,29 @@ function advance(sim: Simulation, until: number, options?: AdvanceOptions) {
 	if (Number.isFinite(until)) sim.time = Math.max(sim.time, until)
 }
 
-/** A basic attack: waits for the attack timer, hits, applies on-hit, consumes marks; the next one is 1 / attack speed later. */
-function attack(sim: Simulation) {
+/**
+ * A basic attack: waits for the attack timer, starts its on-attack effects, hits, applies on-hit,
+ * consumes marks; the next one is 1 / attack speed later.
+ */
+function attack(sim: Simulation, item: CombatItem) {
 	advance(sim, Math.max(sim.time, sim.nextAttackAt))
+	sim.actionStart = sim.log.length
 	const pending: PendingMarks = []
 	endEffects(sim, "attack")
+	const held = empowerAttack(sim, pending)
 	deal(sim, {
 		source: { kind: "attack" },
 		type: "physical",
 		raw: statsNow(sim).attackDamage.total,
 	})
+	dealOnAttackDamage(sim)
 	onHit(sim, pending)
 	consumeMarks(sim, "attack", pending)
-	applyMarks(sim, pending)
+	applyMarks(sim, chooseMarks(sim, pending, item))
 	sim.nextAttackAt = sim.time + 1 / statsNow(sim).attackSpeed.total
 	sim.busyUntil = sim.nextAttackAt
+	sim.active.push(...held)
+	endSpentCharges(sim)
 }
 
 function round(seconds: number) {
@@ -600,25 +858,35 @@ function round(seconds: number) {
 
 function hitRule(sim: Simulation, slot: AbilitySlot) {
 	const { champion, patch } = sim.input.build
-	return sim.hitRules.find(
-		(rule) =>
-			rule.championKey === champion.key &&
-			rule.slot === slot &&
-			isInPatchRange(patch, rule),
-	)
+	return findHitRule(sim.hitRules, {
+		championKey: champion.key,
+		patch,
+		slot,
+	})
 }
 
-/** The tooltip damages a cast deals: its rule's (one, several or none), else the tooltip's first. */
+function damageNames(damage: string | readonly string[] | null) {
+	if (damage === null) return []
+	return typeof damage === "string" ? [damage] : damage
+}
+
+/**
+ * The tooltip damages a cast deals: its chosen variant's (the first by default), its rule's (one,
+ * several or none), else the tooltip's first.
+ */
 function castDamages(
 	spell: ChampionSpell,
 	rule: AbilityHitRule | undefined,
+	variant: string | undefined,
 ): readonly string[] {
+	const variants = rule?.variants ?? []
+	const chosen = variants.find(({ id }) => id === variant) ?? variants[0]
+	if (chosen) return damageNames(chosen.damage)
 	if (rule?.damage === undefined) {
 		const first = spell.damage?.[0]?.name
 		return first ? [first] : []
 	}
-	if (rule.damage === null) return []
-	return typeof rule.damage === "string" ? [rule.damage] : rule.damage
+	return damageNames(rule.damage)
 }
 
 /** The cast's hits, one per damage it deals; it may apply on-hit, and it consumes the marks abilities do. */
@@ -626,9 +894,10 @@ function abilityHit(
 	sim: Simulation,
 	spell: ChampionSpell,
 	pending: PendingMarks,
+	variant: string | undefined,
 ) {
 	const rule = hitRule(sim, spell.slot)
-	const names = castDamages(spell, rule)
+	const names = castDamages(spell, rule, variant)
 	if (rule?.notModeled) {
 		notModeledHit(
 			sim,
@@ -651,7 +920,7 @@ function abilityHit(
 	consumeMarks(sim, "ability", pending)
 }
 
-/** Why an ability can't be cast now; undefined when it can. */
+/** Why an ability can't be cast now; undefined when it can. Free mode ignores its cooldown. */
 function abilityRefusal(
 	sim: Simulation,
 	spell: ChampionSpell,
@@ -660,7 +929,7 @@ function abilityRefusal(
 	if (rank < 1) return `${spell.name} has no point yet`
 	if (spell.unavailable) return spell.unavailable.reason
 	const readyAt = sim.cooldowns.get(spell.slot) ?? 0
-	if (readyAt > sim.time) {
+	if (readyAt > sim.time && !sim.free) {
 		return `${spell.name} is on cooldown until ${round(readyAt)} s`
 	}
 	return undefined
@@ -677,7 +946,11 @@ function reduceCooldownsOnCast(sim: Simulation) {
 	}
 }
 
-function castAbility(sim: Simulation, slot: AbilitySlot): string | undefined {
+function castAbility(
+	sim: Simulation,
+	action: Extract<CombatAction, { kind: "ability" }>,
+): string | undefined {
+	const { slot } = action
 	const spell = sim.spells.find((ability) => ability.slot === slot)
 	const rank = sim.input.build.ranks?.[slot] ?? 0
 	if (!spell) return `No ability in ${slot}`
@@ -702,8 +975,8 @@ function castAbility(sim: Simulation, slot: AbilitySlot): string | undefined {
 				effect.source.slot === slot),
 		pending,
 	)
-	abilityHit(sim, spell, pending)
-	applyMarks(sim, pending)
+	abilityHit(sim, spell, pending, action.variant)
+	applyMarks(sim, chooseMarks(sim, pending, action))
 	const cooldown = spell.cooldown[rank - 1] ?? 0
 	sim.cooldowns.set(
 		slot,
@@ -718,7 +991,7 @@ function castSummoner(sim: Simulation, slot: SummonerSlot): string | undefined {
 	if (!spell) return "No summoner spell in this slot"
 	const key = `summoner-${slot}`
 	const readyAt = sim.cooldowns.get(key) ?? 0
-	if (readyAt > sim.time) {
+	if (readyAt > sim.time && !sim.free) {
 		return `${spell.name} is on cooldown until ${round(readyAt)} s`
 	}
 	const pending: PendingMarks = []
@@ -743,12 +1016,14 @@ function castSummoner(sim: Simulation, slot: SummonerSlot): string | undefined {
 
 /** Runs one action; returns why it was refused, if it was. */
 function run(sim: Simulation, action: CombatAction): string | undefined {
+	sim.actionStart = sim.log.length
+	sim.empowered.clear()
 	switch (action.kind) {
 		case "attack":
-			attack(sim)
+			attack(sim, action)
 			return undefined
 		case "ability":
-			return castAbility(sim, action.slot)
+			return castAbility(sim, action)
 		case "summoner":
 			return castSummoner(sim, action.slot)
 		case "wait":
@@ -756,6 +1031,33 @@ function run(sim: Simulation, action: CombatAction): string | undefined {
 			advance(sim, sim.time + action.seconds)
 			return undefined
 	}
+}
+
+/** The outcomes the action could have, and which happened while it ran. */
+function stepOutcomes(
+	sim: Simulation,
+	action: CombatAction,
+	refused: string | undefined,
+): StepOutcome[] {
+	const events = sim.log.slice(sim.actionStart)
+	const happened = (key: OutcomeKey): Empowered => {
+		if (refused) return { happened: false }
+		switch (key.kind) {
+			case "empowered":
+				return sim.empowered.get(key.effectId) ?? { happened: false }
+			case "mark-applied":
+			case "mark-consumed":
+				return {
+					happened: events.some(
+						(event) => event.kind === key.kind && event.mark === key.mark,
+					),
+				}
+		}
+	}
+	return outcomeKeys(action, sim.input.effects, sim.formId).map((key) => ({
+		...key,
+		...happened(key),
+	}))
 }
 
 function snapshot(sim: Simulation): Pick<CombatStep, "active" | "marks"> {
@@ -797,7 +1099,8 @@ function totals(events: readonly CombatEvent[]) {
 /**
  * Simulates a combo against a target that doesn't react: each action in order, with the stats of
  * the moment (`computeBuildStats` with the effects running then), the events it causes and the
- * damage after mitigation. Pure; see docs/frontend-architecture.md, Combat.
+ * damage after mitigation; each marker sets its situation from its place. Pure; see
+ * docs/frontend-architecture.md, Combat.
  */
 export function simulateCombat(
 	input: CombatInput,
@@ -806,39 +1109,92 @@ export function simulateCombat(
 	const sim = createSimulation(input, hitRules)
 	const steps: CombatStep[] = []
 	let logged = 0
-	// A step owns what happens from its action until the next one starts (a burn ticking on).
+	// An action owns what happens from it until the next action starts (a burn ticking on); markers own nothing.
 	const closeStep = () => {
-		const last = steps.at(-1)
+		const last = steps.findLast(({ action }) => action.kind !== "situation")
 		last?.events.push(...sim.log.slice(logged))
 		if (last) last.targetHealth = sim.health
 		logged = sim.log.length
 	}
-	for (const [index, action] of input.actions.entries()) {
+	for (const [index, item] of input.actions.entries()) {
+		// A marker sets its situation before anything else due at that moment (Valor marking at 0).
+		if (item.kind === "situation") {
+			steps.push({
+				action: item,
+				time: sim.time,
+				situation: applySituation(sim, item.effectId),
+				outcomes: [],
+				events: [],
+				...snapshot(sim),
+				targetHealth: sim.health,
+			})
+			continue
+		}
 		advance(sim, sim.time)
 		closeStep()
 		sim.step = index
+		sim.forced = input.free?.outcomes?.[index]
 		const startedAt = Math.max(
 			sim.time,
-			action.kind === "attack" ? sim.nextAttackAt : sim.time,
+			item.kind === "attack" ? sim.nextAttackAt : sim.time,
 		)
-		const refused = run(sim, action)
+		const refused = run(sim, item)
 		steps.push({
-			action,
+			action: item,
 			time: startedAt,
 			...(refused && { refused }),
+			outcomes: stepOutcomes(sim, item, refused),
 			events: [],
 			...snapshot(sim),
 			targetHealth: sim.health,
 		})
+		sim.forced = undefined
 		advance(sim, sim.busyUntil)
 	}
 	// After the last action, only what runs plays out: a periodic effect would come back forever.
 	advance(sim, Number.POSITIVE_INFINITY, { periodic: false })
 	closeStep()
+	const duration = sim.log.findLast(({ kind }) => kind === "hit")?.time ?? 0
 	return {
 		steps,
 		...totals(sim.log),
 		...(sim.kill && { kill: sim.kill }),
-		duration: Math.max(sim.time, sim.log.at(-1)?.time ?? 0),
+		duration,
+		activeUntil: Math.max(duration, sim.log.at(-1)?.time ?? 0),
+	}
+}
+
+/** Free mode's result, and the outcomes the user's choices start from (the computed ones, by item). */
+export type FreeCombat = { result: CombatResult; seed: OutcomeChoices[] }
+
+/**
+ * Free mode: the combo with no cooldown refusing an action, its outcomes seeded from the rules'
+ * result and set by `choices` (by item, `outcomeId`) wherever the user changed one. A choice for an
+ * outcome the item can't have is ignored.
+ */
+export function simulateFreeCombat(
+	input: CombatInput,
+	choices: readonly (OutcomeChoices | undefined)[],
+	options?: SimulateCombatOptions,
+): FreeCombat {
+	const computed = simulateCombat({ ...input, free: {} }, options)
+	const seed = outcomeChoices(computed)
+	const outcomes = seed.map((seeded, index) => {
+		const chosen = choices[index] ?? {}
+		return Object.fromEntries(
+			Object.entries(seeded).map(([id, happened]) => [
+				id,
+				chosen[id] ?? happened,
+			]),
+		)
+	})
+	const changed = outcomes.some((entries, index) =>
+		Object.entries(entries).some(([id, value]) => seed[index]?.[id] !== value),
+	)
+	return {
+		result: changed
+			? simulateCombat({ ...input, free: { outcomes } }, options)
+			: computed,
+		seed,
 	}
 }
