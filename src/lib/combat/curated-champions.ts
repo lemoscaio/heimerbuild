@@ -5,9 +5,20 @@
  */
 export const CURATED_COMBAT_CHAMPIONS: readonly string[] = [
 	"Annie",
+	"Braum",
+	"Brand",
 	"Ezreal",
+	"Janna",
+	"Leona",
 	"Lissandra",
+	"Lux",
+	"Maokai",
+	"Morgana",
+	"Nautilus",
 	"Quinn",
+	"Singed",
+	"Taric",
 	"Veigar",
+	"Zac",
 	"Ziggs",
 ]

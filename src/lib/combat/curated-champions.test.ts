@@ -41,8 +41,9 @@ describe("ABILITY_HIT_RULES", () => {
 			)
 
 			expect(CURATED_COMBAT_CHAMPIONS).toContain(key)
-			if (typeof rule.damage === "string") {
-				expect(spell?.damage?.map(({ name }) => name)).toContain(rule.damage)
+			const names = spell?.damage?.map(({ name }) => name)
+			for (const damage of [rule.damage ?? []].flat()) {
+				expect(names).toContain(damage)
 			}
 		},
 	)

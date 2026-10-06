@@ -1,12 +1,37 @@
-import type { AbilityDamage, FormulaValue } from "@schemas/champion"
+import type {
+	AbilityDamage,
+	FormulaValue,
+	TargetHealth,
+} from "@schemas/champion"
 import type { ComputedStats } from "../stats/compute-stats"
 
-/** What a synced damage formula reads: the attacker's stats, the ability's rank (none for a passive) and the champion level. */
+/** The target's health when a hit lands: its maximum (the dummy's, later the opponent's) and what it has left. */
+export type TargetHealthState = { maximum: number; current: number }
+
+/**
+ * What a synced damage formula reads: the attacker's stats, the ability's rank (none for a
+ * passive), the champion level and the target's health (for a share of it).
+ */
 export type FormulaInput = {
 	stats: ComputedStats
 	/** 1 or more; absent for a passive, whose values never change by rank. */
 	rank?: number
 	level: number
+	target: TargetHealthState
+}
+
+function targetHealth(
+	share: TargetHealth,
+	{ maximum, current }: TargetHealthState,
+): number {
+	switch (share) {
+		case "maximum":
+			return maximum
+		case "current":
+			return current
+		case "missing":
+			return maximum - current
+	}
 }
 
 /** A formula's number at the rank and level; undefined when a table lacks it (no rank for a value by rank). */
@@ -23,14 +48,14 @@ export function formulaValueAt(
 
 /**
  * The raw damage of a synced formula: its parts summed (a flat value, or a ratio of a stat's
- * total or its `part`), times the multiplier. Undefined when it is not modeled or a value is missing.
+ * total or its `part`), times the multiplier, times the target's health it is a share of.
+ * Undefined when it is not modeled or a value is missing.
  */
 export function evaluateDamage(
 	damage: AbilityDamage,
 	input: FormulaInput,
 ): number | undefined {
-	// A share of the target's health needs the target, which this input lacks.
-	if (damage.notModeled || damage.ofTargetHealth) return undefined
+	if (damage.notModeled) return undefined
 	let sum = 0
 	for (const part of damage.parts) {
 		if ("value" in part) {
@@ -47,7 +72,9 @@ export function evaluateDamage(
 		damage.multiplier === undefined
 			? 1
 			: formulaValueAt(damage.multiplier, input)
-	return multiplier === undefined ? undefined : sum * multiplier
+	if (multiplier === undefined) return undefined
+	const share = damage.ofTargetHealth
+	return sum * multiplier * (share ? targetHealth(share, input.target) : 1)
 }
 
 /** An ability's cooldown at the attacker's ability haste: × 100 / (100 + haste) (wiki "Ability haste"). */

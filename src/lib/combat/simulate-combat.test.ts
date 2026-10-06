@@ -496,3 +496,79 @@ describe("simulateCombat rules", async () => {
 		])
 	})
 })
+
+describe("a share of the target's health", async () => {
+	const zac: Setup = {
+		champion: await champion("Zac"),
+		level: 9,
+		ranks: { Q: 1, W: 2, E: 1, R: 0 },
+	}
+
+	test("Unstable Matter deals its base and a share of the target's maximum health, so a bigger target takes more", () => {
+		const tank = { ...DUMMY, health: 3800 }
+		const onDummy = simulate(zac, [{ kind: "ability", slot: "W" }])
+		const onTank = simulate({ ...zac, target: tank }, [
+			{ kind: "ability", slot: "W" },
+		])
+
+		// Wiki: rank 2 deals 50 (+ 5% (+ 3% per 100 AP) of the target's maximum health); Zac has no AP.
+		expect(hits(onDummy, 0).map(({ raw }) => raw)).toEqual([
+			50,
+			expect.closeTo(0.05 * 1800),
+		])
+		expect(hits(onTank, 0)[1]?.raw).toBeCloseTo(0.05 * 3800)
+		expect(hits(onTank, 0)[1]?.final).toBeCloseTo(magic(0.05 * 3800))
+	})
+
+	test("a share of the current or missing health reads the target's health when the hit lands", async () => {
+		const camille = await champion("Camille")
+		const garen = await champion("Garen")
+		const hitRules = [
+			{
+				championKey: "Camille",
+				slot: "R",
+				damage: "RPercentCurrentHPDamage",
+				since: "16.19",
+				sourceUrl: "test",
+			},
+			{
+				championKey: "Garen",
+				slot: "R",
+				damage: ["BaseDamage", "ExecuteDamage"],
+				since: "16.19",
+				sourceUrl: "test",
+			},
+		] as const
+		const run = (setup: Setup) =>
+			simulateCombat(
+				{
+					build: buildOf(setup),
+					effects: effectsOf(setup),
+					summoners: [],
+					target: DUMMY,
+					actions: [
+						{ kind: "ability", slot: "E" },
+						{ kind: "ability", slot: "Q" },
+						{ kind: "ability", slot: "R" },
+					],
+				},
+				{ hitRules },
+			)
+		const ranks = { Q: 1, W: 0, E: 1, R: 1 }
+		const ultimatum = run({ champion: camille, level: 6, ranks })
+		const justice = run({ champion: garen, level: 6, ranks })
+		const healthBefore = (result: CombatResult) =>
+			result.steps[1]?.targetHealth ?? Number.NaN
+
+		// Wiki: The Hextech Ultimatum rank 1, 4% of the target's current health.
+		expect(hits(ultimatum, 2)[0]?.raw).toBeCloseTo(
+			0.04 * healthBefore(ultimatum),
+		)
+		// Wiki: Demacian Justice rank 1, 125 (+ 25% of the target's missing health) true damage.
+		expect(hits(justice, 2).map(({ final }) => final)).toEqual([
+			125,
+			expect.closeTo(0.25 * (1800 - healthBefore(justice))),
+		])
+		expect(healthBefore(justice)).toBeLessThan(1800)
+	})
+})

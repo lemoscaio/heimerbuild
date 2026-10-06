@@ -10,8 +10,11 @@ const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
 export type AbilityHitRule = PatchRange & {
 	championKey: string
 	slot: AbilitySlot
-	/** The tooltip damage the cast deals, by name; `null` deals none (an effect deals it, or nothing does in v1). */
-	damage?: string | null
+	/**
+	 * The tooltip damage the cast deals, by name, or several dealt together (a base plus a share of
+	 * the target's health); `null` deals none (an effect deals it, or nothing does in v1).
+	 */
+	damage?: string | readonly string[] | null
 	/** The hit applies on-hit effects like a basic attack: it spends a spellblade, detonates a mark. */
 	onHit?: true
 	/** The cast's damage is known not to be simulated, and why; the hit shows that instead of a number. */
@@ -59,5 +62,58 @@ export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 			"Primordial Burst grows with the target's missing health, which the formulas don't read yet",
 		since: "16.19",
 		sourceUrl: `${WIKI}Veigar/Primordial_Burst`,
+	},
+	{
+		championKey: "Maokai",
+		slot: "Q",
+		damage: ["TotalDamage", "BasePercentHealth"],
+		since: "16.19",
+		sourceUrl: `${WIKI}Maokai/Bramble_Smash`,
+	},
+	{
+		championKey: "Zac",
+		slot: "W",
+		damage: ["BaseDamage", "DisplayPercentDamage"],
+		since: "16.19",
+		sourceUrl: `${WIKI}Zac/Unstable_Matter`,
+	},
+	{
+		championKey: "Singed",
+		slot: "Q",
+		notModeled:
+			"Poison Trail deals its damage over time, which the combo doesn't simulate yet",
+		since: "16.19",
+		sourceUrl: `${WIKI}Singed/Poison_Trail`,
+	},
+	{
+		championKey: "Singed",
+		slot: "E",
+		damage: ["BaseDamage", "MaxHPDamage"],
+		since: "16.19",
+		sourceUrl: `${WIKI}Singed/Fling`,
+	},
+	{
+		// Zephyr adds Tailwind's 30% of bonus movement speed to its damage.
+		championKey: "Janna",
+		slot: "W",
+		damage: ["TotalDamage", "spell.TailwindSelf:BonusDamage"],
+		since: "16.19",
+		sourceUrl: `${WIKI}Janna/Zephyr`,
+	},
+	{
+		championKey: "Nautilus",
+		slot: "W",
+		notModeled:
+			"Titan's Wrath deals its damage through the next basic attacks, which the combo doesn't simulate yet",
+		since: "16.19",
+		sourceUrl: `${WIKI}Nautilus/Titan's_Wrath`,
+	},
+	{
+		championKey: "Morgana",
+		slot: "W",
+		notModeled:
+			"Tormented Shadow deals its damage over 5 s, which the combo doesn't simulate yet",
+		since: "16.19",
+		sourceUrl: `${WIKI}Morgana/Tormented_Shadow`,
 	},
 ]

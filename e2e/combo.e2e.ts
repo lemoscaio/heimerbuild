@@ -80,3 +80,23 @@ test("an ability on cooldown adds nothing to the totals, and a champion off the 
 	await expect(steps(page)).toHaveCount(1)
 	await expect(damageTotal(page)).toHaveText("0")
 })
+
+test("Zac's Unstable Matter deals a share of the target's maximum health, so a target with more health takes more", async ({
+	page,
+}) => {
+	await page.goto("/champions/Zac?lvl=9&skills=WQEWWRWQE&tab=combo")
+	const unstableMatter = combo(page).getByRole("button", {
+		name: "Add W, Unstable Matter",
+	})
+	await expect(unstableMatter).toHaveAccessibleDescription("")
+	await unstableMatter.click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const total = async () =>
+		Number((await damageTotal(page).textContent())?.replace(/\D/g, ""))
+	const onDummy = await total()
+
+	const health = combo(page).getByRole("textbox", { name: "Target health" })
+	await health.fill("3800")
+	await health.press("Enter")
+	await expect.poll(total).toBeGreaterThan(onDummy)
+})

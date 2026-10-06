@@ -97,6 +97,29 @@ describe("stepView", () => {
 		])
 	})
 
+	test("counts a cast's damages that land together as one hit (a base and a share of health)", () => {
+		const part = {
+			kind: "hit",
+			time: 0.5,
+			source: { kind: "ability", slot: "E", name: "BaseDamage" },
+			damage: { type: "magic", raw: 50, final: 30 },
+		} as const
+		const cast = stepView(
+			{
+				...STEP,
+				events: [
+					part,
+					{ ...part, source: { ...part.source, name: "PercentDamage" } },
+				],
+			},
+			{ names: NAMES, target: TARGET },
+		)
+
+		expect(cast.hits).toEqual([
+			{ name: "Vault", type: "magic", raw: 100, final: 60, count: 1 },
+		])
+	})
+
 	test("names the marks it moved, the effects running after it and the target's health left", () => {
 		expect(view.marks).toEqual([{ mark: "Harrier", change: "consumed" }])
 		expect(view.effects).toEqual(["Heightened Senses (passive)"])

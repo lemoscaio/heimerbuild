@@ -279,7 +279,7 @@ The combo simulator (issue 265, stage 2) runs a sequence of actions against a ta
 lib/combat/
 ├── combat.ts               CombatAction, CombatTarget, CombatEvent, CombatStep, CombatResult
 ├── simulate-combat.ts      simulateCombat({ build, effects, summoners, target, actions }, { hitRules })
-├── damage-formula.ts       evaluateDamage (a synced DamageFormula at the rank, level and stats), abilityCooldown
+├── damage-formula.ts       evaluateDamage (a synced DamageFormula at the rank, level, stats and target health), abilityCooldown
 ├── mitigation.ts           effectiveResist, damageMultiplier, mitigate
 ├── curated-champions.ts    CURATED_COMBAT_CHAMPIONS: the champions v1 supports
 └── registries/
@@ -296,10 +296,10 @@ lib/combat/
 ### What a hit does
 
 - **A basic attack:** its total attack damage (physical, no critical strikes yet), then `on-hit`, then the marks attacks consume.
-- **An ability's cast:** the effects it triggers (`after-ability`, `after-use` of that ability, `on-cast` of its slot), then its hit, then the marks those effects apply. The hit is the tooltip's first synced damage, or what its `ABILITY_HIT_RULES` entry says: another damage by name, none (`damage: null`: Essence Flux only marks), `onHit` (Mystic Shot spends a spellblade) or `notModeled` with the reason (Veigar's R grows with missing health). An ability's hit consumes the marks abilities do.
+- **An ability's cast:** the effects it triggers (`after-ability`, `after-use` of that ability, `on-cast` of its slot), then its hit, then the marks those effects apply. The hit is the tooltip's first synced damage, or what its `ABILITY_HIT_RULES` entry says: another damage by name, several dealt together (Zac's W: its base and a share of the target's maximum health), none (`damage: null`: Essence Flux only marks), `onHit` (Mystic Shot spends a spellblade) or `notModeled` with the reason (Veigar's R grows with missing health). An ability's hit consumes the marks abilities do.
 - **On-hit:** the `on-hit` effects trigger (Rev'd up gains a stack), then each running effect with `endsOn: "on-hit"` deals its `damage` grant and ends (a spellblade).
 - **A summoner spell:** its `after-use` effects and the `after-summoner` effects bound to it (Nimbus Cloak).
-- **Damage:** `abilityDamage` deals the source ability's synced formula by name when the effect triggers (Harrier's bonus damage); `damage` deals ratios of the attacker's stats when spent; `damageOverTime` deals its amount every `every` seconds while it runs, the first tick at the start (Ignite). Each is mitigated: armor or magic resist after flat reduction, percent reduction, percent penetration, then lethality and flat penetration (wiki "Armor penetration"), × 100 / (100 + R), or × (2 − 100 / (100 − R)) below 0. True damage is not mitigated.
+- **Damage:** `abilityDamage` deals the source ability's synced formula by name when the effect triggers (Harrier's bonus damage). A formula that is a share of the target's health (`ofTargetHealth`) reads its maximum (the dummy's, later the opponent's), current or missing health when the hit lands; a cast's several damages all read it before any of them lands; `damage` deals ratios of the attacker's stats when spent; `damageOverTime` deals its amount every `every` seconds while it runs, the first tick at the start (Ignite). Each is mitigated: armor or magic resist after flat reduction, percent reduction, percent penetration, then lethality and flat penetration (wiki "Armor penetration"), × 100 / (100 + R), or × (2 − 100 / (100 − R)) below 0. True damage is not mitigated.
 - **Triggers and ends:** `on-cast` (`slots`, any ability without them) and `on-mark-consumed` (`mark`) start an effect. `applies: { mark, duration, consumedBy }` marks the target; the mark lasts `duration` and is consumed by an attack or an ability's hit (`consumedBy`). `endsOn` ends an effect early: `attack`, `cast` (Viego's E, Rengar's R) or `on-hit`; its `cooldown` then starts from that moment instead of the trigger (a spellblade's 1.5 s starts when spent). Re-triggering a running effect refreshes it and adds a stack up to `stacks.max`; the stats scale by stacks / max.
 
 ### The Combo tab
