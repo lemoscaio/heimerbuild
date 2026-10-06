@@ -1,11 +1,11 @@
 import { cva } from "class-variance-authority"
-import { GripVertical, X } from "lucide-react"
+import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 import type { MarkerView } from "../lib/combat-view"
 
 const markerLine = cva(
-	"flex items-center gap-2 rounded-md px-1 py-0.5 text-[0.6875rem] data-dragging:bg-surface-raised",
+	"flex items-center gap-2 rounded-md px-1 py-0.5 text-[0.6875rem]",
 	{
 		variants: {
 			tone: {
@@ -21,7 +21,8 @@ const markerLine = cva(
 	},
 )
 
-const rule = cva("h-0 min-w-4 flex-1 border-t-2", {
+/** The line's two halves; on phones the text takes the row and a left accent marks it instead. */
+const rule = cva("h-0 min-w-4 flex-1 border-t-2 max-sm:hidden", {
 	variants: {
 		tone: {
 			applied: "border-lilac",
@@ -35,16 +36,16 @@ type CombatMarkerLineProps = {
 	view: MarkerView
 	/** Just added: pointed out until the combo changes again. */
 	isNew: boolean
-	/** The reorder handle's events (`useStepReorder`). */
-	handleProps: React.ComponentProps<"button">
+	/** Its "Move up" and "Move down" buttons (`CombatMoveButtons`), side by side. */
+	moves: React.ReactNode
 	onRemove: () => void
 } & React.ComponentProps<"li">
 
-/** A situation marker in the combo: a thin line with its label and what it did, moved by its handle, removed with ×. */
+/** A situation marker in the combo: a thin line with its label and what it did, moved up or down, removed with ×. */
 export function CombatMarkerLine({
 	view,
 	isNew,
-	handleProps,
+	moves,
 	onRemove,
 	className,
 	...props
@@ -59,20 +60,14 @@ export function CombatMarkerLine({
 			)}
 			{...props}
 		>
-			<button
-				type="button"
-				aria-label={`Move marker ${label}`}
-				aria-description="Drag, or press the up and down arrow keys"
-				className="flex h-7 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-subtle hover:text-white focus-visible:outline-2 focus-visible:outline-ring active:cursor-grabbing max-lg:h-11"
-				{...handleProps}
-			>
-				<GripVertical aria-hidden="true" className="size-4" />
-			</button>
+			{moves}
 			<span aria-hidden="true" className={rule({ tone })} />
-			<span className="font-semibold">{label}</span>
-			<span className="min-w-0">
-				{detail}
-				{isNew && " · new"}
+			<span className="min-w-0 border-current max-sm:flex-1 max-sm:border-l-2 max-sm:pl-2">
+				<span className="font-semibold">{label}</span>{" "}
+				<span>
+					{detail}
+					{isNew && " · new"}
+				</span>
 			</span>
 			<span aria-hidden="true" className={rule({ tone })} />
 			<Button
@@ -80,6 +75,7 @@ export function CombatMarkerLine({
 				size="icon-sm"
 				aria-label={`Remove marker ${label}`}
 				onClick={onRemove}
+				className="max-lg:size-11"
 			>
 				<X aria-hidden="true" />
 			</Button>

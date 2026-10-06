@@ -28,7 +28,7 @@ export function useMarkerUndo(combat: Combat) {
 			const after = combat.addSituation(effectId)
 			setChange({
 				message:
-					"Marker added at the end. Drag it by its handle or use the arrow keys to move it; × removes it.",
+					"Marker added at the end. Move it with its up and down arrows; × removes it.",
 				before,
 				after,
 				markerId: after.entries.at(-1)?.id,

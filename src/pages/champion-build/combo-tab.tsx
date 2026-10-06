@@ -78,8 +78,8 @@ export function ComboTab({
 						disabled={combat.isFull}
 					/>
 					<p className="text-subtle text-xs">
-						Pick an action to add it at the end. Drag a step's handle or use its
-						arrow keys to reorder; × removes it.
+						Pick an action to add it at the end. Move a step with its up and
+						down arrows; × removes it.
 					</p>
 					<CombatSituationChips
 						situations={combat.situations}

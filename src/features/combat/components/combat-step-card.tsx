@@ -1,5 +1,5 @@
 import type { DamageType } from "@schemas/champion"
-import { CircleAlert, GripVertical, X } from "lucide-react"
+import { CircleAlert, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 import {
@@ -26,8 +26,8 @@ type CombatStepCardProps = {
 	/** Why it did not run; the totals leave it out. */
 	refused?: string
 	view?: StepView
-	/** The reorder handle's events (`useStepReorder`). */
-	handleProps: React.ComponentProps<"button">
+	/** Its "Move up" and "Move down" buttons (`CombatMoveButtons`). */
+	moves: React.ReactNode
 	onRemove: () => void
 	/** Extra parts of the step: a wait's length, its input, its outcomes. */
 	children?: React.ReactNode
@@ -79,7 +79,7 @@ export function CombatStepCard({
 	time,
 	refused,
 	view,
-	handleProps,
+	moves,
 	onRemove,
 	children,
 	className,
@@ -89,22 +89,14 @@ export function CombatStepCard({
 	return (
 		<li
 			className={cn(
-				"grid grid-cols-[auto_auto_1fr_auto_auto] items-start gap-x-2 rounded-lg border border-line bg-surface-sunken px-2 py-2 data-dragging:border-lilac data-dragging:bg-surface-raised",
+				"grid grid-cols-[auto_auto_1fr_auto_auto] items-start gap-x-2 rounded-lg border border-line bg-surface-sunken px-1 py-1.5",
 				{ "border-error/70": !!refused },
 				className,
 			)}
 			{...props}
 		>
-			<button
-				type="button"
-				aria-label={`Move step ${title}`}
-				aria-description="Drag, or press the up and down arrow keys"
-				className="flex h-8 w-6 cursor-grab touch-none items-center justify-center rounded text-subtle hover:text-white focus-visible:outline-2 focus-visible:outline-ring active:cursor-grabbing"
-				{...handleProps}
-			>
-				<GripVertical aria-hidden="true" className="size-4" />
-			</button>
-			<span className={cn({ "opacity-50": !!refused })}>{icon}</span>
+			{moves}
+			<span className={cn("pt-0.5", { "opacity-50": !!refused })}>{icon}</span>
 			<div className="flex min-w-0 flex-col gap-1">
 				<p className="flex flex-wrap items-baseline gap-x-2 text-white text-xs">
 					<span className="font-semibold">{title}</span>
@@ -177,6 +169,7 @@ export function CombatStepCard({
 				size="icon-sm"
 				aria-label={`Remove step ${title}`}
 				onClick={onRemove}
+				className="max-lg:size-11"
 			>
 				<X aria-hidden="true" />
 			</Button>

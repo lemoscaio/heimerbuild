@@ -11,6 +11,7 @@ import { WAIT_SECONDS } from "../lib/combat-sequence"
 import { outcomeChoice } from "../lib/combat-view"
 import { CombatActionIcon } from "./combat-action-icon"
 import { CombatMarkerLine } from "./combat-marker-line"
+import { CombatMoveButtons } from "./combat-move-buttons"
 import { CombatOutcomeChips } from "./combat-outcome-chips"
 import { CombatOutcomeChoices } from "./combat-outcome-choices"
 import { CombatStepCard } from "./combat-step-card"
@@ -112,8 +113,8 @@ function WaitLength({
 }
 
 /**
- * The combo in order: action cards and situation marker lines, reordered by dragging or the arrow
- * keys, removed with ×.
+ * The combo in order: action cards and situation marker lines, moved one place with their up and
+ * down buttons, removed with ×.
  */
 export function CombatStepList({
 	items,
@@ -154,32 +155,33 @@ export function CombatStepList({
 			<h3 id={titleId} className="sr-only">
 				Steps
 			</h3>
-			<ol ref={reorder.listRef} className="flex flex-col gap-1.5">
-				{reorder.order.map((id) => {
-					const item = byId.get(id)
-					if (!item) return null
-					const dragging = reorder.draggedId === id || undefined
+			<ol className="flex flex-col gap-1.5">
+				{items.map((item) => {
+					const { id } = item
+					const moves = reorder.moves(id)
 					if (item.kind === "marker") {
 						return (
 							<CombatMarkerLine
 								key={id}
-								data-step-id={id}
-								data-dragging={dragging}
 								view={item.view}
 								isNew={newMarkerId === id}
-								handleProps={reorder.handleProps(id)}
+								moves={
+									<CombatMoveButtons
+										label={`marker ${item.view.label}`}
+										{...moves}
+									/>
+								}
 								onRemove={() => onRemoveMarker(id)}
 							/>
 						)
 					}
 					const { action } = item
+					const label = actionLabel(action, names)
 					return (
 						<CombatStepCard
 							key={id}
-							data-step-id={id}
-							data-dragging={dragging}
 							number={item.number}
-							label={actionLabel(action, names)}
+							label={label}
 							icon={
 								<CombatActionIcon
 									kind={action.kind}
@@ -189,7 +191,13 @@ export function CombatStepList({
 							time={mode.kind === "strict" ? item.time : undefined}
 							refused={item.refused}
 							view={item.view}
-							handleProps={reorder.handleProps(id)}
+							moves={
+								<CombatMoveButtons
+									label={`step ${item.number}, ${label}`}
+									className="flex-col"
+									{...moves}
+								/>
+							}
 							onRemove={() => onRemove(id)}
 						>
 							{action.kind === "wait" && (
