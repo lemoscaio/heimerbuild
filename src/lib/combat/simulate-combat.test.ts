@@ -718,6 +718,70 @@ describe("simulateCombat rules", async () => {
 	})
 })
 
+describe("early endings: Rengar's R and Viego's E (issue 329)", async () => {
+	const rengar: Setup = {
+		champion: await champion("Rengar"),
+		level: 6,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+	}
+	const viego: Setup = {
+		champion: await champion("Viego"),
+		level: 6,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+	}
+
+	function running(result: CombatResult, step: number) {
+		return (result.steps[step]?.active ?? []).map(({ effectId }) => effectId)
+	}
+
+	function expiredAt(result: CombatResult, step: number, effectId: string) {
+		return result.steps[step]?.events.find(
+			(event) =>
+				event.kind === "expire" &&
+				"effectId" in event &&
+				event.effectId === effectId,
+		)?.time
+	}
+
+	test("Thrill of the Hunt ends on Rengar's next attack, as it starts", () => {
+		const result = simulate(rengar, [
+			{ kind: "ability", slot: "R" },
+			{ kind: "attack" },
+		])
+
+		expect(running(result, 0)).toContain("rengar-r-active")
+		expect(expiredAt(result, 1, "rengar-r-active")).toBe(result.steps[1]?.time)
+		expect(running(result, 1)).not.toContain("rengar-r-active")
+	})
+
+	test("Thrill of the Hunt ends on Rengar's next cast, as it starts", () => {
+		const result = simulate(rengar, [
+			{ kind: "ability", slot: "R" },
+			{ kind: "wait", seconds: 1 },
+			{ kind: "ability", slot: "E" },
+		])
+
+		expect(running(result, 1)).toContain("rengar-r-active")
+		expect(expiredAt(result, 2, "rengar-r-active")).toBe(result.steps[2]?.time)
+		expect(running(result, 2)).not.toContain("rengar-r-active")
+	})
+
+	test("Harrowed Path keeps its attack speed through attacks and casts, and ends after its 8 s", () => {
+		const result = simulate(viego, [
+			{ kind: "ability", slot: "E" },
+			{ kind: "attack" },
+			{ kind: "ability", slot: "Q" },
+			{ kind: "wait", seconds: 8 },
+		])
+
+		expect(running(result, 1)).toContain("viego-e-active")
+		expect(running(result, 2)).toContain("viego-e-active")
+		expect(expiredAt(result, 3, "viego-e-active")).toBeCloseTo(
+			(result.steps[0]?.time ?? Number.NaN) + 8,
+		)
+	})
+})
+
 describe("a share of the target's health", async () => {
 	const zac: Setup = {
 		champion: await champion("Zac"),

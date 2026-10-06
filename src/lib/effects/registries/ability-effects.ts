@@ -364,7 +364,8 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Udyr/Blazing_Stampede`,
 	},
 	{
-		// While in the mist, 8 s; attacking or casting drops the speed (and camouflage) for 1 s.
+		// No endsOn: attacking or casting drops only the movement speed, for 1 s; the attack speed
+		// holds the whole 8 s in the mist (wiki, issue 329).
 		id: "viego-e-active",
 		source: { kind: "ability", championKey: "Viego", slot: "E" },
 		trigger: { kind: "after-use" },
@@ -391,10 +392,12 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Viego/Harrowed_Path`,
 	},
 	{
-		// Attacking or casting anything but Savagery ends it (wiki).
+		// Attacking or casting anything but Savagery ends it (wiki); the combo's Savagery cast is
+		// its empowered attack, which ends it too.
 		id: "rengar-r-active",
 		source: { kind: "ability", championKey: "Rengar", slot: "R" },
 		trigger: { kind: "after-use" },
+		endsOn: ["attack", "cast"],
 		duration: { by: "rankValue", label: "Duration" },
 		grants: [
 			{
