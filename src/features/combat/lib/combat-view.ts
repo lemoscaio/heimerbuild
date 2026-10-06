@@ -23,6 +23,9 @@ type CombatNamesInput = {
 
 const PART_NAMES = { passive: "passive", active: "active" } as const
 
+/** What a step says when its result comes from the combo's starting situation. */
+export const FROM_START = "(from start)"
+
 function effectName({ name, effect }: BuildEffect) {
 	const detail = effect.label ?? (effect.part && PART_NAMES[effect.part])
 	return detail ? `${name} (${detail})` : name
@@ -38,8 +41,8 @@ export function combatNames({
 		source(source) {
 			if (source.kind === "attack") return "Attack"
 			if (source.kind === "effect") {
-				const effect = effectById.get(source.effectId)
-				return effect ? effect.name : source.effectId
+				const name = effectById.get(source.effectId)?.name ?? source.effectId
+				return source.fromStart ? `${name} ${FROM_START}` : name
 			}
 			if (source.slot === "passive") return passiveName
 			return (
@@ -77,7 +80,8 @@ export type StepView = {
 	total: { raw: number; final: number }
 	/** The type of most of its damage, which colors the total. */
 	mainType?: DamageType
-	marks: { mark: string; change: "applied" | "consumed" }[]
+	/** `fromStart`: the mark was on the target from the starting situation. */
+	marks: { mark: string; change: "applied" | "consumed"; fromStart: boolean }[]
 	effects: string[]
 	healthShare: number
 }
@@ -141,6 +145,7 @@ export function stepView(
 								event.kind === "mark-applied"
 									? ("applied" as const)
 									: ("consumed" as const),
+							fromStart: event.kind === "mark-consumed" && !!event.fromStart,
 						},
 					]
 				: [],

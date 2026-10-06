@@ -5,6 +5,7 @@ import { useId } from "react"
 import { Button } from "@/components/ui/button"
 import { CombatActionKeys } from "@/features/combat/components/combat-action-keys"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
+import { CombatStartControl } from "@/features/combat/components/combat-start-control"
 import { CombatStepList } from "@/features/combat/components/combat-step-list"
 import { CombatTotals } from "@/features/combat/components/combat-totals"
 import { useCombatView } from "@/features/combat/hooks/use-combat-view"
@@ -24,7 +25,7 @@ export function ComboTab({
 	summoners,
 }: ComboTabProps) {
 	const titleId = useId()
-	const { combat, target, effects } = buildCombat
+	const { combat, target, start, effects } = buildCombat
 	const view = useCombatView({
 		combat,
 		target: target.target,
@@ -58,6 +59,11 @@ export function ComboTab({
 						Pick an action to add it at the end. Drag a step's handle or use its
 						arrow keys to reorder; × removes it.
 					</p>
+					<CombatStartControl
+						options={start.options}
+						onOptionChange={start.toggle}
+						className="mt-2"
+					/>
 				</div>
 				<TargetEditor target={target} />
 			</div>

@@ -100,3 +100,37 @@ test("Zac's Unstable Matter deals a share of the target's maximum health, so a t
 	await health.press("Enter")
 	await expect.poll(total).toBeGreaterThan(onDummy)
 })
+
+test("the combo starts from a chosen situation: Harrier's mark adds to the first attack, and only the build's options show", async ({
+	page,
+}) => {
+	await page.goto("/champions/Quinn?lvl=9&skills=QWEQEQRQE&tab=combo")
+	const start = combo(page).getByRole("region", {
+		name: "Starting situation",
+	})
+	const marked = start.getByRole("switch", {
+		name: "Target marked by Harrier",
+	})
+	await expect(marked).not.toBeChecked()
+
+	await combo(page).getByRole("button", { name: "Add Attack" }).click()
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const plain = await damageTotal(page).textContent()
+
+	await marked.focus()
+	await page.keyboard.press("Space")
+	await expect(marked).toBeChecked()
+	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
+
+	await marked.click()
+	await expect(marked).not.toBeChecked()
+	await expect(damageTotal(page)).toHaveText(plain ?? "")
+
+	await page.goto("/champions/Annie?lvl=9&skills=QWEQEQRQE&tab=combo")
+	await expect(
+		combo(page).getByRole("button", { name: "Add Attack" }),
+	).toBeVisible()
+	await expect(
+		combo(page).getByRole("region", { name: "Starting situation" }),
+	).toHaveCount(0)
+})

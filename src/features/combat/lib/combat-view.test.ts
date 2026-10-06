@@ -121,9 +121,45 @@ describe("stepView", () => {
 	})
 
 	test("names the marks it moved, the effects running after it and the target's health left", () => {
-		expect(view.marks).toEqual([{ mark: "Harrier", change: "consumed" }])
+		expect(view.marks).toEqual([
+			{ mark: "Harrier", change: "consumed", fromStart: false },
+		])
 		expect(view.effects).toEqual(["Heightened Senses (passive)"])
 		expect(view.healthShare).toBe(0.91)
+	})
+
+	test("says when a mark or a spent effect came from the starting situation", () => {
+		const fromStart = stepView(
+			{
+				...STEP,
+				events: [
+					{
+						kind: "mark-consumed",
+						time: 0,
+						mark: "quinn-harrier",
+						fromStart: true,
+					},
+					{
+						kind: "hit",
+						time: 0,
+						source: {
+							kind: "effect",
+							effectId: "trinity-force-spellblade",
+							fromStart: true,
+						},
+						damage: { type: "magic", raw: 50, final: 30 },
+					},
+				],
+			},
+			{ names: NAMES, target: TARGET },
+		)
+
+		expect(fromStart.marks).toEqual([
+			{ mark: "Harrier", change: "consumed", fromStart: true },
+		])
+		expect(fromStart.hits[0]).toMatchObject({
+			name: "Trinity Force (from start)",
+		})
 	})
 })
 
