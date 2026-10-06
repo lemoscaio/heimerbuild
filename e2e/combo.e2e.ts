@@ -72,10 +72,11 @@ test("an ability on cooldown adds nothing to the totals, and a champion off the 
 	await expect(damageTotal(page)).toHaveText(once ?? "")
 	await expect(assault).toHaveAccessibleDescription("")
 
-	await page.goto("/champions/Darius?lvl=9&skills=QWEQEQRQE&tab=combo")
-	const decimate = combo(page).getByRole("button", { name: "Add Q, Decimate" })
-	await expect(decimate).toHaveAccessibleDescription(/\w/)
-	await decimate.click()
+	// Overload scales with Ryze's mana, which the formulas don't read.
+	await page.goto("/champions/Ryze?lvl=9&skills=QWEQEQRQE&tab=combo")
+	const overload = combo(page).getByRole("button", { name: "Add Q, Overload" })
+	await expect(overload).toHaveAccessibleDescription(/\w/)
+	await overload.click()
 	await expect(steps(page)).toHaveCount(1)
 	await expect(damageTotal(page)).toHaveText("0")
 })

@@ -151,6 +151,9 @@ export const FORMULA_STATS = [
 	"armor",
 	"magicResist",
 	"health",
+	"movementSpeed",
+	"critChance",
+	"lethality",
 ] as const
 
 /** One addend of a damage formula: a flat value, or `ratio` of a stat (its `part`, else the total). */
@@ -165,10 +168,14 @@ export const formulaPartSchema = z.union([
 
 export const DAMAGE_TYPES = ["physical", "magic", "true"] as const
 
+/** Which of the target's health a share-of-health damage reads. */
+export const TARGET_HEALTH = ["maximum", "current", "missing"] as const
+
 /**
  * One damage an ability's tooltip shows, as the game files compute it (CommunityDragon
- * `mSpellCalculations`): the sum of `parts`, times `multiplier`. `notModeled` lists what the sync
- * could not read (a share of the target's health, summed sub-parts); such damage has no number.
+ * `mSpellCalculations`): the sum of `parts`, times `multiplier`. With `ofTargetHealth`, that is a
+ * share of the target's health ("6% max Health"). `notModeled` lists what the sync could not read
+ * (a buff counter, the ability resource); such damage has no number.
  */
 export const abilityDamageSchema = z.strictObject({
 	/** The game's calculation name ("Damage", "BonusDamage"). */
@@ -176,6 +183,7 @@ export const abilityDamageSchema = z.strictObject({
 	type: z.enum(DAMAGE_TYPES),
 	parts: z.array(formulaPartSchema),
 	multiplier: z.optional(formulaValueSchema),
+	ofTargetHealth: z.optional(z.enum(TARGET_HEALTH)),
 	notModeled: z.optional(
 		z.array(z.string().check(z.minLength(1))).check(z.minLength(1)),
 	),
@@ -467,6 +475,7 @@ export type FormulaValue = z.infer<typeof formulaValueSchema>
 export type FormulaPart = z.infer<typeof formulaPartSchema>
 export type FormulaStat = (typeof FORMULA_STATS)[number]
 export type DamageType = (typeof DAMAGE_TYPES)[number]
+export type TargetHealth = (typeof TARGET_HEALTH)[number]
 export type AbilityDamage = z.infer<typeof abilityDamageSchema>
 export type ChampionSpell = z.infer<typeof championSpellSchema>
 export type ChampionPassive = z.infer<typeof passiveSchema>
