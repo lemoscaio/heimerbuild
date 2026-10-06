@@ -96,7 +96,7 @@ function Segment({ className, ...props }: React.ComponentProps<"span">) {
 	)
 }
 
-/** The line's parts: "Toxic Shot", "refreshed", "4 ticks", "120 magic", "until 4.00 s". */
+/** The line's parts: "Noxious Trap", "detonates at 3.45 s", "refreshed", "4 ticks", "120 magic", "until 7.45 s". */
 function DamageOverTimeText({ dot }: { dot: DamageOverTimeView }) {
 	const count = dot.ticks.length
 	return (
@@ -105,6 +105,11 @@ function DamageOverTimeText({ dot }: { dot: DamageOverTimeView }) {
 				{dot.name}
 				{dot.stacks > 1 && ` (${dot.stacks} stacks)`}
 			</Segment>
+			{dot.delayed && (
+				<Segment>
+					{dot.delayed.label} at {formatSeconds(dot.delayed.at)}
+				</Segment>
+			)}
 			{dot.application !== "applied" && <Segment>{dot.application}</Segment>}
 			{!!count && (
 				<Segment>
