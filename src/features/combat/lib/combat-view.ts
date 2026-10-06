@@ -4,6 +4,7 @@ import type {
 	CombatResult,
 	CombatStep,
 	CombatTarget,
+	DamageOverTimeSummary,
 	DamageSource,
 	OutcomeChoices,
 	OutcomeKey,
@@ -67,7 +68,7 @@ export function combatNames({
 	}
 }
 
-/** A step's hits from one source and of one type, as its card lists them (Ignite's 5 ticks are one line). */
+/** A step's hits from one source and of one type, as its card lists them (a cast's base and share of health). */
 export type HitView =
 	| {
 			name: string
@@ -79,9 +80,36 @@ export type HitView =
 	  }
 	| { name: string; notModeled: readonly string[] }
 
+/** One tick in a damage over time's list: when it landed and what it dealt. */
+export type TickView =
+	| { time: number; type: DamageType; raw: number; final: number }
+	| { time: number; notModeled: readonly string[] }
+
+/**
+ * A damage over time the step applied, as one line: "Toxic Shot · 4 ticks · 120 magic · until 4.00 s".
+ * Its numbers add up by `effectId`, so a group of steps can sum them per source.
+ */
+export type DamageOverTimeView = {
+	effectId: string
+	name: string
+	application: DamageOverTimeSummary["application"]
+	stacks: number
+	/** The ticks it owns, in time order, wherever they landed. */
+	ticks: TickView[]
+	/** Their damage type, when it has a number; all of one effect's share it. */
+	type?: DamageType
+	raw: number
+	final: number
+	/** Its last tick, or when it runs out when it owns none (a refresh that added none). */
+	until: number
+	notModeled: readonly string[]
+}
+
 /** What a step's card shows: its hits and total, the marks it moved and the effects running after it. */
 export type StepView = {
 	hits: HitView[]
+	/** The damage over time it applied, with the ticks that belong to it. */
+	damageOverTime: DamageOverTimeView[]
 	total: { raw: number; final: number }
 	/** The type of most of its damage, which colors the total. */
 	mainType?: DamageType
@@ -91,12 +119,12 @@ export type StepView = {
 	healthShare: number
 }
 
-/** The step's hits, those of one source and type added up into one line. */
+/** The step's hits, those of one source and type added up into one line; ticks show with their application. */
 function hitViews(events: readonly CombatEvent[], names: CombatNames) {
 	const views: HitView[] = []
 	const lastHitAt = new Map<HitView, number>()
 	for (const event of events) {
-		if (event.kind !== "hit") continue
+		if (event.kind !== "hit" || event.tick) continue
 		const name = names.source(event.source)
 		if (!("damage" in event)) {
 			views.push({ name, notModeled: event.notModeled })
@@ -120,6 +148,41 @@ function hitViews(events: readonly CombatEvent[], names: CombatNames) {
 	return views
 }
 
+export function damageOverTimeView(
+	{ effectId, application, stacks, ticks, endsAt }: DamageOverTimeSummary,
+	names: CombatNames,
+): DamageOverTimeView {
+	const views = ticks.map(
+		(tick): TickView =>
+			"damage" in tick ? { time: tick.time, ...tick.damage } : tick,
+	)
+	let raw = 0
+	let final = 0
+	let type: DamageType | undefined
+	for (const tick of views) {
+		if (!("type" in tick)) continue
+		raw += tick.raw
+		final += tick.final
+		type = tick.type
+	}
+	return {
+		effectId,
+		name: names.effect(effectId),
+		application,
+		stacks,
+		ticks: views,
+		...(type && { type }),
+		raw,
+		final,
+		until: ticks.at(-1)?.time ?? endsAt,
+		notModeled: [
+			...new Set(
+				views.flatMap((tick) => ("notModeled" in tick ? tick.notModeled : [])),
+			),
+		],
+	}
+}
+
 export function stepView(
 	step: CombatStep,
 	{ names, target }: { names: CombatNames; target: CombatTarget },
@@ -131,10 +194,14 @@ export function stepView(
 		),
 	)
 	const hits = hitViews(step.events, names)
+	const damageOverTime = step.damageOverTime.map((summary) =>
+		damageOverTimeView(summary, names),
+	)
+	const ticking = new Set(damageOverTime.map(({ effectId }) => effectId))
 	const total = { raw: 0, final: 0 }
 	const byType = new Map<DamageType, number>()
-	for (const hit of hits) {
-		if (!("type" in hit)) continue
+	for (const hit of [...hits, ...damageOverTime]) {
+		if (!("type" in hit) || !hit.type) continue
 		total.raw += hit.raw
 		total.final += hit.final
 		byType.set(hit.type, (byType.get(hit.type) ?? 0) + hit.final)
@@ -145,6 +212,7 @@ export function stepView(
 	}
 	return {
 		hits,
+		damageOverTime,
 		total,
 		...(mainType && { mainType }),
 		marks: step.events.flatMap((event) =>
@@ -163,11 +231,11 @@ export function stepView(
 					]
 				: [],
 		),
-		// An effect its outcome already reports (Hail of Blades 2/3) gets no chip of its own.
+		// An effect its outcome or its damage over time line already reports gets no chip of its own.
 		effects: [
 			...new Set(
 				step.active.flatMap(({ effectId, holder, endsAt }) => {
-					if (empowering.has(effectId)) return []
+					if (empowering.has(effectId) || ticking.has(effectId)) return []
 					const name =
 						holder === "target"
 							? `${names.effect(effectId)} on the target`
@@ -235,6 +303,7 @@ export function combatTotals(
  */
 export type OutcomeView = {
 	id: string
+	kind: OutcomeKey["kind"]
 	label: string
 	happened: boolean
 	detail?: string
@@ -284,12 +353,22 @@ export function outcomeViews(
 		const seeded = seed?.[id]
 		return {
 			id,
+			kind: outcome.kind,
 			label: outcomeLabel(outcome, names),
 			happened: outcome.happened,
 			...(detail && { detail }),
 			changed: seeded !== undefined && seeded !== outcome.happened,
 		}
 	})
+}
+
+/** Strict mode's chips: a damage over time that was applied already has its line on the card. */
+export function strictOutcomeViews(
+	outcomes: readonly OutcomeView[],
+): OutcomeView[] {
+	return outcomes.filter(
+		({ kind, happened }) => kind !== "damage-over-time" || !happened,
+	)
 }
 
 /** The choice to keep when the user answers an outcome: none when it is the computed one again. */
