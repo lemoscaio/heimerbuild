@@ -1,7 +1,18 @@
 import type { AbilitySlot } from "@schemas/champion"
 import { isInPatchRange, type PatchRange } from "@schemas/patch-range"
-
-const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
+import { ANNIE_HIT_RULES } from "../../champions/annie"
+import { DARIUS_HIT_RULES } from "../../champions/darius"
+import { EZREAL_HIT_RULES } from "../../champions/ezreal"
+import { JANNA_HIT_RULES } from "../../champions/janna"
+import { JINX_HIT_RULES } from "../../champions/jinx"
+import { MAOKAI_HIT_RULES } from "../../champions/maokai"
+import { MORGANA_HIT_RULES } from "../../champions/morgana"
+import { NAUTILUS_HIT_RULES } from "../../champions/nautilus"
+import { QUINN_HIT_RULES } from "../../champions/quinn"
+import { SINGED_HIT_RULES } from "../../champions/singed"
+import { TEEMO_HIT_RULES } from "../../champions/teemo"
+import { VEIGAR_HIT_RULES } from "../../champions/veigar"
+import { ZAC_HIT_RULES } from "../../champions/zac"
 
 /**
  * A way to land a cast the simulator can't know, which the player picks per step: Decimate's outer
@@ -36,137 +47,24 @@ export type AbilityHitRule = PatchRange & {
 	sourceUrl: string
 }
 
-/** Checked on patch 16.19 for the curated champions (`CURATED_COMBAT_CHAMPIONS`). */
+/**
+ * Checked on patch 16.19 for the curated champions (`CURATED_COMBAT_CHAMPIONS`); one file per
+ * champion in `lib/champions/`.
+ */
 export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
-	{
-		championKey: "Ezreal",
-		slot: "Q",
-		onHit: true,
-		since: "16.19",
-		sourceUrl: `${WIKI}Ezreal/Mystic_Shot`,
-	},
-	{
-		// The orb only marks; the detonation is the `ezreal-w-detonation` effect.
-		championKey: "Ezreal",
-		slot: "W",
-		damage: null,
-		since: "16.19",
-		sourceUrl: `${WIKI}Ezreal/Essence_Flux`,
-	},
-	{
-		championKey: "Quinn",
-		slot: "R",
-		notModeled:
-			"Skystrike, the recast after the 2 s channel, is not simulated yet",
-		since: "16.19",
-		sourceUrl: `${WIKI}Quinn/Behind_Enemy_Lines`,
-	},
-	{
-		// Molten Shield's damage hits enemies that attack Annie; the target doesn't attack yet.
-		championKey: "Annie",
-		slot: "E",
-		damage: null,
-		since: "16.19",
-		sourceUrl: `${WIKI}Annie/Molten_Shield`,
-	},
-	{
-		championKey: "Veigar",
-		slot: "R",
-		notModeled:
-			"Primordial Burst grows with the target's missing health, which the formulas don't read yet",
-		since: "16.19",
-		sourceUrl: `${WIKI}Veigar/Primordial_Burst`,
-	},
-	{
-		championKey: "Maokai",
-		slot: "Q",
-		damage: ["TotalDamage", "BasePercentHealth"],
-		since: "16.19",
-		sourceUrl: `${WIKI}Maokai/Bramble_Smash`,
-	},
-	{
-		championKey: "Zac",
-		slot: "W",
-		damage: ["BaseDamage", "DisplayPercentDamage"],
-		since: "16.19",
-		sourceUrl: `${WIKI}Zac/Unstable_Matter`,
-	},
-	{
-		// The poison is the `singed-q` effect's damage over time.
-		championKey: "Singed",
-		slot: "Q",
-		damage: null,
-		since: "16.19",
-		sourceUrl: `${WIKI}Singed/Poison_Trail`,
-	},
-	{
-		championKey: "Singed",
-		slot: "E",
-		damage: ["BaseDamage", "MaxHPDamage"],
-		since: "16.19",
-		sourceUrl: `${WIKI}Singed/Fling`,
-	},
-	{
-		// Zephyr adds Tailwind's 30% of bonus movement speed to its damage.
-		championKey: "Janna",
-		slot: "W",
-		damage: ["TotalDamage", "spell.TailwindSelf:BonusDamage"],
-		since: "16.19",
-		sourceUrl: `${WIKI}Janna/Zephyr`,
-	},
-	{
-		championKey: "Nautilus",
-		slot: "W",
-		notModeled:
-			"Titan's Wrath deals its damage through the next basic attacks, which the combo doesn't simulate yet",
-		since: "16.19",
-		sourceUrl: `${WIKI}Nautilus/Titan's_Wrath`,
-	},
-	{
-		// The handle (inner radius) deals 35% of the blade's damage.
-		championKey: "Darius",
-		slot: "Q",
-		variants: [
-			{ id: "blade", label: "Outer blade", damage: "BladeDamage" },
-			{ id: "handle", label: "Inner handle", damage: "HandleDamage" },
-		],
-		since: "16.19",
-		sourceUrl: `${WIKI}Darius/Decimate`,
-	},
-	{
-		// 10% to 100% of its damage over the first 1500 units; the missing health part doesn't scale.
-		championKey: "Jinx",
-		slot: "R",
-		variants: [
-			{ id: "far", label: "Far", damage: ["DamageMax", "PercentDamage"] },
-			{ id: "near", label: "Near", damage: ["DamageFloor", "PercentDamage"] },
-		],
-		since: "16.19",
-		sourceUrl: `${WIKI}Jinx/Super_Mega_Death_Rocket!`,
-	},
-	{
-		// Its ticks are the `morgana-w` effect's damage over time.
-		championKey: "Morgana",
-		slot: "W",
-		damage: null,
-		since: "16.19",
-		sourceUrl: `${WIKI}Morgana/Tormented_Shadow`,
-	},
-	{
-		championKey: "Teemo",
-		slot: "E",
-		noCast: "Toxic Shot has no active: Teemo's attacks apply it",
-		since: "16.19",
-		sourceUrl: `${WIKI}Teemo/Toxic_Shot`,
-	},
-	{
-		// The poison is the `teemo-r` effect's damage over time.
-		championKey: "Teemo",
-		slot: "R",
-		damage: null,
-		since: "16.19",
-		sourceUrl: `${WIKI}Teemo/Noxious_Trap`,
-	},
+	...ANNIE_HIT_RULES,
+	...DARIUS_HIT_RULES,
+	...EZREAL_HIT_RULES,
+	...JANNA_HIT_RULES,
+	...JINX_HIT_RULES,
+	...MAOKAI_HIT_RULES,
+	...MORGANA_HIT_RULES,
+	...NAUTILUS_HIT_RULES,
+	...QUINN_HIT_RULES,
+	...SINGED_HIT_RULES,
+	...TEEMO_HIT_RULES,
+	...VEIGAR_HIT_RULES,
+	...ZAC_HIT_RULES,
 ]
 
 type HitRuleQuery = { championKey: string; patch: string; slot: AbilitySlot }
