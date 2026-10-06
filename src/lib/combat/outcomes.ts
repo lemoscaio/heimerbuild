@@ -9,17 +9,47 @@ import type {
 
 /** An outcome's key in `OutcomeChoices`: "empowered:hail-of-blades", "mark-consumed:quinn-harrier". */
 export function outcomeId(key: OutcomeKey): string {
-	return key.kind === "empowered"
-		? `${key.kind}:${key.effectId}`
-		: `${key.kind}:${key.mark}`
+	return "mark" in key
+		? `${key.kind}:${key.mark}`
+		: `${key.kind}:${key.effectId}`
 }
 
-/** Whether a trigger fires on the item: an attack's `on-attack` and `on-hit`, a cast's own triggers. */
+/** Whether the effect deals damage over time (Ignite, Toxic Shot). */
+export function dealsDamageOverTime({ effect }: BuildEffect): boolean {
+	return effect.grants.some(({ kind }) => kind === "damageOverTime")
+}
+
+/** An ability's effect that deals damage on a basic attack (Toxic Shot), which is ability damage. */
+function isAttackAbilityDamage({ effect }: BuildEffect): boolean {
+	const onAttack =
+		effect.trigger.kind === "on-hit" ||
+		effect.trigger.kind === "on-attack" ||
+		effect.endsOn === "on-hit"
+	return (
+		onAttack &&
+		effect.source.kind === "ability" &&
+		effect.grants.some(({ kind }) =>
+			["damage", "abilityDamage", "damageOverTime"].includes(kind),
+		)
+	)
+}
+
+/**
+ * Whether a trigger fires on the item: an attack's `on-attack` and `on-hit`, a cast's own
+ * triggers; ability damage on any cast, and on attacks while an ability's effect deals some on them.
+ */
 function firesOn(
 	trigger: Trigger,
 	effect: BuildEffect,
 	item: CombatItem,
+	effects: readonly BuildEffect[],
 ): boolean {
+	if (trigger.kind === "on-ability-damage") {
+		return (
+			item.kind === "ability" ||
+			(item.kind === "attack" && effects.some(isAttackAbilityDamage))
+		)
+	}
 	if (item.kind === "attack") {
 		return trigger.kind === "on-attack" || trigger.kind === "on-hit"
 	}
@@ -38,7 +68,8 @@ function firesOn(
 /**
  * The outcomes the build's effects can have at an item, from their triggers alone: an `on-attack`
  * effect empowers attacks, a mark is applied by the actions that trigger its applier and consumed by
- * the actions its `consumedBy` names. Markers, summoner spells and waits have none.
+ * the actions its `consumedBy` names, a damage over time is applied by the actions that trigger it.
+ * Markers, summoner spells and waits have none.
  */
 export function outcomeKeys(
 	item: CombatItem,
@@ -56,10 +87,16 @@ export function outcomeKeys(
 		),
 		...own.flatMap((effect): OutcomeKey[] => {
 			const { applies, trigger } = effect.effect
-			return applies && firesOn(trigger, effect, item)
+			return applies && firesOn(trigger, effect, item, own)
 				? [{ kind: "mark-applied", mark: applies.mark }]
 				: []
 		}),
+		...own.flatMap((effect): OutcomeKey[] =>
+			dealsDamageOverTime(effect) &&
+			firesOn(effect.effect.trigger, effect, item, own)
+				? [{ kind: "damage-over-time", effectId: effect.id }]
+				: [],
+		),
 		...own.flatMap((effect): OutcomeKey[] =>
 			effect.effect.applies?.consumedBy.includes(consumer)
 				? [{ kind: "mark-consumed", mark: effect.effect.applies.mark }]

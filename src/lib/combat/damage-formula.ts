@@ -20,7 +20,8 @@ export type FormulaInput = {
 	target: TargetHealthState
 }
 
-function targetHealth(
+/** The target's health a share reads: its maximum, current or missing health. */
+export function targetHealth(
 	share: TargetHealth,
 	{ maximum, current }: TargetHealthState,
 ): number {

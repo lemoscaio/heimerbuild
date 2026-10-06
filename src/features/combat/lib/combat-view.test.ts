@@ -42,6 +42,7 @@ const STEP: CombatStep = {
 	action: { kind: "attack" },
 	time: 0,
 	outcomes: [],
+	damageOverTime: [],
 	events: [
 		{
 			kind: "hit",

@@ -243,9 +243,7 @@ export type OutcomeView = {
 
 /** What an outcome is about: the effect's name, or the mark's. */
 function outcomeSubject(key: OutcomeKey, names: CombatNames) {
-	return key.kind === "empowered"
-		? names.effect(key.effectId)
-		: names.mark(key.mark)
+	return "mark" in key ? names.mark(key.mark) : names.effect(key.effectId)
 }
 
 function outcomeLabel(key: OutcomeKey, names: CombatNames) {
@@ -257,6 +255,8 @@ function outcomeLabel(key: OutcomeKey, names: CombatNames) {
 			return `${subject}: applies the mark`
 		case "mark-consumed":
 			return `${subject}: consumes the mark`
+		case "damage-over-time":
+			return `${subject}: applies`
 	}
 }
 

@@ -33,12 +33,14 @@ export type SituationStatus =
 
 /**
  * A result the rules decide at a step, which free mode lets the user set: an effect empowering an
- * attack (Hail of Blades), a mark applied by a cast, a mark consumed.
+ * attack (Hail of Blades), a mark applied by a cast, a mark consumed, a damage over time applied
+ * (Toxic Shot's poison, Liandry's burn).
  */
 export type OutcomeKey =
 	| { kind: "empowered"; effectId: string }
 	| { kind: "mark-applied"; mark: string }
 	| { kind: "mark-consumed"; mark: string }
+	| { kind: "damage-over-time"; effectId: string }
 
 /**
  * An outcome at a step and whether it happened; `charge` is the attack's place among an effect's
@@ -84,16 +86,26 @@ export type CastSource =
 /** Who holds an effect: the attacker, or the target (Ignite's burn). */
 export type EffectHolder = "attacker" | "target"
 
+/** A damage over time's tick, and the step whose application it belongs to (by item index). */
+export type TickOwner = { owner: number }
+
 /** Everything that happens, in order; `time` is seconds from the combo's start. */
 export type CombatEvent =
 	| { kind: "cast"; time: number; source: CastSource }
-	| { kind: "hit"; time: number; source: DamageSource; damage: DealtDamage }
+	| {
+			kind: "hit"
+			time: number
+			source: DamageSource
+			damage: DealtDamage
+			tick?: TickOwner
+	  }
 	/** A hit the simulator has no number for, with why (a share of the target's health). */
 	| {
 			kind: "hit"
 			time: number
 			source: DamageSource
 			notModeled: readonly string[]
+			tick?: TickOwner
 	  }
 	| { kind: "on-hit"; time: number }
 	| { kind: "mark-applied"; time: number; mark: string; endsAt: number }
@@ -114,6 +126,26 @@ export type ActiveEffect = {
 
 export type TargetMark = { mark: string; endsAt: number }
 
+/** One tick of a damage over time: its time and damage, or why it has no number. */
+export type DamageOverTimeTick =
+	| { time: number; damage: DealtDamage }
+	| { time: number; notModeled: readonly string[] }
+
+/**
+ * A damage over time a step applied (`applied`, `refreshed` or `stacked`, the first of its
+ * applications there) and the ticks it owns: those no earlier application already covered, wherever
+ * they land among the later steps. Additive by `effectId`, so steps can be summed.
+ */
+export type DamageOverTimeSummary = {
+	effectId: string
+	application: "applied" | "refreshed" | "stacked"
+	/** Its stacks after the step's last application. */
+	stacks: number
+	ticks: DamageOverTimeTick[]
+	/** When it runs out after the step's last application. */
+	endsAt: number
+}
+
 /**
  * One item of the combo. An action owns what followed it until the next action started; a marker
  * owns no events and says what it did (`situation`).
@@ -127,7 +159,13 @@ export type CombatStep = {
 	outcomes: StepOutcome[]
 	/** Why it did not run; the rest of the combo goes on. */
 	refused?: string
+	/**
+	 * What followed until the next action started, in time order. A tick here may belong to an
+	 * earlier step (`tick.owner`); `damageOverTime` sums each step's own.
+	 */
 	events: CombatEvent[]
+	/** The damage over time the step applied, with the ticks that belong to it. */
+	damageOverTime: DamageOverTimeSummary[]
 	/** The effects running and the marks on the target once the action resolved (a wait: at its end). */
 	active: ActiveEffect[]
 	marks: TargetMark[]

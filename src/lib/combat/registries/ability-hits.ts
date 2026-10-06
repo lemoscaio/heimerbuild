@@ -31,6 +31,8 @@ export type AbilityHitRule = PatchRange & {
 	notModeled?: string
 	/** The ways the cast can land, the first by default; each step picks one (an input, never an outcome). */
 	variants?: readonly AbilityVariant[]
+	/** Why the ability can't be cast at all (a passive only one): a cast is refused with it. */
+	noCast?: string
 	sourceUrl: string
 }
 
@@ -90,10 +92,10 @@ export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 		sourceUrl: `${WIKI}Zac/Unstable_Matter`,
 	},
 	{
+		// The poison is the `singed-q` effect's damage over time.
 		championKey: "Singed",
 		slot: "Q",
-		notModeled:
-			"Poison Trail deals its damage over time, which the combo doesn't simulate yet",
+		damage: null,
 		since: "16.19",
 		sourceUrl: `${WIKI}Singed/Poison_Trail`,
 	},
@@ -143,12 +145,27 @@ export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 		sourceUrl: `${WIKI}Jinx/Super_Mega_Death_Rocket!`,
 	},
 	{
+		// Its ticks are the `morgana-w` effect's damage over time.
 		championKey: "Morgana",
 		slot: "W",
-		notModeled:
-			"Tormented Shadow deals its damage over 5 s, which the combo doesn't simulate yet",
+		damage: null,
 		since: "16.19",
 		sourceUrl: `${WIKI}Morgana/Tormented_Shadow`,
+	},
+	{
+		championKey: "Teemo",
+		slot: "E",
+		noCast: "Toxic Shot has no active: Teemo's attacks apply it",
+		since: "16.19",
+		sourceUrl: `${WIKI}Teemo/Toxic_Shot`,
+	},
+	{
+		// The poison is the `teemo-r` effect's damage over time.
+		championKey: "Teemo",
+		slot: "R",
+		damage: null,
+		since: "16.19",
+		sourceUrl: `${WIKI}Teemo/Noxious_Trap`,
 	},
 ]
 
