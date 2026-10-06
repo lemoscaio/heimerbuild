@@ -220,3 +220,59 @@ test("Decimate's inner handle deals less than its outer blade, in either mode", 
 	).toHaveAttribute("aria-pressed", "true")
 	await expect.poll(total).toBeLessThan(blade)
 })
+
+test("Hail of Blades again right after its 3 attacks is ignored in strict mode and forced in free mode", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+	)
+	const ready = combo(page).getByRole("button", {
+		name: "Add marker: Hail of Blades ready",
+	})
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	await ready.click()
+	for (let count = 0; count < 4; count++) await attack.click()
+	await expect(steps(page)).toHaveCount(4)
+	const once = await damageTotal(page).textContent()
+
+	// The second marker goes before the 4th attack, while the rune is on cooldown.
+	await ready.click()
+	await combo(page)
+		.getByRole("button", { name: "Move marker Hail of Blades ready up" })
+		.nth(1)
+		.click()
+	await expect(damageTotal(page)).toHaveText(once ?? "")
+
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	await expect(damageTotal(page)).not.toHaveText(once ?? "")
+})
+
+test("the combo's time is its last hit, not a buff running on after it", async ({
+	page,
+}) => {
+	await page.goto("/champions/Quinn?lvl=18&skills=QWEQQRQWQWRWWEEREE&tab=combo")
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	for (let count = 0; count < 3; count++) await attack.click()
+	const time = combo(page)
+		.getByLabel("Combo result")
+		.getByRole("definition")
+		.nth(2)
+	await expect(time).not.toHaveText("0.00 s")
+	const plain = await time.textContent()
+
+	// Harrier before the third attack adds Heightened Senses after it: the time stays.
+	await combo(page)
+		.getByRole("button", { name: "Add marker: Target marked by Harrier" })
+		.click()
+	const up = combo(page).getByRole("button", {
+		name: "Move marker Target marked by Harrier up",
+	})
+	await up.click()
+	await expect(time).toHaveText(plain ?? "")
+
+	// Before the first attack, its attack speed shortens the combo.
+	await up.click()
+	await up.click()
+	await expect(time).not.toHaveText(plain ?? "")
+})
