@@ -1,140 +1,32 @@
-import type { AbilitySlot, Champion } from "../schemas/champion"
-import type { FieldOverride } from "./apply-overrides"
-
-const WIKI = "https://wiki.leagueoflegends.com/en-us/Template:Data_"
-
-/**
- * Sets the cast time of some of a champion's abilities (0 is none): an override like the others,
- * so it is logged, ranged by patch and reported once Riot's data agrees with it.
- */
-export function defineCastTimes({
-	championKey,
-	castTimes,
-	...override
-}: Omit<FieldOverride<Champion, "abilities">, "target" | "field" | "apply"> & {
-	/** Data Dragon string id ("MonkeyKing"). */
-	championKey: string
-	castTimes: Partial<Record<AbilitySlot, number>>
-}): FieldOverride<Champion, "abilities"> {
-	return {
-		...override,
-		target: championKey,
-		field: "abilities",
-		apply: (abilities) => ({
-			...abilities,
-			spells: abilities.spells.map((spell) => {
-				const castTime = castTimes[spell.slot]
-				return castTime === undefined ? spell : { ...spell, castTime }
-			}) as Champion["abilities"]["spells"],
-		}),
-	}
-}
+import { BRAUM_CAST_TIMES } from "../champions/braum"
+import { JANNA_CAST_TIMES } from "../champions/janna"
+import { LEONA_CAST_TIMES } from "../champions/leona"
+import { LISSANDRA_CAST_TIMES } from "../champions/lissandra"
+import { LUX_CAST_TIMES } from "../champions/lux"
+import { MAOKAI_CAST_TIMES } from "../champions/maokai"
+import { MORGANA_CAST_TIMES } from "../champions/morgana"
+import { NAUTILUS_CAST_TIMES } from "../champions/nautilus"
+import { QUINN_CAST_TIMES } from "../champions/quinn"
+import { SINGED_CAST_TIMES } from "../champions/singed"
+import { TARIC_CAST_TIMES } from "../champions/taric"
+import { ZAC_CAST_TIMES } from "../champions/zac"
 
 /**
  * The combo's curated champions whose game files give a cast time the wiki doesn't: the files'
- * `spellCastTime` is the animation's, also set on abilities that cast instantly.
+ * `spellCastTime` is the animation's, also set on abilities that cast instantly. One file per
+ * champion in `champions/`.
  */
 export const CHAMPION_CAST_TIMES = [
-	defineCastTimes({
-		id: "quinn-cast-times",
-		championKey: "Quinn",
-		since: "16.19",
-		reason:
-			"Heightened Senses and Vault have no cast time; the game files give 0.25 s",
-		source: `${WIKI}Quinn/Vault`,
-		castTimes: { W: 0, E: 0 },
-	}),
-	defineCastTimes({
-		id: "lissandra-cast-times",
-		championKey: "Lissandra",
-		since: "16.19",
-		reason:
-			"Ring of Frost has no cast time and Frozen Tomb on an enemy takes 0.375 s; the game files give 0.25 s for both",
-		source: `${WIKI}Lissandra/Frozen_Tomb`,
-		castTimes: { W: 0, R: 0.375 },
-	}),
-	defineCastTimes({
-		id: "lux-cast-times",
-		championKey: "Lux",
-		since: "16.19",
-		reason: "Final Spark takes 1 s; the game files give 1.375 s",
-		source: `${WIKI}Lux/Final_Spark`,
-		castTimes: { R: 1 },
-	}),
-	defineCastTimes({
-		id: "maokai-cast-times",
-		championKey: "Maokai",
-		since: "16.19",
-		reason:
-			"Bramble Smash takes 0.3 s, Twisted Advance has no cast time and Nature's Grasp takes 0.5 s; the game files give 0.375, 0.25 and none",
-		source: `${WIKI}Maokai/Bramble_Smash`,
-		castTimes: { Q: 0.3, W: 0, R: 0.5 },
-	}),
-	defineCastTimes({
-		id: "zac-cast-times",
-		championKey: "Zac",
-		since: "16.19",
-		reason: "Unstable Matter has no cast time; the game files give 0.25 s",
-		source: `${WIKI}Zac/Unstable_Matter`,
-		castTimes: { W: 0 },
-	}),
-	defineCastTimes({
-		id: "singed-cast-times",
-		championKey: "Singed",
-		since: "16.19",
-		reason:
-			"Poison Trail and Insanity Potion have no cast time; the game files give 0.38 and 0.25 s",
-		source: `${WIKI}Singed/Poison_Trail`,
-		castTimes: { Q: 0, R: 0 },
-	}),
-	defineCastTimes({
-		id: "braum-cast-times",
-		championKey: "Braum",
-		since: "16.19",
-		reason: "Unbreakable has no cast time; the game files give 0.01 s",
-		source: `${WIKI}Braum/Unbreakable`,
-		castTimes: { E: 0 },
-	}),
-	defineCastTimes({
-		id: "nautilus-cast-times",
-		championKey: "Nautilus",
-		since: "16.19",
-		reason: "Titan's Wrath has no cast time; the game files give 0.25 s",
-		source: `${WIKI}Nautilus/Titan's_Wrath`,
-		castTimes: { W: 0 },
-	}),
-	defineCastTimes({
-		id: "taric-cast-times",
-		championKey: "Taric",
-		since: "16.19",
-		reason: "Dazzle has no cast time; the game files give 0.25 s",
-		source: `${WIKI}Taric/Dazzle`,
-		castTimes: { E: 0 },
-	}),
-	defineCastTimes({
-		id: "janna-cast-times",
-		championKey: "Janna",
-		since: "16.19",
-		reason:
-			"Eye of the Storm and Monsoon have no cast time; the game files give 0.25 and 0.001 s",
-		source: `${WIKI}Janna/Eye_of_the_Storm`,
-		castTimes: { E: 0, R: 0 },
-	}),
-	defineCastTimes({
-		id: "leona-cast-times",
-		championKey: "Leona",
-		since: "16.19",
-		reason:
-			"Shield of Daybreak and Eclipse have no cast time; the game files give 0.25 s",
-		source: `${WIKI}Leona/Eclipse`,
-		castTimes: { Q: 0, W: 0 },
-	}),
-	defineCastTimes({
-		id: "morgana-cast-times",
-		championKey: "Morgana",
-		since: "16.19",
-		reason: "Black Shield has no cast time; the game files give 0.52 s",
-		source: `${WIKI}Morgana/Black_Shield`,
-		castTimes: { E: 0 },
-	}),
+	BRAUM_CAST_TIMES,
+	JANNA_CAST_TIMES,
+	LEONA_CAST_TIMES,
+	LISSANDRA_CAST_TIMES,
+	LUX_CAST_TIMES,
+	MAOKAI_CAST_TIMES,
+	MORGANA_CAST_TIMES,
+	NAUTILUS_CAST_TIMES,
+	QUINN_CAST_TIMES,
+	SINGED_CAST_TIMES,
+	TARIC_CAST_TIMES,
+	ZAC_CAST_TIMES,
 ]

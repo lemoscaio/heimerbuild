@@ -14,10 +14,8 @@ import {
 	applyOverrides,
 	type OverrideReport,
 } from "./overrides/apply-overrides"
-import {
-	CHAMPION_OVERRIDES,
-	type ChampionOverride,
-} from "./overrides/champion-overrides"
+import { CHAMPION_OVERRIDES } from "./overrides/champion-overrides"
+import type { ChampionOverride } from "./overrides/define-champion-overrides"
 import { RANK_STAT_RULES, type RankStatRule } from "./rank-stats"
 import { readJson } from "./read-json"
 import {

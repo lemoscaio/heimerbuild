@@ -3,7 +3,8 @@ import {
 	type ChampionAbilities,
 	championAbilitiesSchema,
 } from "../schemas/champion"
-import { CHAMPION_CAST_TIMES, defineCastTimes } from "./champion-cast-times"
+import { CHAMPION_CAST_TIMES } from "./champion-cast-times"
+import { defineCastTimes } from "./define-champion-overrides"
 
 const SPELL = {
 	name: "Spell",
