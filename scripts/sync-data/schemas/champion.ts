@@ -132,18 +132,87 @@ export const abilityRankValueSchema = z.strictObject({
 	unit: z.optional(z.literal("%")),
 })
 
+/** Champion levels a damage value covers: 1 to 18, like the build's level. */
+export const CHAMPION_LEVELS = 18
+
+/** A number of a damage formula: fixed, one per ability rank (from rank 1), or one per champion level (from level 1). */
+export const formulaValueSchema = z.union([
+	z.number(),
+	z.strictObject({ byRank: perRankSchema }),
+	z.strictObject({
+		byLevel: z.array(z.number()).check(z.length(CHAMPION_LEVELS)),
+	}),
+])
+
+/** The champion stats a damage ratio reads; their `base`/`bonus`/`total` parts are the stats engine's. */
+export const FORMULA_STATS = [
+	"attackDamage",
+	"abilityPower",
+	"armor",
+	"magicResist",
+	"health",
+] as const
+
+/** One addend of a damage formula: a flat value, or `ratio` of a stat (its `part`, else the total). */
+export const formulaPartSchema = z.union([
+	z.strictObject({ value: formulaValueSchema }),
+	z.strictObject({
+		stat: z.enum(FORMULA_STATS),
+		part: z.optional(z.enum(["base", "bonus"])),
+		ratio: formulaValueSchema,
+	}),
+])
+
+export const DAMAGE_TYPES = ["physical", "magic", "true"] as const
+
+/**
+ * One damage an ability's tooltip shows, as the game files compute it (CommunityDragon
+ * `mSpellCalculations`): the sum of `parts`, times `multiplier`. `notModeled` lists what the sync
+ * could not read (a share of the target's health, summed sub-parts); such damage has no number.
+ */
+export const abilityDamageSchema = z.strictObject({
+	/** The game's calculation name ("Damage", "BonusDamage"). */
+	name: z.string().check(z.minLength(1)),
+	type: z.enum(DAMAGE_TYPES),
+	parts: z.array(formulaPartSchema),
+	multiplier: z.optional(formulaValueSchema),
+	notModeled: z.optional(
+		z.array(z.string().check(z.minLength(1))).check(z.minLength(1)),
+	),
+})
+
 /** "70 Mana" per rank (`unit` after the number), or a fixed text such as "No Cost". */
 const abilityCostSchema = z.union([
 	z.strictObject({ values: perRankSchema, unit: z.string() }),
 	z.strictObject({ text: z.string().check(z.minLength(1)) }),
 ])
 
-const passiveSchema = z.strictObject({
-	name: z.string().check(z.minLength(1)),
-	/** Plain text: Data Dragon's markup removed, line breaks kept. */
-	description: z.string(),
-	icon: z.url(),
-})
+const passiveSchema = z
+	.strictObject({
+		name: z.string().check(z.minLength(1)),
+		/** Plain text: Data Dragon's markup removed, line breaks kept. */
+		description: z.string(),
+		icon: z.url(),
+		/** The damage its tooltip shows, in tooltip order; never by rank, since a passive has none. */
+		damage: z.optional(z.array(abilityDamageSchema).check(z.minLength(1))),
+	})
+	.check(
+		z.refine(({ damage }) => damageRankLists(damage).length === 0, {
+			error: "a passive's damage has no values by rank",
+		}),
+	)
+
+/** Every value of the damage formulas listed by rank (`byRank`). */
+function damageRankLists(damage: readonly AbilityDamage[] | undefined) {
+	return (damage ?? []).flatMap(({ parts, multiplier }) =>
+		[
+			...parts.map((part) => ("value" in part ? part.value : part.ratio)),
+			multiplier,
+		].flatMap((value) =>
+			typeof value === "object" && "byRank" in value ? [value.byRank] : [],
+		),
+	)
+}
 
 export const championSpellSchema = z
 	.strictObject({
@@ -166,14 +235,19 @@ export const championSpellSchema = z
 		unavailable: z.optional(
 			z.strictObject({ reason: z.string().check(z.minLength(1)) }),
 		),
+		/** Seconds the cast takes (game files `mCastTime`, else `spellCastTime`); absent means none. */
+		castTime: z.optional(z.number().check(z.nonnegative())),
+		/** The damage its tooltip shows, in tooltip order; absent when it shows none. */
+		damage: z.optional(z.array(abilityDamageSchema).check(z.minLength(1))),
 	})
 	.check(
 		z.refine(
-			({ maxRank, cooldown, cost, rankValues }) =>
+			({ maxRank, cooldown, cost, rankValues, damage }) =>
 				[
 					cooldown,
 					cost && "values" in cost ? cost.values : cooldown,
 					...rankValues.map(({ values }) => values),
+					...damageRankLists(damage),
 				].every((values) => values.length === maxRank),
 			{ error: "per-rank values must have one value per rank" },
 		),
@@ -372,7 +446,7 @@ export const championSchema = z.strictObject({
 	/** What Adaptive Force becomes when bonus AD and AP are equal (CommunityDragon `mAdaptiveForceToAbilityPowerWeight`). */
 	adaptiveType: z.enum(["ad", "ap"]),
 	stats: championStatsSchema,
-	/** Passive and Q/W/E/R: names, icons, ranks and per-rank values (no scalings or damage). */
+	/** Passive and Q/W/E/R: names, icons, ranks, per-rank values, cast times and damage formulas. */
 	abilities: championAbilitiesSchema,
 	/** Applied by the skill order; absent means the default rules. */
 	skillRules: z.optional(skillRulesSchema),
@@ -389,6 +463,11 @@ export type LevelState = z.infer<typeof levelStateSchema>
 export type ChampionForm = z.infer<typeof championFormSchema>
 export type AbilitySlot = z.infer<typeof abilitySlotSchema>
 export type AbilityRankValue = z.infer<typeof abilityRankValueSchema>
+export type FormulaValue = z.infer<typeof formulaValueSchema>
+export type FormulaPart = z.infer<typeof formulaPartSchema>
+export type FormulaStat = (typeof FORMULA_STATS)[number]
+export type DamageType = (typeof DAMAGE_TYPES)[number]
+export type AbilityDamage = z.infer<typeof abilityDamageSchema>
 export type ChampionSpell = z.infer<typeof championSpellSchema>
 export type ChampionPassive = z.infer<typeof passiveSchema>
 export type ChampionAbilities = z.infer<typeof championAbilitiesSchema>

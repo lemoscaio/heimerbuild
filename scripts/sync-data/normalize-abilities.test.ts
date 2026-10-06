@@ -158,6 +158,85 @@ describe("normalizeAbilities", () => {
 			normalizeAbilities(teemoDetail.data.Teemo, bin, VERSION),
 		).toThrow("no SpellObject for R")
 	})
+
+	test("reads each ability's cast time and tooltip damage, the passive's included, from the game files", () => {
+		const bin = structuredClone(teemoBin) as Record<string, unknown>
+		const root = bin["Characters/Teemo/CharacterRecords/Root"] as Record<
+			string,
+			unknown
+		>
+		root.mCharacterPassiveSpell = "Characters/Teemo/Spells/TeemoPassive"
+		bin["Characters/Teemo/Spells/TeemoPassive"] = {
+			__type: "SpellObject",
+			mSpell: {
+				mClientData: { mTooltipData: { mObjectName: "TeemoPassive" } },
+				mSpellCalculations: {
+					Damage: {
+						__type: "GameCalculation",
+						mFormulaParts: [{ __type: "NumberCalculationPart", mNumber: 10 }],
+					},
+				},
+			},
+		}
+		const q = (
+			bin["Characters/Teemo/Spells/TeemoQAbility/TeemoQ"] as {
+				mSpell: Record<string, unknown>
+			}
+		).mSpell
+		Object.assign(q, {
+			spellCastTime: 0.25,
+			mClientData: { mTooltipData: { mObjectName: "TeemoQ" } },
+			mSpellCalculations: {
+				CalculatedDamage: {
+					__type: "GameCalculation",
+					mFormulaParts: [
+						{
+							__type: "NamedDataValueCalculationPart",
+							mDataValue: "BaseDamage",
+						},
+						{
+							__type: "StatByNamedDataValueCalculationPart",
+							mDataValue: "APRatio",
+						},
+					],
+				},
+			},
+		})
+		const tooltips: Record<string, string> = {
+			generatedtip_spell_teemoq_tooltipcontent:
+				"Deals <magicDamage>@CalculatedDamage@ magic damage</magicDamage>.",
+			generatedtip_spell_teemopassive_tooltipcontent:
+				"Deals <magicDamage>@Damage@ magic damage</magicDamage>.",
+		}
+
+		const { passive, spells } = normalizeAbilities(
+			teemoDetail.data.Teemo,
+			bin,
+			VERSION,
+			{ strings: (key) => tooltips[key] },
+		).abilities
+
+		expect(championAbilitiesSchema.safeParse({ passive, spells }).success).toBe(
+			true,
+		)
+		expect(spells[0]).toMatchObject({
+			castTime: 0.25,
+			damage: [
+				{
+					name: "CalculatedDamage",
+					type: "magic",
+					parts: [
+						{ value: { byRank: [80, 125, 170, 215, 260] } },
+						{ stat: "abilityPower", ratio: 0.7 },
+					],
+				},
+			],
+		})
+		expect(passive.damage).toEqual([
+			{ name: "Damage", type: "magic", parts: [{ value: 10 }] },
+		])
+		expect(spells[1]?.damage).toBeUndefined()
+	})
 })
 
 describe("rankValues", () => {

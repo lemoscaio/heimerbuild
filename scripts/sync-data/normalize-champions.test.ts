@@ -258,6 +258,10 @@ describe("writeChampions", () => {
 				join(cacheDir, "cdragon/characters/Heimerdinger.bin.json"),
 				Bun.file(join(FIXTURES, "Heimerdinger.bin.json")),
 			)
+			await Bun.write(
+				join(cacheDir, "cdragon/lol.stringtable.json"),
+				JSON.stringify({ entries: {} }),
+			)
 			await run(cacheDir, outDir)
 		} finally {
 			await rm(cacheDir, { recursive: true, force: true })

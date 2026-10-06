@@ -58,7 +58,7 @@ jobs:
       - name: Sync data
         if: steps.patch.outputs.changed == 'true'
         # 2>&1 keeps the warnings (stale overrides and allowlist entries) in the log the PR shows.
-        run: bun run sync-data --version "${{ steps.patch.outputs.latest }}" --override-report "$RUNNER_TEMP/overrides.md" 2>&1 | tee "$RUNNER_TEMP/sync.log"
+        run: bun run sync-data --version "${{ steps.patch.outputs.latest }}" --override-report "$RUNNER_TEMP/overrides.md" --coverage-report "$RUNNER_TEMP/coverage.md" 2>&1 | tee "$RUNNER_TEMP/sync.log"
 
       # PRs opened with GITHUB_TOKEN do not trigger ci.yml, so run the same checks here.
       - name: Check the synced data
@@ -86,6 +86,8 @@ jobs:
               echo
             fi
             bun scripts/sync-data/diff-patches.ts --from "$CURRENT" --to "$LATEST"
+            echo
+            cat "$RUNNER_TEMP/coverage.md"
             echo
             echo "<details><summary>sync-data log</summary>"
             echo

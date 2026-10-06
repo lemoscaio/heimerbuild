@@ -10,6 +10,7 @@ import {
 import { join, resolve } from "node:path"
 import { parseArgs } from "node:util"
 import * as z from "zod/mini"
+import { coverageMarkdown } from "./damage-coverage"
 import {
 	CACHE_LAYOUT,
 	downloadRawData,
@@ -34,12 +35,14 @@ z.config(z.locales.en())
 const CACHE_ROOT = resolve(import.meta.dir, "../../.cache")
 const OUTPUT_ROOT = resolve(import.meta.dir, "../../public/data")
 
-const USAGE = `Usage: bun run sync-data [--version <x.y.z>] [--offline] [--override-report <file>]
+const USAGE = `Usage: bun run sync-data [--version <x.y.z>] [--offline] [--override-report <file>] [--coverage-report <file>]
 
   --version <x.y.z>          Use this Data Dragon version instead of the latest one
   --offline                  Use the newest fully cached version; never touch the network
   --override-report <file>   Write the overrides this patch no longer needs as Markdown
-                             (only when there are any; the sync workflow adds it to its PR)`
+                             (only when there are any; the sync workflow adds it to its PR)
+  --coverage-report <file>   Write which ability damage formulas the sync read, per champion
+                             and ability, as Markdown (the sync workflow adds it to its PR)`
 
 function formatBytes(bytes: number): string {
 	return `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -154,8 +157,14 @@ function staleOverridesMarkdown(lines: readonly string[]): string {
 	].join("\n")
 }
 
-/** Returns the Markdown lines of the overrides this patch no longer needs. */
-async function writeOutputs(version: string): Promise<string[]> {
+type SyncReports = {
+	/** The Markdown lines of the overrides this patch no longer needs. */
+	staleOverrides: string[]
+	/** The ability damage coverage, as Markdown. */
+	coverage: string
+}
+
+async function writeOutputs(version: string): Promise<SyncReports> {
 	const cacheDir = join(CACHE_ROOT, version)
 	const outDir = join(OUTPUT_ROOT, version)
 
@@ -166,6 +175,10 @@ async function writeOutputs(version: string): Promise<string[]> {
 	)
 	console.log(
 		`  Ability rank-up lines left out (values not in the game files): ${champions.skippedAbilityLines}`,
+	)
+	const fullCoverage = champions.damageCoverage.filter(({ full }) => full)
+	console.log(
+		`  Champions with every ability damage formula read: ${fullCoverage.length} of ${champions.champions}`,
 	)
 
 	const items = await syncItems({ cacheDir, outDir })
@@ -200,7 +213,10 @@ async function writeOutputs(version: string): Promise<string[]> {
 	console.log(
 		`Wrote public/data/manifest.json (current ${manifest.currentPatch}, ${manifest.patches.length} patches)`,
 	)
-	return staleOverrides
+	return {
+		staleOverrides,
+		coverage: coverageMarkdown(champions.damageCoverage),
+	}
 }
 
 async function main(): Promise<void> {
@@ -209,6 +225,7 @@ async function main(): Promise<void> {
 			version: { type: "string" },
 			offline: { type: "boolean", default: false },
 			"override-report": { type: "string" },
+			"coverage-report": { type: "string" },
 			help: { type: "boolean", default: false },
 		},
 	})
@@ -220,11 +237,13 @@ async function main(): Promise<void> {
 	const version = await resolveVersion(values)
 	console.log(`Data Dragon version: ${version}`)
 	await ensureRawData(version, { offline: values.offline })
-	const staleOverrides = await writeOutputs(version)
+	const { staleOverrides, coverage } = await writeOutputs(version)
 	const reportPath = values["override-report"]
 	if (reportPath && staleOverrides.length > 0) {
 		await writeFile(reportPath, staleOverridesMarkdown(staleOverrides))
 	}
+	const coveragePath = values["coverage-report"]
+	if (coveragePath) await writeFile(coveragePath, coverage)
 }
 
 main().catch((error: unknown) => {
