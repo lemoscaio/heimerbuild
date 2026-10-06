@@ -12,6 +12,7 @@ import {
 	runeSummonerHints,
 	spellRuneEffectsById,
 } from "@/lib/summoner-rune-interactions"
+import { useBuildCombat } from "./use-build-combat"
 import { useChampionBuild } from "./use-champion-build"
 import { useFormSwitch } from "./use-form-switch"
 import { useUrlBuildSource } from "./use-url-build-source"
@@ -36,6 +37,7 @@ export function useBuildPage({
 	const source = useUrlBuildSource({ championKey, search, onSearchChange })
 	const build = useChampionBuild({ patch, championKey, source })
 	const formSwitch = useFormSwitch(build)
+	const combat = useBuildCombat(build)
 	const { data: itemsById } = useItems(patch)
 	const { data: runes } = useRunes(patch)
 	const [selectedItemId, setSelectedItemId] = useState<string>()
@@ -110,6 +112,8 @@ export function useBuildPage({
 		matchState: build.matchState,
 		/** The build's conditional effects with their switches; `setOn` turns one on or off. */
 		conditions: build.conditions,
+		/** The combo: its target and steps, in memory, simulated on the build. */
+		combat,
 		/** The page's runes that react to the chosen summoner spells, with what happens. */
 		summonerHints: runeSummonerHints(pageRunes, chosenSpells),
 		/** For each spell a slot can take, the page's runes that react to it (the picker). */
