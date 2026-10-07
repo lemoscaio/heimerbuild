@@ -1,6 +1,6 @@
+import type { AreaVariant } from "@/lib/combat/area-ticks"
 import type { CombatAction, CombatTarget } from "@/lib/combat/combat"
 import {
-	type AbilityVariant,
 	LANDS_LABEL,
 	type VariantsLabel,
 } from "@/lib/combat/registries/ability-hits"
@@ -46,7 +46,7 @@ export type CombatStepItem = {
 	/** Free mode: the outcomes only attacks have, said on an ability's card. */
 	attacksOnly?: string
 	/** The ways the ability can land, with the one picked (Decimate's outer blade). */
-	variants: readonly AbilityVariant[]
+	variants: readonly AreaVariant[]
 	/** What the variants pick ("Lands", "Poisoned"). */
 	variantsLabel: VariantsLabel
 }

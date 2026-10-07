@@ -1,4 +1,5 @@
 import type { AbilitySlot, Champion } from "@schemas/champion"
+import { areaVariants } from "@/lib/combat/area-ticks"
 import { type CombatAction, MAX_COMBAT_STEPS } from "@/lib/combat/combat"
 import { CURATED_COMBAT_CHAMPIONS } from "@/lib/combat/curated-champions"
 import { outcomeKeys } from "@/lib/combat/outcomes"
@@ -107,14 +108,25 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		situations: combatSituations(combatStartOptions(effects, formId)),
 		/** The outcomes an attack can have, which ability steps say they lack. */
 		attackOutcomes: outcomeKeys({ kind: "attack" }, effects, formId),
-		/** The ways an ability's cast can land, picked per step (Decimate's blade or handle). */
+		/** The ways an ability's cast can land, picked per step (Decimate's blade or handle), with a time in an area's ticks. */
 		variants: (slot: AbilitySlot) =>
 			input
-				? abilityVariants({
-						championKey: input.build.champion.key,
-						patch: input.build.patch,
-						slot,
-					})
+				? areaVariants(
+						abilityVariants({
+							championKey: input.build.champion.key,
+							patch: input.build.patch,
+							slot,
+						}),
+						{
+							slot,
+							effects,
+							context: {
+								level: input.build.level,
+								ranks: input.build.ranks,
+								rankStats: input.build.champion.rankStats,
+							},
+						},
+					)
 				: [],
 		/** What an ability's variants pick: "Lands" (Decimate), "Poisoned" (Poison Trail). */
 		variantsLabel: (slot: AbilitySlot) =>
