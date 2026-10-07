@@ -103,6 +103,8 @@ type Instance = {
 	effect: BuildEffect
 	holder: EffectHolder
 	startedAt: number
+	/** When it last triggered (a refresh included), which its grants' own clocks read. */
+	triggeredAt: number
 	endsAt: number
 	stacks: number
 	/** Ticks of a damage over time dealt so far. */
@@ -207,6 +209,7 @@ function newInstance(
 		effect,
 		holder: holder ?? "attacker",
 		startedAt: sim.time,
+		triggeredAt: sim.time,
 		endsAt: sim.time + duration,
 		stacks: 1,
 		ticks: 0,
@@ -315,6 +318,7 @@ function createSimulation(
 			effect,
 			holder: "attacker",
 			startedAt: 0,
+			triggeredAt: 0,
 			endsAt: Number.POSITIVE_INFINITY,
 			stacks: 1,
 			ticks: 0,
@@ -362,6 +366,12 @@ function statsNow(sim: Simulation): ComputedStats {
 				running.map(({ effect, stacks }) => [effect.id, stacks]),
 			),
 			paused,
+			elapsed: Object.fromEntries(
+				running.map(({ effect, triggeredAt }) => [
+					effect.id,
+					sim.time - triggeredAt,
+				]),
+			),
 		},
 	})
 }
@@ -656,6 +666,7 @@ function trigger(
 	)
 	if (running) {
 		const before = running.stacks
+		running.triggeredAt = sim.time
 		running.endsAt = sim.time + duration
 		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
 		if (running.charges) running.charges.used = 0
