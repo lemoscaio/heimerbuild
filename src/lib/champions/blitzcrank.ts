@@ -1,4 +1,6 @@
-// Blitzcrank: Overdrive lasts 5 s; its movement speed decays to 10% over the first 2.9 s.
+// Blitzcrank: Overdrive lasts 5 s; its movement speed decays to 10% over the first 2.9 s. Power
+// Fist is an empowered attack that resets the attack timer.
+import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
@@ -27,3 +29,14 @@ export const BLITZCRANK_EFFECTS = [
 		sourceUrl: `${WIKI}Blitzcrank/Overdrive`,
 	},
 ] satisfies readonly Effect[]
+
+export const BLITZCRANK_HIT_RULES = [
+	{
+		// `TotalDamage` is the whole attack (wiki: 100% AD + 25% AP bonus).
+		championKey: "Blitzcrank",
+		slot: "E",
+		empowersAttack: { includesAttack: true, resetsAttack: true },
+		since: "16.19",
+		sourceUrl: `${WIKI}Blitzcrank/Power_Fist`,
+	},
+] satisfies readonly AbilityHitRule[]

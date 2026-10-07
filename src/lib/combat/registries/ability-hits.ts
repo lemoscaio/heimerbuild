@@ -1,17 +1,24 @@
 import type { AbilitySlot } from "@schemas/champion"
 import { isInPatchRange, type PatchRange } from "@schemas/patch-range"
 import { ANNIE_HIT_RULES } from "../../champions/annie"
+import { BLITZCRANK_HIT_RULES } from "../../champions/blitzcrank"
 import { DARIUS_HIT_RULES } from "../../champions/darius"
 import { EZREAL_HIT_RULES } from "../../champions/ezreal"
+import { GAREN_HIT_RULES } from "../../champions/garen"
 import { JANNA_HIT_RULES } from "../../champions/janna"
+import { JAX_HIT_RULES } from "../../champions/jax"
 import { JINX_HIT_RULES } from "../../champions/jinx"
 import { MAOKAI_HIT_RULES } from "../../champions/maokai"
+import { MONKEY_KING_HIT_RULES } from "../../champions/monkey-king"
 import { MORGANA_HIT_RULES } from "../../champions/morgana"
+import { NASUS_HIT_RULES } from "../../champions/nasus"
 import { NAUTILUS_HIT_RULES } from "../../champions/nautilus"
 import { QUINN_HIT_RULES } from "../../champions/quinn"
+import { RENGAR_HIT_RULES } from "../../champions/rengar"
 import { SINGED_HIT_RULES } from "../../champions/singed"
 import { TEEMO_HIT_RULES } from "../../champions/teemo"
 import { VEIGAR_HIT_RULES } from "../../champions/veigar"
+import { YORICK_HIT_RULES } from "../../champions/yorick"
 import { ZAC_HIT_RULES } from "../../champions/zac"
 
 /**
@@ -36,6 +43,17 @@ export const LANDS_LABEL: VariantsLabel = {
 }
 
 /**
+ * The cast empowers the champion's next basic attack, which the same step makes: the attack's hit
+ * with the rule's damage as a bonus hit, as an attack (on-attack, on-hit, `endsOn: "attack"`).
+ */
+export type EmpoweredAttack = {
+	/** The damage counts the attack's total attack damage too (Savagery's `QTotalDamage`): the bonus is the rest. */
+	includesAttack?: true
+	/** The cast resets the attack timer (wiki): the attack never waits for it. */
+	resetsAttack?: true
+}
+
+/**
  * How an ability's cast hits when its tooltip's first damage is not the whole story. Without a
  * rule, a cast deals the first damage of its tooltip (`damage`, synced).
  */
@@ -55,28 +73,39 @@ export type AbilityHitRule = PatchRange & {
 	variants?: readonly AbilityVariant[]
 	/** What the variants pick, `LANDS_LABEL` when absent. */
 	variantsLabel?: VariantsLabel
+	/** The cast is an empowered basic attack (Savagery, Siphoning Strike). */
+	empowersAttack?: EmpoweredAttack
+	/** Its damage's unread parts (`notModeled`) count as 0, and what that assumes (no Siphoning Strike stacks). */
+	unreadAsZero?: string
 	/** Why the ability can't be cast at all (a passive only one): a cast is refused with it. */
 	noCast?: string
 	sourceUrl: string
 }
 
 /**
- * Checked on patch 16.19 for the curated champions (`CURATED_COMBAT_CHAMPIONS`); one file per
- * champion in `lib/champions/`.
+ * Checked on patch 16.19 for the curated champions (`CURATED_COMBAT_CHAMPIONS`), and for any
+ * champion's variants and empowered attacks; one file per champion in `lib/champions/`.
  */
 export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 	...ANNIE_HIT_RULES,
+	...BLITZCRANK_HIT_RULES,
 	...DARIUS_HIT_RULES,
 	...EZREAL_HIT_RULES,
+	...GAREN_HIT_RULES,
 	...JANNA_HIT_RULES,
+	...JAX_HIT_RULES,
 	...JINX_HIT_RULES,
 	...MAOKAI_HIT_RULES,
+	...MONKEY_KING_HIT_RULES,
 	...MORGANA_HIT_RULES,
+	...NASUS_HIT_RULES,
 	...NAUTILUS_HIT_RULES,
 	...QUINN_HIT_RULES,
+	...RENGAR_HIT_RULES,
 	...SINGED_HIT_RULES,
 	...TEEMO_HIT_RULES,
 	...VEIGAR_HIT_RULES,
+	...YORICK_HIT_RULES,
 	...ZAC_HIT_RULES,
 ]
 

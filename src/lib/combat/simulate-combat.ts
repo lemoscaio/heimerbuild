@@ -506,6 +506,10 @@ function triggerOnAbilityDamage(sim: Simulation, source: DamageSource) {
 type AbilityDamageOptions = {
 	/** The target's health its share reads; the current one by default. */
 	targetHealth?: number
+	/** The formula counts the attack's total attack damage, which an empowered attack's own hit deals. */
+	withoutAttack?: boolean
+	/** Its unread parts (`notModeled`) count as 0 (a hit rule's `unreadAsZero`). */
+	unreadAsZero?: boolean
 }
 
 /** An ability's synced damage formula by name, as the form shows the ability. */
@@ -527,25 +531,32 @@ function dealAbilityDamage(
 	ability: AbilitySlot | "passive",
 	name: string,
 	source: DamageSource,
-	{ targetHealth = sim.health }: AbilityDamageOptions = {},
+	{
+		targetHealth = sim.health,
+		withoutAttack = false,
+		unreadAsZero = false,
+	}: AbilityDamageOptions = {},
 ) {
 	const { ranks, level } = sim.input.build
-	const formula = abilityFormula(sim, ability, name)
-	if (!formula) {
+	const synced = abilityFormula(sim, ability, name)
+	if (!synced) {
 		notModeledHit(sim, source, [`no synced damage named ${name}`])
 		return
 	}
-	const raw = evaluateDamage(formula, {
-		stats: statsNow(sim),
+	const formula = unreadAsZero ? { ...synced, notModeled: undefined } : synced
+	const stats = statsNow(sim)
+	const total = evaluateDamage(formula, {
+		stats,
 		level,
 		...(ability !== "passive" && { rank: ranks?.[ability] }),
 		target: { maximum: sim.input.target.health, current: targetHealth },
 	})
-	if (raw === undefined) {
+	if (total === undefined) {
 		notModeledHit(sim, source, formula.notModeled ?? ["a value it lacks"])
 		return
 	}
-	deal(sim, { source, type: formula.type, raw })
+	const attack = withoutAttack ? stats.attackDamage.total : 0
+	deal(sim, { source, type: formula.type, raw: Math.max(0, total - attack) })
 }
 
 function dealGrantNow(sim: Simulation, grant: Grant, effect: BuildEffect) {
@@ -1192,7 +1203,7 @@ function chooseMarks(
 	const kept = pending.filter(
 		({ mark }) => choice(sim, { kind: "mark-applied", mark }) !== false,
 	)
-	for (const key of outcomeKeys(item, sim.input.effects, sim.formId)) {
+	for (const key of itemOutcomeKeys(sim, item)) {
 		if (key.kind !== "mark-applied" || !choice(sim, key)) continue
 		if (kept.some(({ mark }) => mark === key.mark)) continue
 		const by = sim.input.effects.find(
@@ -1311,14 +1322,22 @@ function advance(sim: Simulation, until: number, options?: AdvanceOptions) {
 	if (Number.isFinite(until)) sim.time = Math.max(sim.time, until)
 }
 
+type StrikeOptions = {
+	/** The marks the action's earlier effects apply after the hit (an empowering cast's). */
+	pending?: PendingMarks
+	/** Deals an empowering cast's bonus right after the attack's own hit (Savagery). */
+	bonus?: () => void
+}
+
 /**
- * A basic attack: waits for the attack timer, starts its on-attack effects, hits, applies on-hit,
- * consumes marks; the next one is 1 / attack speed later.
+ * A basic attack lands now: starts its on-attack effects, hits, applies on-hit, consumes marks;
+ * the next one is 1 / attack speed later.
  */
-function attack(sim: Simulation, item: CombatItem) {
-	advance(sim, Math.max(sim.time, sim.nextAttackAt))
-	sim.actionStart = sim.log.length
-	const pending: PendingMarks = []
+function strike(
+	sim: Simulation,
+	item: CombatItem,
+	{ pending = [], bonus }: StrikeOptions = {},
+) {
 	endEffects(sim, "attack")
 	pauseEffects(sim, "attack")
 	const onTarget = breakWaiting(sim, "attack")
@@ -1329,6 +1348,7 @@ function attack(sim: Simulation, item: CombatItem) {
 		type: "physical",
 		raw: statsNow(sim).attackDamage.total,
 	})
+	bonus?.()
 	dealOnAttackDamage(sim)
 	onHit(sim, pending)
 	consumeMarks(sim, "attack", pending)
@@ -1340,8 +1360,22 @@ function attack(sim: Simulation, item: CombatItem) {
 	endSpentCharges(sim)
 }
 
+/** A basic attack: waits for the attack timer, then lands (`strike`). */
+function attack(sim: Simulation, item: CombatItem) {
+	advance(sim, Math.max(sim.time, sim.nextAttackAt))
+	sim.actionStart = sim.log.length
+	strike(sim, item)
+}
+
 function round(seconds: number) {
 	return Math.round(seconds * 100) / 100
+}
+
+/** The outcomes an item can have (`outcomeKeys`), an empowering cast's attack ones included. */
+function itemOutcomeKeys(sim: Simulation, item: CombatItem): OutcomeKey[] {
+	const empowersAttack =
+		item.kind === "ability" && !!hitRule(sim, item.slot)?.empowersAttack
+	return outcomeKeys(item, sim.input.effects, sim.formId, { empowersAttack })
 }
 
 function hitRule(sim: Simulation, slot: AbilitySlot) {
@@ -1416,6 +1450,42 @@ function abilityHit(
 	consumeMarks(sim, "ability", pending)
 }
 
+/**
+ * An empowering cast's attack (`empowersAttack`): it waits for the attack timer unless the cast
+ * resets it, then lands as an attack with the cast's damage as a bonus hit (Savagery).
+ */
+function empoweredAttack(
+	sim: Simulation,
+	action: Extract<CombatAction, { kind: "ability" }>,
+	{ spell, rule, pending }: EmpoweredAttackInput,
+) {
+	const { empowersAttack } = rule
+	if (!empowersAttack?.resetsAttack) {
+		advance(sim, Math.max(sim.time, sim.nextAttackAt))
+	}
+	strike(sim, action, {
+		pending,
+		bonus: () => {
+			const names = castDamages(spell, rule, action.variant)
+			const options = {
+				withoutAttack: !!empowersAttack?.includesAttack,
+				unreadAsZero: !!rule.unreadAsZero,
+			}
+			for (const name of names) {
+				const source = { kind: "ability", slot: spell.slot, name } as const
+				dealAbilityDamage(sim, spell.slot, name, source, options)
+			}
+		},
+	})
+}
+
+type EmpoweredAttackInput = {
+	spell: ChampionSpell
+	rule: AbilityHitRule
+	/** The marks the cast's effects apply, after the attack's hit. */
+	pending: PendingMarks
+}
+
 /** Why an ability can't be cast now; undefined when it can. Free mode ignores its cooldown. */
 function abilityRefusal(
 	sim: Simulation,
@@ -1456,17 +1526,23 @@ function castAbility(
 	if (refusal) return refusal
 
 	const pending: PendingMarks = []
+	const castAt = sim.time
 	sim.log.push({
 		kind: "cast",
 		time: sim.time,
 		source: { kind: "ability", slot },
 	})
 	reduceCooldownsOnCast(sim)
+	const rule = hitRule(sim, slot)
+	// An empowering cast counts as its attack for endsOn, pauses and startsAfter, never as a cast.
+	const empowering = rule?.empowersAttack ? rule : undefined
 	const cast = { kind: "cast", slot } as const
-	endEffects(sim, cast)
-	pauseEffects(sim, "cast")
-	const onTarget = breakWaiting(sim, cast)
-	const areaTime = chosenVariant(hitRule(sim, slot), action.variant)?.duration
+	if (!empowering) {
+		endEffects(sim, cast)
+		pauseEffects(sim, "cast")
+	}
+	const onTarget = empowering ? [] : breakWaiting(sim, cast)
+	const areaTime = chosenVariant(rule, action.variant)?.duration
 	triggerWhere(
 		sim,
 		(trigger, effect) =>
@@ -1479,15 +1555,20 @@ function castAbility(
 				isCastOwnEffect(effect, slot) ? { duration: areaTime } : {},
 		},
 	)
-	abilityHit(sim, spell, pending, action.variant)
-	applyMarks(sim, chooseMarks(sim, pending, action))
-	for (const waiting of onTarget) release(sim, waiting)
+	if (empowering) {
+		empoweredAttack(sim, action, { spell, rule: empowering, pending })
+	} else {
+		abilityHit(sim, spell, pending, action.variant)
+		applyMarks(sim, chooseMarks(sim, pending, action))
+		for (const waiting of onTarget) release(sim, waiting)
+	}
 	const cooldown = spell.cooldown[rank - 1] ?? 0
 	sim.cooldowns.set(
 		slot,
-		sim.time + abilityCooldown(cooldown, statsNow(sim).abilityHaste.total),
+		castAt + abilityCooldown(cooldown, statsNow(sim).abilityHaste.total),
 	)
-	sim.busyUntil = sim.time + (spell.castTime ?? 0)
+	// An empowered attack keeps the champion busy until its next attack (`strike`), not its cast time.
+	if (!empowering) sim.busyUntil = sim.time + (spell.castTime ?? 0)
 	return undefined
 }
 
@@ -1562,7 +1643,7 @@ function stepOutcomes(
 				return { happened: false }
 		}
 	}
-	return outcomeKeys(action, sim.input.effects, sim.formId).map((key) => ({
+	return itemOutcomeKeys(sim, action).map((key) => ({
 		...key,
 		...happened(key),
 	}))
@@ -1587,7 +1668,7 @@ function forceChosenDamageOverTime(
 	const ticksAbilityDamage = own.some(({ effectId }) =>
 		isAbilityDamage(sim, { kind: "effect", effectId }),
 	)
-	for (const key of outcomeKeys(item, sim.input.effects, sim.formId)) {
+	for (const key of itemOutcomeKeys(sim, item)) {
 		if (key.kind !== "damage-over-time" || !chosen[outcomeId(key)]) continue
 		if (own.some(({ effectId }) => effectId === key.effectId)) continue
 		const effect = sim.input.effects.find(({ id }) => id === key.effectId)
