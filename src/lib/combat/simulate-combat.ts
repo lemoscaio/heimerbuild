@@ -36,6 +36,7 @@ import type { ComputedStats } from "../stats/compute-stats"
 import { attackTypeAtLevel } from "../stats/level-states"
 import { spellCooldown } from "../summoner-rune-interactions"
 import type { SummonerSlot } from "../summoner-slots"
+import { isCastOwnEffect } from "./area-ticks"
 import type {
 	ActiveEffect,
 	CombatAction,
@@ -60,6 +61,7 @@ import {
 	type DamageOverTimeApplication,
 	damageOverTimeSummaries,
 	tickOwner,
+	ticksInArea,
 	tickTime,
 } from "./damage-over-time"
 import { mitigate } from "./mitigation"
@@ -122,6 +124,8 @@ type Instance = {
 	fromSituation?: true
 	/** When its pause (`pauses`) ends, set by the last event that started one. */
 	pausedUntil?: number
+	/** A time in its cast's area: its ticks land up to this moment included (`ticksInArea`). */
+	lastTickAt?: number
 }
 
 /** A mark and the effect that applied it, whose cooldown may start when it leaves (`cooldownFrom`). */
@@ -595,7 +599,7 @@ function nextTickAt(instance: Instance): number | undefined {
 	const [timing] = damageOverTimeGrants(instance.effect)
 	if (!timing) return undefined
 	const at = tickTime(instance.startedAt, instance.ticks, timing)
-	return coversTick(at, instance.endsAt, timing) ? at : undefined
+	return coversTick(at, instance, timing) ? at : undefined
 }
 
 /** Free mode's choice for a damage over time the step `owner` applies; undefined follows the rules. */
@@ -619,6 +623,7 @@ function recordApplication(
 	const last = instance.applications.at(-1)
 	if (last?.owner === owner && last.at === sim.time) {
 		last.endsAt = instance.endsAt
+		last.lastTickAt = instance.lastTickAt
 		last.stacks = instance.stacks
 		return
 	}
@@ -629,6 +634,9 @@ function recordApplication(
 		endsAt: instance.endsAt,
 		kind,
 		stacks: instance.stacks,
+		...(instance.lastTickAt !== undefined && {
+			lastTickAt: instance.lastTickAt,
+		}),
 	}
 	const delay = instance.effect.effect.delay
 	if (landing && delay) application.delayed = delay.label
@@ -645,6 +653,21 @@ type TriggerOptions = {
 	released?: boolean
 	/** How long it runs instead of its own duration: the time in its cast's area (a variant's). */
 	duration?: number
+}
+
+/** The last tick a time in an area allows, from now (`ticksInArea`); none without one or a tick. */
+function areaLastTickAt(
+	sim: Simulation,
+	effect: BuildEffect,
+	inArea: number | undefined,
+): number | undefined {
+	const [timing] = damageOverTimeGrants(effect)
+	if (inArea === undefined || !timing) return undefined
+	const own = effectDuration(effect, sim.context) ?? inArea
+	const ticks = ticksInArea(inArea, own, timing)
+	return ticks
+		? tickTime(sim.time, ticks - 1, timing)
+		: Number.NEGATIVE_INFINITY
 }
 
 /**
@@ -700,6 +723,7 @@ function trigger(
 		const before = running.stacks
 		running.triggeredAt = sim.time
 		running.endsAt = sim.time + duration
+		running.lastTickAt = areaLastTickAt(sim, effect, options.duration)
 		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
 		if (running.charges) running.charges.used = 0
 		if (dot) {
@@ -709,6 +733,8 @@ function trigger(
 		return
 	}
 	const instance = newInstance(sim, effect, duration)
+	const lastTickAt = areaLastTickAt(sim, effect, options.duration)
+	if (lastTickAt !== undefined) instance.lastTickAt = lastTickAt
 	sim.active.push(instance)
 	if (!dot) return
 	recordApplication(sim, instance, { owner, kind: "applied" }, { landing })
@@ -1304,22 +1330,16 @@ function castAbility(
 	pauseEffects(sim, "cast")
 	breakWaiting(sim, "cast")
 	const areaTime = chosenVariant(hitRule(sim, slot), action.variant)?.duration
-	const isOwnEffect = (trigger: Trigger, { effect }: BuildEffect) =>
-		trigger.kind === "after-use" &&
-		effect.source.kind === "ability" &&
-		effect.source.slot === slot
 	triggerWhere(
 		sim,
 		(trigger, effect) =>
 			trigger.kind === "after-ability" ||
 			(trigger.kind === "on-cast" && (trigger.slots?.includes(slot) ?? true)) ||
-			isOwnEffect(trigger, effect),
+			isCastOwnEffect(effect, slot),
 		pending,
 		{
 			optionsFor: (effect) =>
-				isOwnEffect(effect.effect.trigger, effect)
-					? { duration: areaTime }
-					: {},
+				isCastOwnEffect(effect, slot) ? { duration: areaTime } : {},
 		},
 	)
 	abilityHit(sim, spell, pending, action.variant)
