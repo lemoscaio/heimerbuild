@@ -14,6 +14,7 @@ import {
 } from "@/lib/summoner-rune-interactions"
 import { useBuildCombat } from "./use-build-combat"
 import { useChampionBuild } from "./use-champion-build"
+import { useChampionSwitch } from "./use-champion-switch"
 import { useFormSwitch } from "./use-form-switch"
 import { useUrlBuildSource } from "./use-url-build-source"
 
@@ -26,16 +27,23 @@ export type BuildPage = ReturnType<typeof useBuildPage>
 /**
  * The build page: `useChampionBuild` on the URL build source, plus the page's own state: the view
  * and the open tab (kept in the URL), the shop item picked for a closer look with its preview, the
- * form switch and the rank-up preview. `addItem` also closes the item's details.
+ * form switch, the rank-up preview and the champion switch. `addItem` also closes the item's details.
  */
 export function useBuildPage({
 	patch,
 	championKey,
 	search,
 	onSearchChange,
+	onChampionChange,
 }: UseBuildPageOptions) {
-	const source = useUrlBuildSource({ championKey, search, onSearchChange })
+	const source = useUrlBuildSource({
+		championKey,
+		search,
+		onSearchChange,
+		onChampionChange,
+	})
 	const build = useChampionBuild({ patch, championKey, source })
+	const championSwitch = useChampionSwitch({ values: build.values, source })
 	const formSwitch = useFormSwitch(build)
 	const combat = useBuildCombat(build)
 	const { data: itemsById } = useItems(patch)
@@ -98,6 +106,8 @@ export function useBuildPage({
 		championState,
 		/** Switches the form and announces how many stats changed, with the delta chips. */
 		formSwitch,
+		/** Switches to another champion keeping what fits it, and the notice of the last switch. */
+		championSwitch,
 		skills,
 		/** The abilities in the selected form, which the skills row and tab show. */
 		abilities: build.abilities,
