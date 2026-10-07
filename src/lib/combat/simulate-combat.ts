@@ -72,6 +72,7 @@ import {
 import {
 	ABILITY_HIT_RULES,
 	type AbilityHitRule,
+	type AbilityVariant,
 	findHitRule,
 } from "./registries/ability-hits"
 
@@ -175,7 +176,12 @@ type Simulation = {
 	waiting: Waiting[]
 }
 
-type Delayed = { at: number; effect: BuildEffect; owner: number }
+type Delayed = {
+	at: number
+	effect: BuildEffect
+	owner: number
+	duration?: number
+}
 
 type Waiting = { until: number; effect: BuildEffect; owner: number }
 
@@ -637,6 +643,8 @@ type TriggerOptions = {
 	landing?: boolean
 	/** Its `startsAfter` state is over: it runs now. */
 	released?: boolean
+	/** How long it runs instead of its own duration: the time in its cast's area (a variant's). */
+	duration?: number
 }
 
 /**
@@ -652,6 +660,7 @@ function trigger(
 		ignoreCooldown = false,
 		landing = false,
 		released = false,
+		...options
 	}: TriggerOptions = {},
 ) {
 	if (!isInForm(effect, sim.formId)) return
@@ -661,7 +670,12 @@ function trigger(
 		effect.effect
 	if (delay && !landing) {
 		const owner = sim.owner ?? sim.step
-		sim.delayed.push({ at: sim.time + delay.seconds, effect, owner })
+		sim.delayed.push({
+			at: sim.time + delay.seconds,
+			effect,
+			owner,
+			duration: options.duration,
+		})
 		return
 	}
 	if (startsAfter && !released) {
@@ -674,7 +688,7 @@ function trigger(
 	}
 	if (!endsOn && !cooldownFrom) startCooldown(sim, effect)
 
-	const duration = effectDuration(effect, sim.context)
+	const duration = options.duration ?? effectDuration(effect, sim.context)
 	if (!duration) return
 	const dot = dealsDamageOverTime(effect)
 	const owner = sim.owner ?? sim.step
@@ -707,7 +721,11 @@ function land(sim: Simulation, delayed: Delayed) {
 	const pending: PendingMarks = []
 	const previous = sim.owner
 	sim.owner = delayed.owner
-	trigger(sim, delayed.effect, pending, { ignoreCooldown: true, landing: true })
+	trigger(sim, delayed.effect, pending, {
+		ignoreCooldown: true,
+		landing: true,
+		duration: delayed.duration,
+	})
 	sim.owner = previous
 	applyMarks(sim, pending)
 }
@@ -745,13 +763,21 @@ function breakWaiting(sim: Simulation, reason: BreakOn) {
 	}
 }
 
+type TriggerWhereOptions = {
+	/** Each matched effect's trigger options (a cast's time in its area for its own effects). */
+	optionsFor?: (effect: BuildEffect) => TriggerOptions
+}
+
 function triggerWhere(
 	sim: Simulation,
 	matches: (trigger: Trigger, effect: BuildEffect) => boolean,
 	pending: PendingMarks,
+	{ optionsFor }: TriggerWhereOptions = {},
 ) {
 	for (const effect of sim.input.effects) {
-		if (matches(effect.effect.trigger, effect)) trigger(sim, effect, pending)
+		if (matches(effect.effect.trigger, effect)) {
+			trigger(sim, effect, pending, optionsFor?.(effect))
+		}
 	}
 }
 
@@ -1170,6 +1196,15 @@ function damageNames(damage: string | readonly string[] | null) {
 	return typeof damage === "string" ? [damage] : damage
 }
 
+/** The variant a cast picked, the first by default; none when its rule has no variants. */
+function chosenVariant(
+	rule: AbilityHitRule | undefined,
+	variant: string | undefined,
+): AbilityVariant | undefined {
+	const variants = rule?.variants ?? []
+	return variants.find(({ id }) => id === variant) ?? variants[0]
+}
+
 /**
  * The tooltip damages a cast deals: its chosen variant's (the first by default), its rule's (one,
  * several or none), else the tooltip's first.
@@ -1179,9 +1214,8 @@ function castDamages(
 	rule: AbilityHitRule | undefined,
 	variant: string | undefined,
 ): readonly string[] {
-	const variants = rule?.variants ?? []
-	const chosen = variants.find(({ id }) => id === variant) ?? variants[0]
-	if (chosen) return damageNames(chosen.damage)
+	const damage = chosenVariant(rule, variant)?.damage
+	if (damage !== undefined) return damageNames(damage)
 	if (rule?.damage === undefined) {
 		const first = spell.damage?.[0]?.name
 		return first ? [first] : []
@@ -1269,15 +1303,24 @@ function castAbility(
 	endEffects(sim, "cast")
 	pauseEffects(sim, "cast")
 	breakWaiting(sim, "cast")
+	const areaTime = chosenVariant(hitRule(sim, slot), action.variant)?.duration
+	const isOwnEffect = (trigger: Trigger, { effect }: BuildEffect) =>
+		trigger.kind === "after-use" &&
+		effect.source.kind === "ability" &&
+		effect.source.slot === slot
 	triggerWhere(
 		sim,
-		(trigger, { effect }) =>
+		(trigger, effect) =>
 			trigger.kind === "after-ability" ||
 			(trigger.kind === "on-cast" && (trigger.slots?.includes(slot) ?? true)) ||
-			(trigger.kind === "after-use" &&
-				effect.source.kind === "ability" &&
-				effect.source.slot === slot),
+			isOwnEffect(trigger, effect),
 		pending,
+		{
+			optionsFor: (effect) =>
+				isOwnEffect(effect.effect.trigger, effect)
+					? { duration: areaTime }
+					: {},
+		},
 	)
 	abilityHit(sim, spell, pending, action.variant)
 	applyMarks(sim, chooseMarks(sim, pending, action))
