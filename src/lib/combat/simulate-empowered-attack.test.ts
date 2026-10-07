@@ -156,6 +156,14 @@ describe("empowered attacks: a cast that is its champion's next attack (issue 38
 		expect(gap(2)).toBeCloseTo(1 / (atRest + ratio * 0.4))
 	})
 
+	test("Savagery can't be recast before its cooldown: 5 s at rank 3 (wiki: 6 to 4 s)", () => {
+		const result = simulate(rengar, [Q, Q, { kind: "wait", seconds: 5 }, Q])
+
+		expect(result.steps[1]?.refused).toBe("Savagery is on cooldown until 5 s")
+		expect(result.steps[3]?.refused).toBeUndefined()
+		expect(hits(result, 3).map(sourceName)).toEqual(["attack", "QTotalDamage"])
+	})
+
 	test("it ends Thrill of the Hunt as an attack", () => {
 		const result = simulate(rengar, [R, Q])
 		const expired = result.steps[1]?.events.find(
