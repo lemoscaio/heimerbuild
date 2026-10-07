@@ -138,7 +138,8 @@
 
 /* shadcn's scroll-fade-y that leaves the scrollbar opaque: the fade covers the padding box,
    which excludes the scrollbar, and the strip around it (border box minus padding box) stays.
-   It reaches full depth in the first 40px scrolled, and keyboard focus scrolls items clear of it. */
+   It reaches full depth in the first 40px scrolled, and keyboard focus scrolls items clear of it.
+   Never on a Base UI part that animates its own unmount (tab panel, popup): see WorkbenchTabs. */
 @utility scroll-fade-content {
 	@apply scroll-fade-y;
 	--scroll-fade-reveal: --spacing(10);

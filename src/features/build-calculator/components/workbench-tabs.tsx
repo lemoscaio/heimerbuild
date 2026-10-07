@@ -60,11 +60,21 @@ export function WorkbenchTabs({
 }
 
 /** A tab panel that scrolls on its own, its edges faded while more lies beyond them. */
-function ScrollingTabsContent(props: React.ComponentProps<typeof TabsContent>) {
+function ScrollingTabsContent({
+	children,
+	...props
+}: React.ComponentProps<typeof TabsContent>) {
 	return (
-		<TabsContent
-			className="scrollbar-purple scroll-fade-content min-h-0 overflow-y-auto pr-1"
-			{...props}
-		/>
+		<TabsContent tabIndex={-1} className="flex min-h-0 flex-col" {...props}>
+			{/* The fade never finishes, and Base UI unmounts a closed panel only once its animations
+			    do. The scroller also takes the panel's tab stop, so arrow keys still scroll it. */}
+			<div
+				// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller needs a tab stop to scroll by keyboard
+				tabIndex={0}
+				className="scrollbar-purple scroll-fade-content min-h-0 flex-1 overflow-y-auto pr-1 outline-none"
+			>
+				{children}
+			</div>
+		</TabsContent>
 	)
 }
