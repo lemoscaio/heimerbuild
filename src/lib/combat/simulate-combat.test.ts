@@ -705,6 +705,49 @@ describe("simulateCombat rules", async () => {
 		)
 	})
 
+	test("an effect that ends on a cast of some slots ignores the others (issue 378)", () => {
+		const ranked: Setup = {
+			...setup,
+			level: 3,
+			ranks: { Q: 1, W: 1, E: 1, R: 0 },
+		}
+		const focus: Effect = {
+			id: "test-ends-on-w",
+			source: { kind: "ability", championKey: "Annie", slot: "passive" },
+			trigger: { kind: "on-cast", slots: ["Q"] },
+			duration: 10,
+			endsOn: { kind: "cast", slots: ["W"] },
+			grants: [{ kind: "stat", stat: "attackDamage", amount: 50 }],
+			since: "16.19",
+			sourceUrl: "https://example.com",
+		}
+		const result = simulateCombat({
+			build: buildOf(ranked),
+			effects: combatEffects(
+				{
+					patch: PATCH,
+					champion: annie,
+					ranks: ranked.ranks,
+					spells: [],
+					runes: [],
+				},
+				[[focus]],
+			),
+			summoners: [],
+			target: DUMMY,
+			actions: [
+				{ kind: "ability", slot: "Q" },
+				{ kind: "ability", slot: "E" },
+				{ kind: "ability", slot: "W" },
+			],
+		})
+		const running = result.steps.map(({ active }) =>
+			active.some(({ effectId }) => effectId === "test-ends-on-w"),
+		)
+
+		expect(running).toEqual([true, true, false])
+	})
+
 	test("starts from each effect's trigger default: a state effect is on, an event one is off", async () => {
 		const teemo = await champion("Teemo")
 		const result = simulate(
@@ -1775,15 +1818,29 @@ describe("an effect that starts when a state ends: Twitch's Ambush (issue 372)",
 		expect(gap(result, 2)).toBeCloseTo(1 / boosted)
 	})
 
-	test("a cast breaks it too", () => {
-		const result = simulate(twitch, [
-			ambush,
-			wait(1),
-			{ kind: "ability", slot: "W" },
-		])
-		const castAt = result.steps[2]?.time ?? Number.NaN
+	test("a cast of Venom Cask (W) or Contaminate (E) breaks it too", () => {
+		for (const slot of ["W", "E"] as const) {
+			const result = simulate(twitch, [
+				ambush,
+				wait(1),
+				{ kind: "ability", slot },
+			])
+			const castAt = result.steps[2]?.time ?? Number.NaN
 
-		expect(ambushOf(result, 2)?.endsAt).toBeCloseTo(castAt + 6)
+			expect(ambushOf(result, 2)?.endsAt).toBeCloseTo(castAt + 6)
+		}
+	})
+
+	test("a cast of Spray and Pray (R) leaves it camouflaged (issue 378)", () => {
+		const result = simulate(
+			{ ...twitch, level: 6, ranks: { ...twitch.ranks, R: 1 } },
+			[ambush, wait(1), { kind: "ability", slot: "R" }],
+		)
+
+		expect(ambushOf(result, 2)).toBeUndefined()
+		expect(result.steps[2]?.waiting).toEqual([
+			{ effectId: "twitch-q-active", label: "camouflaged", until: 11 },
+		])
 	})
 
 	test("unbroken, the attack speed starts when the camouflage runs out", () => {
