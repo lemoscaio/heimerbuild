@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
 	actionLabel,
 	formatDamage,
+	formatPartPercent,
 	formatSeconds,
 	formatShare,
 } from "./combat-format"
@@ -16,6 +17,11 @@ describe("combat formats", () => {
 		expect(formatDamage(1142.6)).toBe("1,143")
 		expect(formatShare(0.3649)).toBe("36%")
 		expect(formatSeconds(0.8695)).toBe("0.87 s")
+	})
+
+	test("shows a part's whole percent, and a part that rounds to nothing as under 1%", () => {
+		expect(formatPartPercent(62)).toBe("62%")
+		expect(formatPartPercent(0)).toBe("<1%")
 	})
 
 	test("names each kind of action", () => {

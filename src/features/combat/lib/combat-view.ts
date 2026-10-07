@@ -1,4 +1,8 @@
-import type { ChampionSpell, DamageType } from "@schemas/champion"
+import {
+	type ChampionSpell,
+	DAMAGE_TYPES,
+	type DamageType,
+} from "@schemas/champion"
 import type {
 	CombatEvent,
 	CombatResult,
@@ -266,6 +270,8 @@ export function stepView(
  */
 export type CombatTotals = {
 	final: number
+	/** The damage types that dealt damage, in a fixed order (`damageTypeParts`). */
+	byType: DamageTypePart[]
 	healthShare: number
 	duration: number
 	kill?: { time: number; step: number }
@@ -273,6 +279,38 @@ export type CombatTotals = {
 	forcedMarkers: number
 	/** When the last effect or mark still running after the last damage ran out. */
 	activeUntil: number
+}
+
+/** A damage type's part of the combo's damage after mitigation, in whole percent. */
+export type DamageTypePart = {
+	type: DamageType
+	final: number
+	percent: number
+}
+
+/**
+ * The types that dealt damage, physical, magic then true, with whole percents that add up to 100:
+ * each is rounded down, then the largest remainders get the points left.
+ */
+export function damageTypeParts(
+	byType: CombatResult["byType"],
+): DamageTypePart[] {
+	const dealt = DAMAGE_TYPES.filter((type) => byType[type].final > 0)
+	const total = dealt.reduce((sum, type) => sum + byType[type].final, 0)
+	const exact = dealt.map((type) => (byType[type].final / total) * 100)
+	const percents = exact.map(Math.floor)
+	const left = 100 - percents.reduce((sum, percent) => sum + percent, 0)
+	const byRemainder = exact
+		.map((value, index) => ({ index, remainder: value - Math.floor(value) }))
+		.toSorted((a, b) => b.remainder - a.remainder)
+	for (const { index } of byRemainder.slice(0, left)) {
+		percents[index] = (percents[index] ?? 0) + 1
+	}
+	return dealt.map((type, index) => ({
+		type,
+		final: byType[type].final,
+		percent: percents[index] ?? 0,
+	}))
 }
 
 /** Each item's number among the actions, 1-based; markers have none. */
@@ -296,6 +334,7 @@ export function combatTotals(
 	}
 	return {
 		final,
+		byType: damageTypeParts(result.byType),
 		healthShare: Math.min(1, final / target.health),
 		duration: result.duration,
 		...(kill && { kill }),

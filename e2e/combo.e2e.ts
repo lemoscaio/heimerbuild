@@ -10,8 +10,16 @@ function steps(page: Page) {
 	return combo(page).getByRole("button", { name: /^Remove step / })
 }
 
+/** A figure of the combo's result by its name: "Damage", "Time". */
+function comboTotal(page: Page, term: string) {
+	return combo(page)
+		.getByRole("group", { name: "Combo result" })
+		.getByRole("group", { name: term, exact: true })
+		.getByRole("definition")
+}
+
 function damageTotal(page: Page) {
-	return combo(page).getByLabel("Combo result").getByRole("definition").first()
+	return comboTotal(page, "Damage")
 }
 
 test("Quinn's combo adds steps, moves one up with its button, removes one, and keeps out of the link", async ({
@@ -254,10 +262,7 @@ test("the combo's time is its last hit, not a buff running on after it", async (
 	await page.goto("/champions/Quinn?lvl=18&skills=QWEQQRQWQWRWWEEREE&tab=combo")
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	for (let count = 0; count < 3; count++) await attack.click()
-	const time = combo(page)
-		.getByLabel("Combo result")
-		.getByRole("definition")
-		.nth(2)
+	const time = comboTotal(page, "Time")
 	await expect(time).not.toHaveText("0.00 s")
 	const plain = await time.textContent()
 
@@ -309,4 +314,43 @@ test("Teemo's attacks apply Toxic Shot: one line on the attack that applied it, 
 	await combo(page).getByRole("switch", { name: "Free mode" }).click()
 	await first.getByRole("button", { name: "Toxic Shot: applies: No" }).click()
 	await expect(damageTotal(page)).not.toHaveText(strict ?? "")
+})
+
+test("the damage splits by type: Teemo's attack is physical and magic, Ignite adds true, and the parts add up to the total", async ({
+	page,
+}) => {
+	const byType = () =>
+		combo(page)
+			.getByRole("list", { name: "Damage by type" })
+			.getByRole("listitem")
+	const amount = (text: string) =>
+		Number(/^[\d,]+/.exec(text.trim())?.[0].replace(/,/g, "") ?? Number.NaN)
+
+	// Without Toxic Shot, an attack is physical only: the other types don't show.
+	await page.goto("/champions/Teemo?lvl=9&skills=QWQ&tab=combo")
+	await expect(byType()).toHaveCount(0)
+	await combo(page).getByRole("button", { name: "Add Attack" }).click()
+	await expect(byType()).toHaveCount(1)
+
+	await page.goto(
+		"/champions/Teemo?lvl=9&skills=EQWEERE&summoners=4,14&tab=combo",
+	)
+	await combo(page).getByRole("button", { name: "Add Attack" }).click()
+	await expect(byType()).toHaveCount(2)
+	await combo(page).getByRole("button", { name: "Add Ignite" }).click()
+	await expect(byType()).toHaveCount(3)
+
+	const total = amount((await damageTotal(page).textContent()) ?? "")
+	const parts = (await byType().allTextContents()).map(amount)
+	const sum = parts.reduce((a, b) => a + b, 0)
+	// Each amount is rounded on its own.
+	expect(Math.abs(sum - total)).toBeLessThanOrEqual(parts.length)
+
+	// Free mode's choices reach it: no poison, less magic damage.
+	const magic = await byType().nth(1).textContent()
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	await combo(page)
+		.getByRole("button", { name: "Toxic Shot: applies: No" })
+		.click()
+	await expect(byType().nth(1)).not.toHaveText(magic ?? "")
 })

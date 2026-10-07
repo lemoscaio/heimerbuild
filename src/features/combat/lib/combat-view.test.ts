@@ -5,6 +5,7 @@ import {
 	attacksOnlyNote,
 	combatNames,
 	combatTotals,
+	damageTypeParts,
 	markerView,
 	outcomeChoice,
 	outcomeViews,
@@ -199,7 +200,11 @@ describe("combatTotals", () => {
 	const result = {
 		steps: [STEP],
 		total: { raw: 150, final: 90 },
-		byType: {} as CombatResult["byType"],
+		byType: {
+			physical: { raw: 100, final: 60 },
+			magic: { raw: 50, final: 30 },
+			true: { raw: 0, final: 0 },
+		},
 		duration: 1.2,
 		activeUntil: 1.2,
 	} satisfies CombatResult
@@ -207,6 +212,10 @@ describe("combatTotals", () => {
 	test("gives the damage, its share of the target's health, the time and the health left", () => {
 		expect(combatTotals(result, TARGET)).toEqual({
 			final: 90,
+			byType: [
+				{ type: "physical", final: 60, percent: 67 },
+				{ type: "magic", final: 30, percent: 33 },
+			],
 			healthShare: 0.09,
 			duration: 1.2,
 			healthLeft: 910,
@@ -238,6 +247,42 @@ describe("combatTotals", () => {
 			healthLeft: 0,
 			forcedMarkers: 2,
 		})
+	})
+})
+
+describe("damageTypeParts", () => {
+	const none = { raw: 0, final: 0 }
+	const dealt = (final: number) => ({ raw: final * 2, final })
+
+	test("lists the types that dealt damage, physical, magic then true, with whole percents adding up to 100", () => {
+		const parts = damageTypeParts({
+			physical: dealt(100),
+			magic: dealt(100),
+			true: dealt(100),
+		})
+
+		expect(parts.map(({ type }) => type)).toEqual(["physical", "magic", "true"])
+		expect(parts.map(({ percent }) => percent)).toEqual([34, 33, 33])
+	})
+
+	test("gives the points left to the largest remainders, so a small part keeps its share", () => {
+		const parts = damageTypeParts({
+			physical: dealt(186),
+			magic: dealt(807),
+			true: dealt(7),
+		})
+
+		expect(parts.map(({ percent }) => percent)).toEqual([18, 81, 1])
+		expect(parts.reduce((sum, { final }) => sum + final, 0)).toBe(1000)
+	})
+
+	test("leaves out a type without damage, and has no parts when nothing dealt any", () => {
+		expect(
+			damageTypeParts({ physical: none, magic: dealt(40), true: none }),
+		).toEqual([{ type: "magic", final: 40, percent: 100 }])
+		expect(
+			damageTypeParts({ physical: none, magic: none, true: none }),
+		).toEqual([])
 	})
 })
 

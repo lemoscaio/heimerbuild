@@ -1,4 +1,3 @@
-import type { DamageType } from "@schemas/champion"
 import { ChevronRight, CircleAlert, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,13 +18,7 @@ import {
 	type StepView,
 	type TickView,
 } from "../lib/combat-view"
-
-/** Damage colors, each with its type's name next to it: never color alone. */
-const DAMAGE_COLORS = {
-	physical: "text-physical",
-	magic: "text-magic",
-	true: "text-true-damage",
-} as const satisfies Record<DamageType, string>
+import { damageTypeText } from "./damage-type-styles"
 
 type CombatStepCardProps = {
 	/** 1-based, among the actions (markers aren't counted). */
@@ -57,7 +50,7 @@ function HitLine({ hit }: { hit: HitView }) {
 		<li>
 			{hit.name}
 			{hit.count > 1 && ` ×${hit.count}`} ·{" "}
-			<span className={DAMAGE_COLORS[hit.type]}>
+			<span className={damageTypeText(hit.type)}>
 				{formatDamage(hit.final)} {DAMAGE_TYPE_NAMES[hit.type]}
 			</span>{" "}
 			<span className="text-subtle">(raw {formatDamage(hit.raw)})</span>
@@ -71,7 +64,7 @@ function TickLine({ tick }: { tick: TickView }) {
 		<li className="tabular-nums">
 			{formatSeconds(tick.time)} ·{" "}
 			{"type" in tick ? (
-				<span className={DAMAGE_COLORS[tick.type]}>
+				<span className={damageTypeText(tick.type)}>
 					{formatDamage(tick.final)} {DAMAGE_TYPE_NAMES[tick.type]}
 				</span>
 			) : (
@@ -117,7 +110,7 @@ function DamageOverTimeText({ dot }: { dot: DamageOverTimeView }) {
 				</Segment>
 			)}
 			{dot.type && dot.final > 0 && (
-				<Segment className={DAMAGE_COLORS[dot.type]}>
+				<Segment className={damageTypeText(dot.type)}>
 					{formatDamage(dot.final)} {DAMAGE_TYPE_NAMES[dot.type]}
 				</Segment>
 			)}
@@ -278,7 +271,7 @@ export function CombatStepCard({
 						<span
 							className={cn(
 								"font-bold font-display text-base tabular-nums",
-								view.mainType && DAMAGE_COLORS[view.mainType],
+								view.mainType && damageTypeText(view.mainType),
 							)}
 						>
 							{formatDamage(view.total.final)}
