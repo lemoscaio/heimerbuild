@@ -116,7 +116,7 @@
 		"16.19.1/champions/Rell.json": "7c6f340781",
 		"16.19.1/champions/Renata.json": "7a88fcb6a0",
 		"16.19.1/champions/Renekton.json": "5b49fdfa3e",
-		"16.19.1/champions/Rengar.json": "fc99dd0dcd",
+		"16.19.1/champions/Rengar.json": "5db90ee38c",
 		"16.19.1/champions/Riven.json": "c71ae12b9a",
 		"16.19.1/champions/Rumble.json": "e160cc34aa",
 		"16.19.1/champions/Ryze.json": "61927c3573",
@@ -182,5 +182,5 @@
 		"16.19.1/runes.json": "51aeb100e8",
 		"16.19.1/summoner-spells.json": "8a4cd741cf"
 	},
-	"generatedAt": "2026-10-06T04:41:12.999Z"
+	"generatedAt": "2026-10-07T23:51:36.439Z"
 }
