@@ -43,6 +43,10 @@ export function useUrlBuildSource({
 		effects: parseEffectOverrides(search.effects),
 		currentHealth: search.hp,
 		gameTime: search.min,
+		combo: search.combo,
+		free: search.free === 1 || undefined,
+		choices: search.choices,
+		target: search.target,
 	}
 	const page: PageValues = { view: search.view, tab: search.tab }
 
@@ -75,6 +79,10 @@ export function useUrlBuildSource({
 				effects: next.effects,
 				currentHealth: next.currentHealth,
 				gameTime: next.gameTime,
+				combo: next.combo,
+				free: next.free,
+				choices: next.choices,
+				target: next.target,
 			})
 		},
 	}
