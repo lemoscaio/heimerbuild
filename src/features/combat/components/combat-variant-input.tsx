@@ -58,7 +58,7 @@ export function CombatVariantInput({
 			)}
 			{...props}
 		>
-			<span>{label.text}</span>
+			<span className="whitespace-nowrap">{label.text}</span>
 			<ToggleGroup
 				aria-label={label.name}
 				value={[current]}
