@@ -828,6 +828,73 @@ describe("buffs after casting in the combo (issue 318)", async () => {
 	})
 })
 
+describe("buffs that hold for some attacks or some hits (issue 318)", async () => {
+	const attack: CombatAction = { kind: "attack" }
+	const fiora: Setup = {
+		champion: await champion("Fiora"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 5, R: 1 },
+	}
+	const udyr: Setup = {
+		champion: await champion("Udyr"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+	}
+	const vi: Setup = {
+		champion: await champion("Vi"),
+		level: 9,
+		ranks: { Q: 1, W: 5, E: 1, R: 1 },
+	}
+	const atRest = (setup: Setup) =>
+		computeBuildStats(buildOf(setup)).attackSpeed.total
+	const interval = (result: CombatResult, step: number) =>
+		(result.steps[step]?.time ?? 0) - (result.steps[step - 1]?.time ?? 0)
+	const running = (result: CombatResult, step: number) =>
+		(result.steps[step]?.active ?? []).map(({ effectId }) => effectId)
+
+	test("Bladework's attack speed times Fiora's next 2 attacks, then ends", () => {
+		const result = simulate(fiora, [
+			{ kind: "ability", slot: "E" },
+			attack,
+			attack,
+			attack,
+			attack,
+		])
+		const boosted = atRest(fiora) + fiora.champion.stats.attackSpeed.ratio * 0.9
+
+		expect(running(result, 1)).toContain("fiora-e-active")
+		expect(interval(result, 2)).toBeCloseTo(1 / boosted)
+		// Each empowered attack's timer reads the boosted speed, like Hail of Blades.
+		expect(interval(result, 3)).toBeCloseTo(1 / boosted)
+		expect(running(result, 2)).not.toContain("fiora-e-active")
+		expect(interval(result, 4)).toBeCloseTo(1 / atRest(fiora))
+	})
+
+	test("Monk Training comes back with 2 attacks after each of Udyr's casts", () => {
+		const result = simulate(udyr, [
+			{ kind: "ability", slot: "Q" },
+			attack,
+			attack,
+			{ kind: "ability", slot: "E" },
+			attack,
+		])
+
+		expect(running(result, 1)).toContain("udyr-monk-training")
+		expect(running(result, 2)).not.toContain("udyr-monk-training")
+		expect(running(result, 3)).toContain("udyr-monk-training")
+		expect(running(result, 4)).toContain("udyr-monk-training")
+	})
+
+	test("Denting Blows' attack speed comes with Vi's third hit, not before", () => {
+		const result = simulate(vi, [attack, attack, attack, attack])
+		const boosted = atRest(vi) + vi.champion.stats.attackSpeed.ratio * 0.5
+
+		expect(interval(result, 1)).toBeCloseTo(1 / atRest(vi))
+		expect(interval(result, 2)).toBeCloseTo(1 / atRest(vi))
+		expect(interval(result, 3)).toBeCloseTo(1 / boosted)
+	})
+})
+
 describe("a share of the target's health", async () => {
 	const zac: Setup = {
 		champion: await champion("Zac"),

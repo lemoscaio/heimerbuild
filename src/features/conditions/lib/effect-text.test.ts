@@ -50,6 +50,21 @@ describe("conditionText", () => {
 		)
 	})
 
+	test("counts the attacks an effect holds for within its duration", () => {
+		const bladework = condition({ kind: "after-use" }, { duration: 4 })
+		const charged = {
+			...bladework,
+			effect: {
+				...bladework.effect,
+				effect: { ...bladework.effect.effect, charges: 2 },
+			},
+		}
+
+		expect(conditionText(charged)).toBe(
+			"For 2 attacks within 4 s after casting",
+		)
+	})
+
 	test("names the state a while-effect needs", () => {
 		expect(
 			conditionText(

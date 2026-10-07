@@ -11,6 +11,7 @@ import { computeBuildStats } from "../../stats/compute-build-stats"
 import type { ComputedStats, StatName } from "../../stats/compute-stats"
 import { softCapMovementSpeed } from "../../stats/movement-speed"
 import { availableEffects, combatEffects } from "../available-effects"
+import { usesCurrentHealth } from "../current-health"
 import { type EffectContext, effectDuration, resolveGrants } from "../evaluate"
 import { ABILITY_EFFECTS } from "./ability-effects"
 
@@ -504,7 +505,7 @@ describe("Bel'Veth's True Form (synced R lines, wiki ratios)", () => {
 function atRanks(
 	champion: Champion,
 	{ id, slot, ranks }: { id: string; slot: AbilitySlot; ranks: number[] },
-	context: Pick<EffectContext, "totals"> = {},
+	context: Pick<EffectContext, "totals" | "currentHealth" | "stacks"> = {},
 ) {
 	return ranks.map((rank) => {
 		const effect = effectsOf(champion, slot, rank).find(
@@ -871,6 +872,113 @@ describe("buffs after casting, batch 2 (synced lines, wiki; issue 318)", () => {
 
 		expect(on.attackSpeed.total - off.attackSpeed.total).toBeCloseTo(
 			0.45 * yi.stats.attackSpeed.ratio,
+		)
+	})
+})
+
+describe("buffs that need a mechanism of their own (issue 318)", () => {
+	test("Bladework: 50 to 90% attack speed for Fiora's next 2 attacks within 4 s", async () => {
+		const fiora = await currentChampion("Fiora")
+
+		expect(
+			atRanks(fiora, { id: "fiora-e-active", slot: "E", ranks: BASIC_RANKS }),
+		).toEqual(
+			[0.5, 0.6, 0.7, 0.8, 0.9].map((value) => ({
+				values: [value],
+				duration: 4,
+			})),
+		)
+		expect(
+			ABILITY_EFFECTS.find(({ id }) => id === "fiora-e-active")?.charges,
+		).toBe(2)
+	})
+
+	test("Savagery: 40% attack speed at every rank, for Rengar's next 2 attacks within 3 s (wiki)", async () => {
+		const rengar = await currentChampion("Rengar")
+
+		expect(
+			atRanks(rengar, {
+				id: "rengar-q-active",
+				slot: "Q",
+				ranks: BASIC_RANKS,
+			}),
+		).toEqual(BASIC_RANKS.map(() => ({ values: [0.4], duration: 3 })))
+	})
+
+	test("Monk Training: Udyr's passive gives 30% attack speed for 2 attacks within 4 s after any ability, without a point", async () => {
+		const udyr = await currentChampion("Udyr")
+		const monk = availableEffects({
+			patch: PATCH,
+			champion: udyr,
+			ranks: { Q: 0, W: 0, E: 0, R: 0 },
+			spells: [],
+			runes: [],
+		}).find(({ id }) => id === "udyr-monk-training")
+		if (!monk) throw new Error("udyr-monk-training is not available")
+		const at = { level: 1 }
+
+		expect(monk.name).toBe(udyr.abilities.passive.name)
+		expect(resolveGrants(monk, at).map(({ value }) => value)).toEqual([0.3])
+		expect(effectDuration(monk, at)).toBe(4)
+		expect(monk.effect.charges).toBe(2)
+	})
+
+	test("Denting Blows: 30 to 50% attack speed for 4 s, only once the third hit lands", async () => {
+		const vi = await currentChampion("Vi")
+		const id = "vi-w-passive"
+
+		expect(atRanks(vi, { id, slot: "W", ranks: BASIC_RANKS })).toEqual(
+			[0.3, 0.35, 0.4, 0.45, 0.5].map((value) => ({
+				values: [value],
+				duration: 4,
+			})),
+		)
+		expect(
+			[1, 2, 3].map(
+				(hits) =>
+					atRanks(
+						vi,
+						{ id, slot: "W", ranks: [5] },
+						{ stacks: { [id]: hits } },
+					)[0]?.values,
+			),
+		).toEqual([[0], [0], [0.5]])
+	})
+
+	test("Tough It Out: 40 to 80% attack speed, a 10 to 130 shield plus 17.5% of missing health, up to 70% missing", async () => {
+		const olaf = await currentChampion("Olaf")
+		const id = "olaf-w-active"
+		const totals = totalsWith({ health: 1000 })
+		const atHealth = (currentHealth: number) =>
+			atRanks(olaf, { id, slot: "W", ranks: [1] }, { totals, currentHealth })[0]
+				?.values
+
+		expect(
+			atRanks(olaf, { id, slot: "W", ranks: BASIC_RANKS }, { totals }),
+		).toEqual(
+			[
+				[0.4, 10],
+				[0.5, 40],
+				[0.6, 70],
+				[0.7, 100],
+				[0.8, 130],
+			].map((values) => ({ values: [...values, 0], duration: 5 })),
+		)
+		expect(atHealth(50)).toEqual([0.4, 10, 87.5])
+		expect(atHealth(30)).toEqual([0.4, 10, 122.5])
+		expect(atHealth(10)).toEqual([0.4, 10, 122.5])
+		const tough = ABILITY_EFFECTS.find((effect) => effect.id === id)
+		expect(tough && usesCurrentHealth(tough)).toBe(true)
+	})
+
+	test("Heightened Senses' passive is listed in the stats panel once W has a point, off by default", async () => {
+		const quinn = await currentChampion("Quinn")
+
+		expect(effectsOf(quinn, "W", 0).map(({ id }) => id)).not.toContain(
+			"quinn-w-passive",
+		)
+		expect(effectsOf(quinn, "W", 1).map(({ id }) => id)).toContain(
+			"quinn-w-passive",
 		)
 	})
 })

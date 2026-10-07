@@ -70,4 +70,13 @@ describe("isListed", () => {
 			isListed({ ...effect({ kind: "after-use" }), holder: "target" }),
 		).toBe(false)
 	})
+
+	test("`listed` gives a combat trigger's effect a switch too (Heightened Senses), or takes it away", () => {
+		const consumed = effect({ kind: "on-mark-consumed", mark: "test" })
+
+		expect(isListed({ ...consumed, listed: true })).toBe(true)
+		expect(isListed({ ...effect({ kind: "after-use" }), listed: false })).toBe(
+			false,
+		)
+	})
 })
