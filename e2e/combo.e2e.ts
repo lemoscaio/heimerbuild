@@ -200,7 +200,7 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 	await expect(up).toBeVisible()
 })
 
-test("a marker goes at the start of a built combo from its chip's menu, or to the start from its own button", async ({
+test("a marker goes at the start of a built combo from its chip's menu, or to the start from its own button, and stays first in the link", async ({
 	page,
 }) => {
 	await page.goto(
@@ -215,24 +215,38 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 	const plain = await damageTotal(page).textContent()
 
 	// From the keyboard: the chip's arrow opens where the marker can go.
-	await combo(page)
-		.getByRole("button", { name: "Where to put marker: Hail of Blades ready" })
-		.focus()
-	await page.keyboard.press("Enter")
+	const where = combo(page).getByRole("button", {
+		name: "Where to put marker: Hail of Blades ready",
+	})
 	const atStart = page.getByRole("menuitem", { name: "Add at the start" })
+	await where.focus()
+	await page.keyboard.press("Enter")
 	await atStart.focus()
 	await page.keyboard.press("Enter")
 	const up = combo(page).getByRole("button", {
 		name: "Move marker Hail of Blades ready up",
 	})
 	await expect(up).toBeDisabled()
-	// It sits before the group, which stays whole.
+	// It sits before the group, which stays whole, and first in the link.
 	await expect(groups(page)).toHaveCount(1)
 	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
+	await expect(page).toHaveURL(/[?&]combo=m-hail-of-blades\.aa\.aa\.aa(&|$)/)
 	const empowered = await damageTotal(page).textContent()
 
 	await combo(page).getByRole("button", { name: "Undo" }).click()
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	await expect(up).toHaveCount(0)
+	await expect(page).toHaveURL(/[?&]combo=aa\.aa\.aa(&|$)/)
+
+	// Added at the start again, it stays first through a reload.
+	await where.click()
+	await atStart.click()
+	await page.reload()
+	await expect(up).toBeDisabled()
+	await expect(damageTotal(page)).toHaveText(empowered ?? "")
+	await combo(page)
+		.getByRole("button", { name: "Remove marker Hail of Blades ready" })
+		.click()
 	await expect(up).toHaveCount(0)
 
 	// Added at the end, it changes nothing until it goes to the start in one move.
@@ -248,6 +262,10 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 	await expect(toStart).toBeFocused()
 	await expect(toStart).toBeDisabled()
 	await expect(up).toBeDisabled()
+	await expect(damageTotal(page)).toHaveText(empowered ?? "")
+	await expect(page).toHaveURL(/[?&]combo=m-hail-of-blades\.aa\.aa\.aa(&|$)/)
+	await page.reload()
+	await expect(toStart).toBeDisabled()
 	await expect(damageTotal(page)).toHaveText(empowered ?? "")
 })
 
