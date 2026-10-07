@@ -1,4 +1,6 @@
-// Wukong (MonkeyKing): Nimbus Strike's attack speed lasts 5 s after the dash.
+// Wukong (MonkeyKing): Nimbus Strike's attack speed lasts 5 s after the dash. Crushing Blow is an
+// empowered attack that resets the attack timer; its armor reduction is left out.
+import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
@@ -20,3 +22,13 @@ export const MONKEY_KING_EFFECTS = [
 		sourceUrl: `${WIKI}Wukong/Nimbus_Strike`,
 	},
 ] satisfies readonly Effect[]
+
+export const MONKEY_KING_HIT_RULES = [
+	{
+		championKey: "MonkeyKing",
+		slot: "Q",
+		empowersAttack: { resetsAttack: true },
+		since: "16.19",
+		sourceUrl: `${WIKI}Wukong/Crushing_Blow`,
+	},
+] satisfies readonly AbilityHitRule[]

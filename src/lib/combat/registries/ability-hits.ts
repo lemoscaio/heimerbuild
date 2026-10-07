@@ -1,17 +1,24 @@
 import type { AbilitySlot } from "@schemas/champion"
 import { isInPatchRange, type PatchRange } from "@schemas/patch-range"
 import { ANNIE_HIT_RULES } from "../../champions/annie"
+import { BLITZCRANK_HIT_RULES } from "../../champions/blitzcrank"
 import { DARIUS_HIT_RULES } from "../../champions/darius"
 import { EZREAL_HIT_RULES } from "../../champions/ezreal"
+import { GAREN_HIT_RULES } from "../../champions/garen"
 import { JANNA_HIT_RULES } from "../../champions/janna"
+import { JAX_HIT_RULES } from "../../champions/jax"
 import { JINX_HIT_RULES } from "../../champions/jinx"
 import { MAOKAI_HIT_RULES } from "../../champions/maokai"
+import { MONKEY_KING_HIT_RULES } from "../../champions/monkey-king"
 import { MORGANA_HIT_RULES } from "../../champions/morgana"
+import { NASUS_HIT_RULES } from "../../champions/nasus"
 import { NAUTILUS_HIT_RULES } from "../../champions/nautilus"
 import { QUINN_HIT_RULES } from "../../champions/quinn"
+import { RENGAR_HIT_RULES } from "../../champions/rengar"
 import { SINGED_HIT_RULES } from "../../champions/singed"
 import { TEEMO_HIT_RULES } from "../../champions/teemo"
 import { VEIGAR_HIT_RULES } from "../../champions/veigar"
+import { YORICK_HIT_RULES } from "../../champions/yorick"
 import { ZAC_HIT_RULES } from "../../champions/zac"
 
 /**
@@ -76,22 +83,29 @@ export type AbilityHitRule = PatchRange & {
 }
 
 /**
- * Checked on patch 16.19 for the curated champions (`CURATED_COMBAT_CHAMPIONS`); one file per
- * champion in `lib/champions/`.
+ * Checked on patch 16.19 for the curated champions (`CURATED_COMBAT_CHAMPIONS`), and for any
+ * champion's variants and empowered attacks; one file per champion in `lib/champions/`.
  */
 export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 	...ANNIE_HIT_RULES,
+	...BLITZCRANK_HIT_RULES,
 	...DARIUS_HIT_RULES,
 	...EZREAL_HIT_RULES,
+	...GAREN_HIT_RULES,
 	...JANNA_HIT_RULES,
+	...JAX_HIT_RULES,
 	...JINX_HIT_RULES,
 	...MAOKAI_HIT_RULES,
+	...MONKEY_KING_HIT_RULES,
 	...MORGANA_HIT_RULES,
+	...NASUS_HIT_RULES,
 	...NAUTILUS_HIT_RULES,
 	...QUINN_HIT_RULES,
+	...RENGAR_HIT_RULES,
 	...SINGED_HIT_RULES,
 	...TEEMO_HIT_RULES,
 	...VEIGAR_HIT_RULES,
+	...YORICK_HIT_RULES,
 	...ZAC_HIT_RULES,
 ]
 
