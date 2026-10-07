@@ -36,7 +36,7 @@ describe("the combo value", () => {
 		expect(readComboItems(serializeComboItems(EVERY_KIND))).toEqual(EVERY_KIND)
 	})
 
-	test("keeps a time in the area as a variant: Poison Trail poisoned 4 s", () => {
+	test("keeps a time in the area as a variant: 4 s in Poison Trail", () => {
 		const items: CombatItem[] = [{ kind: "ability", slot: "Q", variant: "4s" }]
 
 		expect(serializeComboItems(items)).toBe("q-4s")

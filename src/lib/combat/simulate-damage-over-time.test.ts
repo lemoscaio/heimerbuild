@@ -401,7 +401,7 @@ describe("Liandry's Torment: ability damage burns for a share of maximum health"
 })
 
 describe("damage over time from ability casts", async () => {
-	test("Singed's Q, one pass through the trail: 8 ticks every 0.25 s from the cast, the wiki's minimum", async () => {
+	test("Singed's Q, one pass through the trail: 8 ticks every 0.25 s, the last at 2 s, the wiki's minimum", async () => {
 		const singed: Setup = {
 			champion: await champion("Singed"),
 			level: 9,
@@ -411,7 +411,7 @@ describe("damage over time from ability casts", async () => {
 		const ticks = ticksOf(result, "singed-q")
 
 		expect(ticks.map(({ time }) => time)).toEqual([
-			0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75,
+			0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2,
 		])
 		// Wiki, rank 1 without AP: a minimum of 40 magic damage.
 		expect(ticks.reduce((sum, { damage }) => sum + damage.raw, 0)).toBeCloseTo(
@@ -425,9 +425,11 @@ describe("damage over time from ability casts", async () => {
 			level: 9,
 			ranks: { Q: 1, W: 5, E: 1, R: 1 },
 		}
-		const result = simulate(morgana, [{ kind: "ability", slot: "W" }])
+		const result = simulate(morgana, [
+			{ kind: "ability", slot: "W", variant: "5s" },
+		])
 		const ticks = ticksOf(result, "morgana-w")
-		// Wiki, rank 5 without AP: 35 per tick, every 0.5 s for 5 s, from the cast.
+		// Wiki, rank 5 without AP: 35 per tick, on the cast and every 0.5 s for the pool's 5 s.
 		let health = DUMMY.health
 
 		expect(ticks).toHaveLength(10)
@@ -455,30 +457,32 @@ describe("damage over time from ability casts", async () => {
 				0,
 			)
 
-		test("Singed's Q poisoned 4 s: 16 ticks until 4 s, twice the minimum", () => {
-			const result = poisonTrail("4s")
+		test("Singed's Q, 2 s in the trail: poisoned 4 s, 16 ticks, the last at 4 s, twice the minimum", () => {
+			const result = poisonTrail("2s")
 			const ticks = ticksOf(result, "singed-q")
 
 			expect(ticks).toHaveLength(16)
-			expect(ticks.at(-1)?.time).toBe(3.75)
+			expect(ticks.at(-1)?.time).toBe(4)
 			expect(total(result)).toBeCloseTo(80)
+			expect(result.duration).toBe(4)
 			expect(result.steps[0]?.damageOverTime[0]?.endsAt).toBe(4)
 		})
 
-		test("Singed's Q poisoned 6 s: 24 ticks, three times the minimum", () => {
-			expect(ticksOf(poisonTrail("6s"), "singed-q")).toHaveLength(24)
-			expect(total(poisonTrail("6s"))).toBeCloseTo(120)
+		test("Singed's Q, 4 s in the trail: poisoned 6 s, 24 ticks, three times the minimum", () => {
+			expect(ticksOf(poisonTrail("4s"), "singed-q")).toHaveLength(24)
+			expect(total(poisonTrail("4s"))).toBeCloseTo(120)
+			expect(poisonTrail("4s").duration).toBe(6)
 		})
 
-		test("no variant, or one the rule lacks, is the first: one pass, 2 s", () => {
+		test("no variant, or one the rule lacks, is the first: one pass (0 s in the trail), poisoned 2 s", () => {
 			expect(total(poisonTrail())).toBeCloseTo(40)
-			expect(total(poisonTrail("2s"))).toBeCloseTo(40)
+			expect(total(poisonTrail("0s"))).toBeCloseTo(40)
 			expect(total(poisonTrail("9s"))).toBeCloseTo(40)
 		})
 
 		test("only the cast's own effects follow it: Sheen's spellblade keeps its 10 s", () => {
 			const result = simulate({ ...singed, items: [item("Sheen")] }, [
-				{ kind: "ability", slot: "Q", variant: "6s" },
+				{ kind: "ability", slot: "Q", variant: "4s" },
 			])
 			const running = (effectId: string) =>
 				result.steps[0]?.active.find((effect) => effect.effectId === effectId)
@@ -487,7 +491,7 @@ describe("damage over time from ability casts", async () => {
 			expect(running("singed-q")?.endsAt).toBe(6)
 		})
 
-		test("Morgana's W: the whole pool by default, 1 s in it is 2 ticks", async () => {
+		test("Morgana's W: 1 s in the pool by default, 2 ticks from the cast; the whole pool is 10", async () => {
 			const morgana: Setup = {
 				champion: await champion("Morgana"),
 				level: 9,
@@ -501,9 +505,10 @@ describe("damage over time from ability casts", async () => {
 					"morgana-w",
 				).map(({ time }) => time)
 
-			expect(tormentedShadow()).toHaveLength(10)
-			expect(tormentedShadow("3s")).toEqual([0, 0.5, 1, 1.5, 2, 2.5])
+			expect(tormentedShadow()).toEqual([0, 0.5])
 			expect(tormentedShadow("1s")).toEqual([0, 0.5])
+			expect(tormentedShadow("3s")).toEqual([0, 0.5, 1, 1.5, 2, 2.5])
+			expect(tormentedShadow("5s")).toHaveLength(10)
 		})
 	})
 
