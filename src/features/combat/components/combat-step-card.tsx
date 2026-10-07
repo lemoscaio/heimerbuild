@@ -19,6 +19,7 @@ import {
 	type StepView,
 	type TickView,
 } from "../lib/combat-view"
+import { CombatTargetResists } from "./combat-target-resists"
 import { damageTypeText } from "./damage-type-styles"
 
 type CombatStepCardProps = {
@@ -180,7 +181,10 @@ function HealthBar({ share }: { share: number }) {
 	)
 }
 
-/** A step of the combo: time, action, marks, its hits and damage over time, effects running and the target's health. */
+/**
+ * A step of the combo: time, action, marks, its hits and damage over time, effects running, the
+ * target's reduced resistances and its health.
+ */
 export function CombatStepCard({
 	number,
 	label,
@@ -264,6 +268,7 @@ export function CombatStepCard({
 						))}
 					</ul>
 				)}
+				{view && !refused && <CombatTargetResists resists={view.resists} />}
 				{view && !refused && <HealthBar share={view.healthShare} />}
 			</div>
 			<p className="flex flex-col items-end text-right">

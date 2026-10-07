@@ -149,12 +149,28 @@ export type DamageOverTimeGrant = {
 	missingHealthBonus?: number
 }
 
+/** A resistance of the target, as the mitigation reads it. */
+export type Resist = "armor" | "magicResist"
+
+/**
+ * Lowers the target's armor or magic resist while its effect runs, held by the target (combat
+ * simulator): `flat` points (Rengar's R: 15 to 25) or a `percent` share (Black Cleaver: 0.3 at 5
+ * stacks). Mitigation applies it before the attacker's penetration.
+ */
+export type ResistReductionGrant = {
+	kind: "resistReduction"
+	resist: Resist
+	mode: "flat" | "percent"
+	amount: Amount
+}
+
 /**
  * Stats fold into the totals; an attack speed multiplier scales the bonus or total attack speed
  * after them; shields and heals are values of their own. The damage grants are the combat
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
  * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
- * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true damage).
+ * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true
+ * damage); so is `resistReduction`, on the target.
  */
 export type Grant = GrantTiming &
 	(
@@ -171,6 +187,7 @@ export type Grant = GrantTiming &
 				base?: TableAmount
 				ratios: DamageRatios
 		  }
+		| ResistReductionGrant
 	)
 
 /**
@@ -188,12 +205,13 @@ export type EffectCondition = "not-damaged-recently"
 
 /**
  * When an effect starts. `on-attack`, `on-cast`, `on-mark-consumed`, `periodic`,
- * `on-ability-damage` and `on-max-stacks` exist only in the combat simulator: a basic attack
- * starting, before its hit (Hail of Blades); a cast of one of `slots` (any ability without them);
- * the attacker consuming `mark` on the target; on its own once its cooldown is over, while it isn't
- * running and its mark has been off the target for `idle` seconds (Valor's Harrier, Ziggs's Short
- * Fuse); an ability's damage landing, its ticks included (Liandry's Torment); or the `effect` with
- * that id reaching its `stacks.max` (Blaze's detonation at 3 stacks).
+ * `on-ability-damage`, `on-damage` and `on-max-stacks` exist only in the combat simulator: a basic
+ * attack starting, before its hit (Hail of Blades); a cast of one of `slots` (any ability without
+ * them); the attacker consuming `mark` on the target; on its own once its cooldown is over, while it
+ * isn't running and its mark has been off the target for `idle` seconds (Valor's Harrier, Ziggs's
+ * Short Fuse); an ability's damage landing, its ticks included (Liandry's Torment); damage of
+ * `damageType` landing, from any source, once per moment (Black Cleaver's Carve); or the `effect`
+ * with that id reaching its `stacks.max` (Blaze's detonation at 3 stacks).
  */
 export type Trigger =
 	| { kind: "always" }
@@ -208,6 +226,7 @@ export type Trigger =
 	| { kind: "periodic"; idle?: number }
 	| { kind: "on-ability-damage" }
 	| { kind: "on-max-stacks"; effect: string }
+	| { kind: "on-damage"; damageType: DamageType }
 
 export type TriggerKind = Trigger["kind"]
 
@@ -265,6 +284,8 @@ export type StartsAfter = {
 	ending: string
 	duration: Amount
 	endsOn: readonly BreakOn[]
+	/** Only a break starts it; running out drops it (no leap out of Rengar's R, no armor reduction). */
+	needsBreak?: true
 }
 
 /**

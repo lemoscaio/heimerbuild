@@ -640,6 +640,35 @@ describe("Rengar's Thrill of the Hunt (synced R lines)", () => {
 			{ values: [0.6], duration: 20 },
 		])
 	})
+
+	test("the leap reduces the target's armor by 15 / 20 / 25 for 4 s (synced line, wiki)", async () => {
+		const rengar = await currentChampion("Rengar")
+		const reduction = ULTIMATE_RANKS.map((rank) => {
+			const ranks = ranksWith("R", rank)
+			const effect = combatEffects({
+				patch: PATCH,
+				champion: rengar,
+				ranks,
+				spells: [],
+				runes: [],
+			}).find(({ id }) => id === "rengar-r-armor-reduction")
+			if (!effect) throw new Error(`no armor reduction at rank ${rank}`)
+			const at = { level: 18, ranks }
+			return {
+				grants: resolveGrants(effect, at),
+				duration: effectDuration(effect, at),
+			}
+		})
+
+		expect(reduction).toEqual(
+			[15, 20, 25].map((value) => ({
+				grants: [
+					{ kind: "resistReduction", resist: "armor", mode: "flat", value },
+				],
+				duration: 4,
+			})),
+		)
+	})
 })
 
 /** Per-rank values, grant by grant: [attack speed per rank, movement speed per rank]. */

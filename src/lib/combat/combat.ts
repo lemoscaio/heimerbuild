@@ -1,6 +1,7 @@
 import type { AbilitySlot, DamageType } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import type { SummonerSlot } from "../summoner-slots"
+import type { Resists } from "./mitigation"
 
 /**
  * One step of a combo: a basic attack, an ability of the current form, a summoner spell, or a wait.
@@ -190,6 +191,8 @@ export type CombatStep = {
 	/** The effects waiting in their `startsAfter` state then, or in the `delay` before it; absent: none. */
 	waiting?: WaitingEffect[]
 	marks: TargetMark[]
+	/** The target's armor and magic resist then, after the reductions it holds; absent while it holds none. */
+	resists?: Resists
 	/** The target's health once the step's events are done, before the next action. */
 	targetHealth: number
 }

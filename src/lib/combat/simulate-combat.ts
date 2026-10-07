@@ -25,6 +25,7 @@ import {
 	effectDuration,
 	isInForm,
 	resolveAmount,
+	resolveGrants,
 } from "../effects/evaluate"
 import { abilitiesInForm } from "../form-abilities"
 import { itemsAdaptiveType } from "../stats/adaptive-force"
@@ -65,7 +66,7 @@ import {
 	ticksInArea,
 	tickTime,
 } from "./damage-over-time"
-import { mitigate } from "./mitigation"
+import { mitigate, type ResistReduction, reducedResists } from "./mitigation"
 import {
 	dealsDamageOverTime,
 	outcomeChoices,
@@ -175,6 +176,10 @@ type Simulation = {
 	owner?: number
 	/** Ability damage is triggering its effects now, so their own damage doesn't loop. */
 	onAbilityDamage: boolean
+	/** Damage is triggering its `on-damage` effects now, so their own damage doesn't loop. */
+	onDamage: boolean
+	/** When damage last triggered each `on-damage` effect: once per moment. */
+	damageTriggeredAt: Map<string, number>
 	/** Effects with a `delay` waiting to take effect, and the step that triggered each. */
 	delayed: Delayed[]
 	/** Effects in their `startsAfter` state, until an event breaks it or `until`. */
@@ -352,6 +357,8 @@ function createSimulation(
 		assumedCooldowns: new Set(),
 		applications: [],
 		onAbilityDamage: false,
+		onDamage: false,
+		damageTriggeredAt: new Map(),
 		delayed: [],
 		waiting: [],
 	}
@@ -402,10 +409,50 @@ type Damage = {
 	tick?: TickOwner
 }
 
+/** The reductions the effects on the target hold now, each at its stacks (Carve: 6% per stack). */
+function targetReductions(sim: Simulation): ResistReduction[] {
+	return sim.active
+		.filter(({ holder }) => holder === "target")
+		.flatMap(({ effect, stacks, triggeredAt }) =>
+			resolveGrants(effect, {
+				...sim.context,
+				stacks: { [effect.id]: stacks },
+				elapsed: { [effect.id]: sim.time - triggeredAt },
+			}).flatMap((grant): ResistReduction[] =>
+				grant.kind === "resistReduction"
+					? [{ resist: grant.resist, mode: grant.mode, value: grant.value }]
+					: [],
+			),
+		)
+}
+
+/**
+ * Damage landing triggers the `on-damage` effects of its type, each once per moment (wiki Black
+ * Cleaver: once per frame).
+ */
+function triggerOnDamage(sim: Simulation, type: DamageType) {
+	if (sim.onDamage) return
+	sim.onDamage = true
+	const pending: PendingMarks = []
+	for (const effect of sim.input.effects) {
+		const { trigger: on } = effect.effect
+		if (on.kind !== "on-damage" || on.damageType !== type) continue
+		if (sim.damageTriggeredAt.get(effect.id) === sim.time) continue
+		sim.damageTriggeredAt.set(effect.id, sim.time)
+		trigger(sim, effect, pending)
+	}
+	applyMarks(sim, pending)
+	sim.onDamage = false
+}
+
 function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
+	// A basic attack doesn't read the reduction it applies; other damage does (wiki Black Cleaver).
+	const ownFirst = source.kind !== "attack"
+	if (ownFirst) triggerOnDamage(sim, type)
 	const final = mitigate(raw, type, {
 		target: sim.input.target,
 		attacker: statsNow(sim),
+		reductions: targetReductions(sim),
 	})
 	sim.health = Math.max(0, sim.health - final)
 	if (sim.health === 0 && !sim.kill) {
@@ -418,6 +465,7 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 		damage: { type, raw, final },
 		...(tick && { tick }),
 	})
+	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
 }
 
@@ -830,12 +878,30 @@ function release(sim: Simulation, waiting: Waiting) {
 	applyMarks(sim, pending)
 }
 
-/** Breaks the states that `event` ends (an attack breaks Ambush's camouflage as it starts). */
-function breakWaiting(sim: Simulation, event: BreakEvent) {
-	for (const waiting of sim.waiting) {
-		const { startsAfter } = waiting.effect.effect
-		if (isCoveredBy(startsAfter?.endsOn, event)) release(sim, waiting)
+/** Its state ran out: it runs now, unless only a break starts it (`needsBreak`: no leap, no reduction). */
+function runOut(sim: Simulation, waiting: Waiting) {
+	if (waiting.effect.effect.startsAfter?.needsBreak) {
+		sim.waiting = sim.waiting.filter((entry) => entry !== waiting)
+	} else {
+		release(sim, waiting)
 	}
+}
+
+/**
+ * Breaks the states that `event` ends: the attacker's run now (an attack breaks Ambush's camouflage
+ * as it starts); the target's are returned, to run after the action's hit (Rengar's leap).
+ */
+function breakWaiting(sim: Simulation, event: BreakEvent): Waiting[] {
+	const broken = sim.waiting.filter(({ effect }) =>
+		isCoveredBy(effect.effect.startsAfter?.endsOn, event),
+	)
+	const onTarget = broken.filter(
+		({ effect }) => effect.effect.holder === "target",
+	)
+	for (const waiting of broken) {
+		if (!onTarget.includes(waiting)) release(sim, waiting)
+	}
+	return onTarget
 }
 
 type TriggerWhereOptions = {
@@ -1209,7 +1275,7 @@ function nextTimedEvent(
 		consider(delayed.at, () => land(sim, delayed))
 	}
 	for (const waiting of sim.waiting) {
-		consider(waiting.until, () => release(sim, waiting))
+		consider(waiting.until, () => runOut(sim, waiting))
 	}
 	for (const instance of sim.active) {
 		consider(nextTickAt(instance), () => tick(sim, instance))
@@ -1255,7 +1321,7 @@ function attack(sim: Simulation, item: CombatItem) {
 	const pending: PendingMarks = []
 	endEffects(sim, "attack")
 	pauseEffects(sim, "attack")
-	breakWaiting(sim, "attack")
+	const onTarget = breakWaiting(sim, "attack")
 	const held = empowerAttack(sim, pending)
 	spendCharges(sim)
 	deal(sim, {
@@ -1267,6 +1333,7 @@ function attack(sim: Simulation, item: CombatItem) {
 	onHit(sim, pending)
 	consumeMarks(sim, "attack", pending)
 	applyMarks(sim, chooseMarks(sim, pending, item))
+	for (const waiting of onTarget) release(sim, waiting)
 	sim.nextAttackAt = sim.time + 1 / statsNow(sim).attackSpeed.total
 	sim.busyUntil = sim.nextAttackAt
 	sim.active.push(...held)
@@ -1398,7 +1465,7 @@ function castAbility(
 	const cast = { kind: "cast", slot } as const
 	endEffects(sim, cast)
 	pauseEffects(sim, "cast")
-	breakWaiting(sim, cast)
+	const onTarget = breakWaiting(sim, cast)
 	const areaTime = chosenVariant(hitRule(sim, slot), action.variant)?.duration
 	triggerWhere(
 		sim,
@@ -1414,6 +1481,7 @@ function castAbility(
 	)
 	abilityHit(sim, spell, pending, action.variant)
 	applyMarks(sim, chooseMarks(sim, pending, action))
+	for (const waiting of onTarget) release(sim, waiting)
 	const cooldown = spell.cooldown[rank - 1] ?? 0
 	sim.cooldowns.set(
 		slot,
@@ -1586,8 +1654,9 @@ function waitingView(sim: Simulation): WaitingEffect[] {
 
 function snapshot(
 	sim: Simulation,
-): Pick<CombatStep, "active" | "waiting" | "marks"> {
+): Pick<CombatStep, "active" | "waiting" | "marks" | "resists"> {
 	const waiting = waitingView(sim)
+	const reductions = targetReductions(sim)
 	return {
 		active: sim.active
 			.filter(({ effect }) => isInForm(effect, sim.formId))
@@ -1610,6 +1679,9 @@ function snapshot(
 			),
 		...(waiting.length > 0 && { waiting }),
 		marks: sim.marks.map(({ mark, endsAt }) => ({ mark, endsAt })),
+		...(reductions.length > 0 && {
+			resists: reducedResists(sim.input.target, reductions),
+		}),
 	}
 }
 

@@ -1,4 +1,5 @@
 import type { DamageType } from "@schemas/champion"
+import type { Resist } from "../effects/effect"
 import type { ComputedStats } from "../stats/compute-stats"
 
 /** The attacker's penetration and the target's reductions against one resistance; absent is none. */
@@ -37,7 +38,43 @@ export function damageMultiplier(resist: number): number {
 }
 
 /** The target's resistances, as the mitigation reads them. */
-export type Resists = { armor: number; magicResist: number }
+export type Resists = Record<Resist, number>
+
+/** A reduction of one of the target's resistances, from an effect it holds (Black Cleaver's Carve). */
+export type ResistReduction = {
+	resist: Resist
+	mode: "flat" | "percent"
+	value: number
+}
+
+/** The reductions to one resistance: flat ones add up, percent ones multiply (wiki "Armor penetration"). */
+function reductionsOf(
+	resist: Resist,
+	reductions: readonly ResistReduction[],
+): Pick<ResistModifiers, "flatReduction" | "percentReduction"> {
+	let flatReduction = 0
+	let kept = 1
+	for (const reduction of reductions) {
+		if (reduction.resist !== resist) continue
+		if (reduction.mode === "flat") flatReduction += reduction.value
+		else kept *= 1 - reduction.value
+	}
+	return { flatReduction, percentReduction: 1 - kept }
+}
+
+/** The target's resistances after its reductions, before any penetration: what it has at that moment. */
+export function reducedResists(
+	target: Resists,
+	reductions: readonly ResistReduction[],
+): Resists {
+	return {
+		armor: effectiveResist(target.armor, reductionsOf("armor", reductions)),
+		magicResist: effectiveResist(
+			target.magicResist,
+			reductionsOf("magicResist", reductions),
+		),
+	}
+}
 
 /** The attacker's penetration against a damage type, from its stats. */
 function penetration(
@@ -56,15 +93,27 @@ function penetration(
 			}
 }
 
-/** Damage after the target's armor or magic resist and the attacker's penetration; true damage is not mitigated. */
+type MitigationInput = {
+	target: Resists
+	attacker: ComputedStats
+	/** The reductions the target holds when the hit lands; none by default. */
+	reductions?: readonly ResistReduction[]
+}
+
+/**
+ * Damage after the target's armor or magic resist, its reductions and the attacker's penetration;
+ * true damage is not mitigated.
+ */
 export function mitigate(
 	raw: number,
 	type: DamageType,
-	{ target, attacker }: { target: Resists; attacker: ComputedStats },
+	{ target, attacker, reductions = [] }: MitigationInput,
 ): number {
 	if (type === "true") return raw
-	const resist = type === "physical" ? target.armor : target.magicResist
-	return (
-		raw * damageMultiplier(effectiveResist(resist, penetration(type, attacker)))
-	)
+	const resist = type === "physical" ? "armor" : "magicResist"
+	const modifiers = {
+		...reductionsOf(resist, reductions),
+		...penetration(type, attacker),
+	}
+	return raw * damageMultiplier(effectiveResist(target[resist], modifiers))
 }
