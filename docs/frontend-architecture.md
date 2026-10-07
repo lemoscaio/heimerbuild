@@ -247,9 +247,9 @@ lib/champions/
 Everything specific to one champion lives in two files named after it (the champion key in kebab-case: `teemo.ts`, `dr-mundo.ts`), each opening with a short list of its quirks (keep it current when a rule changes):
 
 - `src/lib/champions/<champion>.ts`, the app: its ability effects (`TEEMO_EFFECTS`) and how its casts hit in the combo (`TEEMO_HIT_RULES`), each checked with `satisfies`.
-- `scripts/sync-data/champions/<champion>.ts`, the sync, which runs first: its data fixes, level states, forms, form abilities, skill rules and cast times, each export named after its override id (`GNAR_FORMS` is `gnar-forms`). README, Data overrides.
+- `scripts/sync-data/champions/<champion>.ts`, the sync, which runs first: its data fixes, level states, forms, form abilities, skill rules, cast times and rank stats, each export named after its override id (`GNAR_FORMS` is `gnar-forms`). README, Data overrides.
 
-Only champions with rules have a file. `ABILITY_EFFECTS`, `ABILITY_HIT_RULES` and the sync's tables (`CHAMPION_OVERRIDES` and its parts, `FORM_ABILITY_RULES`) are explicit import lists of those exports, alphabetical by champion (no barrels); the engines read only the rules' general properties, never a champion id. The rank stats an ability grants by rank alone stay in `RANK_STAT_RULES` (`scripts/sync-data/rank-stats.ts`).
+Only champions with rules have a file. `ABILITY_EFFECTS`, `ABILITY_HIT_RULES` and the sync's tables (`CHAMPION_OVERRIDES` and its parts, `FORM_ABILITY_RULES`, `RANK_STAT_RULES`) are explicit import lists of those exports, alphabetical by champion (no barrels); the engines read only the rules' general properties, never a champion id.
 
 ### Adding an effect
 
