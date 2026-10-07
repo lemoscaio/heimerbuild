@@ -67,6 +67,8 @@ export function conditionText(condition: Condition): string {
 			return lasting(duration, "after ability damage")
 		case "on-max-stacks":
 			return lasting(duration, "at full stacks")
+		case "on-damage":
+			return lasting(duration, `after ${trigger.damageType} damage`)
 	}
 }
 
@@ -119,6 +121,8 @@ export function grantText(grant: ResolvedGrant): string {
 		case "shield":
 		case "heal":
 			return `${Math.round(grant.value)} ${grant.kind}`
+		case "resistReduction":
+			return `−${amountText(grant, grant.value)} target ${statDisplay[grant.resist].label}`
 	}
 }
 
@@ -132,6 +136,8 @@ function amountText(grant: ResolvedGrant, value: number): string {
 		case "shield":
 		case "heal":
 			return String(Math.round(value))
+		case "resistReduction":
+			return formatStat(value, grant.mode === "percent" ? "percent" : "flat")
 	}
 }
 

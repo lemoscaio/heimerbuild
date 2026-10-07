@@ -14,6 +14,7 @@ import type {
 	Grant,
 	GrantStat,
 	RankValueAmount,
+	Resist,
 	TableAmount,
 } from "./effect"
 import { GAME_START, gameTimeSteps, triangularSteps } from "./game-time"
@@ -60,6 +61,12 @@ export type ResolvedGrant = { timing?: ResolvedTiming } & (
 	| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; value: number }
 	| { kind: "shield"; value: number }
 	| { kind: "heal"; value: number }
+	| {
+			kind: "resistReduction"
+			resist: Resist
+			mode: "flat" | "percent"
+			value: number
+	  }
 )
 
 /** The value of the last bracket or step whose `from` the value reached. */
@@ -291,6 +298,11 @@ function resolveFullGrant(
 		case "heal": {
 			const value = resolveAmount(grant.amount, effect, context)
 			return value === undefined ? [] : [{ kind: grant.kind, value }]
+		}
+		case "resistReduction": {
+			const value = resolveAmount(grant.amount, effect, context)
+			const { kind, resist, mode } = grant
+			return value === undefined ? [] : [{ kind, resist, mode, value }]
 		}
 		case "damage":
 		case "abilityDamage":
