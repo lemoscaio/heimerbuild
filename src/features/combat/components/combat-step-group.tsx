@@ -1,4 +1,3 @@
-import type { DamageType } from "@schemas/champion"
 import { cva } from "class-variance-authority"
 import { ChevronDown, CircleAlert, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,22 +18,7 @@ import type {
 	GroupDamageOverTime,
 	GroupView,
 } from "../lib/combat-groups"
-
-// Damage colors, each next to its type's name: never color alone. PR 362 shares these.
-const damageText = cva("", {
-	variants: {
-		type: {
-			physical: "text-physical",
-			magic: "text-magic",
-			true: "text-true-damage",
-		},
-	},
-})
-
-function damageColor(type: DamageType) {
-	// cva reads a "true" key as a boolean variant.
-	return damageText({ type: type === "true" || type })
-}
+import { damageTypeText } from "./damage-type-styles"
 
 /** Gold: what the rules computed, on some of the steps; quieter when on none. */
 const outcomeCount = cva(
@@ -75,7 +59,7 @@ function DamageByType({ parts }: { parts: GroupView["byType"] }) {
 					key={type}
 					className={cn(
 						"whitespace-nowrap not-last:after:text-subtle not-last:after:content-['_·']",
-						damageColor(type),
+						damageTypeText(type),
 					)}
 				>
 					{formatDamage(final)} {DAMAGE_TYPE_NAMES[type]}
@@ -119,7 +103,7 @@ function DamageOverTimeLine({ dot }: { dot: GroupDamageOverTime }) {
 				</Segment>
 			)}
 			{dot.type && dot.final > 0 && (
-				<Segment className={damageColor(dot.type)}>
+				<Segment className={damageTypeText(dot.type)}>
 					{formatDamage(dot.final)} {DAMAGE_TYPE_NAMES[dot.type]}
 				</Segment>
 			)}
@@ -251,7 +235,7 @@ export function CombatStepGroup({
 								<span
 									className={cn(
 										"font-bold font-display text-base tabular-nums",
-										view.mainType && damageColor(view.mainType),
+										view.mainType && damageTypeText(view.mainType),
 									)}
 								>
 									{formatDamage(view.total.final)}
