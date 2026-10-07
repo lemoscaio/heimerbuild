@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp } from "lucide-react"
+import { ChevronDown, ChevronsUp, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 import type { MoveAction } from "../hooks/use-step-reorder"
@@ -8,21 +8,38 @@ type CombatMoveButtonsProps = {
 	label: string
 	up: MoveAction
 	down: MoveAction
+	/** "Move … to the start", first, when the entry offers it (markers, issue 344). */
+	start?: MoveAction
 } & React.ComponentProps<"div">
 
 /**
- * "Move up" and "Move down" for an entry of the combo, 44 px to tap on phones. A disabled one keeps
- * its focus, so moving an entry to the top or bottom never drops the keyboard user.
+ * "Move up" and "Move down" (and "to the start" when given) for an entry of the combo, 44 px to
+ * tap on phones. A disabled one keeps its focus, so moving an entry to the top or bottom never
+ * drops the keyboard user.
  */
 export function CombatMoveButtons({
 	label,
 	up,
 	down,
+	start,
 	className,
 	...props
 }: CombatMoveButtonsProps) {
 	return (
 		<div className={cn("flex shrink-0", className)} {...props}>
+			{start && (
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					aria-label={`Move ${label} to the start`}
+					disabled={start.disabled}
+					focusableWhenDisabled
+					onClick={start.onClick}
+					className="max-lg:size-11"
+				>
+					<ChevronsUp aria-hidden="true" />
+				</Button>
+			)}
 			<Button
 				variant="ghost"
 				size="icon-sm"

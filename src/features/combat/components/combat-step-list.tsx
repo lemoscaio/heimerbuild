@@ -293,6 +293,7 @@ export function CombatStepList({
 								moves={
 									<CombatMoveButtons
 										label={`marker ${item.view.label}`}
+										start={reorder.toStart(blocks, position)}
 										{...moves}
 									/>
 								}

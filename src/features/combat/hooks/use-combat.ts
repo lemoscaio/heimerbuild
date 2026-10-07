@@ -14,6 +14,7 @@ import { combatFormId } from "../lib/combat-form"
 import { combatKeys } from "../lib/combat-keys"
 import {
 	addStep,
+	insertStep,
 	MAX_COMBAT_STEPS,
 	moveEntries,
 	setStepVariant,
@@ -40,6 +41,9 @@ type UseCombatOptions = {
 }
 
 export type Combat = ReturnType<typeof useCombat>
+
+/** Where a new marker goes in the combo (issue 344). */
+export type MarkerPlace = "start" | "end"
 
 function isCurated({ key }: Champion) {
 	return CURATED_COMBAT_CHAMPIONS.includes(key)
@@ -115,9 +119,18 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		isCurated: champion ? isCurated(champion) : true,
 		isFull: entries.length >= MAX_COMBAT_STEPS,
 		add: (action: CombatAction) => saveEntries(addStep(entries, action)),
-		/** Puts a marker of the effect's situation at the end. */
-		addSituation: (effectId: string) =>
-			saveEntries(addStep(entries, { kind: "situation", effectId })),
+		/** Puts a marker of the effect's situation at the end, or at the start. */
+		addSituation: (
+			effectId: string,
+			{ place = "end" }: { place?: MarkerPlace } = {},
+		) =>
+			saveEntries(
+				insertStep(
+					entries,
+					{ kind: "situation", effectId },
+					place === "start" ? 0 : entries.length,
+				),
+			),
 		remove: (id: number) => save(removeEntry(value, id, effects)),
 		/** Removes several entries at once (a group of steps). */
 		removeAll: (ids: readonly number[]) =>

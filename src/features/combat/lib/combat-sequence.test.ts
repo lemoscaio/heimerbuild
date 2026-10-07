@@ -4,6 +4,7 @@ import {
 	blockMove,
 	type CombatEntry,
 	clampWaitSeconds,
+	insertStep,
 	MAX_COMBAT_STEPS,
 	moveEntries,
 	removeStep,
@@ -39,6 +40,28 @@ describe("addStep", () => {
 		const steps = removeStep(combo(ATTACK, Q, ATTACK), 2)
 
 		expect(addStep(steps, Q).map(({ id }) => id)).toEqual([1, 3, 4])
+	})
+})
+
+describe("insertStep (issue 344)", () => {
+	const MARKER = { kind: "situation", effectId: "hail-of-blades" } as const
+
+	test("puts a marker at the start or between steps, with a new id", () => {
+		const steps = combo(ATTACK, Q, ATTACK)
+
+		expect(insertStep(steps, MARKER, 0).map(({ id }) => id)).toEqual([
+			4, 1, 2, 3,
+		])
+		expect(insertStep(steps, MARKER, 2).map(({ id }) => id)).toEqual([
+			1, 2, 4, 3,
+		])
+		expect(insertStep(steps, MARKER, 99).at(-1)?.id).toBe(4)
+	})
+
+	test("stops adding once the combo is full", () => {
+		const full = combo(...Array(MAX_COMBAT_STEPS).fill(ATTACK))
+
+		expect(insertStep(full, MARKER, 0)).toEqual(full)
 	})
 })
 
@@ -89,6 +112,18 @@ describe("blockMove (issue 331)", () => {
 		).toBeUndefined()
 		expect(
 			blockMove(ids, blocks, { position: 3, direction: "down" }),
+		).toBeUndefined()
+	})
+
+	test("a marker moves to the start, before a group there (issue 344)", () => {
+		const groupFirst = [[2, 3, 4], [1], [5], [6]]
+		const entryIds = groupFirst.flat()
+
+		expect(
+			blockMove(entryIds, groupFirst, { position: 2, direction: "start" }),
+		).toEqual({ ids: [5], to: 0, position: 0 })
+		expect(
+			blockMove(entryIds, groupFirst, { position: 0, direction: "start" }),
 		).toBeUndefined()
 	})
 

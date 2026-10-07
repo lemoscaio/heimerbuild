@@ -22,17 +22,27 @@ function nextId(entries: readonly CombatEntry[]): number {
 	return Math.max(0, ...entries.map(({ id }) => id)) + 1
 }
 
-/** The combo with `action` at its end; unchanged once full. */
-export function addStep(
+/** The combo with `action` at position `at` (clamped: 0 is the start); unchanged once full. */
+export function insertStep(
 	entries: readonly CombatEntry[],
 	action: CombatItem,
+	at: number,
 ): CombatEntry[] {
 	if (entries.length >= MAX_COMBAT_STEPS) return [...entries]
 	const added =
 		action.kind === "wait"
 			? { ...action, seconds: clampWaitSeconds(action.seconds) }
 			: action
-	return [...entries, { id: nextId(entries), action: added }]
+	const index = Math.min(entries.length, Math.max(0, at))
+	return entries.toSpliced(index, 0, { id: nextId(entries), action: added })
+}
+
+/** The combo with `action` at its end; unchanged once full. */
+export function addStep(
+	entries: readonly CombatEntry[],
+	action: CombatItem,
+): CombatEntry[] {
+	return insertStep(entries, action, entries.length)
 }
 
 export function removeStep(
@@ -60,14 +70,23 @@ export type BlockMove = { ids: readonly number[]; to: number; position: number }
 
 /**
  * Moving the block at `position` among `blocks` (the list as it shows: a step, a marker or a whole
- * group) one place up or down, past its whole neighbour. None at the list's edge.
+ * group) one place up or down, past its whole neighbour, or to the first place (`start`). None at
+ * the list's edge.
  */
 export function blockMove(
 	entryIds: readonly number[],
 	blocks: readonly (readonly number[])[],
-	{ position, direction }: { position: number; direction: "up" | "down" },
+	{
+		position,
+		direction,
+	}: { position: number; direction: "up" | "down" | "start" },
 ): BlockMove | undefined {
 	const block = blocks[position]
+	if (direction === "start") {
+		const first = blocks[0]?.[0]
+		if (!block || position === 0 || first === undefined) return undefined
+		return { ids: block, to: entryIds.indexOf(first), position: 0 }
+	}
 	const neighbour = blocks[direction === "up" ? position - 1 : position + 1]
 	const start = block?.[0] === undefined ? -1 : entryIds.indexOf(block[0])
 	if (!block || !neighbour || start === -1) return undefined

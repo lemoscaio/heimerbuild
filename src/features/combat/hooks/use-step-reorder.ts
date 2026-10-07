@@ -18,8 +18,8 @@ export type MoveAction = { disabled: boolean; onClick: () => void }
 
 /**
  * Reorders the combo's entries one place at a time from their "Move up" and "Move down" buttons,
- * and says each move politely. A block (a step, a marker, a whole group) moves past its whole
- * neighbour among `blocks`; the first can't go up, the last can't go down.
+ * or to the first place, and says each move politely. A block (a step, a marker, a whole group)
+ * moves past its whole neighbour among `blocks`; the first can't go up, the last can't go down.
  */
 export function useStepReorder({
 	entryIds,
@@ -31,7 +31,7 @@ export function useStepReorder({
 	function action(
 		blocks: readonly (readonly number[])[],
 		position: number,
-		direction: "up" | "down",
+		direction: "up" | "down" | "start",
 	): MoveAction {
 		const move = blockMove(entryIds, blocks, { position, direction })
 		return {
@@ -57,6 +57,9 @@ export function useStepReorder({
 				down: action(blocks, position, "down"),
 			}
 		},
+		/** The move of the block at `position` to the first place among `blocks` (issue 344). */
+		toStart: (blocks: readonly (readonly number[])[], position: number) =>
+			action(blocks, position, "start"),
 		/** The last move, said politely. */
 		announcement,
 	}

@@ -180,6 +180,57 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 	await expect(up).toBeVisible()
 })
 
+test("a marker goes at the start of a built combo from its chip's menu, or to the start from its own button", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+	)
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	await attack.click()
+	await attack.click()
+	await attack.click()
+	await expect(groups(page)).toHaveCount(1)
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const plain = await damageTotal(page).textContent()
+
+	// From the keyboard: the chip's arrow opens where the marker can go.
+	await combo(page)
+		.getByRole("button", { name: "Where to put marker: Hail of Blades ready" })
+		.focus()
+	await page.keyboard.press("Enter")
+	const atStart = page.getByRole("menuitem", { name: "Add at the start" })
+	await atStart.focus()
+	await page.keyboard.press("Enter")
+	const up = combo(page).getByRole("button", {
+		name: "Move marker Hail of Blades ready up",
+	})
+	await expect(up).toBeDisabled()
+	// It sits before the group, which stays whole.
+	await expect(groups(page)).toHaveCount(1)
+	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
+	const empowered = await damageTotal(page).textContent()
+
+	await combo(page).getByRole("button", { name: "Undo" }).click()
+	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	await expect(up).toHaveCount(0)
+
+	// Added at the end, it changes nothing until it goes to the start in one move.
+	await combo(page)
+		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
+		.click()
+	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	const toStart = combo(page).getByRole("button", {
+		name: "Move marker Hail of Blades ready to the start",
+	})
+	await toStart.focus()
+	await page.keyboard.press("Enter")
+	await expect(toStart).toBeFocused()
+	await expect(toStart).toBeDisabled()
+	await expect(up).toBeDisabled()
+	await expect(damageTotal(page)).toHaveText(empowered ?? "")
+})
+
 test("free mode sets an outcome per step, keeps the choice across toggles, and restores the computed one", async ({
 	page,
 }) => {
