@@ -126,6 +126,34 @@ describe("buildSearchSchema", () => {
 		}
 	})
 
+	test("keeps the combo's readable tokens and drops the others", () => {
+		expect(parse({ combo: "aa.zz.q-handle.m-hail-of-blades" }).combo).toBe(
+			"aa.q-handle.m-hail-of-blades",
+		)
+		expect(parse({ combo: "zz.yy" }).combo).toBeUndefined()
+		expect(parse({ combo: 12 }).combo).toBeUndefined()
+	})
+
+	test("accepts free mode as 1 and drops anything else", () => {
+		expect(parse({ free: 1 }).free).toBe(1)
+		expect(parse({ free: 0 }).free).toBeUndefined()
+		expect(parse({ free: "yes" }).free).toBeUndefined()
+	})
+
+	test("keeps free mode's readable choices and drops the others", () => {
+		expect(parse({ choices: "3e-hail-of-blades-n.3e-ghost" }).choices).toBe(
+			"3e-hail-of-blades-n",
+		)
+		expect(parse({ choices: "nope" }).choices).toBeUndefined()
+	})
+
+	test("accepts a target preset or its numbers and drops anything else", () => {
+		expect(parse({ target: "tank" }).target).toBe("tank")
+		expect(parse({ target: "1800-60-45" }).target).toBe("1800-60-45")
+		expect(parse({ target: "1800" }).target).toBeUndefined()
+		expect(parse({ target: 1800 }).target).toBeUndefined()
+	})
+
 	test("keeps valid fields when another one is invalid", () => {
 		expect(parse({ lvl: 99, items: "3089", patch: "16.19.1" })).toEqual({
 			lvl: undefined,
@@ -231,7 +259,17 @@ describe("toBuildSearch", () => {
 			tab: "runes",
 			form: "mega",
 			summoners: ",4",
+			combo: "m-hail-of-blades.aa.q-handle.t1_5",
+			free: true,
+			choices: "2e-hail-of-blades-n",
+			target: "1800-60-45",
 		})
+		expect(search.free).toBe(1)
 		expect(buildSearchSchema.parse(search)).toEqual(search)
+	})
+
+	test("leaves strict mode out of the URL", () => {
+		const build = { level: 1, itemIds: [], patch: undefined }
+		expect(toBuildSearch({ ...build, free: false }).free).toBeUndefined()
 	})
 })

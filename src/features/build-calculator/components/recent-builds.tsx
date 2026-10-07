@@ -79,6 +79,10 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				effects: build.effects,
 				currentHealth: build.currentHealth,
 				gameTime: build.gameTime,
+				combo: build.combo,
+				free: build.free,
+				choices: build.choices,
+				target: build.target,
 			})}
 			className="flex items-center gap-2.5 rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 transition-colors hover:bg-line"
 		>

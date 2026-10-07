@@ -75,3 +75,31 @@ export function presetOf(stats: TargetStats): TargetPreset | undefined {
 			preset.stats.magicResist === stats.magicResist,
 	)
 }
+
+const STATS_SEPARATOR = "-"
+
+/** Reads the `target` value: a preset's id or `health-armor-magicResist`; anything else is the default. */
+export function readTargetParam(value: string | undefined): TargetValue {
+	const preset = TARGET_PRESETS.find(({ id }) => id === value)
+	if (preset) return { ...preset.stats }
+	const [health, armor, magicResist] = (value ?? "")
+		.split(STATS_SEPARATOR)
+		.map(Number)
+	if (
+		health === undefined ||
+		armor === undefined ||
+		magicResist === undefined ||
+		![health, armor, magicResist].every(Number.isInteger)
+	) {
+		return {}
+	}
+	return readTarget({ health, armor, magicResist })
+}
+
+/** The `target` value: a preset's id (`tank`) or its numbers (`1800-60-45`); `undefined` for the default preset. */
+export function toTargetParam(value: TargetValue): string | undefined {
+	const stats = readTarget(value)
+	const preset = presetOf(stats)
+	if (preset) return preset === DEFAULT_PRESET ? undefined : preset.id
+	return [stats.health, stats.armor, stats.magicResist].join(STATS_SEPARATOR)
+}

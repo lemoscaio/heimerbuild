@@ -64,6 +64,10 @@ const recentBuildSchema = z.pipe(
 			effects,
 			hp,
 			min,
+			combo,
+			free,
+			choices,
+			target,
 		} = readBuildSearch(search)
 		return {
 			championKey,
@@ -77,6 +81,10 @@ const recentBuildSchema = z.pipe(
 			effects: parseEffectOverrides(effects),
 			currentHealth: hp,
 			gameTime: min,
+			combo,
+			free: free === 1 || undefined,
+			choices,
+			target,
 		}
 	}),
 )
