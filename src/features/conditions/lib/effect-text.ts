@@ -20,12 +20,22 @@ function lasting({ duration, charges }: Lasting, when: string) {
 	return `${when.charAt(0).toUpperCase()}${when.slice(1)}`
 }
 
-/** When the effect holds: "For 10 s after casting", "For 2.5 s after 3 hits", "While in this form". */
-export function conditionText({
-	effect,
-	duration: seconds,
-}: Condition): string {
+/** Whether a grant ends on its own clock, so the row says each grant's duration instead of one. */
+function hasGrantDurations({ grants, duration }: Condition): boolean {
+	return grants.some(({ timing }) => {
+		const seconds = timing?.duration
+		return seconds !== undefined && seconds !== duration
+	})
+}
+
+/**
+ * When the effect holds: "For 10 s after casting", "For 2.5 s after 3 hits", "While in this form";
+ * "After casting" when its grants last different times (the values say each).
+ */
+export function conditionText(condition: Condition): string {
+	const { effect } = condition
 	const { trigger, form, stacks, charges } = effect.effect
+	const seconds = hasGrantDurations(condition) ? undefined : condition.duration
 	const duration = { duration: seconds, charges }
 	switch (trigger.kind) {
 		case "always":
@@ -108,6 +118,54 @@ export function grantText(grant: ResolvedGrant): string {
 	}
 }
 
+/** A grant's value without its stat's name: "10%", "282". */
+function amountText(grant: ResolvedGrant, value: number): string {
+	switch (grant.kind) {
+		case "stat":
+			return formatStat(value, STAT_UNITS[grant.stat])
+		case "attackSpeedMultiplier":
+			return formatStat(Math.abs(value), "percent")
+		case "shield":
+		case "heal":
+			return String(Math.round(value))
+	}
+}
+
+type TimingOptions = {
+	/** The effect's seconds, which a grant without its own lasts. */
+	duration?: number
+	/** The row says each grant's duration. */
+	perGrant: boolean
+}
+
+/**
+ * A grant's own clock, as shown after its value: "for 2.5 s", "decaying over 1.5 s", "decaying to
+ * 10% over 2.9 s"; a decay over the effect's whole duration is just "decaying".
+ */
+function timingText(
+	grant: ResolvedGrant,
+	{ duration, perGrant }: TimingOptions,
+): string {
+	const seconds = grant.timing?.duration ?? duration
+	const decay = grant.timing?.decay
+	const lasts =
+		perGrant && seconds !== undefined && seconds !== decay?.over
+			? `for ${seconds} s`
+			: undefined
+	const showsOver =
+		decay?.over !== undefined && (perGrant || decay.over !== duration)
+	const decaying =
+		decay &&
+		[
+			"decaying",
+			decay.to !== 0 && `to ${amountText(grant, decay.to)}`,
+			showsOver && `over ${decay.over} s`,
+		]
+			.filter(Boolean)
+			.join(" ")
+	return [lasts, decaying].filter(Boolean).join(", ")
+}
+
 /** An effect's shield parts (Iron Mantle's base and ratios) add up to one shield; heals alike. */
 function totalOutputs(grants: readonly ResolvedGrant[]): ResolvedGrant[] {
 	const merged: ResolvedGrant[] = []
@@ -120,22 +178,25 @@ function totalOutputs(grants: readonly ResolvedGrant[]): ResolvedGrant[] {
 	return merged
 }
 
-function grantsText(grants: readonly ResolvedGrant[]) {
-	return totalOutputs(grants).map(grantText).join(" · ")
+function grantsText(grants: readonly ResolvedGrant[], options: TimingOptions) {
+	return totalOutputs(grants)
+		.map((grant) =>
+			[grantText(grant), timingText(grant, options)].filter(Boolean).join(" "),
+		)
+		.join(" · ")
 }
 
 /**
  * What the row's effect gives, from when it grows and what raises it: "+24 Ability Power (next: +48
- * Ability Power at 30 min)", "+60% Move Speed · boosted by GNAR! (R2)".
+ * Ability Power at 30 min)", "+60% Move Speed · boosted by GNAR! (R2)", and each grant's own
+ * duration when they differ: "+80% Attack Speed for 5 s · 282 shield for 2.5 s".
  */
-export function valuesText({
-	grants,
-	next,
-	boostedBy = [],
-}: Condition): string {
-	const now = grantsText(grants)
+export function valuesText(condition: Condition): string {
+	const { grants, next, boostedBy = [], duration } = condition
+	const options = { duration, perGrant: hasGrantDurations(condition) }
+	const now = grantsText(grants, options)
 	const value = next
-		? `${now} (next: ${grantsText(next.grants)} at ${next.gameTime} min)`
+		? `${now} (next: ${grantsText(next.grants, options)} at ${next.gameTime} min)`
 		: now
 	const boosts = boostedBy.map(
 		({ name, slot, rank }) => `boosted by ${name} (${slot}${rank})`,
