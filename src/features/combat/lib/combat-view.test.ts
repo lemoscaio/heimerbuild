@@ -9,6 +9,7 @@ import {
 	markerView,
 	outcomeChoice,
 	outcomeViews,
+	runningEffectText,
 	stepView,
 	strictOutcomeViews,
 } from "./combat-view"
@@ -171,6 +172,44 @@ describe("stepView", () => {
 				paused: { label: "Move Speed", until: 1 },
 			},
 		])
+	})
+
+	test("says an effect waiting in its state, and from when it enters it (issue 372)", () => {
+		const names = combatNames({
+			passiveName: "Deadly Venom",
+			spells: [],
+			effects: [bound({ id: "twitch-q-active" }, "Ambush")],
+		})
+		const ambush = (from?: number) =>
+			stepView(
+				{
+					...STEP,
+					active: [],
+					waiting: [
+						{
+							effectId: "twitch-q-active",
+							label: "camouflaged",
+							...(from !== undefined && { from }),
+							until: 11,
+						},
+					],
+				},
+				{ names, target: TARGET },
+			).effects.map(runningEffectText)
+
+		expect(ambush(1)).toEqual(["Ambush · camouflaged from 1.00 s"])
+		expect(ambush()).toEqual(["Ambush · camouflaged until 11.00 s"])
+	})
+
+	test("a running effect's chip says when it ends and what its pause holds off", () => {
+		expect(
+			runningEffectText({
+				name: "Harrowed Path",
+				until: 8,
+				paused: { label: "Move Speed", until: 1 },
+			}),
+		).toBe("Harrowed Path · until 8.00 s · Move Speed paused until 1.00 s")
+		expect(runningEffectText({ name: "Teemo's W" })).toBe("Teemo's W")
 	})
 
 	test("says when a mark or a spent effect came from a marker", () => {

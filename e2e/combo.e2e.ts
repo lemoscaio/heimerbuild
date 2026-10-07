@@ -619,3 +619,23 @@ test("Viego's attack pauses part of Harrowed Path for a moment, and a cast pause
 	await expect(running.nth(2)).toHaveText(afterCast ?? "")
 	await expect(running.nth(3)).not.toHaveText(afterCast ?? "")
 })
+
+test("Twitch's Ambush gives its attack speed only once an attack breaks the camouflage, which starts 1 s after the cast", async ({
+	page,
+}) => {
+	await page.goto("/champions/Twitch?lvl=3&skills=QWE&tab=combo&combo=q.t1.aa")
+	const running = combo(page).getByRole("list", { name: "Effects running" })
+	// The cast (camouflage ahead), the 1 s wait (camouflaged), the attack that breaks it.
+	await expect(running).toHaveCount(3)
+	const ahead = (await running.nth(0).textContent()) ?? ""
+	const camouflaged = (await running.nth(1).textContent()) ?? ""
+	expect(camouflaged).not.toBe(ahead)
+	await expect(running.nth(2)).not.toHaveText(camouflaged)
+
+	// Waiting less than the delay, the attack comes before the camouflage, which is still ahead.
+	await page.goto(
+		"/champions/Twitch?lvl=3&skills=QWE&tab=combo&combo=q.t0_5.aa",
+	)
+	await expect(running).toHaveCount(3)
+	await expect(running.nth(2)).toHaveText(ahead)
+})

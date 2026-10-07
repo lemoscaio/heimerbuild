@@ -72,6 +72,27 @@ describe("conditionText", () => {
 			),
 		).toBe("Not hit by a champion or turret for 5 s")
 	})
+
+	test("an effect that starts when a state ends says so, still one switch (issue 372)", () => {
+		const ambush = condition({ kind: "after-use" }, { duration: 6 })
+		const row = {
+			...ambush,
+			effect: {
+				...ambush.effect,
+				effect: {
+					...ambush.effect.effect,
+					startsAfter: {
+						label: "camouflaged",
+						ending: "camouflage breaks",
+						duration: 10,
+						endsOn: ["attack", "cast"],
+					},
+				},
+			},
+		} satisfies Condition
+
+		expect(conditionText(row)).toBe("For 6 s after camouflage breaks")
+	})
 })
 
 describe("grantText", () => {

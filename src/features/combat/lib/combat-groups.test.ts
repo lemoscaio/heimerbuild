@@ -198,6 +198,25 @@ describe("groupView (issue 331, option A: totals plus counts)", () => {
 		])
 	})
 
+	test("counts an effect waiting in its state apart from the effect running (issue 372)", () => {
+		const steps: GroupStep[] = [true, true, false].map((camouflaged) => ({
+			time: 0,
+			view: stepView({
+				effects: [
+					camouflaged
+						? { name: "Ambush", until: 11, waiting: { label: "camouflaged" } }
+						: { name: "Ambush", until: 8 },
+				],
+			}),
+			outcomes: [],
+		}))
+
+		expect(groupView(steps).effects).toEqual([
+			{ label: "Ambush · camouflaged", count: 2, of: 3 },
+			{ label: "Ambush", count: 1, of: 3 },
+		])
+	})
+
 	test("sums each damage over time from its steps' own lines: applications, ticks, damage and its last tick", () => {
 		const steps: GroupStep[] = [
 			poison("applied", { ticks: 1, until: 1 }),

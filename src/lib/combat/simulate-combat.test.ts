@@ -1704,3 +1704,92 @@ describe("grants on their own clock (issue 373)", async () => {
 		expect(attackRaw(result, 4)).toBeCloseTo(atRest + 10)
 	})
 })
+
+describe("an effect that starts when a state ends: Twitch's Ambush (issue 372)", async () => {
+	const twitch: Setup = {
+		champion: await champion("Twitch"),
+		level: 3,
+		ranks: { Q: 1, W: 1, E: 1, R: 0 },
+	}
+	const attack: CombatAction = { kind: "attack" }
+	const ambush: CombatAction = { kind: "ability", slot: "Q" }
+	const wait = (seconds: number): CombatAction => ({ kind: "wait", seconds })
+	const atRest = computeBuildStats(buildOf(twitch)).attackSpeed.total
+	const boosted = atRest + twitch.champion.stats.attackSpeed.ratio * 0.4
+
+	function ambushOf(result: CombatResult, step: number) {
+		return result.steps[step]?.active.find(
+			({ effectId }) => effectId === "twitch-q-active",
+		)
+	}
+
+	function gap(result: CombatResult, from: number) {
+		return (
+			(result.steps[from + 1]?.time ?? Number.NaN) -
+			(result.steps[from]?.time ?? Number.NaN)
+		)
+	}
+
+	test("the cast gives no attack speed: it waits 1 s, then camouflaged for its 10 s", () => {
+		const result = simulate(twitch, [ambush])
+
+		expect(ambushOf(result, 0)).toBeUndefined()
+		expect(result.steps[0]?.waiting).toEqual([
+			{ effectId: "twitch-q-active", label: "camouflaged", from: 1, until: 11 },
+		])
+	})
+
+	test("an attack before the camouflage gets nothing; the one that breaks it starts the 6 s", () => {
+		const result = simulate(twitch, [ambush, attack, attack, attack])
+		const breakAt = result.steps[2]?.time ?? Number.NaN
+
+		expect(result.steps[1]?.time).toBeLessThan(1)
+		expect(ambushOf(result, 1)).toBeUndefined()
+		expect(gap(result, 1)).toBeCloseTo(1 / atRest)
+		expect(breakAt).toBeGreaterThan(1)
+		expect(ambushOf(result, 2)).toMatchObject({
+			startedAt: breakAt,
+			endsAt: expect.closeTo(breakAt + 6),
+		})
+		expect(result.steps[2]?.waiting).toBeUndefined()
+		// It breaks as its windup starts (wiki), so the breaking attack's own timer reads the speed.
+		expect(gap(result, 2)).toBeCloseTo(1 / boosted)
+	})
+
+	test("a wait shorter than the 1 s delay leaves the attack before the camouflage", () => {
+		const result = simulate(twitch, [ambush, wait(0.5), attack])
+
+		expect(result.steps[1]?.waiting?.[0]).toMatchObject({ from: 1 })
+		expect(ambushOf(result, 2)).toBeUndefined()
+		expect(result.steps[2]?.waiting?.[0]).toMatchObject({ from: 1 })
+	})
+
+	test("after a 1 s wait it is camouflaged, and the attack breaks it as it starts", () => {
+		const result = simulate(twitch, [ambush, wait(1), attack, attack])
+		const breakAt = result.steps[2]?.time ?? Number.NaN
+
+		expect(result.steps[1]?.waiting).toEqual([
+			{ effectId: "twitch-q-active", label: "camouflaged", until: 11 },
+		])
+		expect(ambushOf(result, 2)?.endsAt).toBeCloseTo(breakAt + 6)
+		expect(gap(result, 2)).toBeCloseTo(1 / boosted)
+	})
+
+	test("a cast breaks it too", () => {
+		const result = simulate(twitch, [
+			ambush,
+			wait(1),
+			{ kind: "ability", slot: "W" },
+		])
+		const castAt = result.steps[2]?.time ?? Number.NaN
+
+		expect(ambushOf(result, 2)?.endsAt).toBeCloseTo(castAt + 6)
+	})
+
+	test("unbroken, the attack speed starts when the camouflage runs out", () => {
+		const result = simulate(twitch, [ambush, wait(12)])
+
+		expect(ambushOf(result, 1)).toMatchObject({ startedAt: 11, endsAt: 17 })
+		expect(result.steps[1]?.waiting).toBeUndefined()
+	})
+})
