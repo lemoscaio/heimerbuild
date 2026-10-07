@@ -187,12 +187,13 @@ export type GrantTiming = {
 export type EffectCondition = "not-damaged-recently"
 
 /**
- * When an effect starts. `on-attack`, `on-cast`, `on-mark-consumed`, `periodic` and
- * `on-ability-damage` exist only in the combat simulator: a basic attack starting, before its hit
- * (Hail of Blades); a cast of one of `slots` (any ability without them); the attacker consuming
- * `mark` on the target; on its own once its cooldown is over, while it isn't running and its mark
- * has been off the target for `idle` seconds (Valor's Harrier, Ziggs's Short Fuse); or an ability's
- * damage landing, its ticks included (Liandry's Torment).
+ * When an effect starts. `on-attack`, `on-cast`, `on-mark-consumed`, `periodic`,
+ * `on-ability-damage` and `on-max-stacks` exist only in the combat simulator: a basic attack
+ * starting, before its hit (Hail of Blades); a cast of one of `slots` (any ability without them);
+ * the attacker consuming `mark` on the target; on its own once its cooldown is over, while it isn't
+ * running and its mark has been off the target for `idle` seconds (Valor's Harrier, Ziggs's Short
+ * Fuse); an ability's damage landing, its ticks included (Liandry's Torment); or the `effect` with
+ * that id reaching its `stacks.max` (Blaze's detonation at 3 stacks).
  */
 export type Trigger =
 	| { kind: "always" }
@@ -206,6 +207,7 @@ export type Trigger =
 	| { kind: "on-mark-consumed"; mark: string }
 	| { kind: "periodic"; idle?: number }
 	| { kind: "on-ability-damage" }
+	| { kind: "on-max-stacks"; effect: string }
 
 export type TriggerKind = Trigger["kind"]
 
@@ -244,6 +246,13 @@ export type PauseOn = Extract<EndsOn, "attack" | "cast">
 
 /** What breaks a state an effect waits in (combat simulator): a basic attack, an ability cast (or only some). */
 export type BreakOn = Extract<EndsOn, "attack" | "cast"> | SlotCast
+
+/**
+ * Sets the running effect `effect` to `stacks` stacks and refreshes it (starts it when not running),
+ * and while the resetting effect runs that effect stacks no higher (Blaze's detonation: one stack,
+ * no more for 4 s).
+ */
+export type StackReset = { effect: string; stacks: number }
 
 /**
  * A state the effect waits in before it runs (combat simulator): from its trigger (after its
@@ -329,6 +338,8 @@ export type Effect = PatchRange & {
 	startsAfter?: StartsAfter
 	/** The mark it puts on the target when it triggers (combat simulator). */
 	applies?: MarkApplication
+	/** Another effect's stacks it sets when it takes effect, and caps while it runs (combat simulator). */
+	resets?: StackReset
 	/** Who holds it: the attacker (absent), or the target (Ignite's burn, Toxic Shot's poison). */
 	holder?: "target"
 	/** Replaces the trigger's default (`isOnByDefault`). */
