@@ -16,9 +16,9 @@ import type {
 	StepOutcome,
 } from "@/lib/combat/combat"
 import { outcomeId } from "@/lib/combat/outcomes"
-import type { BuildEffect, StartOption } from "@/lib/effects/effect"
+import type { BuildEffect, Resist, StartOption } from "@/lib/effects/effect"
 import { statDisplay } from "@/lib/stat-display"
-import { formatSeconds } from "./combat-format"
+import { formatResist, formatSeconds } from "./combat-format"
 
 /** The names the combo shows for the abilities, effects and marks it reports by id. */
 export type CombatNames = {
@@ -122,6 +122,9 @@ export type RunningEffectView = {
 	waiting?: { label: string; from?: number }
 }
 
+/** A resistance of the target its reductions changed, as of after the step: "Target armor 100 → 70". */
+export type ResistChangeView = { resist: Resist; from: number; to: number }
+
 /** What a step's card shows: its hits and total, the marks it moved and the effects running after it. */
 export type StepView = {
 	hits: HitView[]
@@ -137,6 +140,8 @@ export type StepView = {
 	 * its pause switched off until when ("Move Speed" until 1.50 s).
 	 */
 	effects: RunningEffectView[]
+	/** The target's resistances its reductions changed after it. */
+	resists: ResistChangeView[]
 	healthShare: number
 }
 
@@ -277,6 +282,28 @@ export function runningEffectText({
 	return [name, state || ends, pause].filter(Boolean).join(" · ")
 }
 
+const RESIST_NAMES = {
+	armor: "armor",
+	magicResist: "magic resist",
+} as const satisfies Record<Resist, string>
+
+/** "Target armor 100 → 70" */
+export function resistChangeText({ resist, from, to }: ResistChangeView) {
+	return `Target ${RESIST_NAMES[resist]} ${formatResist(from)} → ${formatResist(to)}`
+}
+
+function resistChanges(
+	{ resists }: Pick<CombatStep, "resists">,
+	target: CombatTarget,
+): ResistChangeView[] {
+	if (!resists) return []
+	return (["armor", "magicResist"] as const).flatMap((resist) =>
+		resists[resist] === target[resist]
+			? []
+			: [{ resist, from: target[resist], to: resists[resist] }],
+	)
+}
+
 export function stepView(
 	step: CombatStep,
 	{ names, target }: { names: CombatNames; target: CombatTarget },
@@ -330,6 +357,7 @@ export function stepView(
 			names,
 			hidden: new Set([...empowering, ...ticking]),
 		}),
+		resists: resistChanges(step, target),
 		healthShare: step.targetHealth / target.health,
 	}
 }

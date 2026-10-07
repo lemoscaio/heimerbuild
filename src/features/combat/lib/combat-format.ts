@@ -2,6 +2,7 @@ import type { DamageType } from "@schemas/champion"
 import type { CombatAction } from "@/lib/combat/combat"
 
 const WHOLE = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 })
+const TENTHS = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 })
 const SECONDS = new Intl.NumberFormat("en-US", {
 	minimumFractionDigits: 2,
 	maximumFractionDigits: 2,
@@ -10,6 +11,11 @@ const SECONDS = new Intl.NumberFormat("en-US", {
 /** "1,143" */
 export function formatDamage(value: number): string {
 	return WHOLE.format(value)
+}
+
+/** A resistance, to a tenth at most: "100", "56.4" */
+export function formatResist(value: number): string {
+	return TENTHS.format(value)
 }
 
 /** "0.87 s" */

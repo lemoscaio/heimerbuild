@@ -18,6 +18,7 @@ import type {
 	GroupDamageOverTime,
 	GroupView,
 } from "../lib/combat-groups"
+import { CombatTargetResists } from "./combat-target-resists"
 import { damageTypeText } from "./damage-type-styles"
 
 /** Gold: what the rules computed, on some of the steps; quieter when on none. */
@@ -211,6 +212,7 @@ export function CombatStepGroup({
 								))}
 							</ul>
 						)}
+						<CombatTargetResists resists={view.resists} />
 						<div className="flex flex-wrap items-center gap-2">
 							<CollapsibleTrigger
 								aria-label={`${open ? "Hide" : "Show"} steps of group ${title}`}

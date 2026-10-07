@@ -1,6 +1,11 @@
 import { DAMAGE_TYPES, type DamageType } from "@schemas/champion"
 import type { CombatItem } from "@/lib/combat/combat"
-import type { DamageOverTimeView, OutcomeView, StepView } from "./combat-view"
+import type {
+	DamageOverTimeView,
+	OutcomeView,
+	ResistChangeView,
+	StepView,
+} from "./combat-view"
 
 /** Identical steps in a row group from this many on (issue 331, option A). */
 export const MIN_GROUP_SIZE = 3
@@ -90,6 +95,8 @@ export type GroupView = {
 	changes: number
 	/** The target's health after the group's last step. */
 	healthShare?: number
+	/** The target's resistances its reductions changed after the group's last step. */
+	resists: ResistChangeView[]
 }
 
 /** A step of a group, as its card has it. */
@@ -213,5 +220,6 @@ export function groupView(steps: readonly GroupStep[]): GroupView {
 			.flatMap(({ outcomes }) => outcomes)
 			.filter(({ changed }) => changed).length,
 		...(healthShare !== undefined && { healthShare }),
+		resists: views.at(-1)?.resists ?? [],
 	}
 }
