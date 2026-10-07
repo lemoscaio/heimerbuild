@@ -359,6 +359,8 @@ test("the damage splits by type: Teemo's attack is physical and magic, Ignite ad
 		.getByRole("button", { name: "Toxic Shot: applies: No" })
 		.click()
 	await expect(byType().nth(1)).not.toHaveText(magic ?? "")
+})
+
 test("a 12-attack Teemo combo collapses into one group, opens on demand, moves as a whole and loses a step from inside", async ({
 	page,
 }) => {
