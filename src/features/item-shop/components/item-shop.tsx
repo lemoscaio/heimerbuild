@@ -46,7 +46,7 @@ const shopGrid = cva(
 )
 
 const statRail = cva(
-	"scrollbar-purple [grid-area:rail] max-lg:sticky max-lg:top-[calc(var(--spacing-header)+--spacing(2))] max-lg:max-h-[calc(100dvh-var(--spacing-header)-8rem)] max-lg:self-start max-lg:overflow-y-auto lg:min-h-0 lg:overflow-y-auto",
+	"scrollbar-purple scroll-fade-content [grid-area:rail] max-lg:sticky max-lg:top-[calc(var(--spacing-header)+--spacing(2))] max-lg:max-h-[calc(100dvh-var(--spacing-header)-8rem)] max-lg:self-start max-lg:overflow-y-auto lg:min-h-0 lg:overflow-y-auto",
 	{
 		variants: {
 			layout: {

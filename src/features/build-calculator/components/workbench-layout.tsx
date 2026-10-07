@@ -90,7 +90,7 @@ function WorkbenchColumn({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
 			className={cn(
-				"scrollbar-purple flex flex-col lg:min-h-0 lg:gap-4 lg:overflow-y-auto",
+				"scrollbar-purple lg:scroll-fade-content flex flex-col lg:min-h-0 lg:gap-4 lg:overflow-y-auto",
 				className,
 			)}
 			{...props}
