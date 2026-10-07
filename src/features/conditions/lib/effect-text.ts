@@ -29,14 +29,16 @@ function hasGrantDurations({ grants, duration }: Condition): boolean {
 }
 
 /**
- * When the effect holds: "For 10 s after casting", "For 2.5 s after 3 hits", "While in this form";
- * "After casting" when its grants last different times (the values say each).
+ * When the effect holds: "For 10 s after casting", "For 2.5 s after 3 hits", "While in this form",
+ * "For 6 s after camouflage breaks" (its `startsAfter` state's end); "After casting" when its grants
+ * last different times (the values say each).
  */
 export function conditionText(condition: Condition): string {
 	const { effect } = condition
-	const { trigger, form, stacks, charges } = effect.effect
+	const { trigger, form, stacks, charges, startsAfter } = effect.effect
 	const seconds = hasGrantDurations(condition) ? undefined : condition.duration
 	const duration = { duration: seconds, charges }
+	if (startsAfter) return lasting(duration, `after ${startsAfter.ending}`)
 	switch (trigger.kind) {
 		case "always":
 			return form ? "While in this form" : "Always"
