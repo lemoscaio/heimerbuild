@@ -1,4 +1,5 @@
-// Rengar: Thrill of the Hunt's movement speed ends on his next attack or cast.
+// Rengar: Thrill of the Hunt's movement speed ends on his next attack or cast; that attack or cast
+// is the leap, which reduces the target's armor for 4 s after its hit (none without a leap).
 // Savagery's 40% attack speed holds for his next two attacks within 3 s; its Ferocity bonus is left out.
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
@@ -29,6 +30,32 @@ export const RENGAR_EFFECTS = [
 				kind: "stat",
 				stat: "movementSpeedPercent",
 				amount: percentLine("Move Speed"),
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Rengar/Thrill_of_the_Hunt`,
+	},
+	{
+		// The camouflage breaks as Thrill of the Hunt ends; 4 s from the wiki, no synced line.
+		id: "rengar-r-armor-reduction",
+		source: { kind: "ability", championKey: "Rengar", slot: "R" },
+		trigger: { kind: "after-use" },
+		holder: "target",
+		label: "armor reduction",
+		startsAfter: {
+			label: "camouflaged",
+			ending: "the leap",
+			duration: { by: "rankValue", label: "Duration" },
+			endsOn: ["attack", "cast"],
+			needsBreak: true,
+		},
+		duration: 4,
+		grants: [
+			{
+				kind: "resistReduction",
+				resist: "armor",
+				mode: "flat",
+				amount: { by: "rankValue", label: "Armor Reduction" },
 			},
 		],
 		since: VERIFIED_ON,
