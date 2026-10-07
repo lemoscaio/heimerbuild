@@ -1,6 +1,6 @@
 import { useState } from "react"
 import type { CombatState } from "../lib/combat-state"
-import type { Combat } from "./use-combat"
+import type { Combat, MarkerPlace } from "./use-combat"
 
 type Change = {
 	message: string
@@ -8,6 +8,12 @@ type Change = {
 	after: CombatState
 	/** The marker just added, which the list points out. */
 	markerId?: number
+}
+
+/** The entry `after` has that `before` hadn't: the marker just added. */
+function addedEntryId(before: CombatState, after: CombatState) {
+	const ids = new Set(before.entries.map(({ id }) => id))
+	return after.entries.find(({ id }) => !ids.has(id))?.id
 }
 
 /**
@@ -23,15 +29,14 @@ export function useMarkerUndo(combat: Combat) {
 			message: current.message,
 			markerId: current.markerId,
 		},
-		add(effectId: string) {
+		add(effectId: string, place: MarkerPlace) {
 			const before = combat.value
-			const after = combat.addSituation(effectId)
+			const after = combat.addSituation(effectId, { place })
 			setChange({
-				message:
-					"Marker added at the end. Move it with its up and down arrows; × removes it.",
+				message: `Marker added at the ${place}. Move it with its up and down arrows; × removes it.`,
 				before,
 				after,
-				markerId: after.entries.at(-1)?.id,
+				markerId: addedEntryId(before, after),
 			})
 		},
 		remove(id: number) {
