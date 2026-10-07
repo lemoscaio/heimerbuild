@@ -1,0 +1,34 @@
+import { describe, expect, test } from "bun:test"
+import { ticksInArea, tickTime } from "./damage-over-time"
+
+type Timing = Parameters<typeof tickTime>[2]
+
+const ignite: Timing = { every: 1.056, firstTick: { after: 0.132 } }
+
+function times(startedAt: number, count: number, timing: Timing) {
+	return Array.from({ length: count }, (_, index) =>
+		Number(tickTime(startedAt, index, timing).toFixed(3)),
+	)
+}
+
+describe("tickTime: when each tick lands", () => {
+	test("the first on the application, then every `every`", () => {
+		expect(times(2, 3, { every: 0.5 })).toEqual([2, 2.5, 3])
+	})
+
+	test("delayed: the first one `every` after the application", () => {
+		expect(times(2, 3, { every: 1, firstTick: "delayed" })).toEqual([3, 4, 5])
+	})
+
+	test("Ignite (wiki): the first 0.132 s after the cast, then every 1.056 s", () => {
+		expect(times(0, 5, ignite)).toEqual([0.132, 1.188, 2.244, 3.3, 4.356])
+		expect(times(3, 2, ignite)).toEqual([3.132, 4.188])
+	})
+})
+
+describe("ticksInArea with a first tick after the application", () => {
+	test("counts the ticks before the effect ends, none before the first lands", () => {
+		expect(ticksInArea(5, 5, ignite)).toBe(5)
+		expect(ticksInArea(0.1, 5, ignite)).toBe(0)
+	})
+})
