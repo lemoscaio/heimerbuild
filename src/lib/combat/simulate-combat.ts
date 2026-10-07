@@ -649,6 +649,7 @@ function trigger(
 		const before = running.stacks
 		running.endsAt = sim.time + duration
 		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
+		if (running.charges) running.charges.used = 0
 		if (dot) {
 			const kind = running.stacks > before ? "stacked" : "refreshed"
 			recordApplication(sim, running, { owner, kind }, { landing })
@@ -837,6 +838,14 @@ function empowerAttack(sim: Simulation, pending: PendingMarks): Instance[] {
 		})
 	}
 	return held
+}
+
+/** The attack uses a charge of each running effect an `on-attack` trigger doesn't count (Bladework, Monk Training). */
+function spendCharges(sim: Simulation) {
+	for (const { charges, effect, holder } of sim.active) {
+		if (holder !== "attacker" || !charges) continue
+		if (effect.effect.trigger.kind !== "on-attack") charges.used++
+	}
 }
 
 /** Effects whose charges this attack used up end now (Hail of Blades after its third attack). */
@@ -1037,6 +1046,7 @@ function attack(sim: Simulation, item: CombatItem) {
 	const pending: PendingMarks = []
 	endEffects(sim, "attack")
 	const held = empowerAttack(sim, pending)
+	spendCharges(sim)
 	deal(sim, {
 		source: { kind: "attack" },
 		type: "physical",
