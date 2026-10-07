@@ -8,6 +8,7 @@ import type { SummonerSpell } from "@schemas/summoner-spell"
 import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
 	Amount,
+	BreakOn,
 	BuildEffect,
 	DamageOverTimeGrant,
 	DamageRatios,
@@ -51,6 +52,7 @@ import type {
 	SituationStatus,
 	StepOutcome,
 	TickOwner,
+	WaitingEffect,
 } from "./combat"
 import { abilityCooldown, evaluateDamage, targetHealth } from "./damage-formula"
 import {
@@ -169,9 +171,13 @@ type Simulation = {
 	onAbilityDamage: boolean
 	/** Effects with a `delay` waiting to take effect, and the step that triggered each. */
 	delayed: Delayed[]
+	/** Effects in their `startsAfter` state, until an event breaks it or `until`. */
+	waiting: Waiting[]
 }
 
 type Delayed = { at: number; effect: BuildEffect; owner: number }
+
+type Waiting = { until: number; effect: BuildEffect; owner: number }
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
 type PendingMarks = PendingMark[]
@@ -336,6 +342,7 @@ function createSimulation(
 		applications: [],
 		onAbilityDamage: false,
 		delayed: [],
+		waiting: [],
 	}
 	startCooldowns(sim)
 	return sim
@@ -628,6 +635,8 @@ type TriggerOptions = {
 	ignoreCooldown?: boolean
 	/** Its `delay` is over: it takes effect now. */
 	landing?: boolean
+	/** Its `startsAfter` state is over: it runs now. */
+	released?: boolean
 }
 
 /**
@@ -639,15 +648,24 @@ function trigger(
 	sim: Simulation,
 	effect: BuildEffect,
 	pending: PendingMarks,
-	{ ignoreCooldown = false, landing = false }: TriggerOptions = {},
+	{
+		ignoreCooldown = false,
+		landing = false,
+		released = false,
+	}: TriggerOptions = {},
 ) {
 	if (!isInForm(effect, sim.formId)) return
 	const readyAt = sim.effectsReadyAt.get(effect.id) ?? 0
 	if (readyAt > sim.time && !ignoreCooldown) return
-	const { applies, endsOn, stacks, cooldownFrom, delay } = effect.effect
+	const { applies, endsOn, stacks, cooldownFrom, delay, startsAfter } =
+		effect.effect
 	if (delay && !landing) {
 		const owner = sim.owner ?? sim.step
 		sim.delayed.push({ at: sim.time + delay.seconds, effect, owner })
+		return
+	}
+	if (startsAfter && !released) {
+		startWaiting(sim, effect, startsAfter.duration)
 		return
 	}
 	if (applies) pending.push({ ...applies, by: effect })
@@ -692,6 +710,39 @@ function land(sim: Simulation, delayed: Delayed) {
 	trigger(sim, delayed.effect, pending, { ignoreCooldown: true, landing: true })
 	sim.owner = previous
 	applyMarks(sim, pending)
+}
+
+/** It waits in its `startsAfter` state from now, a re-trigger starting it over (Ambush camouflaged). */
+function startWaiting(sim: Simulation, effect: BuildEffect, duration: Amount) {
+	const owner = sim.owner ?? sim.step
+	const until = sim.time + (amountNow(sim, duration, effect) ?? 0)
+	sim.waiting = [
+		...sim.waiting.filter((waiting) => waiting.effect !== effect),
+		{ until, effect, owner },
+	]
+}
+
+/** Its `startsAfter` state is over, broken or run out: it runs now, for the step that triggered it. */
+function release(sim: Simulation, waiting: Waiting) {
+	sim.waiting = sim.waiting.filter((entry) => entry !== waiting)
+	const pending: PendingMarks = []
+	const previous = sim.owner
+	sim.owner = waiting.owner
+	trigger(sim, waiting.effect, pending, {
+		ignoreCooldown: true,
+		landing: true,
+		released: true,
+	})
+	sim.owner = previous
+	applyMarks(sim, pending)
+}
+
+/** Breaks the states that `reason` ends (an attack breaks Ambush's camouflage as it starts). */
+function breakWaiting(sim: Simulation, reason: BreakOn) {
+	for (const waiting of sim.waiting) {
+		const { startsAfter } = waiting.effect.effect
+		if (startsAfter?.endsOn.includes(reason)) release(sim, waiting)
+	}
 }
 
 function triggerWhere(
@@ -1036,6 +1087,9 @@ function nextTimedEvent(
 	for (const delayed of sim.delayed) {
 		consider(delayed.at, () => land(sim, delayed))
 	}
+	for (const waiting of sim.waiting) {
+		consider(waiting.until, () => release(sim, waiting))
+	}
 	for (const instance of sim.active) {
 		consider(nextTickAt(instance), () => tick(sim, instance))
 		if (Number.isFinite(instance.endsAt)) {
@@ -1080,6 +1134,7 @@ function attack(sim: Simulation, item: CombatItem) {
 	const pending: PendingMarks = []
 	endEffects(sim, "attack")
 	pauseEffects(sim, "attack")
+	breakWaiting(sim, "attack")
 	const held = empowerAttack(sim, pending)
 	spendCharges(sim)
 	deal(sim, {
@@ -1213,6 +1268,7 @@ function castAbility(
 	reduceCooldownsOnCast(sim)
 	endEffects(sim, "cast")
 	pauseEffects(sim, "cast")
+	breakWaiting(sim, "cast")
 	triggerWhere(
 		sim,
 		(trigger, { effect }) =>
@@ -1379,7 +1435,26 @@ function pausedView(
 	return { paused: { until: pausedUntil, grants: pauses.grants } }
 }
 
-function snapshot(sim: Simulation): Pick<CombatStep, "active" | "marks"> {
+/** The effects in their `startsAfter` state now, and those whose `delay` leads into one. */
+function waitingView(sim: Simulation): WaitingEffect[] {
+	const delayed = sim.delayed.flatMap(({ at, effect }): WaitingEffect[] => {
+		const { startsAfter } = effect.effect
+		if (!startsAfter) return []
+		const seconds = amountNow(sim, startsAfter.duration, effect) ?? 0
+		const { label } = startsAfter
+		return [{ effectId: effect.id, label, from: at, until: at + seconds }]
+	})
+	const waiting = sim.waiting.flatMap(({ effect, until }) => {
+		const label = effect.effect.startsAfter?.label
+		return label ? [{ effectId: effect.id, label, until }] : []
+	})
+	return [...delayed, ...waiting]
+}
+
+function snapshot(
+	sim: Simulation,
+): Pick<CombatStep, "active" | "waiting" | "marks"> {
+	const waiting = waitingView(sim)
 	return {
 		active: sim.active
 			.filter(({ effect }) => isInForm(effect, sim.formId))
@@ -1400,6 +1475,7 @@ function snapshot(sim: Simulation): Pick<CombatStep, "active" | "marks"> {
 					...pausedView(sim, { effect, pausedUntil }),
 				}),
 			),
+		...(waiting.length > 0 && { waiting }),
 		marks: sim.marks.map(({ mark, endsAt }) => ({ mark, endsAt })),
 	}
 }

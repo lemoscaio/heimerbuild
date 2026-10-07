@@ -130,6 +130,17 @@ export type ActiveEffect = {
 	paused?: { until: number; grants: readonly StatKey[] }
 }
 
+/**
+ * An effect waiting in its `startsAfter` state before it runs (Ambush camouflaged): `from` when the
+ * state starts while its `delay` still runs, and `until` when it runs out at the latest.
+ */
+export type WaitingEffect = {
+	effectId: string
+	label: string
+	from?: number
+	until: number
+}
+
 export type TargetMark = { mark: string; endsAt: number }
 
 /** One tick of a damage over time: its time and damage, or why it has no number. */
@@ -176,6 +187,8 @@ export type CombatStep = {
 	damageOverTime: DamageOverTimeSummary[]
 	/** The effects running and the marks on the target once the action resolved (a wait: at its end). */
 	active: ActiveEffect[]
+	/** The effects waiting in their `startsAfter` state then, or in the `delay` before it; absent: none. */
+	waiting?: WaitingEffect[]
 	marks: TargetMark[]
 	/** The target's health once the step's events are done, before the next action. */
 	targetHealth: number

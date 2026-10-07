@@ -1,5 +1,6 @@
 // Twitch: Deadly Venom stacks up to 6 times on attacks; each tick deals its damage once per stack.
-// Ambush's attack speed lasts 6 s once he leaves camouflage; its camouflage speed is left out.
+// Ambush: camouflage 1 s after the cast; its attack speed lasts 6 s from when an attack or a cast
+// breaks it, or it runs out. Its camouflage speed is left out.
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
@@ -30,10 +31,18 @@ export const TWITCH_EFFECTS = [
 		sourceUrl: `${WIKI}Twitch/Deadly_Venom`,
 	},
 	{
-		// From the cast: an attack breaks the camouflage, so the combo's first attack is close to its start.
+		// An attack breaks the camouflage as its windup starts (wiki), so its own timer reads the speed.
+		// Any cast breaks it here; in the game only Venom Cask and Contaminate do.
 		id: "twitch-q-active",
 		source: { kind: "ability", championKey: "Twitch", slot: "Q" },
 		trigger: { kind: "after-use" },
+		delay: { seconds: 1, label: "camouflaged" },
+		startsAfter: {
+			label: "camouflaged",
+			ending: "camouflage breaks",
+			duration: { by: "rankValue", label: "Camouflage Duration" },
+			endsOn: ["attack", "cast"],
+		},
 		duration: 6,
 		grants: [
 			{
