@@ -2,6 +2,7 @@ import type { AbilitySlot } from "@schemas/champion"
 import { isInPatchRange, type PatchRange } from "@schemas/patch-range"
 import { ANNIE_HIT_RULES } from "../../champions/annie"
 import { BLITZCRANK_HIT_RULES } from "../../champions/blitzcrank"
+import { BRAND_HIT_RULES } from "../../champions/brand"
 import { DARIUS_HIT_RULES } from "../../champions/darius"
 import { EZREAL_HIT_RULES } from "../../champions/ezreal"
 import { GAREN_HIT_RULES } from "../../champions/garen"
@@ -102,6 +103,7 @@ export type AbilityHitRule = PatchRange & {
 export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 	...ANNIE_HIT_RULES,
 	...BLITZCRANK_HIT_RULES,
+	...BRAND_HIT_RULES,
 	...DARIUS_HIT_RULES,
 	...EZREAL_HIT_RULES,
 	...GAREN_HIT_RULES,
