@@ -10,8 +10,16 @@ function steps(page: Page) {
 	return combo(page).getByRole("button", { name: /^Remove step / })
 }
 
+/** A figure of the combo's result by its name: "Damage", "Time". */
+function comboTotal(page: Page, term: string) {
+	return combo(page)
+		.getByRole("group", { name: "Combo result" })
+		.getByRole("group", { name: term, exact: true })
+		.getByRole("definition")
+}
+
 function damageTotal(page: Page) {
-	return combo(page).getByLabel("Combo result").getByRole("definition").first()
+	return comboTotal(page, "Damage")
 }
 
 test("Quinn's combo adds steps, moves one up with its button, removes one, and keeps out of the link", async ({
@@ -254,10 +262,7 @@ test("the combo's time is its last hit, not a buff running on after it", async (
 	await page.goto("/champions/Quinn?lvl=18&skills=QWEQQRQWQWRWWEEREE&tab=combo")
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	for (let count = 0; count < 3; count++) await attack.click()
-	const time = combo(page)
-		.getByLabel("Combo result")
-		.getByRole("definition")
-		.nth(2)
+	const time = comboTotal(page, "Time")
 	await expect(time).not.toHaveText("0.00 s")
 	const plain = await time.textContent()
 
