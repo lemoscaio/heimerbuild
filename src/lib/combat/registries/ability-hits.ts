@@ -31,7 +31,15 @@ export type AbilityVariant = {
 	damage?: string | readonly string[]
 	/** How long the cast's own effects (`after-use`) run instead of their duration: the time in its area. */
 	duration?: number
+	/** The cast hits the target `count` times, `every` seconds apart (Pyroclasm's bounces). */
+	hits?: LaterHits
 }
+
+/**
+ * Each hit after the first deals the cast's damage again at its own time and triggers the `on-cast`
+ * effects marked `perHit` (a Blaze stack); the step of the cast owns it.
+ */
+export type LaterHits = { count: number; every: number }
 
 /** What a rule's variants pick, as the step's input says it: `text` beside them, `name` for assistive tech. */
 export type VariantsLabel = { text: string; name: string }
@@ -65,6 +73,11 @@ export type AbilityHitRule = PatchRange & {
 	 * the target's health); `null` deals none (an effect deals it, or nothing does in v1).
 	 */
 	damage?: string | readonly string[] | null
+	/**
+	 * The damage the cast deals instead while the target holds `effect` as the hit lands, before the
+	 * cast's own effects (Pillar of Flame on an Ablaze target).
+	 */
+	whenTargetHas?: { effect: string; damage: string | readonly string[] }
 	/** The hit applies on-hit effects like a basic attack: it spends a spellblade, detonates a mark. */
 	onHit?: true
 	/** The cast's damage is known not to be simulated, and why; the hit shows that instead of a number. */

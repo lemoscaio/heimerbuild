@@ -103,6 +103,8 @@ export type CombatEvent =
 			source: DamageSource
 			damage: DealtDamage
 			tick?: TickOwner
+			/** A later hit of its cast (Pyroclasm's bounces), on the step of the cast (`LaterHits`). */
+			laterHit?: TickOwner
 	  }
 	/** A hit the simulator has no number for, with why (a share of the target's health). */
 	| {
@@ -111,6 +113,7 @@ export type CombatEvent =
 			source: DamageSource
 			notModeled: readonly string[]
 			tick?: TickOwner
+			laterHit?: TickOwner
 	  }
 	| { kind: "on-hit"; time: number }
 	| { kind: "mark-applied"; time: number; mark: string; endsAt: number }
@@ -180,8 +183,8 @@ export type CombatStep = {
 	/** Why it did not run; the rest of the combo goes on. */
 	refused?: string
 	/**
-	 * What followed until the next action started, in time order. A tick here may belong to an
-	 * earlier step (`tick.owner`); `damageOverTime` sums each step's own.
+	 * What followed until the next action started, in time order, and its cast's later hits. A tick
+	 * here may belong to an earlier step (`tick.owner`); `damageOverTime` sums each step's own.
 	 */
 	events: CombatEvent[]
 	/** The damage over time the step applied, with the ticks that belong to it. */

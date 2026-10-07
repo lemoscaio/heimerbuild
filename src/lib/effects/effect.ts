@@ -207,11 +207,12 @@ export type EffectCondition = "not-damaged-recently"
  * When an effect starts. `on-attack`, `on-cast`, `on-mark-consumed`, `periodic`,
  * `on-ability-damage`, `on-damage` and `on-max-stacks` exist only in the combat simulator: a basic
  * attack starting, before its hit (Hail of Blades); a cast of one of `slots` (any ability without
- * them); the attacker consuming `mark` on the target; on its own once its cooldown is over, while it
- * isn't running and its mark has been off the target for `idle` seconds (Valor's Harrier, Ziggs's
- * Short Fuse); an ability's damage landing, its ticks included (Liandry's Torment); damage of
- * `damageType` landing, from any source, once per moment (Black Cleaver's Carve); or the `effect`
- * with that id reaching its `stacks.max` (Blaze's detonation at 3 stacks).
+ * them; `perHit`: each later hit of the cast too, Pyroclasm's bounces); the attacker consuming
+ * `mark` on the target; on its own once its cooldown is over, while it isn't running and its mark
+ * has been off the target for `idle` seconds (Valor's Harrier, Ziggs's Short Fuse); an ability's
+ * damage landing, its ticks included (Liandry's Torment); damage of `damageType` landing, from any
+ * source, once per moment (Black Cleaver's Carve); or the `effect` with that id reaching its
+ * `stacks.max` (Blaze's detonation at 3 stacks).
  */
 export type Trigger =
 	| { kind: "always" }
@@ -221,7 +222,7 @@ export type Trigger =
 	| { kind: "on-hit" }
 	| { kind: "after-ability" }
 	| { kind: "on-attack" }
-	| { kind: "on-cast"; slots?: readonly AbilitySlot[] }
+	| { kind: "on-cast"; slots?: readonly AbilitySlot[]; perHit?: true }
 	| { kind: "on-mark-consumed"; mark: string }
 	| { kind: "periodic"; idle?: number }
 	| { kind: "on-ability-damage" }
