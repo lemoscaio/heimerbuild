@@ -48,8 +48,8 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Barrier`,
 	},
 	{
-		// The total true damage in 5 ticks of a fifth, every 1.056 s (wiki). The first lands 0 to
-		// 0.264 s after the cast, by the next stat update; 0.132 s is that window's middle.
+		// The total true damage in 5 ticks of a fifth, every 1.056 s, the first at the cast: the
+		// lower bound of the wiki's 0 to 0.264 s first-tick window (issue 379).
 		id: "ignite",
 		source: { kind: "summoner", spellKey: "SummonerDot" },
 		trigger: { kind: "after-use" },
@@ -68,7 +68,6 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 					},
 				},
 				every: 1.056,
-				firstTick: { after: 0.132 },
 			},
 		],
 		since: VERIFIED_ON,

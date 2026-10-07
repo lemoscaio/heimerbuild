@@ -30,8 +30,7 @@ export function tickTime(
 	index: number,
 	{ every, firstTick }: TickTiming,
 ): number {
-	if (firstTick === "delayed") return startedAt + (index + 1) * every
-	return startedAt + (firstTick?.after ?? 0) + index * every
+	return startedAt + (firstTick === "delayed" ? index + 1 : index) * every
 }
 
 type TickSpan = Pick<DamageOverTimeApplication, "endsAt" | "lastTickAt">

@@ -137,15 +137,14 @@ export type TickDamage =
 
 /**
  * A damage dealt every `every` seconds while its effect runs, each tick at its own time. The first
- * lands at the application, `after` some seconds (Ignite: 0.13 s, then every 1.056 s), or `delayed`
- * one `every` later, the last at the end (Toxic Shot: 1 to 4 s of 4). A refresh keeps the tick
- * timer; each stack adds one tick's damage.
+ * lands at the application (Ignite: 0 to 4.224 s of 5), or `delayed` one `every` later, the last at
+ * the end (Toxic Shot: 1 to 4 s of 4). A refresh keeps the tick timer; each stack adds one tick's damage.
  */
 export type DamageOverTimeGrant = {
 	kind: "damageOverTime"
 	tick: TickDamage
 	every: number
-	firstTick?: "delayed" | { after: number }
+	firstTick?: "delayed"
 	/** Up to this share more as the target's missing health grows to 100% (Tormented Shadow: 1). */
 	missingHealthBonus?: number
 }
