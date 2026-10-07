@@ -5,6 +5,7 @@ import { CAMILLE_EFFECTS } from "../../champions/camille"
 import { DR_MUNDO_EFFECTS } from "../../champions/dr-mundo"
 import { DRAVEN_EFFECTS } from "../../champions/draven"
 import { EZREAL_EFFECTS } from "../../champions/ezreal"
+import { FIORA_EFFECTS } from "../../champions/fiora"
 import { GNAR_EFFECTS } from "../../champions/gnar"
 import { JANNA_EFFECTS } from "../../champions/janna"
 import { JAYCE_EFFECTS } from "../../champions/jayce"
@@ -16,6 +17,7 @@ import { MASTER_YI_EFFECTS } from "../../champions/master-yi"
 import { MISS_FORTUNE_EFFECTS } from "../../champions/miss-fortune"
 import { MONKEY_KING_EFFECTS } from "../../champions/monkey-king"
 import { MORGANA_EFFECTS } from "../../champions/morgana"
+import { OLAF_EFFECTS } from "../../champions/olaf"
 import { QUINN_EFFECTS } from "../../champions/quinn"
 import { RENGAR_EFFECTS } from "../../champions/rengar"
 import { SAMIRA_EFFECTS } from "../../champions/samira"
@@ -30,6 +32,7 @@ import { TRUNDLE_EFFECTS } from "../../champions/trundle"
 import { TRYNDAMERE_EFFECTS } from "../../champions/tryndamere"
 import { TWITCH_EFFECTS } from "../../champions/twitch"
 import { UDYR_EFFECTS } from "../../champions/udyr"
+import { VI_EFFECTS } from "../../champions/vi"
 import { VIEGO_EFFECTS } from "../../champions/viego"
 import { WARWICK_EFFECTS } from "../../champions/warwick"
 import { XIN_ZHAO_EFFECTS } from "../../champions/xin-zhao"
@@ -49,6 +52,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...DR_MUNDO_EFFECTS,
 	...DRAVEN_EFFECTS,
 	...EZREAL_EFFECTS,
+	...FIORA_EFFECTS,
 	...GNAR_EFFECTS,
 	...JANNA_EFFECTS,
 	...JAYCE_EFFECTS,
@@ -59,6 +63,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...MASTER_YI_EFFECTS,
 	...MISS_FORTUNE_EFFECTS,
 	...MONKEY_KING_EFFECTS,
+	...OLAF_EFFECTS,
 	...MORGANA_EFFECTS,
 	...QUINN_EFFECTS,
 	...RENGAR_EFFECTS,
@@ -74,6 +79,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...TRYNDAMERE_EFFECTS,
 	...TWITCH_EFFECTS,
 	...UDYR_EFFECTS,
+	...VI_EFFECTS,
 	...VIEGO_EFFECTS,
 	...WARWICK_EFFECTS,
 	...XIN_ZHAO_EFFECTS,

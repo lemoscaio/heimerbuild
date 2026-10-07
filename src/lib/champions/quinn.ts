@@ -55,9 +55,11 @@ export const QUINN_EFFECTS = [
 	},
 	{
 		// Attacking a Harrier target grants the speeds for 2 s; consuming the mark stands in for it.
+		// The stats panel lists it too, as a switch.
 		id: "quinn-w-passive",
 		source: { kind: "ability", championKey: "Quinn", slot: "W" },
 		trigger: { kind: "on-mark-consumed", mark: HARRIER },
+		listed: true,
 		part: "passive",
 		duration: 2,
 		grants: [
