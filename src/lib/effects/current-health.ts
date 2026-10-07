@@ -4,8 +4,12 @@ import type { Amount, Effect } from "./effect"
 export const FULL_HEALTH = 100
 export const MIN_HEALTH = 1
 
-function readsHealth(amount: Amount) {
-	return typeof amount === "object" && amount.by === "missingHealth"
+function readsHealth(amount: Amount): boolean {
+	if (typeof amount !== "object") return false
+	return (
+		amount.by === "missingHealth" ||
+		(amount.by === "stat" && readsHealth(amount.ratio))
+	)
 }
 
 /** Whether the effect's value depends on the current health (Tryndamere's Bloodlust). */

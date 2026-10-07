@@ -116,7 +116,7 @@ export function resolveAmount(
 	if (typeof amount === "number") return amount
 	switch (amount.by) {
 		case "stat": {
-			const ratio = resolveTableAmount(amount.ratio, effect, context)
+			const ratio = resolveAmount(amount.ratio, effect, context)
 			const read = context.totals?.[amount.stat][amount.part ?? "total"]
 			return ratio === undefined || read === undefined
 				? undefined
@@ -157,7 +157,7 @@ function statBasis(
 	context: EffectContext,
 ): StatBasis | undefined {
 	if (typeof amount === "number" || amount.by !== "stat") return undefined
-	const ratio = resolveTableAmount(amount.ratio, effect, context)
+	const ratio = resolveAmount(amount.ratio, effect, context)
 	if (ratio === undefined) return undefined
 	const { stat, part } = amount
 	return part ? { stat, ratio, part } : { stat, ratio }
@@ -174,11 +174,13 @@ function grantStat(
 	return adaptiveType && adaptiveForceStat(value, adaptiveType)
 }
 
-/** The share of its full value an effect holds at its stacks (Rev'd up at 2 of 3 stacks: 2/3). */
+/** The share of its full value an effect holds at its stacks (Rev'd up at 2 of 3 stacks: 2/3; Vi's W: none until 3). */
 function stackShare({ id, effect }: BuildEffect, { stacks }: EffectContext) {
 	const count = stacks?.[id]
 	if (!effect.stacks || count === undefined) return 1
-	return Math.min(count, effect.stacks.max) / effect.stacks.max
+	const { max, onlyAtMax } = effect.stacks
+	if (onlyAtMax) return count >= max ? 1 : 0
+	return Math.min(count, max) / max
 }
 
 function resolveGrant(

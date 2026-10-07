@@ -61,11 +61,26 @@ export type RankValueAmount = {
  */
 export type Amount =
 	| TableAmount
-	| { by: "stat"; stat: StatName; part?: "bonus"; ratio: TableAmount }
-	| { by: "missingHealth"; max: TableAmount; fullAt: number }
+	| {
+			by: "stat"
+			stat: StatName
+			part?: "bonus"
+			ratio: TableAmount | MissingHealthAmount
+	  }
+	| MissingHealthAmount
 	| GameTimeAmount
 	| StatDecayAmount
 	| { by: "attackType"; melee: TableAmount; ranged: TableAmount }
+
+/**
+ * Grows from 0 at full health to `max` at `fullAt` percent missing health. As a `stat` ratio, a
+ * share of missing health: Olaf's 17.5% of missing health, up to 70% missing, is the health × it.
+ */
+export type MissingHealthAmount = {
+	by: "missingHealth"
+	max: TableAmount
+	fullAt: number
+}
 
 /**
  * `base` × `factor` ^ (the stat's total ÷ `per`): Harrier's cooldown is 7 × 0.99 per 1% critical
@@ -251,9 +266,15 @@ export type Effect = PatchRange & {
 	reducedOnCast?: Amount
 	/** The situation a combo marker can set with it, which the Combo tab offers. */
 	start?: StartOption
-	/** Each new application adds one up to `max`: stats scale by stacks / max, a damage over time ticks once per stack. */
-	stacks?: { max: number }
-	/** The basic attacks it empowers, the triggering one included; it ends after the last. */
+	/**
+	 * Each new application adds one up to `max`: stats scale by stacks / max, a damage over time ticks
+	 * once per stack. With `onlyAtMax`, its grants hold only at `max` (Vi's attack speed after 3 hits).
+	 */
+	stacks?: { max: number; onlyAtMax?: true }
+	/**
+	 * The basic attacks it holds for, then it ends: an `on-attack` one's include the attack that
+	 * triggers it (Hail of Blades); a re-trigger gives them back (Monk Training after each cast).
+	 */
 	charges?: number
 	/** What ends it early; its `cooldown` then starts from that moment instead of the trigger. */
 	endsOn?: EndsOn | readonly EndsOn[]
@@ -263,6 +284,8 @@ export type Effect = PatchRange & {
 	holder?: "target"
 	/** Replaces the trigger's default (`isOnByDefault`). */
 	defaultOn?: boolean
+	/** Replaces the trigger's listing (`isListed`): a combat trigger's effect with a switch too (Heightened Senses). */
+	listed?: boolean
 	/** Its stacking group; absent means it adds to every other effect. */
 	stacking?: Stacking
 	/** The part of its source it is, when the source has several (Teemo's W passive and active). */
