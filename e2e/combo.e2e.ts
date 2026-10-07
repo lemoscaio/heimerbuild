@@ -329,10 +329,10 @@ test("Poison Trail deals more and lasts longer the longer Singed's target stays 
 	await page.goto("/champions/Singed?lvl=9&skills=QWEQQRQEQ&tab=combo&combo=q")
 	const inTrail = combo(page).getByRole("group", { name: "Time in the trail" })
 	// A link from before the time input opens as one pass: the first time.
-	await expect(inTrail.getByRole("button", { name: "0 s" })).toHaveAttribute(
-		"aria-pressed",
-		"true",
-	)
+	// Each time says its ticks: one pass is 8.
+	await expect(
+		inTrail.getByRole("button", { name: /^0 s\W+8 ticks$/ }),
+	).toHaveAttribute("aria-pressed", "true")
 	await expect(damageTotal(page)).not.toHaveText("0")
 	const total = async () =>
 		Number((await damageTotal(page).textContent())?.replace(/\D/g, ""))
@@ -340,7 +340,7 @@ test("Poison Trail deals more and lasts longer the longer Singed's target stays 
 	const onePass = await total()
 	const onePassTime = await time.textContent()
 
-	await inTrail.getByRole("button", { name: "4 s" }).click()
+	await inTrail.getByRole("button", { name: /^4 s\W+24 ticks$/ }).click()
 	await expect.poll(total).toBeGreaterThan(onePass)
 	await expect(time).not.toHaveText(onePassTime ?? "")
 	await expect(page).toHaveURL(/[?&]combo=q-4s(&|$)/)

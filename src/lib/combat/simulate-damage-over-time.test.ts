@@ -491,7 +491,7 @@ describe("damage over time from ability casts", async () => {
 			expect(running("singed-q")?.endsAt).toBe(6)
 		})
 
-		test("Morgana's W: 1 s in the pool by default, 2 ticks from the cast; the whole pool is 10", async () => {
+		test("Morgana's W: 1 s in the pool by default takes the tick at 1 s, 3 from the cast; the whole pool is 10", async () => {
 			const morgana: Setup = {
 				champion: await champion("Morgana"),
 				level: 9,
@@ -505,10 +505,32 @@ describe("damage over time from ability casts", async () => {
 					"morgana-w",
 				).map(({ time }) => time)
 
-			expect(tormentedShadow()).toEqual([0, 0.5])
-			expect(tormentedShadow("1s")).toEqual([0, 0.5])
-			expect(tormentedShadow("3s")).toEqual([0, 0.5, 1, 1.5, 2, 2.5])
-			expect(tormentedShadow("5s")).toHaveLength(10)
+			expect(tormentedShadow()).toEqual([0, 0.5, 1])
+			expect(tormentedShadow("1s")).toEqual([0, 0.5, 1])
+			expect(tormentedShadow("3s")).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3])
+			// The pool ends before a tick at 5 s: the wiki's 10.
+			expect(tormentedShadow("5s")).toEqual([
+				0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5,
+			])
+		})
+
+		test("Morgana's W, 1 s in the pool: the combo's time is that last tick, with nothing running after it", async () => {
+			const morgana: Setup = {
+				champion: await champion("Morgana"),
+				level: 9,
+				ranks: { Q: 1, W: 5, E: 1, R: 1 },
+			}
+			const oneSecond = simulate(morgana, [
+				{ kind: "ability", slot: "W", variant: "1s" },
+			])
+			const wholePool = simulate(morgana, [
+				{ kind: "ability", slot: "W", variant: "5s" },
+			])
+
+			expect(oneSecond.duration).toBe(1)
+			expect(oneSecond.activeUntil).toBe(1)
+			expect(wholePool.duration).toBe(4.5)
+			expect(wholePool.activeUntil).toBe(5)
 		})
 	})
 
