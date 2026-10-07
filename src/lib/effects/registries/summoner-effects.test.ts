@@ -75,7 +75,7 @@ describe("summoner spell effects", () => {
 })
 
 describe("ignite", () => {
-	test("each of its 5 ticks a second apart deals a fifth of the total: 70 to 475 true damage (wiki)", () => {
+	test("each of its 5 ticks, 1.056 s apart from 0.132 s, deals a fifth of the total: 70 to 475 true damage (wiki)", () => {
 		const [ignite] = combatEffects({
 			patch: PATCH,
 			champion: { key: "Teemo", abilities: { spells: [] } },
@@ -98,7 +98,8 @@ describe("ignite", () => {
 		expect(
 			resolveAmount(ignite.effect.duration ?? 0, ignite, { level: 1 }),
 		).toBe(5)
-		expect(grant.every).toBe(1)
+		expect(grant.every).toBe(1.056)
+		expect(grant.firstTick).toEqual({ after: 0.132 })
 		expect(tick(1)).toBeCloseTo(70 / 5)
 		expect(tick(18)).toBeCloseTo(475 / 5)
 	})

@@ -598,9 +598,12 @@ describe("Ignite, summarized on its cast", () => {
 		expect(result.steps[0]?.damageOverTime).toMatchObject([
 			{ effectId: "ignite", application: "applied", endsAt: 5 },
 		])
+		// Wiki: the first 0 to 0.264 s after the cast (its middle, 0.132 s), then every 1.056 s.
 		expect(
-			result.steps[0]?.damageOverTime[0]?.ticks.map(({ time }) => time),
-		).toEqual([0, 1, 2, 3, 4])
+			result.steps[0]?.damageOverTime[0]?.ticks.map(({ time }) =>
+				Number(time.toFixed(3)),
+			),
+		).toEqual([0.132, 1.188, 2.244, 3.3, 4.356])
 	})
 })
 

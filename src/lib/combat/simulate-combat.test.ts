@@ -545,20 +545,22 @@ describe("Ignite with Nimbus Cloak (worked example 3)", async () => {
 	// Wiki: 70 + 20 per level to 5, then + 25 per level: 250 at level 9.
 	const total = 250
 
-	test("burns the target for true damage in five ticks a second apart, the first at the cast", () => {
+	test("burns the target for true damage in five ticks 1.056 s apart, the first 0.132 s after the cast", () => {
 		const ticks = (cast?.events ?? []).filter(
 			(event): event is Extract<CombatEvent, { damage: DealtDamage }> =>
 				event.kind === "hit" && "damage" in event,
 		)
 
-		expect(ticks.map(({ time }) => time)).toEqual([0, 1, 2, 3, 4])
+		expect(ticks.map(({ time }) => Number(time.toFixed(3)))).toEqual([
+			0.132, 1.188, 2.244, 3.3, 4.356,
+		])
 		expect(ticks.map(({ damage }) => damage)).toEqual(
 			Array(5).fill({ type: "true", raw: total / 5, final: total / 5 }),
 		)
 		expect(result.total.final).toBeCloseTo(total)
 		expect(result.byType.true.final).toBeCloseTo(total)
 		// The combo's time is its last damage: the fifth tick, not the burn running out at 5 s.
-		expect(result.duration).toBe(4)
+		expect(result.duration).toBeCloseTo(4.356)
 		expect(result.activeUntil).toBe(5)
 	})
 
@@ -1532,7 +1534,7 @@ describe("the combo's time is its last damage (issue 338, decision 1a)", async (
 		expect(run([harrier, attack, attack, attack]).duration).toBeLessThan(1.95)
 	})
 
-	test("Ignite's ticks after the last action extend it, 4 s after the cast", async () => {
+	test("Ignite's ticks after the last action extend it, 4.356 s after the cast", async () => {
 		const ignite = spell("SummonerDot")
 		const result = simulateCombat(
 			inputOf({ ...quinn, summoners: [ignite] }, [
@@ -1541,7 +1543,9 @@ describe("the combo's time is its last damage (issue 338, decision 1a)", async (
 			]),
 		)
 
-		expect(result.duration).toBe((result.steps[1]?.time ?? Number.NaN) + 4)
+		expect(result.duration).toBeCloseTo(
+			(result.steps[1]?.time ?? Number.NaN) + 4.356,
+		)
 	})
 })
 
