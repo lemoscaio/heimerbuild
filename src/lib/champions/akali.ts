@@ -1,4 +1,4 @@
-// Akali: Twilight Shroud's movement speed decays over 2 s (its peak); the shroud's energy is not a stat.
+// Akali: Twilight Shroud's movement speed decays to nothing over 2 s; the shroud's energy is not a stat.
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
@@ -14,6 +14,7 @@ export const AKALI_EFFECTS = [
 				kind: "stat",
 				stat: "movementSpeedPercent",
 				amount: percentLine("Move Speed"),
+				decay: {},
 			},
 		],
 		since: VERIFIED_ON,

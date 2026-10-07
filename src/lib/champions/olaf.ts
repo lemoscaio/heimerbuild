@@ -1,8 +1,10 @@
-// Olaf: Tough It Out's attack speed lasts 5 s and its shield 2.5 s (one row); the shield grows
-// with his missing health.
+// Olaf: Tough It Out's attack speed lasts 5 s and its shield 2.5 s; the shield grows with his
+// missing health.
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
+
+const SHIELD_SECONDS = 2.5
 
 export const OLAF_EFFECTS = [
 	{
@@ -16,7 +18,11 @@ export const OLAF_EFFECTS = [
 				stat: "attackSpeedPercent",
 				amount: percentLine("Attack Speed"),
 			},
-			{ kind: "shield", amount: { by: "rankValue", label: "Base Shield" } },
+			{
+				kind: "shield",
+				amount: { by: "rankValue", label: "Base Shield" },
+				duration: SHIELD_SECONDS,
+			},
 			{
 				kind: "shield",
 				// 17.5% of missing health, counted up to 70% missing (wiki).
@@ -25,6 +31,7 @@ export const OLAF_EFFECTS = [
 					stat: "health",
 					ratio: { by: "missingHealth", max: 0.175 * 0.7, fullAt: 70 },
 				},
+				duration: SHIELD_SECONDS,
 			},
 		],
 		since: VERIFIED_ON,
