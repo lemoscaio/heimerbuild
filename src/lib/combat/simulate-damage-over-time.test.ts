@@ -508,3 +508,46 @@ describe("Ignite, summarized on its cast", () => {
 		).toEqual([0, 1, 2, 3, 4])
 	})
 })
+
+describe("the combo's damage by type, ticks after the last action included", async () => {
+	const teemo: Setup = {
+		champion: await champion("Teemo"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 5, R: 1 },
+		summoners: [spell("SummonerDot")],
+	}
+	const actions: CombatAction[] = [attack, { kind: "summoner", slot: 0 }]
+	// Wiki, Toxic Shot rank 5: 65 on impact and 4 ticks of 30; Ignite at level 9: 250 true.
+	const toxicShot = magic(65) + 4 * magic(30)
+	const ignite = 250
+
+	test("splits an attack (physical), Toxic Shot (magic) and Ignite (true), and the parts add up to the total", () => {
+		const result = simulate(teemo, actions)
+		const { physical, magic: magicPart, true: truePart } = result.byType
+		const attackHit = allHits(result).find(
+			({ source }) => source.kind === "attack",
+		)
+
+		expect(physical.final).toBeCloseTo(attackHit?.damage.final ?? Number.NaN)
+		expect(magicPart.final).toBeCloseTo(toxicShot)
+		expect(truePart).toEqual({ raw: ignite, final: ignite })
+		expect(physical.final + magicPart.final + truePart.final).toBeCloseTo(
+			result.total.final,
+		)
+		expect(physical.raw + magicPart.raw + truePart.raw).toBeCloseTo(
+			result.total.raw,
+		)
+	})
+
+	test("free mode: No on Toxic Shot's poison takes its ticks off the magic part only", () => {
+		const strict = simulate(teemo, actions)
+		const { result } = simulateFreeCombat(inputOf(teemo, actions), [
+			{ "damage-over-time:teemo-e": false },
+		])
+
+		expect(result.byType.magic.final).toBeCloseTo(magic(65))
+		expect(result.byType.physical).toEqual(strict.byType.physical)
+		expect(result.byType.true).toEqual(strict.byType.true)
+		expect(result.total.final).toBeCloseTo(strict.total.final - 4 * magic(30))
+	})
+})
