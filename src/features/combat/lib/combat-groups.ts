@@ -198,7 +198,11 @@ export function groupView(steps: readonly GroupStep[]): GroupView {
 			steps.length,
 		),
 		effects: countLabels(
-			views.map(({ effects }) => effects.map(({ name }) => name)),
+			views.map(({ effects }) =>
+				effects.map(({ name, waiting }) =>
+					waiting ? `${name} · ${waiting.label}` : name,
+				),
+			),
 			steps.length,
 		),
 		damageOverTime: damageOverTimeCounts(

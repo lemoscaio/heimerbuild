@@ -117,6 +117,8 @@ export type RunningEffectView = {
 	name: string
 	until?: number
 	paused?: { label: string; until: number }
+	/** Not running yet: in its `startsAfter` state, or from when it enters it ("camouflaged" from 1.00 s). */
+	waiting?: { label: string; from?: number }
 }
 
 /** What a step's card shows: its hits and total, the marks it moved and the effects running after it. */
@@ -240,7 +242,38 @@ function runningEffects(
 				}),
 			})
 	}
+	for (const { effectId, label, from, until } of step.waiting ?? []) {
+		seen.set(`${effectId}@waiting`, {
+			name: names.effect(effectId),
+			...(from === undefined && { until }),
+			waiting: { label, ...(from !== undefined && { from }) },
+		})
+	}
 	return [...seen.values()]
+}
+
+/**
+ * A running effect's chip: "Heightened Senses · until 3.96 s", "Harrowed Path · until 8.00 s · Move
+ * Speed paused until 1.00 s", "Ambush · camouflaged from 1.00 s", "Ambush · camouflaged until 11.00 s".
+ */
+export function runningEffectText({
+	name,
+	until,
+	paused,
+	waiting,
+}: RunningEffectView): string {
+	const ends = until !== undefined && `until ${formatSeconds(until)}`
+	const state =
+		waiting &&
+		[
+			waiting.label,
+			waiting.from === undefined ? ends : `from ${formatSeconds(waiting.from)}`,
+		]
+			.filter(Boolean)
+			.join(" ")
+	const pause =
+		paused && `${paused.label} paused until ${formatSeconds(paused.until)}`
+	return [name, state || ends, pause].filter(Boolean).join(" · ")
 }
 
 export function stepView(
