@@ -42,20 +42,6 @@ export function removeStep(
 	return entries.filter((entry) => entry.id !== id)
 }
 
-/** The combo with the step `id` moved to position `to` (clamped to the list). */
-export function moveStep(
-	entries: readonly CombatEntry[],
-	id: number,
-	to: number,
-): CombatEntry[] {
-	const from = entries.findIndex((entry) => entry.id === id)
-	const moved = entries[from]
-	if (!moved) return [...entries]
-	const rest = entries.filter((entry) => entry.id !== id)
-	const at = Math.min(rest.length, Math.max(0, to))
-	return [...rest.slice(0, at), moved, ...rest.slice(at)]
-}
-
 /** The combo with the entries `ids`, kept together in their order, moved to position `to` (clamped). */
 export function moveEntries(
 	entries: readonly CombatEntry[],

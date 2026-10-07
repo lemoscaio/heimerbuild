@@ -52,3 +52,8 @@ export function actionLabel(
 			return "Wait"
 	}
 }
+
+/** "0.00–6.94 s" */
+export function formatSecondsRange(from: number, to: number): string {
+	return `${SECONDS.format(from)}–${formatSeconds(to)}`
+}

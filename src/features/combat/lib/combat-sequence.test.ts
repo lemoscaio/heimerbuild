@@ -6,7 +6,6 @@ import {
 	clampWaitSeconds,
 	MAX_COMBAT_STEPS,
 	moveEntries,
-	moveStep,
 	removeStep,
 	setWaitSeconds,
 } from "./combat-sequence"
@@ -40,16 +39,6 @@ describe("addStep", () => {
 		const steps = removeStep(combo(ATTACK, Q, ATTACK), 2)
 
 		expect(addStep(steps, Q).map(({ id }) => id)).toEqual([1, 3, 4])
-	})
-})
-
-describe("moveStep", () => {
-	test("moves a step to a position, clamped to the list", () => {
-		const steps = combo(ATTACK, Q, { kind: "summoner", slot: 0 })
-
-		expect(moveStep(steps, 3, 0).map(({ id }) => id)).toEqual([3, 1, 2])
-		expect(moveStep(steps, 1, 9).map(({ id }) => id)).toEqual([2, 3, 1])
-		expect(moveStep(steps, 7, 0)).toEqual(steps)
 	})
 })
 

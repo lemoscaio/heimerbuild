@@ -15,7 +15,7 @@ import { combatKeys } from "../lib/combat-keys"
 import {
 	addStep,
 	MAX_COMBAT_STEPS,
-	moveStep,
+	moveEntries,
 	setStepVariant,
 	setWaitSeconds,
 } from "../lib/combat-sequence"
@@ -119,7 +119,12 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		addSituation: (effectId: string) =>
 			saveEntries(addStep(entries, { kind: "situation", effectId })),
 		remove: (id: number) => save(removeEntry(value, id, effects)),
-		move: (id: number, to: number) => saveEntries(moveStep(entries, id, to)),
+		/** Removes several entries at once (a group of steps). */
+		removeAll: (ids: readonly number[]) =>
+			save(ids.reduce((next, id) => removeEntry(next, id, effects), value)),
+		/** Moves the entries `ids`, kept together, to position `to`. */
+		move: (ids: readonly number[], to: number) =>
+			saveEntries(moveEntries(entries, ids, to)),
 		setWait: (id: number, seconds: number) =>
 			saveEntries(setWaitSeconds(entries, id, seconds)),
 		setVariant: (id: number, variant: string) =>
