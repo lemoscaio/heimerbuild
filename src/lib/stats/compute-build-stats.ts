@@ -30,6 +30,8 @@ export type BuildEffectsInput = {
 	stacks?: Readonly<Record<string, number>>
 	/** Effects whose `pauses` holds now, by id, from a combat sequence; absent means none. */
 	paused?: ReadonlySet<string>
+	/** Seconds since each effect last triggered, from a combat sequence; absent means each at its peak. */
+	elapsed?: Readonly<Record<string, number>>
 }
 
 export type BuildStatsInput = {
@@ -92,6 +94,7 @@ function evaluateBuild({
 		}),
 		...(effects.stacks && { stacks: effects.stacks }),
 		...(effects.paused && { paused: effects.paused }),
+		...(effects.elapsed && { elapsed: effects.elapsed }),
 	}
 	const active = activeEffects(effects.available, effects.overrides, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)

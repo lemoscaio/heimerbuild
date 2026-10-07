@@ -39,6 +39,8 @@ export type EffectContext = {
 	stacks?: Readonly<Record<string, number>>
 	/** Effects whose `pauses` holds now, by id (the combat simulator's): their paused stat grants give nothing. */
 	paused?: ReadonlySet<string>
+	/** Seconds since each effect last triggered, by id (the combat simulator's); absent means at its trigger, its peak. */
+	elapsed?: Readonly<Record<string, number>>
 	/** Melee or ranged in the form and at the level, which `attackType` amounts read. */
 	attackType?: Champion["attackType"]
 }
@@ -46,12 +48,19 @@ export type EffectContext = {
 /** A stat grant that reads another stat: `ratio` of its total, or of its bonus part. */
 export type StatBasis = { stat: StatName; ratio: number; part?: "bonus" }
 
+/** A grant's own clock (`GrantTiming`) in seconds and at the grant's value. */
+export type ResolvedTiming = {
+	duration?: number
+	decay?: { over?: number; to: number }
+}
+
 /** A grant's value at the build's state; damage grants have none here (the combat simulator deals them). */
-export type ResolvedGrant =
+export type ResolvedGrant = { timing?: ResolvedTiming } & (
 	| { kind: "stat"; stat: StatKey; value: number; basis?: StatBasis }
 	| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; value: number }
 	| { kind: "shield"; value: number }
 	| { kind: "heal"; value: number }
+)
 
 /** The value of the last bracket or step whose `from` the value reached. */
 function bracketValue(
@@ -198,6 +207,50 @@ function isPaused(
 	)
 }
 
+/** The grant's own end and decay at the build's state, when it has them. */
+function grantTiming(
+	{ duration, decay }: Grant,
+	effect: BuildEffect,
+	context: EffectContext,
+): ResolvedTiming | undefined {
+	if (duration === undefined && !decay) return undefined
+	const seconds =
+		duration === undefined
+			? undefined
+			: resolveAmount(duration, effect, context)
+	const over =
+		decay?.over === undefined
+			? (seconds ?? effectDuration(effect, context))
+			: resolveAmount(decay.over, effect, context)
+	const to =
+		decay?.to === undefined
+			? 0
+			: (resolveAmount(decay.to, effect, context) ?? 0)
+	return {
+		...(seconds !== undefined && { duration: seconds }),
+		...(decay && { decay: { ...(over !== undefined && { over }), to } }),
+	}
+}
+
+/**
+ * Its value `elapsed` seconds after the trigger: none once its duration is over, decayed in a
+ * straight line toward `to`. Without `elapsed` (the stats panel), its peak.
+ */
+function valueAt(
+	value: number,
+	timing: ResolvedTiming,
+	elapsed: number | undefined,
+): number | undefined {
+	if (elapsed === undefined) return value
+	if (timing.duration !== undefined && elapsed >= timing.duration) {
+		return undefined
+	}
+	const { decay } = timing
+	if (!decay?.over) return value
+	const progress = Math.min(1, elapsed / decay.over)
+	return value + (decay.to - value) * progress
+}
+
 function resolveGrant(
 	grant: Grant,
 	effect: BuildEffect,
@@ -205,10 +258,15 @@ function resolveGrant(
 ): ResolvedGrant[] {
 	if (isPaused(grant, effect, context)) return []
 	const share = stackShare(effect, context)
-	const full = resolveFullGrant(grant, effect, context)
-	return share === 1
-		? full
-		: full.map((resolved) => ({ ...resolved, value: resolved.value * share }))
+	const timing = grantTiming(grant, effect, context)
+	const elapsed = context.elapsed?.[effect.id]
+	return resolveFullGrant(grant, effect, context).flatMap((resolved) => {
+		if (!timing) return [{ ...resolved, value: resolved.value * share }]
+		const value = valueAt(resolved.value, timing, elapsed)
+		return value === undefined
+			? []
+			: [{ ...resolved, value: value * share, timing }]
+	})
 }
 
 function resolveFullGrant(
