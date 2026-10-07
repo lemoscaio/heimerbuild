@@ -401,7 +401,7 @@ describe("Liandry's Torment: ability damage burns for a share of maximum health"
 })
 
 describe("damage over time from ability casts", async () => {
-	test("Singed's Q, one pass through the trail: 8 ticks every 0.25 s from the cast, the wiki's minimum", async () => {
+	test("Singed's Q, one pass through the trail: 8 ticks every 0.25 s, the last at 2 s, the wiki's minimum", async () => {
 		const singed: Setup = {
 			champion: await champion("Singed"),
 			level: 9,
@@ -411,7 +411,7 @@ describe("damage over time from ability casts", async () => {
 		const ticks = ticksOf(result, "singed-q")
 
 		expect(ticks.map(({ time }) => time)).toEqual([
-			0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75,
+			0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2,
 		])
 		// Wiki, rank 1 without AP: a minimum of 40 magic damage.
 		expect(ticks.reduce((sum, { damage }) => sum + damage.raw, 0)).toBeCloseTo(
@@ -425,9 +425,11 @@ describe("damage over time from ability casts", async () => {
 			level: 9,
 			ranks: { Q: 1, W: 5, E: 1, R: 1 },
 		}
-		const result = simulate(morgana, [{ kind: "ability", slot: "W" }])
+		const result = simulate(morgana, [
+			{ kind: "ability", slot: "W", variant: "5s" },
+		])
 		const ticks = ticksOf(result, "morgana-w")
-		// Wiki, rank 5 without AP: 35 per tick, every 0.5 s for 5 s, from the cast.
+		// Wiki, rank 5 without AP: 35 per tick, on the cast and every 0.5 s for the pool's 5 s.
 		let health = DUMMY.health
 
 		expect(ticks).toHaveLength(10)
@@ -437,6 +439,99 @@ describe("damage over time from ability casts", async () => {
 			health -= damage.final
 		}
 		expect(ticks.at(-1)?.damage.raw).toBeGreaterThan(35)
+	})
+
+	describe("the time in the area is a variant: the ticks follow it (issue 353)", async () => {
+		const singed: Setup = {
+			champion: await champion("Singed"),
+			level: 9,
+			ranks: { Q: 1, W: 1, E: 1, R: 1 },
+		}
+		const poisonTrail = (variant?: string) =>
+			simulate(singed, [
+				{ kind: "ability", slot: "Q", ...(variant && { variant }) },
+			])
+		const total = (result: CombatResult) =>
+			ticksOf(result, "singed-q").reduce(
+				(sum, { damage }) => sum + damage.raw,
+				0,
+			)
+
+		test("Singed's Q, 2 s in the trail: poisoned 4 s, 16 ticks, the last at 4 s, twice the minimum", () => {
+			const result = poisonTrail("2s")
+			const ticks = ticksOf(result, "singed-q")
+
+			expect(ticks).toHaveLength(16)
+			expect(ticks.at(-1)?.time).toBe(4)
+			expect(total(result)).toBeCloseTo(80)
+			expect(result.duration).toBe(4)
+			expect(result.steps[0]?.damageOverTime[0]?.endsAt).toBe(4)
+		})
+
+		test("Singed's Q, 4 s in the trail: poisoned 6 s, 24 ticks, three times the minimum", () => {
+			expect(ticksOf(poisonTrail("4s"), "singed-q")).toHaveLength(24)
+			expect(total(poisonTrail("4s"))).toBeCloseTo(120)
+			expect(poisonTrail("4s").duration).toBe(6)
+		})
+
+		test("no variant, or one the rule lacks, is the first: one pass (0 s in the trail), poisoned 2 s", () => {
+			expect(total(poisonTrail())).toBeCloseTo(40)
+			expect(total(poisonTrail("0s"))).toBeCloseTo(40)
+			expect(total(poisonTrail("9s"))).toBeCloseTo(40)
+		})
+
+		test("only the cast's own effects follow it: Sheen's spellblade keeps its 10 s", () => {
+			const result = simulate({ ...singed, items: [item("Sheen")] }, [
+				{ kind: "ability", slot: "Q", variant: "4s" },
+			])
+			const running = (effectId: string) =>
+				result.steps[0]?.active.find((effect) => effect.effectId === effectId)
+
+			expect(running("sheen-spellblade")?.endsAt).toBe(10)
+			expect(running("singed-q")?.endsAt).toBe(6)
+		})
+
+		test("Morgana's W: 1 s in the pool by default takes the tick at 1 s, 3 from the cast; the whole pool is 10", async () => {
+			const morgana: Setup = {
+				champion: await champion("Morgana"),
+				level: 9,
+				ranks: { Q: 1, W: 5, E: 1, R: 1 },
+			}
+			const tormentedShadow = (variant?: string) =>
+				ticksOf(
+					simulate(morgana, [
+						{ kind: "ability", slot: "W", ...(variant && { variant }) },
+					]),
+					"morgana-w",
+				).map(({ time }) => time)
+
+			expect(tormentedShadow()).toEqual([0, 0.5, 1])
+			expect(tormentedShadow("1s")).toEqual([0, 0.5, 1])
+			expect(tormentedShadow("3s")).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3])
+			// The pool ends before a tick at 5 s: the wiki's 10.
+			expect(tormentedShadow("5s")).toEqual([
+				0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5,
+			])
+		})
+
+		test("Morgana's W, 1 s in the pool: the combo's time is that last tick, with nothing running after it", async () => {
+			const morgana: Setup = {
+				champion: await champion("Morgana"),
+				level: 9,
+				ranks: { Q: 1, W: 5, E: 1, R: 1 },
+			}
+			const oneSecond = simulate(morgana, [
+				{ kind: "ability", slot: "W", variant: "1s" },
+			])
+			const wholePool = simulate(morgana, [
+				{ kind: "ability", slot: "W", variant: "5s" },
+			])
+
+			expect(oneSecond.duration).toBe(1)
+			expect(oneSecond.activeUntil).toBe(1)
+			expect(wholePool.duration).toBe(4.5)
+			expect(wholePool.activeUntil).toBe(5)
+		})
 	})
 
 	test("free mode: No on a cast's damage over time leaves only its other damage", async () => {

@@ -36,6 +36,7 @@ import type { ComputedStats } from "../stats/compute-stats"
 import { attackTypeAtLevel } from "../stats/level-states"
 import { spellCooldown } from "../summoner-rune-interactions"
 import type { SummonerSlot } from "../summoner-slots"
+import { isCastOwnEffect } from "./area-ticks"
 import type {
 	ActiveEffect,
 	CombatAction,
@@ -60,6 +61,7 @@ import {
 	type DamageOverTimeApplication,
 	damageOverTimeSummaries,
 	tickOwner,
+	ticksInArea,
 	tickTime,
 } from "./damage-over-time"
 import { mitigate } from "./mitigation"
@@ -72,6 +74,7 @@ import {
 import {
 	ABILITY_HIT_RULES,
 	type AbilityHitRule,
+	type AbilityVariant,
 	findHitRule,
 } from "./registries/ability-hits"
 
@@ -121,6 +124,8 @@ type Instance = {
 	fromSituation?: true
 	/** When its pause (`pauses`) ends, set by the last event that started one. */
 	pausedUntil?: number
+	/** A time in its cast's area: its ticks land up to this moment included (`ticksInArea`). */
+	lastTickAt?: number
 }
 
 /** A mark and the effect that applied it, whose cooldown may start when it leaves (`cooldownFrom`). */
@@ -175,7 +180,12 @@ type Simulation = {
 	waiting: Waiting[]
 }
 
-type Delayed = { at: number; effect: BuildEffect; owner: number }
+type Delayed = {
+	at: number
+	effect: BuildEffect
+	owner: number
+	duration?: number
+}
 
 type Waiting = { until: number; effect: BuildEffect; owner: number }
 
@@ -589,7 +599,7 @@ function nextTickAt(instance: Instance): number | undefined {
 	const [timing] = damageOverTimeGrants(instance.effect)
 	if (!timing) return undefined
 	const at = tickTime(instance.startedAt, instance.ticks, timing)
-	return coversTick(at, instance.endsAt, timing) ? at : undefined
+	return coversTick(at, instance, timing) ? at : undefined
 }
 
 /** Free mode's choice for a damage over time the step `owner` applies; undefined follows the rules. */
@@ -613,6 +623,7 @@ function recordApplication(
 	const last = instance.applications.at(-1)
 	if (last?.owner === owner && last.at === sim.time) {
 		last.endsAt = instance.endsAt
+		last.lastTickAt = instance.lastTickAt
 		last.stacks = instance.stacks
 		return
 	}
@@ -623,6 +634,9 @@ function recordApplication(
 		endsAt: instance.endsAt,
 		kind,
 		stacks: instance.stacks,
+		...(instance.lastTickAt !== undefined && {
+			lastTickAt: instance.lastTickAt,
+		}),
 	}
 	const delay = instance.effect.effect.delay
 	if (landing && delay) application.delayed = delay.label
@@ -637,6 +651,23 @@ type TriggerOptions = {
 	landing?: boolean
 	/** Its `startsAfter` state is over: it runs now. */
 	released?: boolean
+	/** How long it runs instead of its own duration: the time in its cast's area (a variant's). */
+	duration?: number
+}
+
+/** The last tick a time in an area allows, from now (`ticksInArea`); none without one or a tick. */
+function areaLastTickAt(
+	sim: Simulation,
+	effect: BuildEffect,
+	inArea: number | undefined,
+): number | undefined {
+	const [timing] = damageOverTimeGrants(effect)
+	if (inArea === undefined || !timing) return undefined
+	const own = effectDuration(effect, sim.context) ?? inArea
+	const ticks = ticksInArea(inArea, own, timing)
+	return ticks
+		? tickTime(sim.time, ticks - 1, timing)
+		: Number.NEGATIVE_INFINITY
 }
 
 /**
@@ -652,6 +683,7 @@ function trigger(
 		ignoreCooldown = false,
 		landing = false,
 		released = false,
+		...options
 	}: TriggerOptions = {},
 ) {
 	if (!isInForm(effect, sim.formId)) return
@@ -661,7 +693,12 @@ function trigger(
 		effect.effect
 	if (delay && !landing) {
 		const owner = sim.owner ?? sim.step
-		sim.delayed.push({ at: sim.time + delay.seconds, effect, owner })
+		sim.delayed.push({
+			at: sim.time + delay.seconds,
+			effect,
+			owner,
+			duration: options.duration,
+		})
 		return
 	}
 	if (startsAfter && !released) {
@@ -674,7 +711,7 @@ function trigger(
 	}
 	if (!endsOn && !cooldownFrom) startCooldown(sim, effect)
 
-	const duration = effectDuration(effect, sim.context)
+	const duration = options.duration ?? effectDuration(effect, sim.context)
 	if (!duration) return
 	const dot = dealsDamageOverTime(effect)
 	const owner = sim.owner ?? sim.step
@@ -686,6 +723,7 @@ function trigger(
 		const before = running.stacks
 		running.triggeredAt = sim.time
 		running.endsAt = sim.time + duration
+		running.lastTickAt = areaLastTickAt(sim, effect, options.duration)
 		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
 		if (running.charges) running.charges.used = 0
 		if (dot) {
@@ -695,6 +733,8 @@ function trigger(
 		return
 	}
 	const instance = newInstance(sim, effect, duration)
+	const lastTickAt = areaLastTickAt(sim, effect, options.duration)
+	if (lastTickAt !== undefined) instance.lastTickAt = lastTickAt
 	sim.active.push(instance)
 	if (!dot) return
 	recordApplication(sim, instance, { owner, kind: "applied" }, { landing })
@@ -707,7 +747,11 @@ function land(sim: Simulation, delayed: Delayed) {
 	const pending: PendingMarks = []
 	const previous = sim.owner
 	sim.owner = delayed.owner
-	trigger(sim, delayed.effect, pending, { ignoreCooldown: true, landing: true })
+	trigger(sim, delayed.effect, pending, {
+		ignoreCooldown: true,
+		landing: true,
+		duration: delayed.duration,
+	})
 	sim.owner = previous
 	applyMarks(sim, pending)
 }
@@ -745,13 +789,21 @@ function breakWaiting(sim: Simulation, reason: BreakOn) {
 	}
 }
 
+type TriggerWhereOptions = {
+	/** Each matched effect's trigger options (a cast's time in its area for its own effects). */
+	optionsFor?: (effect: BuildEffect) => TriggerOptions
+}
+
 function triggerWhere(
 	sim: Simulation,
 	matches: (trigger: Trigger, effect: BuildEffect) => boolean,
 	pending: PendingMarks,
+	{ optionsFor }: TriggerWhereOptions = {},
 ) {
 	for (const effect of sim.input.effects) {
-		if (matches(effect.effect.trigger, effect)) trigger(sim, effect, pending)
+		if (matches(effect.effect.trigger, effect)) {
+			trigger(sim, effect, pending, optionsFor?.(effect))
+		}
 	}
 }
 
@@ -1170,6 +1222,15 @@ function damageNames(damage: string | readonly string[] | null) {
 	return typeof damage === "string" ? [damage] : damage
 }
 
+/** The variant a cast picked, the first by default; none when its rule has no variants. */
+function chosenVariant(
+	rule: AbilityHitRule | undefined,
+	variant: string | undefined,
+): AbilityVariant | undefined {
+	const variants = rule?.variants ?? []
+	return variants.find(({ id }) => id === variant) ?? variants[0]
+}
+
 /**
  * The tooltip damages a cast deals: its chosen variant's (the first by default), its rule's (one,
  * several or none), else the tooltip's first.
@@ -1179,9 +1240,8 @@ function castDamages(
 	rule: AbilityHitRule | undefined,
 	variant: string | undefined,
 ): readonly string[] {
-	const variants = rule?.variants ?? []
-	const chosen = variants.find(({ id }) => id === variant) ?? variants[0]
-	if (chosen) return damageNames(chosen.damage)
+	const damage = chosenVariant(rule, variant)?.damage
+	if (damage !== undefined) return damageNames(damage)
 	if (rule?.damage === undefined) {
 		const first = spell.damage?.[0]?.name
 		return first ? [first] : []
@@ -1269,15 +1329,18 @@ function castAbility(
 	endEffects(sim, "cast")
 	pauseEffects(sim, "cast")
 	breakWaiting(sim, "cast")
+	const areaTime = chosenVariant(hitRule(sim, slot), action.variant)?.duration
 	triggerWhere(
 		sim,
-		(trigger, { effect }) =>
+		(trigger, effect) =>
 			trigger.kind === "after-ability" ||
 			(trigger.kind === "on-cast" && (trigger.slots?.includes(slot) ?? true)) ||
-			(trigger.kind === "after-use" &&
-				effect.source.kind === "ability" &&
-				effect.source.slot === slot),
+			isCastOwnEffect(effect, slot),
 		pending,
+		{
+			optionsFor: (effect) =>
+				isCastOwnEffect(effect, slot) ? { duration: areaTime } : {},
+		},
 	)
 	abilityHit(sim, spell, pending, action.variant)
 	applyMarks(sim, chooseMarks(sim, pending, action))

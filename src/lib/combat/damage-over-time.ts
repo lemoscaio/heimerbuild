@@ -18,6 +18,8 @@ export type DamageOverTimeApplication = {
 	stacks: number
 	/** Its effect's `delay` label when it took effect after its trigger ("detonates"). */
 	delayed?: string
+	/** A time in an area (`ticksInArea`): its ticks land up to this moment included, whatever `endsAt`. */
+	lastTickAt?: number
 }
 
 type TickTiming = Pick<DamageOverTimeGrant, "every" | "firstTick">
@@ -31,15 +33,43 @@ export function tickTime(
 	return startedAt + (firstTick === "delayed" ? index + 1 : index) * every
 }
 
-/** Whether a tick at `at` lands before an application running until `endsAt` is over: a delayed one's last lands at the end. */
+type TickSpan = Pick<DamageOverTimeApplication, "endsAt" | "lastTickAt">
+
+/**
+ * Whether a tick at `at` lands before an application is over: before `endsAt`, a delayed one's last
+ * at the end; up to `lastTickAt` included when a time in an area set it.
+ */
 export function coversTick(
 	at: number,
-	endsAt: number,
+	{ endsAt, lastTickAt }: TickSpan,
 	{ firstTick }: Pick<DamageOverTimeGrant, "firstTick">,
 ): boolean {
+	if (lastTickAt !== undefined) return at <= lastTickAt + EPSILON
 	return firstTick === "delayed"
 		? at <= endsAt + EPSILON
 		: at < endsAt - EPSILON
+}
+
+/**
+ * The ticks a target takes in an area for `inArea` seconds: every one up to that moment included,
+ * but no more than the effect deals running `duration` on its own (or `inArea` when longer: a
+ * poison refreshed while inside). Tormented Shadow, every 0.5 s from the cast for 5 s: 1 s takes 3.
+ */
+export function ticksInArea(
+	inArea: number,
+	duration: number,
+	timing: TickTiming,
+): number {
+	const span = { endsAt: Math.max(duration, inArea) }
+	let count = 0
+	for (
+		let at = tickTime(0, count, timing);
+		at <= inArea + EPSILON && coversTick(at, span, timing);
+		at = tickTime(0, count, timing)
+	) {
+		count++
+	}
+	return count
 }
 
 /**
@@ -52,7 +82,7 @@ export function tickOwner(
 	timing: Pick<DamageOverTimeGrant, "firstTick">,
 ): DamageOverTimeApplication | undefined {
 	return (
-		applications.find(({ endsAt }) => coversTick(at, endsAt, timing)) ??
+		applications.find((application) => coversTick(at, application, timing)) ??
 		applications.at(-1)
 	)
 }

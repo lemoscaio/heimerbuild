@@ -4,7 +4,6 @@ import { CircleAlert } from "lucide-react"
 import { useId } from "react"
 import { Button } from "@/components/ui/button"
 import { CombatActionKeys } from "@/features/combat/components/combat-action-keys"
-import { CombatClosingLine } from "@/features/combat/components/combat-closing-line"
 import { CombatFreeBanner } from "@/features/combat/components/combat-free-banner"
 import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-mode-switch"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
@@ -138,9 +137,6 @@ export function ComboTab({
 				<p className="rounded-lg border border-line border-dashed p-4 text-center text-subtle text-xs">
 					No steps yet. Pick an attack, an ability or a summoner spell above.
 				</p>
-			)}
-			{!!combat.entries.length && view.totals && (
-				<CombatClosingLine totals={view.totals} />
 			)}
 			<CombatNotes />
 		</section>

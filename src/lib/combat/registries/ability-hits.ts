@@ -16,12 +16,23 @@ import { ZAC_HIT_RULES } from "../../champions/zac"
 
 /**
  * A way to land a cast the simulator can't know, which the player picks per step: Decimate's outer
- * blade or inner handle, a rocket fired near or far. `damage` replaces the rule's.
+ * blade or inner handle, how long the target stays in Poison Trail. `damage` replaces the rule's.
  */
 export type AbilityVariant = {
 	id: string
 	label: string
-	damage: string | readonly string[]
+	damage?: string | readonly string[]
+	/** How long the cast's own effects (`after-use`) run instead of their duration: the time in its area. */
+	duration?: number
+}
+
+/** What a rule's variants pick, as the step's input says it: `text` beside them, `name` for assistive tech. */
+export type VariantsLabel = { text: string; name: string }
+
+/** Most variants say where the cast lands (Decimate's blade or handle). */
+export const LANDS_LABEL: VariantsLabel = {
+	text: "Lands",
+	name: "How it lands",
 }
 
 /**
@@ -42,6 +53,8 @@ export type AbilityHitRule = PatchRange & {
 	notModeled?: string
 	/** The ways the cast can land, the first by default; each step picks one (an input, never an outcome). */
 	variants?: readonly AbilityVariant[]
+	/** What the variants pick, `LANDS_LABEL` when absent. */
+	variantsLabel?: VariantsLabel
 	/** Why the ability can't be cast at all (a passive only one): a cast is refused with it. */
 	noCast?: string
 	sourceUrl: string
@@ -88,4 +101,12 @@ export function abilityVariants(
 	rules: readonly AbilityHitRule[] = ABILITY_HIT_RULES,
 ): readonly AbilityVariant[] {
 	return findHitRule(rules, query)?.variants ?? []
+}
+
+/** What an ability's variants pick (`variantsLabel`), "Lands" by default. */
+export function abilityVariantsLabel(
+	query: HitRuleQuery,
+	rules: readonly AbilityHitRule[] = ABILITY_HIT_RULES,
+): VariantsLabel {
+	return findHitRule(rules, query)?.variantsLabel ?? LANDS_LABEL
 }
