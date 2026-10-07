@@ -9,8 +9,8 @@ const BLAZE = "brand-blaze"
 
 export const BRAND_EFFECTS = [
 	{
-		// The synced 2% over 4 s in 16 ticks; each stack ticks on one shared timer (the wiki's own
-		// timer per stack is left out).
+		// Wiki conflict, decided (PR 385): the tooltip's 2% over 4 s, not its 0.167% per tick (2.67%).
+		// One shared tick timer, not one per stack: same total, ticks shift by under 0.25 s.
 		id: BLAZE,
 		source: { kind: "ability", championKey: "Brand", slot: "passive" },
 		trigger: { kind: "on-cast" },
