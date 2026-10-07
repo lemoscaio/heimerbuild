@@ -583,3 +583,23 @@ test("a combo with a marker, a variant, a wait, free mode's answers and a target
 	await expect(steps(opened)).toHaveCount(4)
 	expect(await comboSnapshot(opened)).toEqual(built)
 })
+
+test("Master Yi's Highlander before his attacks speeds them up, so the combo ends sooner", async ({
+	page,
+}) => {
+	const seconds = async () =>
+		Number.parseFloat((await comboTotal(page, "Time").textContent()) ?? "")
+	await page.goto(
+		"/champions/MasterYi?lvl=11&skills=QEQWQRQEQER&tab=combo&combo=aa.aa.aa.aa",
+	)
+	// Four identical attacks show as one group.
+	await expect(groups(page)).toHaveCount(1)
+	await expect.poll(seconds).toBeGreaterThan(0)
+	const plain = await seconds()
+
+	await page.goto(
+		"/champions/MasterYi?lvl=11&skills=QEQWQRQEQER&tab=combo&combo=r.aa.aa.aa.aa",
+	)
+	await expect(steps(page)).toHaveCount(1)
+	await expect.poll(seconds).toBeLessThan(plain)
+})
