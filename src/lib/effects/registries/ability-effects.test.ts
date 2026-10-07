@@ -641,6 +641,240 @@ describe("Rengar's Thrill of the Hunt (synced R lines)", () => {
 	})
 })
 
+/** Per-rank values, grant by grant: [attack speed per rank, movement speed per rank]. */
+function byRank(...grants: number[][]) {
+	return (grants[0] ?? []).map((_, rank) =>
+		grants.map((values) => values[rank]),
+	)
+}
+
+const BASIC_RANKS = [1, 2, 3, 4, 5]
+
+describe("buffs after casting, batch 2 (synced lines, wiki; issue 318)", () => {
+	test.each([
+		{
+			// Highlander: 25 to 65% attack speed, 40 to 60% movement speed, 7 s.
+			key: "MasterYi",
+			id: "master-yi-r-active",
+			slot: "R" as const,
+			ranks: ULTIMATE_RANKS,
+			values: byRank([0.25, 0.45, 0.65], [0.4, 0.5, 0.6]),
+			duration: 7,
+		},
+		{
+			// Blood Rush: 20 to 40% attack speed for 3 s, 50 to 70% movement speed (its peak).
+			key: "Draven",
+			id: "draven-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.2, 0.25, 0.3, 0.35, 0.4], [0.5, 0.55, 0.6, 0.65, 0.7]),
+			duration: 3,
+		},
+		{
+			// Overdrive: 30 to 70% attack speed for 5 s, 60 to 80% initial movement speed.
+			key: "Blitzcrank",
+			id: "blitzcrank-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.3, 0.4, 0.5, 0.6, 0.7], [0.6, 0.65, 0.7, 0.75, 0.8]),
+			duration: 5,
+		},
+		{
+			// Strut's active: 40 to 100% attack speed for 4 s.
+			key: "MissFortune",
+			id: "miss-fortune-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.4, 0.55, 0.7, 0.85, 1]),
+			duration: 4,
+		},
+		{
+			// Frozen Domain: 30 to 110% attack speed, 20 to 52% movement speed, the ice's 8 s.
+			key: "Trundle",
+			id: "trundle-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.3, 0.5, 0.7, 0.9, 1.1], [0.2, 0.28, 0.36, 0.44, 0.52]),
+			duration: 8,
+		},
+		{
+			// Blood Hunt: 70 to 110% attack speed, 35 to 65% movement speed, the hunt's 8 s.
+			key: "Warwick",
+			id: "warwick-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.7, 0.8, 0.9, 1, 1.1], [0.35, 0.425, 0.5, 0.575, 0.65]),
+			duration: 8,
+		},
+		{
+			// Rapid Fire: 60 to 120% attack speed for 7 s.
+			key: "Tristana",
+			id: "tristana-q-active",
+			slot: "Q" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.6, 0.75, 0.9, 1.05, 1.2]),
+			duration: 7,
+		},
+		{
+			// Ambush: 40 to 60% attack speed for 6 s.
+			key: "Twitch",
+			id: "twitch-q-active",
+			slot: "Q" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.4, 0.45, 0.5, 0.55, 0.6]),
+			duration: 6,
+		},
+		{
+			// Lightning Rush: 40 to 80% in the 16.19 game data (the wiki already shows 50 to 90%), 4 s.
+			key: "Kennen",
+			id: "kennen-e-active",
+			slot: "E" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.4, 0.5, 0.6, 0.7, 0.8]),
+			duration: 4,
+		},
+		{
+			// Audacious Charge: 38 to 70% attack speed, plus 10% per 100 AP, for 5 s.
+			key: "XinZhao",
+			id: "xin-zhao-e-active",
+			slot: "E" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.38, 0.46, 0.54, 0.62, 0.7], [0.1, 0.1, 0.1, 0.1, 0.1]),
+			duration: 5,
+		},
+		{
+			// Ricochet: 20 to 40% attack speed for 4 s.
+			key: "Sivir",
+			id: "sivir-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.2, 0.25, 0.3, 0.35, 0.4]),
+			duration: 4,
+		},
+		{
+			// Wall Dive: 40 to 60% attack speed for 5 s.
+			key: "Camille",
+			id: "camille-e-active",
+			slot: "E" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.4, 0.45, 0.5, 0.55, 0.6]),
+			duration: 5,
+		},
+		{
+			// Nimbus Strike: 40 to 60% attack speed for 5 s.
+			key: "MonkeyKing",
+			id: "monkey-king-e-active",
+			slot: "E" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.4, 0.45, 0.5, 0.55, 0.6]),
+			duration: 5,
+		},
+		{
+			// Wild Rush: 20 to 40% attack speed for 5 s.
+			key: "Samira",
+			id: "samira-e-active",
+			slot: "E" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.2, 0.25, 0.3, 0.35, 0.4]),
+			duration: 5,
+		},
+		{
+			// Preparation: 50 to 90% movement speed (its peak) until the dagger lands, 1.25 s.
+			key: "Katarina",
+			id: "katarina-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.5, 0.6, 0.7, 0.8, 0.9]),
+			duration: 1.25,
+		},
+		{
+			// Twilight Shroud: 30 to 50% movement speed (its peak), decaying over 2 s.
+			key: "Akali",
+			id: "akali-w-active",
+			slot: "W" as const,
+			ranks: BASIC_RANKS,
+			values: byRank([0.3, 0.35, 0.4, 0.45, 0.5]),
+			duration: 2,
+		},
+		{
+			// Shadow Assault: 40 / 55 / 70% movement speed, up to 2.5 s.
+			key: "Talon",
+			id: "talon-r-active",
+			slot: "R" as const,
+			ranks: ULTIMATE_RANKS,
+			values: byRank([0.4, 0.55, 0.7]),
+			duration: 2.5,
+		},
+	])(
+		"$id: per rank as the wiki says, for its duration",
+		async ({ key, values, duration, ...effect }) => {
+			const champion = await currentChampion(key)
+
+			expect(atRanks(champion, effect, { totals: RATIO_TOTALS })).toEqual(
+				values.map((rankValues) => ({ values: rankValues, duration })),
+			)
+		},
+	)
+
+	test.each([
+		["MasterYi", "master-yi-r-active", "R"],
+		["Tristana", "tristana-q-active", "Q"],
+		["Talon", "talon-r-active", "R"],
+	] as const)(
+		"%s: %s is off by default and listed once %s has a point",
+		async (key, id, slot) => {
+			const champion = await currentChampion(key)
+			const ranks = ranksWith(slot, 1)
+			const build = {
+				champion,
+				patch: PATCH,
+				level: 11,
+				items: [],
+				shards: [],
+				ranks,
+			}
+
+			expect(
+				effectsOf(champion, slot, 0).map((effect) => effect.id),
+			).not.toContain(id)
+			expect(effectsOf(champion, slot, 1).map((effect) => effect.id)).toContain(
+				id,
+			)
+			expect(
+				computeBuildStats({
+					...build,
+					effects: { available: effectsOf(champion, slot, 1), overrides: {} },
+				}),
+			).toEqual(computeBuildStats(build))
+		},
+	)
+
+	test("Highlander on raises the attack speed by its bonus on the champion's ratio", async () => {
+		const yi = await currentChampion("MasterYi")
+		const ranks = ranksWith("R", 2)
+		const build = {
+			champion: yi,
+			patch: PATCH,
+			level: 11,
+			items: [],
+			shards: [],
+			ranks,
+		}
+		const on = computeBuildStats({
+			...build,
+			effects: {
+				available: effectsOf(yi, "R", 2),
+				overrides: { "master-yi-r-active": true },
+			},
+		})
+		const off = computeBuildStats(build)
+
+		expect(on.attackSpeed.total - off.attackSpeed.total).toBeCloseTo(
+			0.45 * yi.stats.attackSpeed.ratio,
+		)
+	})
+})
+
 describe("Mini Gnar's Hop and Hyper (synced lines, wiki)", () => {
 	const ranks = (R: number) => ({ Q: 1, W: 1, E: 1, R })
 	const speed = (

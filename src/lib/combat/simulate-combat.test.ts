@@ -782,6 +782,52 @@ describe("early endings: Rengar's R and Viego's E (issue 329)", async () => {
 	})
 })
 
+describe("buffs after casting in the combo (issue 318)", async () => {
+	const yi: Setup = {
+		champion: await champion("MasterYi"),
+		level: 11,
+		ranks: { Q: 3, W: 1, E: 4, R: 2 },
+	}
+	const attack: CombatAction = { kind: "attack" }
+
+	test("Highlander's 45% attack speed times the attacks after it, for 7 s", () => {
+		const atRest = computeBuildStats(buildOf(yi)).attackSpeed.total
+		const boosted = atRest + yi.champion.stats.attackSpeed.ratio * 0.45
+		const plain = simulate(yi, [attack, attack])
+		const highlander = simulate(yi, [
+			{ kind: "ability", slot: "R" },
+			attack,
+			attack,
+		])
+		const castAt = highlander.steps[0]?.time ?? Number.NaN
+
+		expect(plain.steps[1]?.time).toBeCloseTo(1 / atRest)
+		expect(
+			(highlander.steps[2]?.time ?? 0) - (highlander.steps[1]?.time ?? 0),
+		).toBeCloseTo(1 / boosted)
+		expect(highlander.steps[2]?.active).toContainEqual(
+			expect.objectContaining({
+				effectId: "master-yi-r-active",
+				endsAt: expect.closeTo(castAt + 7),
+			}),
+		)
+	})
+
+	test("Shadow Assault's movement speed ends on Talon's next attack", async () => {
+		const talon: Setup = {
+			champion: await champion("Talon"),
+			level: 6,
+			ranks: { Q: 1, W: 1, E: 1, R: 1 },
+		}
+		const result = simulate(talon, [{ kind: "ability", slot: "R" }, attack])
+		const effectIds = (step: number) =>
+			(result.steps[step]?.active ?? []).map(({ effectId }) => effectId)
+
+		expect(effectIds(0)).toContain("talon-r-active")
+		expect(effectIds(1)).not.toContain("talon-r-active")
+	})
+})
+
 describe("a share of the target's health", async () => {
 	const zac: Setup = {
 		champion: await champion("Zac"),
