@@ -22,6 +22,11 @@ export function formatShare(share: number): string {
 	return `${WHOLE.format(share * 100)}%`
 }
 
+/** "62%" for a part that dealt damage; "<1%" when it rounds to nothing. */
+export function formatPartPercent(percent: number): string {
+	return percent ? `${percent}%` : "<1%"
+}
+
 export const DAMAGE_TYPE_NAMES = {
 	physical: "physical",
 	magic: "magic",
