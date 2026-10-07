@@ -1,22 +1,38 @@
+import { AKALI_EFFECTS } from "../../champions/akali"
 import { BELVETH_EFFECTS } from "../../champions/belveth"
+import { BLITZCRANK_EFFECTS } from "../../champions/blitzcrank"
+import { CAMILLE_EFFECTS } from "../../champions/camille"
 import { DR_MUNDO_EFFECTS } from "../../champions/dr-mundo"
+import { DRAVEN_EFFECTS } from "../../champions/draven"
 import { EZREAL_EFFECTS } from "../../champions/ezreal"
 import { GNAR_EFFECTS } from "../../champions/gnar"
 import { JANNA_EFFECTS } from "../../champions/janna"
 import { JAYCE_EFFECTS } from "../../champions/jayce"
 import { JINX_EFFECTS } from "../../champions/jinx"
+import { KATARINA_EFFECTS } from "../../champions/katarina"
+import { KENNEN_EFFECTS } from "../../champions/kennen"
 import { MALPHITE_EFFECTS } from "../../champions/malphite"
+import { MASTER_YI_EFFECTS } from "../../champions/master-yi"
+import { MISS_FORTUNE_EFFECTS } from "../../champions/miss-fortune"
+import { MONKEY_KING_EFFECTS } from "../../champions/monkey-king"
 import { MORGANA_EFFECTS } from "../../champions/morgana"
 import { QUINN_EFFECTS } from "../../champions/quinn"
 import { RENGAR_EFFECTS } from "../../champions/rengar"
+import { SAMIRA_EFFECTS } from "../../champions/samira"
 import { SHYVANA_EFFECTS } from "../../champions/shyvana"
 import { SINGED_EFFECTS } from "../../champions/singed"
+import { SIVIR_EFFECTS } from "../../champions/sivir"
+import { TALON_EFFECTS } from "../../champions/talon"
 import { TARIC_EFFECTS } from "../../champions/taric"
 import { TEEMO_EFFECTS } from "../../champions/teemo"
+import { TRISTANA_EFFECTS } from "../../champions/tristana"
+import { TRUNDLE_EFFECTS } from "../../champions/trundle"
 import { TRYNDAMERE_EFFECTS } from "../../champions/tryndamere"
 import { TWITCH_EFFECTS } from "../../champions/twitch"
 import { UDYR_EFFECTS } from "../../champions/udyr"
 import { VIEGO_EFFECTS } from "../../champions/viego"
+import { WARWICK_EFFECTS } from "../../champions/warwick"
+import { XIN_ZHAO_EFFECTS } from "../../champions/xin-zhao"
 import { ZIGGS_EFFECTS } from "../../champions/ziggs"
 import type { Effect } from "../effect"
 
@@ -26,24 +42,40 @@ import type { Effect } from "../effect"
  * has, shown without a switch.
  */
 export const ABILITY_EFFECTS: readonly Effect[] = [
+	...AKALI_EFFECTS,
 	...BELVETH_EFFECTS,
+	...BLITZCRANK_EFFECTS,
+	...CAMILLE_EFFECTS,
 	...DR_MUNDO_EFFECTS,
+	...DRAVEN_EFFECTS,
 	...EZREAL_EFFECTS,
 	...GNAR_EFFECTS,
 	...JANNA_EFFECTS,
 	...JAYCE_EFFECTS,
 	...JINX_EFFECTS,
+	...KATARINA_EFFECTS,
+	...KENNEN_EFFECTS,
 	...MALPHITE_EFFECTS,
+	...MASTER_YI_EFFECTS,
+	...MISS_FORTUNE_EFFECTS,
+	...MONKEY_KING_EFFECTS,
 	...MORGANA_EFFECTS,
 	...QUINN_EFFECTS,
 	...RENGAR_EFFECTS,
+	...SAMIRA_EFFECTS,
 	...SHYVANA_EFFECTS,
 	...SINGED_EFFECTS,
+	...SIVIR_EFFECTS,
+	...TALON_EFFECTS,
 	...TARIC_EFFECTS,
 	...TEEMO_EFFECTS,
+	...TRISTANA_EFFECTS,
+	...TRUNDLE_EFFECTS,
 	...TRYNDAMERE_EFFECTS,
 	...TWITCH_EFFECTS,
 	...UDYR_EFFECTS,
 	...VIEGO_EFFECTS,
+	...WARWICK_EFFECTS,
+	...XIN_ZHAO_EFFECTS,
 	...ZIGGS_EFFECTS,
 ]
