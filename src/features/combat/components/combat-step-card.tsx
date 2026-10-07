@@ -253,12 +253,13 @@ export function CombatStepCard({
 				)}
 				{!refused && !!view?.effects.length && (
 					<ul aria-label="Effects running" className="flex flex-wrap gap-1">
-						{view.effects.map((effect) => (
+						{view.effects.map(({ name, until }) => (
 							<li
-								key={effect}
+								key={`${name}@${until}`}
 								className="rounded-full border border-line-strong bg-surface px-2 py-0.5 text-[0.625rem] text-prose"
 							>
-								{effect}
+								{name}
+								{until !== undefined && ` · until ${formatSeconds(until)}`}
 							</li>
 						))}
 					</ul>
