@@ -65,6 +65,8 @@ export function conditionText(condition: Condition): string {
 			return lasting(duration, "periodically")
 		case "on-ability-damage":
 			return lasting(duration, "after ability damage")
+		case "on-max-stacks":
+			return lasting(duration, "at full stacks")
 	}
 }
 

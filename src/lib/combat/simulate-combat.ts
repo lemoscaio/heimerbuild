@@ -17,6 +17,7 @@ import type {
 	MarkConsumer,
 	PauseOn,
 	SlotCast,
+	StackReset,
 	Trigger,
 } from "../effects/effect"
 import {
@@ -689,7 +690,7 @@ function trigger(
 	if (!isInForm(effect, sim.formId)) return
 	const readyAt = sim.effectsReadyAt.get(effect.id) ?? 0
 	if (readyAt > sim.time && !ignoreCooldown) return
-	const { applies, endsOn, stacks, cooldownFrom, delay, startsAfter } =
+	const { applies, endsOn, stacks, cooldownFrom, delay, startsAfter, resets } =
 		effect.effect
 	if (delay && !landing) {
 		const owner = sim.owner ?? sim.step
@@ -705,6 +706,7 @@ function trigger(
 		startWaiting(sim, effect, startsAfter.duration)
 		return
 	}
+	if (resets) resetStacks(sim, resets, pending)
 	if (applies) pending.push({ ...applies, by: effect })
 	if (!isEndedBy(effect, "on-hit")) {
 		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
@@ -724,11 +726,14 @@ function trigger(
 		running.triggeredAt = sim.time
 		running.endsAt = sim.time + duration
 		running.lastTickAt = areaLastTickAt(sim, effect, options.duration)
-		running.stacks = Math.min(stacks?.max ?? 1, running.stacks + 1)
+		running.stacks = Math.min(stackLimit(sim, effect), running.stacks + 1)
 		if (running.charges) running.charges.used = 0
 		if (dot) {
 			const kind = running.stacks > before ? "stacked" : "refreshed"
 			recordApplication(sim, running, { owner, kind }, { landing })
+		}
+		if (running.stacks > before && running.stacks === stacks?.max) {
+			triggerOnMaxStacks(sim, effect, pending)
 		}
 		return
 	}
@@ -739,6 +744,50 @@ function trigger(
 	if (!dot) return
 	recordApplication(sim, instance, { owner, kind: "applied" }, { landing })
 	if (nextTickAt(instance) === sim.time) tick(sim, instance)
+}
+
+/** The most stacks an effect may have now: its `stacks.max`, or less while an effect that `resets` it runs. */
+function stackLimit(sim: Simulation, effect: BuildEffect): number {
+	let limit = effect.effect.stacks?.max ?? 1
+	for (const { effect: running } of sim.active) {
+		const { resets } = running.effect
+		if (resets?.effect === effect.id) limit = Math.min(limit, resets.stacks)
+	}
+	return limit
+}
+
+/** An effect just reached its `stacks.max`: the effects waiting on it trigger (Blaze's detonation). */
+function triggerOnMaxStacks(
+	sim: Simulation,
+	effect: BuildEffect,
+	pending: PendingMarks,
+) {
+	triggerWhere(
+		sim,
+		(trigger) =>
+			trigger.kind === "on-max-stacks" && trigger.effect === effect.id,
+		pending,
+	)
+}
+
+/** Sets another effect's stacks and refreshes it, or starts it with them (Blaze's detonation leaves one). */
+function resetStacks(
+	sim: Simulation,
+	{ effect: id, stacks }: StackReset,
+	pending: PendingMarks,
+) {
+	const effect = sim.input.effects.find((entry) => entry.id === id)
+	if (!effect) return
+	const find = () => sim.active.find((instance) => instance.effect.id === id)
+	const running = find()
+	if (!running) trigger(sim, effect, pending, { ignoreCooldown: true })
+	const instance = find()
+	if (!instance) return
+	instance.stacks = stacks
+	if (!running) return
+	const duration = effectDuration(effect, sim.context)
+	instance.triggeredAt = sim.time
+	if (duration !== undefined) instance.endsAt = sim.time + duration
 }
 
 /** A delayed effect takes effect, for the step that triggered it (Noxious Trap detonating). */

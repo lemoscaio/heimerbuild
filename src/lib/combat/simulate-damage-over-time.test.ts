@@ -329,6 +329,121 @@ describe("Twitch's Deadly Venom: stacks from attacks", async () => {
 	})
 })
 
+describe("Brand's Blaze: casts stack a burn that detonates at 3 (issue 380)", async () => {
+	const brand: Setup = {
+		champion: await champion("Brand"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+	}
+	// Wiki: 2% of maximum health per stack over 4 s, every 0.25 s; at 3 stacks a ring detonates 2 s
+	// later for 6% to 12% by level (+2% per 100 AP) of maximum health, 8.82% at level 9.
+	const perTick = (DUMMY.health * 0.02) / 16
+	const explosion = DUMMY.health * 0.0882353
+	const cast = (slot: "Q" | "W" | "E" | "R"): CombatAction => ({
+		kind: "ability",
+		slot,
+	})
+	const detonations = (result: CombatResult) =>
+		allHits(result).filter(
+			({ source }) =>
+				source.kind === "effect" &&
+				source.effectId === "brand-blaze-detonation",
+		)
+
+	test("a cast burns for 2% of maximum health over 4 s: 16 ticks 0.25 s apart, the last at 4 s", () => {
+		const ticks = ticksOf(simulate(brand, [cast("Q")]), "brand-blaze")
+
+		expect(ticks.map(({ time }) => time)).toEqual(
+			Array.from({ length: 16 }, (_, index) => (index + 1) * 0.25),
+		)
+		for (const { damage } of ticks) {
+			expect(damage.type).toBe("magic")
+			expect(damage.raw).toBeCloseTo(perTick)
+			expect(damage.final).toBeCloseTo(magic(perTick))
+		}
+	})
+
+	test("each cast adds a stack and refreshes the burn; each tick deals the stacks it has then", () => {
+		const result = simulate(brand, [cast("Q"), cast("W")])
+		const ticks = ticksOf(result, "brand-blaze")
+
+		expect(
+			result.steps.map(({ damageOverTime }) => damageOverTime[0]),
+		).toMatchObject([
+			{ application: "applied", stacks: 1 },
+			{ application: "stacked", stacks: 2, endsAt: 4.25 },
+		])
+		for (const { time, damage } of ticks) {
+			expect(damage.raw).toBeCloseTo(perTick * (time > 0.25 ? 2 : 1))
+		}
+		expect(ticks.at(-1)?.time).toBe(4.25)
+		expect(detonations(result)).toEqual([])
+	})
+
+	test("the third stack makes the target unstable: it detonates 2 s later and keeps one stack", () => {
+		const result = simulate(brand, [cast("E"), cast("Q"), cast("W")])
+		const ticks = ticksOf(result, "brand-blaze")
+		const [detonation] = detonations(result)
+
+		expect(result.steps[2]?.waiting).toEqual([
+			{ effectId: "brand-blaze-detonation", label: "unstable", until: 2.5 },
+		])
+		expect(detonation?.time).toBe(2.5)
+		expect(detonation?.damage.raw).toBeCloseTo(explosion, 1)
+		expect(detonation?.damage.final).toBeCloseTo(magic(explosion), 1)
+		for (const { time, damage } of ticks.filter(({ time }) => time > 0.5)) {
+			expect(damage.raw).toBeCloseTo(perTick * (time < 2.5 ? 3 : 1))
+		}
+		expect(ticks.at(-1)?.time).toBe(6.5)
+		expect(result.duration).toBe(6.5)
+	})
+
+	test("for 4 s after it detonates, a cast only refreshes the one stack", () => {
+		const result = simulate(brand, [
+			cast("E"),
+			cast("Q"),
+			cast("W"),
+			{ kind: "wait", seconds: 2 },
+			cast("R"),
+		])
+
+		expect(result.steps[4]?.damageOverTime).toMatchObject([
+			{ effectId: "brand-blaze", application: "refreshed", stacks: 1 },
+		])
+		expect(detonations(result)).toHaveLength(1)
+	})
+
+	test("AP and level raise the detonation: 12% plus 2% per 100 AP at level 18", () => {
+		const rod = item("Needlessly Large Rod")
+		const setup = { ...brand, level: 18, items: [rod] }
+		const abilityPower = computeBuildStats({
+			champion: brand.champion,
+			patch: PATCH,
+			level: 18,
+			items: [rod],
+			shards: [],
+			ranks: brand.ranks,
+		}).abilityPower.total
+		const [detonation] = detonations(
+			simulate(setup, [cast("E"), cast("Q"), cast("W")]),
+		)
+
+		expect(detonation?.damage.raw).toBeCloseTo(
+			DUMMY.health * (0.12 + (0.02 * abilityPower) / 100),
+		)
+	})
+
+	test("free mode: No on the third cast's Blaze leaves 2 stacks, so nothing detonates", () => {
+		const { result } = simulateFreeCombat(
+			inputOf(brand, [cast("E"), cast("Q"), cast("W")]),
+			[undefined, undefined, { "damage-over-time:brand-blaze": false }],
+		)
+
+		expect(result.steps[2]?.damageOverTime).toEqual([])
+		expect(detonations(result)).toEqual([])
+	})
+})
+
 describe("Liandry's Torment: ability damage burns for a share of maximum health", async () => {
 	const annie: Setup = {
 		champion: await champion("Annie"),

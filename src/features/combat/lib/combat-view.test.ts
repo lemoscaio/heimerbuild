@@ -134,6 +134,41 @@ describe("stepView", () => {
 		])
 	})
 
+	test("names an effect's hit with its label, apart from its source's other effects (issue 380)", () => {
+		const names = combatNames({
+			passiveName: "Blaze",
+			spells: [],
+			effects: [
+				bound({ id: "brand-blaze" }, "Blaze"),
+				bound({ id: "brand-blaze-detonation", label: "detonation" }, "Blaze"),
+			],
+		})
+		const detonated = stepView(
+			{
+				...STEP,
+				events: [
+					{
+						kind: "hit",
+						time: 2.5,
+						source: { kind: "effect", effectId: "brand-blaze-detonation" },
+						damage: { type: "magic", raw: 150, final: 100 },
+					},
+				],
+			},
+			{ names, target: TARGET },
+		)
+
+		expect(detonated.hits).toEqual([
+			{
+				name: "Blaze (detonation)",
+				type: "magic",
+				raw: 150,
+				final: 100,
+				count: 1,
+			},
+		])
+	})
+
 	test("names the marks it moved, the effects running after it and the target's health left", () => {
 		expect(view.marks).toEqual([
 			{ mark: "Harrier", change: "consumed", fromMarker: false },
