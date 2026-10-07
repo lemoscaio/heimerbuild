@@ -14,6 +14,24 @@ export function outcomeId(key: OutcomeKey): string {
 		: `${key.kind}:${key.effectId}`
 }
 
+/** The key an `outcomeId` names; undefined for an id it never writes. */
+export function readOutcomeId(id: string): OutcomeKey | undefined {
+	const separator = id.indexOf(":")
+	const kind = id.slice(0, separator)
+	const name = id.slice(separator + 1)
+	if (separator === -1 || !name) return undefined
+	switch (kind) {
+		case "mark-applied":
+		case "mark-consumed":
+			return { kind, mark: name }
+		case "empowered":
+		case "damage-over-time":
+			return { kind, effectId: name }
+		default:
+			return undefined
+	}
+}
+
 /** Whether the effect deals damage over time (Ignite, Toxic Shot). */
 export function dealsDamageOverTime({ effect }: BuildEffect): boolean {
 	return effect.grants.some(({ kind }) => kind === "damageOverTime")

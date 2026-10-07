@@ -17,6 +17,9 @@ export type SituationMarker = { kind: "situation"; effectId: string }
 /** What a combo is made of, in order: its actions and its situation markers. */
 export type CombatItem = CombatAction | SituationMarker
 
+/** Longer combos stop adding: a fight is a few seconds of actions (markers count too). */
+export const MAX_COMBAT_STEPS = 30
+
 /**
  * What a marker did. While a use in the combo still has its effect on cooldown (until `readyAt`),
  * strict mode `ignored` it and free mode `forced` it. `no-effect`: its situation already held, or
