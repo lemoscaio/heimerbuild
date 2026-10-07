@@ -131,6 +131,11 @@ function amountText(grant: ResolvedGrant, value: number): string {
 	}
 }
 
+/** Seconds that never wrap apart from their number: "2.5 s". */
+function secondsText(seconds: number) {
+	return `${seconds}\u00a0s`
+}
+
 type TimingOptions = {
 	/** The effect's seconds, which a grant without its own lasts. */
 	duration?: number
@@ -150,17 +155,15 @@ function timingText(
 	const decay = grant.timing?.decay
 	const lasts =
 		perGrant && seconds !== undefined && seconds !== decay?.over
-			? `for ${seconds} s`
+			? `for ${secondsText(seconds)}`
 			: undefined
-	const showsOver =
+	const over =
 		decay?.over !== undefined && (perGrant || decay.over !== duration)
+			? `over ${secondsText(decay.over)}`
+			: undefined
 	const decaying =
 		decay &&
-		[
-			"decaying",
-			decay.to !== 0 && `to ${amountText(grant, decay.to)}`,
-			showsOver && `over ${decay.over} s`,
-		]
+		["decaying", decay.to !== 0 && `to ${amountText(grant, decay.to)}`, over]
 			.filter(Boolean)
 			.join(" ")
 	return [lasts, decaying].filter(Boolean).join(", ")

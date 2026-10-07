@@ -99,6 +99,6 @@ test("Olaf's Tough It Out says how long each part lasts: its attack speed 5 s, i
 	await expect(toughItOut).not.toBeChecked()
 	await expect(toughItOut).toHaveAccessibleName(/After casting$/)
 	await expect(toughItOut).toHaveAccessibleDescription(
-		/Attack Speed for 5 s · \d+ shield for 2\.5 s$/,
+		/Attack Speed for 5\s+s · \d+ shield for 2\.5\s+s$/,
 	)
 })

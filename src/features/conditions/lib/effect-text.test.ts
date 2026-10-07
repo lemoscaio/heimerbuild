@@ -195,7 +195,7 @@ describe("grants on their own clock", () => {
 
 		expect(conditionText(row)).toBe("After casting")
 		expect(valuesText(row)).toBe(
-			"+80% Attack Speed for 5 s · 282 shield for 2.5 s",
+			"+80% Attack Speed for 5\u00a0s · 282 shield for 2.5\u00a0s",
 		)
 	})
 
@@ -219,11 +219,11 @@ describe("grants on their own clock", () => {
 		}
 
 		expect(valuesText(blood)).toBe(
-			"+80% Attack Speed for 3 s · +70% Move Speed decaying over 1.5 s",
+			"+80% Attack Speed for 3\u00a0s · +70% Move Speed decaying over 1.5\u00a0s",
 		)
 		expect(conditionText(overdrive)).toBe("For 5 s after casting")
 		expect(valuesText(overdrive)).toBe(
-			"+80% Attack Speed · +70% Move Speed decaying to 10% over 2.9 s",
+			"+80% Attack Speed · +70% Move Speed decaying to 10% over 2.9\u00a0s",
 		)
 	})
 
