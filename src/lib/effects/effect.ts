@@ -229,18 +229,21 @@ export type MarkApplication = {
 	consumedBy: readonly MarkConsumer[]
 }
 
+/** A cast of one of these abilities only (Ambush's camouflage breaks on Venom Cask and Contaminate). */
+export type SlotCast = { kind: "cast"; slots: readonly AbilitySlot[] }
+
 /**
  * What ends an effect early: Teemo's W passive stops when he takes damage; Rengar's R when he
- * attacks or casts (a list ends on any of them); a spellblade on the next on-hit, which deals its
- * damage and uses it up.
+ * attacks or casts (a list ends on any of them; `SlotCast` for only some abilities); a spellblade
+ * on the next on-hit, which deals its damage and uses it up.
  */
-export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit"
+export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit" | SlotCast
 
 /** What starts a pause (combat simulator): a basic attack, an ability cast. */
 export type PauseOn = Extract<EndsOn, "attack" | "cast">
 
-/** What breaks a state an effect waits in (combat simulator): a basic attack, an ability cast. */
-export type BreakOn = Extract<EndsOn, "attack" | "cast">
+/** What breaks a state an effect waits in (combat simulator): a basic attack, an ability cast (or only some). */
+export type BreakOn = Extract<EndsOn, "attack" | "cast"> | SlotCast
 
 /**
  * A state the effect waits in before it runs (combat simulator): from its trigger (after its

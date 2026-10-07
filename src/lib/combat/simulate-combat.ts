@@ -8,7 +8,6 @@ import type { SummonerSpell } from "@schemas/summoner-spell"
 import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
 	Amount,
-	BreakOn,
 	BuildEffect,
 	DamageOverTimeGrant,
 	DamageRatios,
@@ -17,6 +16,7 @@ import type {
 	MarkApplication,
 	MarkConsumer,
 	PauseOn,
+	SlotCast,
 	Trigger,
 } from "../effects/effect"
 import {
@@ -781,11 +781,11 @@ function release(sim: Simulation, waiting: Waiting) {
 	applyMarks(sim, pending)
 }
 
-/** Breaks the states that `reason` ends (an attack breaks Ambush's camouflage as it starts). */
-function breakWaiting(sim: Simulation, reason: BreakOn) {
+/** Breaks the states that `event` ends (an attack breaks Ambush's camouflage as it starts). */
+function breakWaiting(sim: Simulation, event: BreakEvent) {
 	for (const waiting of sim.waiting) {
 		const { startsAfter } = waiting.effect.effect
-		if (startsAfter?.endsOn.includes(reason)) release(sim, waiting)
+		if (isCoveredBy(startsAfter?.endsOn, event)) release(sim, waiting)
 	}
 }
 
@@ -825,18 +825,38 @@ function end(sim: Simulation, instance: Instance) {
 	}
 }
 
-/** Whether `reason` ends the effect early: its `endsOn` is that reason, or a list with it. */
-function isEndedBy({ effect }: BuildEffect, reason: EndsOn): boolean {
-	const { endsOn } = effect
-	return typeof endsOn === "string"
-		? endsOn === reason
-		: !!endsOn?.includes(reason)
+/** What just happened that may end an effect early; an ability cast says its slot. */
+type EndEvent =
+	| Exclude<EndsOn, "cast" | SlotCast>
+	| { kind: "cast"; slot: AbilitySlot }
+
+/** What may break a state an effect waits in (`startsAfter`). */
+type BreakEvent = Exclude<EndEvent, "damage-taken" | "on-hit">
+
+/** Whether `endsOn` (one reason or a list) covers `event`: "cast" any ability, a `SlotCast` its slots. */
+function isCoveredBy(
+	endsOn: EndsOn | readonly EndsOn[] | undefined,
+	event: EndEvent,
+): boolean {
+	return [endsOn ?? []]
+		.flat()
+		.some((reason) =>
+			typeof event === "string"
+				? reason === event
+				: reason === "cast" ||
+					(typeof reason === "object" && reason.slots.includes(event.slot)),
+		)
 }
 
-/** Ends the attacker's effects that stop on `reason`; their cooldown starts now. */
-function endEffects(sim: Simulation, reason: EndsOn) {
+/** Whether `event` ends the effect early (its `endsOn`). */
+function isEndedBy({ effect }: BuildEffect, event: EndEvent): boolean {
+	return isCoveredBy(effect.endsOn, event)
+}
+
+/** Ends the attacker's effects that stop on `event`; their cooldown starts now. */
+function endEffects(sim: Simulation, event: EndEvent) {
 	for (const instance of sim.active.filter(
-		({ effect, holder }) => holder === "attacker" && isEndedBy(effect, reason),
+		({ effect, holder }) => holder === "attacker" && isEndedBy(effect, event),
 	)) {
 		expire(sim, instance)
 		startCooldown(sim, instance.effect)
@@ -1326,9 +1346,10 @@ function castAbility(
 		source: { kind: "ability", slot },
 	})
 	reduceCooldownsOnCast(sim)
-	endEffects(sim, "cast")
+	const cast = { kind: "cast", slot } as const
+	endEffects(sim, cast)
 	pauseEffects(sim, "cast")
-	breakWaiting(sim, "cast")
+	breakWaiting(sim, cast)
 	const areaTime = chosenVariant(hitRule(sim, slot), action.variant)?.duration
 	triggerWhere(
 		sim,
