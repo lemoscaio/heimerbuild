@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { moveInGrid } from "./grid-navigation"
 
-// Nine spells in three columns:
+// Nine options in three columns:
 // 0 1 2
 // 3 4 5
 // 6 7 8
