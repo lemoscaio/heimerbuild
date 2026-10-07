@@ -1,4 +1,4 @@
-// Blitzcrank: Overdrive's attack speed lasts 5 s; its movement speed decays to 10% over 2.9 s (its peak).
+// Blitzcrank: Overdrive lasts 5 s; its movement speed decays to 10% over the first 2.9 s.
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
@@ -20,6 +20,7 @@ export const BLITZCRANK_EFFECTS = [
 				kind: "stat",
 				stat: "movementSpeedPercent",
 				amount: percentLine("Move Speed"),
+				decay: { over: 2.9, to: 0.1 },
 			},
 		],
 		since: VERIFIED_ON,

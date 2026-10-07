@@ -493,6 +493,38 @@ describe("resolveGrants", () => {
 		expect(value(5)).toBeCloseTo(0.3)
 		expect(value()).toBeCloseTo(0.3)
 	})
+
+	test("a grant on its own clock: its peak without a time, then it ends or decays by the seconds since the trigger", () => {
+		const overdrive: Effect = {
+			id: "overdrive",
+			source: { kind: "ability", championKey: "Blitzcrank", slot: "W" },
+			trigger: { kind: "after-use" },
+			duration: 5,
+			grants: [
+				{ kind: "shield", amount: 200, duration: 2.5 },
+				{
+					kind: "stat",
+					stat: "movementSpeedPercent",
+					amount: 0.7,
+					decay: { over: 2, to: 0.1 },
+				},
+			],
+			since: "16.19",
+			sourceUrl: `${WIKI}Blitzcrank`,
+		}
+		const values = (elapsed?: number) =>
+			resolveGrants(bind(overdrive), {
+				level: 1,
+				...(elapsed !== undefined && { elapsed: { overdrive: elapsed } }),
+			}).map(({ value }) => value)
+
+		expect(values()).toEqual([200, 0.7])
+		expect(values(1)).toEqual([200, expect.closeTo(0.4)])
+		expect(values(3)).toEqual([expect.closeTo(0.1)])
+		expect(resolveGrants(bind(overdrive), { level: 1 })[0]?.timing).toEqual({
+			duration: 2.5,
+		})
+	})
 })
 
 describe("effectStatsInput", () => {

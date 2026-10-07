@@ -90,3 +90,15 @@ test("Master Yi's Highlander is off by default; on, it raises both speeds and go
 		.poll(() => statTotal(page, "Movement Speed"))
 		.toBeGreaterThan(movementSpeed)
 })
+
+test("Olaf's Tough It Out says how long each part lasts: its attack speed 5 s, its shield 2.5 s", async ({
+	page,
+}) => {
+	await page.goto("/champions/Olaf?lvl=9&skills=WQEWWRWQW")
+	const toughItOut = effectSwitch(page, /^Tough It Out \(W\)/)
+	await expect(toughItOut).not.toBeChecked()
+	await expect(toughItOut).toHaveAccessibleName(/After casting$/)
+	await expect(toughItOut).toHaveAccessibleDescription(
+		/Attack Speed for 5\s+s · \d+ shield for 2\.5\s+s$/,
+	)
+})

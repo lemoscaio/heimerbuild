@@ -1612,3 +1612,95 @@ describe("Decimate and Super Mega Death Rocket!: the player picks how the cast l
 		expect(cast(jinx, "R", "near")[0]?.raw).toBeCloseTo(20 + 0.12 * 10)
 	})
 })
+
+describe("grants on their own clock (issue 373)", async () => {
+	const annie = await champion("Annie")
+	const setup: Setup = {
+		champion: annie,
+		level: 1,
+		ranks: { Q: 1, W: 1, E: 0, R: 0 },
+	}
+	const effectOf = (grants: Effect["grants"]): Effect => ({
+		id: "test-grant-clock",
+		source: { kind: "ability", championKey: "Annie", slot: "passive" },
+		trigger: { kind: "on-cast" },
+		duration: 10,
+		grants,
+		since: "16.19",
+		sourceUrl: "https://example.com",
+	})
+	const run = (effect: Effect, actions: readonly CombatAction[]) =>
+		simulateCombat({
+			build: buildOf(setup),
+			effects: combatEffects(
+				{
+					patch: PATCH,
+					champion: annie,
+					ranks: setup.ranks,
+					spells: [],
+					runes: [],
+				},
+				[[effect]],
+			),
+			summoners: [],
+			target: DUMMY,
+			actions,
+		})
+	const atRest = computeBuildStats(buildOf(setup)).attackDamage.total
+	const attackRaw = (result: CombatResult, step: number) =>
+		hits(result, step).find((_, index) => index === 0)?.raw
+	const shortAndLong = effectOf([
+		{ kind: "stat", stat: "attackDamage", amount: 50, duration: 1 },
+		{ kind: "stat", stat: "attackDamage", amount: 20 },
+	])
+
+	test("a grant with its own duration ends then, while its effect and other grants run on", () => {
+		const result = run(shortAndLong, [
+			{ kind: "ability", slot: "Q" },
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 2 },
+			{ kind: "attack" },
+		])
+
+		expect(attackRaw(result, 1)).toBeCloseTo(atRest + 70)
+		expect(attackRaw(result, 3)).toBeCloseTo(atRest + 20)
+		expect(result.steps[3]?.active.map(({ effectId }) => effectId)).toContain(
+			"test-grant-clock",
+		)
+	})
+
+	test("a re-trigger starts the grant's clock again", () => {
+		const result = run(shortAndLong, [
+			{ kind: "ability", slot: "Q" },
+			{ kind: "wait", seconds: 0.9 },
+			{ kind: "ability", slot: "W" },
+			{ kind: "attack" },
+		])
+
+		expect(attackRaw(result, 3)).toBeCloseTo(atRest + 70)
+	})
+
+	test("a decaying grant is read at each moment: a straight line to its floor, then held", () => {
+		const decaying = effectOf([
+			{
+				kind: "stat",
+				stat: "attackDamage",
+				amount: 40,
+				decay: { over: 2, to: 10 },
+			},
+		])
+		const result = run(decaying, [
+			{ kind: "ability", slot: "Q" },
+			{ kind: "wait", seconds: 0.75 },
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 3 },
+			{ kind: "attack" },
+		])
+		const castAt = result.steps[0]?.time ?? Number.NaN
+		const elapsed = (result.steps[2]?.time ?? Number.NaN) - castAt
+
+		expect(elapsed).toBeLessThan(2)
+		expect(attackRaw(result, 2)).toBeCloseTo(atRest + 40 - 30 * (elapsed / 2))
+		expect(attackRaw(result, 4)).toBeCloseTo(atRest + 10)
+	})
+})

@@ -156,20 +156,32 @@ export type DamageOverTimeGrant = {
  * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
  * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true damage).
  */
-export type Grant =
-	| { kind: "stat"; stat: GrantStat; amount: Amount }
-	| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; amount: Amount }
-	| { kind: "shield"; amount: Amount }
-	| { kind: "heal"; amount: Amount }
-	| { kind: "damage"; damageType: DamageType; ratios: DamageRatios }
-	| { kind: "abilityDamage"; ability: AbilitySlot | "passive"; name: string }
-	| DamageOverTimeGrant
-	| {
-			kind: "onAttackDamage"
-			damageType: DamageType
-			base?: TableAmount
-			ratios: DamageRatios
-	  }
+export type Grant = GrantTiming &
+	(
+		| { kind: "stat"; stat: GrantStat; amount: Amount }
+		| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; amount: Amount }
+		| { kind: "shield"; amount: Amount }
+		| { kind: "heal"; amount: Amount }
+		| { kind: "damage"; damageType: DamageType; ratios: DamageRatios }
+		| { kind: "abilityDamage"; ability: AbilitySlot | "passive"; name: string }
+		| DamageOverTimeGrant
+		| {
+				kind: "onAttackDamage"
+				damageType: DamageType
+				base?: TableAmount
+				ratios: DamageRatios
+		  }
+	)
+
+/**
+ * A grant's own clock inside its effect: it ends `duration` seconds after the trigger (Olaf's shield,
+ * 2.5 s of 5), and `decay` shrinks it linearly to `to` (0 by default) over `over` seconds (its
+ * duration by default, else its effect's), then holds (Overdrive: to 10% over 2.9 s of 5).
+ */
+export type GrantTiming = {
+	duration?: Amount
+	decay?: { over?: Amount; to?: Amount }
+}
 
 /** A state the champion holds while the effect lasts. */
 export type EffectCondition = "not-damaged-recently"

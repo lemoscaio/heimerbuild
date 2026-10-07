@@ -1,4 +1,4 @@
-// Katarina: Preparation's movement speed decays until the dagger lands, 1.25 s later (its peak).
+// Katarina: Preparation's movement speed decays to nothing until the dagger lands, 1.25 s later.
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
@@ -14,6 +14,7 @@ export const KATARINA_EFFECTS = [
 				kind: "stat",
 				stat: "movementSpeedPercent",
 				amount: percentLine("Move Speed"),
+				decay: {},
 			},
 		],
 		since: VERIFIED_ON,

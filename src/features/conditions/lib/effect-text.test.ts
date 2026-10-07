@@ -171,6 +171,73 @@ describe("valuesText", () => {
 	})
 })
 
+describe("grants on their own clock", () => {
+	const attackSpeed = {
+		kind: "stat",
+		stat: "attackSpeedPercent",
+		value: 0.8,
+	} as const
+	const moveSpeed = {
+		kind: "stat",
+		stat: "movementSpeedPercent",
+		value: 0.7,
+	} as const
+
+	test("when the grants last different times, each says its own and the condition none", () => {
+		const row = {
+			...condition({ kind: "after-use" }, { duration: 5 }),
+			grants: [
+				attackSpeed,
+				{ kind: "shield", value: 200, timing: { duration: 2.5 } },
+				{ kind: "shield", value: 82, timing: { duration: 2.5 } },
+			] as const,
+		}
+
+		expect(conditionText(row)).toBe("After casting")
+		expect(valuesText(row)).toBe(
+			"+80% Attack Speed for 5\u00a0s · 282 shield for 2.5\u00a0s",
+		)
+	})
+
+	test("a decaying grant says over how long, and to what when it keeps some", () => {
+		const blood = {
+			...condition({ kind: "after-use" }, { duration: 3 }),
+			grants: [
+				attackSpeed,
+				{
+					...moveSpeed,
+					timing: { duration: 1.5, decay: { over: 1.5, to: 0 } },
+				},
+			],
+		}
+		const overdrive = {
+			...condition({ kind: "after-use" }, { duration: 5 }),
+			grants: [
+				attackSpeed,
+				{ ...moveSpeed, timing: { decay: { over: 2.9, to: 0.1 } } },
+			],
+		}
+
+		expect(valuesText(blood)).toBe(
+			"+80% Attack Speed for 3\u00a0s · +70% Move Speed decaying over 1.5\u00a0s",
+		)
+		expect(conditionText(overdrive)).toBe("For 5 s after casting")
+		expect(valuesText(overdrive)).toBe(
+			"+80% Attack Speed · +70% Move Speed decaying to 10% over 2.9\u00a0s",
+		)
+	})
+
+	test("a grant decaying over the whole effect only says it decays", () => {
+		const row = {
+			...condition({ kind: "after-use" }, { duration: 1.25 }),
+			grants: [{ ...moveSpeed, timing: { decay: { over: 1.25, to: 0 } } }],
+		}
+
+		expect(conditionText(row)).toBe("For 1.25 s after casting")
+		expect(valuesText(row)).toBe("+70% Move Speed decaying")
+	})
+})
+
 describe("partLabel and stackedOutText", () => {
 	const passive: Effect = {
 		id: "teemo-w-passive",
