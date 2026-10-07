@@ -28,6 +28,8 @@ export type BuildEffectsInput = {
 	overrides: EffectOverrides
 	/** Stacks by effect id, from a combat sequence; absent means each effect at all its stacks. */
 	stacks?: Readonly<Record<string, number>>
+	/** Effects whose `pauses` holds now, by id, from a combat sequence; absent means none. */
+	paused?: ReadonlySet<string>
 }
 
 export type BuildStatsInput = {
@@ -89,6 +91,7 @@ function evaluateBuild({
 			),
 		}),
 		...(effects.stacks && { stacks: effects.stacks }),
+		...(effects.paused && { paused: effects.paused }),
 	}
 	const active = activeEffects(effects.available, effects.overrides, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)

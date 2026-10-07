@@ -37,6 +37,8 @@ export type EffectContext = {
 	form?: string
 	/** Stacks an effect has by its id (the combat simulator's); absent means its full value, all stacks. */
 	stacks?: Readonly<Record<string, number>>
+	/** Effects whose `pauses` holds now, by id (the combat simulator's): their paused stat grants give nothing. */
+	paused?: ReadonlySet<string>
 	/** Melee or ranged in the form and at the level, which `attackType` amounts read. */
 	attackType?: Champion["attackType"]
 }
@@ -183,11 +185,25 @@ function stackShare({ id, effect }: BuildEffect, { stacks }: EffectContext) {
 	return Math.min(count, max) / max
 }
 
+/** A stat grant its effect's pause switches off now (Viego's E movement speed after an attack). */
+function isPaused(
+	grant: Grant,
+	{ id, effect }: BuildEffect,
+	{ paused }: EffectContext,
+) {
+	return (
+		grant.kind === "stat" &&
+		!!paused?.has(id) &&
+		!!effect.pauses?.grants.some((stat) => stat === grant.stat)
+	)
+}
+
 function resolveGrant(
 	grant: Grant,
 	effect: BuildEffect,
 	context: EffectContext,
 ): ResolvedGrant[] {
+	if (isPaused(grant, effect, context)) return []
 	const share = stackShare(effect, context)
 	const full = resolveFullGrant(grant, effect, context)
 	return share === 1

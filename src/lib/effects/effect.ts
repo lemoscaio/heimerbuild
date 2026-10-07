@@ -224,6 +224,20 @@ export type MarkApplication = {
  */
 export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit"
 
+/** What starts a pause (combat simulator): a basic attack, an ability cast. */
+export type PauseOn = Extract<EndsOn, "attack" | "cast">
+
+/**
+ * Part of an effect switched off for `seconds` after each of `on`, then back on, while the rest
+ * holds (Viego's E: its movement speed for 1 s after an attack or a cast; its attack speed stays).
+ */
+export type EffectPause = {
+	on: readonly PauseOn[]
+	/** The stat grants it switches off, by stat. */
+	grants: readonly StatKey[]
+	seconds: number
+}
+
 /**
  * A situation a combo marker can set, which the effect supports (combat simulator): its mark on
  * the target (`marked`: Harrier), the effect running (`running`: Short Fuse ready), or its cooldown
@@ -278,6 +292,8 @@ export type Effect = PatchRange & {
 	charges?: number
 	/** What ends it early; its `cooldown` then starts from that moment instead of the trigger. */
 	endsOn?: EndsOn | readonly EndsOn[]
+	/** Part of it an event switches off for a while, the rest holding (combat simulator). */
+	pauses?: EffectPause
 	/** The mark it puts on the target when it triggers (combat simulator). */
 	applies?: MarkApplication
 	/** Who holds it: the attacker (absent), or the target (Ignite's burn, Toxic Shot's poison). */
