@@ -1,4 +1,9 @@
+import type { AbilitySlot } from "@schemas/champion"
 import { type CombatItem, MAX_COMBAT_STEPS } from "@/lib/combat/combat"
+import {
+	type AbilityVariant,
+	defaultVariant,
+} from "@/lib/combat/registries/ability-hits"
 
 /**
  * One entry of the combo the user builds: an action or a situation marker, with an id that follows
@@ -108,15 +113,20 @@ export function setWaitSeconds(
 	)
 }
 
-/** The combo with an ability step's variant picked (Decimate's inner handle); other steps are left alone. */
+/**
+ * The combo with an ability step's variant picked (Decimate's inner handle); its default is saved as
+ * no pick, so the link omits it (`r` is Pyroclasm's 3 hits). Other steps are left alone.
+ */
 export function setStepVariant(
 	entries: readonly CombatEntry[],
 	id: number,
 	variant: string,
+	variantsOf: (slot: AbilitySlot) => readonly AbilityVariant[],
 ): CombatEntry[] {
-	return entries.map((entry) =>
-		entry.id === id && entry.action.kind === "ability"
-			? { ...entry, action: { ...entry.action, variant } }
-			: entry,
-	)
+	return entries.map((entry) => {
+		if (entry.id !== id || entry.action.kind !== "ability") return entry
+		const { variant: _picked, ...action } = entry.action
+		const isDefault = defaultVariant(variantsOf(action.slot))?.id === variant
+		return { ...entry, action: isDefault ? action : { ...action, variant } }
+	})
 }

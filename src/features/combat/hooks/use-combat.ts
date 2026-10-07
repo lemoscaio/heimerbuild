@@ -84,6 +84,14 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 	}
 	const saveEntries = (next: CombatState["entries"]) =>
 		save({ ...value, entries: next })
+	const variantsOf = (slot: AbilitySlot) =>
+		input
+			? abilityVariants({
+					championKey: input.build.champion.key,
+					patch: input.build.patch,
+					slot,
+				})
+			: []
 
 	return {
 		value,
@@ -111,22 +119,15 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		/** The ways an ability's cast can land, picked per step (Decimate's blade or handle), with a time in an area's ticks. */
 		variants: (slot: AbilitySlot) =>
 			input
-				? areaVariants(
-						abilityVariants({
-							championKey: input.build.champion.key,
-							patch: input.build.patch,
-							slot,
-						}),
-						{
-							slot,
-							effects,
-							context: {
-								level: input.build.level,
-								ranks: input.build.ranks,
-								rankStats: input.build.champion.rankStats,
-							},
+				? areaVariants(variantsOf(slot), {
+						slot,
+						effects,
+						context: {
+							level: input.build.level,
+							ranks: input.build.ranks,
+							rankStats: input.build.champion.rankStats,
 						},
-					)
+					})
 				: [],
 		/** What an ability's variants pick: "Lands" (Decimate), "Poisoned" (Poison Trail). */
 		variantsLabel: (slot: AbilitySlot) =>
@@ -165,7 +166,7 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		setWait: (id: number, seconds: number) =>
 			saveEntries(setWaitSeconds(entries, id, seconds)),
 		setVariant: (id: number, variant: string) =>
-			saveEntries(setStepVariant(entries, id, variant)),
+			saveEntries(setStepVariant(entries, id, variant, variantsOf)),
 		setFree: (free: boolean) => save({ ...value, free }),
 		/** Sets an outcome at a step in free mode; `undefined` goes back to the computed one. */
 		setChoice: (id: number, outcome: string, happened: boolean | undefined) =>

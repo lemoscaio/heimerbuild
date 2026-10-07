@@ -34,6 +34,8 @@ export type AbilityVariant = {
 	duration?: number
 	/** The cast hits the target `count` times, `every` seconds apart (Pyroclasm's bounces). */
 	hits?: LaterHits
+	/** The one a step without a pick gets, instead of the first (Pyroclasm's 3 hits). */
+	default?: true
 }
 
 /**
@@ -83,7 +85,7 @@ export type AbilityHitRule = PatchRange & {
 	onHit?: true
 	/** The cast's damage is known not to be simulated, and why; the hit shows that instead of a number. */
 	notModeled?: string
-	/** The ways the cast can land, the first by default; each step picks one (an input, never an outcome). */
+	/** The ways the cast can land, the first (or the one marked `default`) by default; each step picks one. */
 	variants?: readonly AbilityVariant[]
 	/** What the variants pick, `LANDS_LABEL` when absent. */
 	variantsLabel?: VariantsLabel
@@ -145,6 +147,13 @@ export function abilityVariants(
 	rules: readonly AbilityHitRule[] = ABILITY_HIT_RULES,
 ): readonly AbilityVariant[] {
 	return findHitRule(rules, query)?.variants ?? []
+}
+
+/** The variant a step without a pick gets: the one marked `default`, else the first. */
+export function defaultVariant(
+	variants: readonly AbilityVariant[],
+): AbilityVariant | undefined {
+	return variants.find((variant) => variant.default) ?? variants[0]
 }
 
 /** What an ability's variants pick (`variantsLabel`), "Lands" by default. */

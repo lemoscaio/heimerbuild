@@ -77,6 +77,7 @@ import {
 	ABILITY_HIT_RULES,
 	type AbilityHitRule,
 	type AbilityVariant,
+	defaultVariant,
 	findHitRule,
 } from "./registries/ability-hits"
 
@@ -1418,13 +1419,13 @@ function damageNames(damage: string | readonly string[] | null) {
 	return typeof damage === "string" ? [damage] : damage
 }
 
-/** The variant a cast picked, the first by default; none when its rule has no variants. */
+/** The variant a cast picked, else its default (`defaultVariant`); none when its rule has no variants. */
 function chosenVariant(
 	rule: AbilityHitRule | undefined,
 	variant: string | undefined,
 ): AbilityVariant | undefined {
 	const variants = rule?.variants ?? []
-	return variants.find(({ id }) => id === variant) ?? variants[0]
+	return variants.find(({ id }) => id === variant) ?? defaultVariant(variants)
 }
 
 type AbilityHitOptions = {
