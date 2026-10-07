@@ -15,7 +15,7 @@ src/
 │   ├── home/             champion browser and recent builds
 │   └── champion-build/   the build page: picks the screen (overview, expanded shop, mobile), useChampionBuild, useBuildPage
 ├── features/             feature slices, never import each other
-│   ├── champions/        champion grid, search, champion header and skills; champion state (level, form, current health)
+│   ├── champions/        champion grid, search, champion header and skills, the champion picker; champion state (level, form, current health)
 │   ├── build-calculator/ level, item slots, stats panel (on top of lib/stats)
 │   ├── item-shop/        item grid, role/stat filters, sorting, tooltips
 │   ├── runes/            rune page editor (trees, runes, stat shards) and its summary card
@@ -115,9 +115,11 @@ pages/champion-build/
 │   ├── use-url-build-source.ts   the URL as the build source: writes the search, records recent builds
 │   ├── use-champion-build.ts     data hooks + domain hooks + stats on a build source (the composer)
 │   ├── use-build-combat.ts       the combo (target, steps and markers, free mode) on the composer's combo values and combat input
-│   └── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch, the combo
+│   ├── use-champion-switch.ts    the switch to another champion and its notice (issue 354)
+│   └── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch, the combo, the champion switch
 └── lib/
-    └── condition-values.ts       dropUnusedConditionValues: the composer's cleanup on save
+    ├── condition-values.ts       dropUnusedConditionValues: the composer's cleanup on save
+    └── champion-switch.ts        switchChampionValues: what a champion switch keeps and resets
 ```
 
 | Domain | Hook | Feature | Value in the source |
@@ -150,6 +152,7 @@ Each rule about a value lives in one place:
 - **Match state is shared.** One match holds the game time and later its other values (expected gold, dragons). When a second build instance arrives (an opponent, issue 69), both builds read the same match state; the time is never kept per build.
 - **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` (`available`) and into the stats (`effects: { available, overrides }`). It injects the condition values as plain values too: `useConditions` gets them in its `context` (level, current health, game time, the selected form) only to show each row's value, and `computeBuildStats` gets `currentHealth` and `gameTime` as inputs. `useChampionState` and `useMatchState` never see the effects: the composer drops a condition value no effect uses when it saves. Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices and values stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step) and the build's adaptive type (`itemsAdaptiveType`, as the stat shards read it), so each row shows the bonus the stats add.
 - **The combo is in the link (issue 317).** The composer reads the combo's values from the source like any domain's (`combo`, `free`, `choices`, `target`, as link values) and saves their edits with their history entry. `useBuildCombat` (page layer) turns them into the target (`readTargetParam`, `toTargetParam`) and the combo (`useCombatLink`: `CombatState`, steps and markers, free mode, its choices) and injects the composer's `combat` input: the build and match state, `combatEffects` (items' included) and the summoner slots. The effect switches never reach it (issue 265, decision 7). `useCombatLink` gives back the very state of the last edit while the link holds it (before or after it: the URL lags a render), so entry ids and identity survive; another link is read with ids from 1. Which groups are open stays in memory.
+- **Switching the champion (issue 354).** The avatar opens the champion picker (`features/champions`: a popover on desktop, a bottom sheet on phones; the home page's `filterChampions`). `switchChampionValues` keeps the items, runes, summoner spells, level, current health and match state, and drops the form, skill points, ability effect choices and the combo with its free mode, choices and target, listing only the resets that changed something. `useUrlBuildSource.switchChampion` opens the new champion's link as a new history entry (Back returns), keeping the patch, view and tab, records it in the recent builds, and puts that summary in the entry's history state; the notice shows it until dismissed or the next edit (a new entry without it), and Undo is Back.
 - **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
