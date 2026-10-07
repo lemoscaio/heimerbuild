@@ -24,7 +24,7 @@ src/
 │   ├── match/            the match state (useMatchState): the game time, one per match
 │   ├── conditions/       the conditional effects turned on or off (useConditions) and the Effects list
 │   ├── target/           the combo's target, a dummy with presets (useTarget, TargetEditor)
-│   └── combat/           the combo: its steps (useCombat, in memory), keys, step cards and totals
+│   └── combat/           the combo: its steps (useCombat, kept in the link), keys, step cards and totals
 ├── data/                 game data loading: fetch + Zod parsing, data hooks, query options
 │   ├── services/         fetchGameData, fetchManifest, fetchChampion, fetchItems
 │   ├── queries/          queryOptions() factories (gameDataQueries)
@@ -114,7 +114,7 @@ pages/champion-build/
 ├── hooks/
 │   ├── use-url-build-source.ts   the URL as the build source: writes the search, records recent builds
 │   ├── use-champion-build.ts     data hooks + domain hooks + stats on a build source (the composer)
-│   ├── use-build-combat.ts       the combo (target, steps and markers, free mode) in memory, on the composer's combat input
+│   ├── use-build-combat.ts       the combo (target, steps and markers, free mode) on the composer's combo values and combat input
 │   └── use-build-page.ts         useChampionBuild + view, tab, item selection, previews, form switch, the combo
 └── lib/
     └── condition-values.ts       dropUnusedConditionValues: the composer's cleanup on save
@@ -129,8 +129,8 @@ pages/champion-build/
 | Summoner spells | `useSummoners` (the two slots, pick, swap, clear) | `summoners` | `summoners` |
 | Match state | `useMatchState` (game time) | `match` | `gameTime` |
 | Conditions | `useConditions` (the effects turned on or off, with their values) | `conditions` | `effects` |
-| Target | `useTarget` (the combo's dummy: health, armor, magic resist) | `target` | in memory |
-| Combo | `useCombat` (the combo's steps and situation markers, free mode and its choices, simulated on the build) | `combat` | in memory |
+| Target | `useTarget` (the combo's dummy: health, armor, magic resist) | `target` | `target` |
+| Combo | `useCombat` (the combo's steps and situation markers, free mode and its choices, simulated on the build) | `combat` | `combo`, `free`, `choices` |
 
 Each rule about a value lives in one place:
 
@@ -142,14 +142,14 @@ Each rule about a value lives in one place:
 
 - **Controlled domain hooks.** Each takes `value` + `onChange` and gets its data injected (champion, items, runes). It knows nothing about the URL, the browser history or the other domains, and keeps the given value while its data loads. Its rules live in the feature's `lib/` as pure functions with unit tests (`readRunePage`, `readBuildItems`, `readChampionState`, `readSummoners`); the hook stays thin and is covered by the e2e flows.
 - **One build source.** `BuildSource` = `{ state, update(patch, navigation) }` (`features/build-calculator/types/build-source.ts`). `useUrlBuildSource` is the only place that writes the URL search (with `toBuildSearch`) and records recent builds; it also carries the page's view and tab, which are never recorded. A later source per build instance (an opponent, a comparison) plugs into the same composer.
-- **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills, runes and summoner spells replace) and the cross-domain links (a level change also saves the skill points that level keeps or restores; the skills' ranks go to the champion state, which unlocks the forms that need a point).
+- **The composer.** `useChampionBuild({ patch, championKey, source })` reads the game data, injects it, and saves each domain's change together with the checked values of every domain, so an edit still cleans a link's unknown items or invalid runes. It holds the explicit browser-history table (items push, so Back undoes them; champion state, skills, runes, summoner spells, the target and the combo's edits replace, except an edit that empties the combo, Clear or its last entry removed, which pushes so Back brings it back) and the cross-domain links (a level change also saves the skill points that level keeps or restores; the skills' ranks go to the champion state, which unlocks the forms that need a point).
 - **Pure stats.** `computeBuildStats({ champion, patch, level, form, items, shards, ranks, effects })` (`lib/stats/`). Every "what if" is `whatIf(change)`: a shop item preview (`items`), the other form (`form`), the next rank (`ranks`), the stats without runes (`shards: []`), an effect turned on (`effects`; see [Effects](#effects)).
 - **Grouped by domain.** The build reads `build.championState.level`, `build.skills.ranks`, `build.items.add`, `build.runePage.selection`. Page screens (overview, expanded shop, mobile) receive the page object from `useBuildPage`; feature components receive props, never the whole build.
 - **Hints between domains** are page wiring too: the runes that react to the chosen summoner spells come from `lib/summoner-rune-interactions.ts` (typed rules, numbers read from the patch's runes), computed in `useBuildPage` and passed to the rune page (`summonerHints`) and the spell picker (`spellEffects`). Neither feature imports the other.
 - **Grouped by subject, not by mechanism.** A value effects read lives with what it describes: the current health with the champion state (one per build), the game time with the match state (one per match). The conditions keep only the effects turned on or off.
 - **Match state is shared.** One match holds the game time and later its other values (expected gold, dragons). When a second build instance arrives (an opponent, issue 69), both builds read the same match state; the time is never kept per build.
 - **Conditions read the other domains.** The composer builds `availableEffects({ patch, champion, ranks, spells, runes })` from the build's patch, the skills, summoner spells and rune page, and injects it into `useConditions` (`available`) and into the stats (`effects: { available, overrides }`). It injects the condition values as plain values too: `useConditions` gets them in its `context` (level, current health, game time, the selected form) only to show each row's value, and `computeBuildStats` gets `currentHealth` and `gameTime` as inputs. `useChampionState` and `useMatchState` never see the effects: the composer drops a condition value no effect uses when it saves. Until the champion, ranks, spells and runes load, it injects `undefined`, so the link's choices and values stay as given. It also injects the totals the stat-dependent bonuses read (`statBonusBasis`, the same evaluation stopped before that step) and the build's adaptive type (`itemsAdaptiveType`, as the stat shards read it), so each row shows the bonus the stats add.
-- **The combo is in memory.** `useBuildCombat` (page layer) holds the target and the combo (`CombatState`: steps and markers, free mode, its choices) in `useState`, an experimental domain's non-URL source, and injects the composer's `combat` input: the build and match state, `combatEffects` (items' included) and the summoner slots. The effect switches never reach it (issue 265, decision 7). They join the link once the format is stable (issue 317).
+- **The combo is in the link (issue 317).** The composer reads the combo's values from the source like any domain's (`combo`, `free`, `choices`, `target`, as link values) and saves their edits with their history entry. `useBuildCombat` (page layer) turns them into the target (`readTargetParam`, `toTargetParam`) and the combo (`useCombatLink`: `CombatState`, steps and markers, free mode, its choices) and injects the composer's `combat` input: the build and match state, `combatEffects` (items' included) and the summoner slots. The effect switches never reach it (issue 265, decision 7). `useCombatLink` gives back the very state of the last edit while the link holds it (before or after it: the URL lags a render), so entry ids and identity survive; another link is read with ids from 1. Which groups are open stays in memory.
 - **Adding a domain** (as conditions did): a controlled hook in its feature with its rules in `lib/`, its value in `BuildValues` and `buildSearchSchema`, one entry in the composer (inject the data, save its `onChange` with its history entry) and, when it changes stats, one more `computeBuildStats` input.
 
 ### Link format
@@ -164,7 +164,21 @@ Shared links must keep opening the same build, so the link format has a version:
 - **`hp`** is the current health in percent of maximum health, 1 to 100 (`hp=40`), which health-dependent effects read (Tryndamere's Bloodlust). Full health means no param, and it is dropped on the next edit when no effect of the build reads it, like an `effects` choice. It came as a new optional param of v1 (no bump).
 - **`min`** is the game time in whole minutes, 0 to 120 (`min=30`), which time-dependent effects read (Gathering Storm). The game's start (0) means no param, and it is dropped on the next edit when no effect of the build reads it, like `hp`. 120 only guards typos. It came as a new optional param of v1 (no bump).
 - **`form`** is the selected form's id (`form=mega`); the default form means no param. An id the champion lacks, or a form whose ability rank is missing (`form=dragon` before Shyvana learns R), opens in the default form and is dropped on the next edit. New forms (`dragon`, `rockets`, `true-form`) are new accepted values of v1 (no bump).
-- **`tab`** is the open center tab: `runes`, `skills` or `combo` (the items tab means no param). It is page state, never recorded in recent builds; `combo` came as a new accepted value of v1 (no bump). The combo's steps and target are not in the link yet (issue 317).
+- **`tab`** is the open center tab: `runes`, `skills` or `combo` (the items tab means no param). It is page state, never recorded in recent builds; `combo` came as a new accepted value of v1 (no bump).
+- **`combo`**, **`free`**, **`choices`** and **`target`** hold the Combo tab (issue 317): its entries in order, free mode, free mode's answers and the target. They came as new optional params of v1 (no bump): an older link has no combo, and an empty combo in strict mode on the Dummy writes none of them. Recent builds store them; which groups are open does not. The schema reads each token on its own (`lib/combat/combo-link.ts`) and drops the ones it can't read, so `combo=aa.zz.q` opens as `aa.q`; past 30 entries (`MAX_COMBAT_STEPS`) the rest are dropped. What the build decides is checked later, as for `form`: a marker for an effect the build lacks shows "not in this build", an unknown variant lands as the first one, an unknown preset is the Dummy, numbers are brought into the target's ranges.
+
+  | Param | Token | Meaning |
+  | --- | --- | --- |
+  | `combo` (`.` between entries) | `aa` | a basic attack |
+  | | `q` `w` `e` `r`, `q-<variant>` | an ability of the selected form, with its variant's id (`q-handle`) |
+  | | `d` `f` | the summoner spell in D or F |
+  | | `t<seconds>` | a wait, `_` as the decimal point (`t1`, `t0_25`, `t1_5`) |
+  | | `m-<effect id>` | a situation marker (`m-hail-of-blades`) |
+  | `free` | `1` | free mode on; absent is strict |
+  | `choices` (`.` between answers) | `<position><outcome>-<id>-<y\|n>` | an answer at the entry at that position in `combo` (1 first, markers count); outcome `e` empowered (effect id), `a` mark applied (mark), `c` mark consumed (mark), `d` damage over time applied (effect id): `2e-hail-of-blades-n` |
+  | `target` | `<preset id>` or `<health>-<armor>-<magic resist>` | a preset other than the Dummy (`tank`) or the numbers (`2500-60-45`) |
+
+  A choice stays in the link while free mode is off, like in the tab. Only `-`, `.` and `_` separate tokens, the characters a URL keeps as they are, so the link reads as written. A 30-entry combo with two markers and 32 answers measured 925 characters for the whole URL.
 - **`skills`** holds one letter per level (`Q`, `W`, `E`, `R`), level 1 first, with `_` (`UNSPENT_LEVEL_MARK`, `lib/skill-order-param.ts`) for a level whose point is unspent: `Q_Q` is Q at levels 1 and 3. Levels after the last letter are unspent, so trailing `_` are never written. The `_` came as a new accepted value of v1 (no bump): older links never contain it and read as before.
 
 ## Effects
@@ -292,14 +306,15 @@ The combo simulator (issue 265, stage 2) runs a sequence of actions against a ta
 
 ```
 lib/combat/
-├── combat.ts               CombatAction, CombatTarget, CombatEvent, CombatStep, CombatResult
+├── combat.ts               CombatAction, CombatTarget, CombatEvent, CombatStep, CombatResult, MAX_COMBAT_STEPS
+├── combo-link.ts           the `combo` and `choices` link values (read, serialize, drop unreadable tokens), the `target` shape
 ├── simulate-combat.ts      simulateCombat({ build, effects, summoners, target, actions, free? }, { hitRules }), simulateFreeCombat
 ├── damage-formula.ts       evaluateDamage (a synced DamageFormula at the rank, level, stats and target health), abilityCooldown
 ├── damage-over-time.ts     tick times, which application owns a tick (tickOwner), each step's damageOverTimeSummaries
 ├── mitigation.ts           effectiveResist, damageMultiplier, mitigate
 ├── curated-champions.ts    CURATED_COMBAT_CHAMPIONS: the champions v1 supports
 ├── start-options.ts        combatStartOptions: the situations the build's effects support, which markers set
-├── outcomes.ts             outcomeId, outcomeKeys (the outcomes a step can have, from triggers), outcomeChoices
+├── outcomes.ts             outcomeId and readOutcomeId, outcomeKeys (the outcomes a step can have, from triggers), outcomeChoices
 └── registries/
     └── ability-hits.ts     ABILITY_HIT_RULES: how a cast hits when its tooltip's first damage isn't the whole story, and its variants;
                             each champion's rules are in lib/champions/<champion>.ts
@@ -331,19 +346,20 @@ lib/combat/
 The tab (issue 265, option A of the design canvas) shows, top to bottom: the action keys and the target, the totals, then one card per step.
 
 ```
-features/target/   useTarget (controlled: value + onChange, the level injected), TargetEditor; lib/target.ts: presets and ranges
+features/target/   useTarget (controlled: value + onChange, the level injected), TargetEditor; lib/target.ts: presets, ranges,
+                   the `target` value (readTargetParam, toTargetParam)
 features/combat/   useCombat (controlled CombatState: steps and markers, free mode, its choices; simulated on the injected input),
-                   useCombatView (step cards, marker lines and totals), useMarkerUndo (add or remove a marker with Undo),
+                   useCombatLink (the CombatState on the link values), useCombatView (step cards, marker lines and totals), useMarkerUndo (add or remove a marker with Undo),
                    useStepReorder (each entry's or group's Move up and Move down buttons, a marker's to the start, announced; drag and drop was dropped
                    in issue 338), useGroupExpansion (which groups show their steps, in memory);
                    lib: combat-sequence (add or insert, remove, move entries or a block past its neighbour or to the start, waits, variants),
-                   combat-state (free choices, marker removal), combat-groups (runs of identical steps and their
+                   combat-state (free choices, marker removal), combat-link (CombatState to link values and back), combat-groups (runs of identical steps and their
                    summary), combat-situations, combat-keys, combat-view, combat-format, ability-damage-status
-pages/champion-build/combo-tab.tsx   assembles the two features; hooks/use-build-combat.ts wires them in memory
+pages/champion-build/combo-tab.tsx   assembles the two features; hooks/use-build-combat.ts wires them to the link
 ```
 
 - **Keys:** attack, the selected form's Q W E R, the chosen summoner spells and wait (1 s, editable on its card from 0.25 to 30 s). An ability whose damage the sync could not read in full says "Not modeled" or "Partly modeled" under its key, and in its accessible description.
-- **Situation (issue 338, option A2):** under the keys, one chip per situation the build's effects support ("+ Hail of Blades ready", "+ Target marked by Harrier"); nothing shows when the build supports none. A chip adds a marker at the end of the combo; its arrow ("Where to put marker: …", issue 344) opens a menu that adds it at the start or at the end. The new marker is pointed out with an "Undo" notice; one added at the start sits before any group. Markers are thin lines between the cards (label, what it did, ×): in strict mode one on cooldown is dimmed and ignored ("on cooldown until 7.60 s · ignored (use Free mode to force it)"), in free mode it is orange and forced ("on cooldown until 7.60 s · forced"), and one whose situation already holds is dimmed ("already marked · no effect"). They move and go like steps (Move up and Move down buttons, ×), plus a "Move marker … to the start" button (issue 344), with Undo after adding or removing one. They stay with the combo in memory (the link comes with issue 317); one for an effect the build no longer has shows "not in this build · no effect".
+- **Situation (issue 338, option A2):** under the keys, one chip per situation the build's effects support ("+ Hail of Blades ready", "+ Target marked by Harrier"); nothing shows when the build supports none. A chip adds a marker at the end of the combo; its arrow ("Where to put marker: …", issue 344) opens a menu that adds it at the start or at the end. The new marker is pointed out with an "Undo" notice; one added at the start sits before any group. Markers are thin lines between the cards (label, what it did, ×): in strict mode one on cooldown is dimmed and ignored ("on cooldown until 7.60 s · ignored (use Free mode to force it)"), in free mode it is orange and forced ("on cooldown until 7.60 s · forced"), and one whose situation already holds is dimmed ("already marked · no effect"). They move and go like steps (Move up and Move down buttons, ×), plus a "Move marker … to the start" button (issue 344), with Undo after adding or removing one. They stay with the combo in the link (`m-<effect id>`, where they sit); one for an effect the build no longer has shows "not in this build · no effect".
 - **Free mode:** a switch next to the title. Strict computes everything. Free shows a notice ("N changes · Restore computed"), keeps the times with "Free mode: times ignore cooldowns", forces markers strict mode ignores, and turns each card's outcomes into Yes/No answers that start from the computed ones; an answer that differs is marked "changed". The choices stay while free mode is off; removing a marker drops the choices of its outcomes up to the next marker of its effect. An ability card says which outcomes only attacks have ("Hail of Blades and Harrier: attacks only").
 - **Inputs and outcomes:** an ability with `variants` shows them in blue on its card in both modes ("Lands: Outer blade | Inner handle"); outcomes are gold, read-only in strict ("Hail of Blades 2/3", "Harrier: consumes the mark: yes"; a damage over time applied shows only as its line, one not applied as "Liandry's Torment: applies: no"). In free mode each damage over time application is a Yes/No answer ("Toxic Shot: applies").
 - **Moving:** every card and marker has Move up and Move down icon buttons ("Move step 2, Attack up", 44 px to tap on phones); the first can't go up and the last can't go down, and a disabled one keeps the focus. Each move is announced politely.
