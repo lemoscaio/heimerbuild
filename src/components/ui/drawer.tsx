@@ -60,3 +60,7 @@ export function DrawerTitle({
 		/>
 	)
 }
+
+export function DrawerClose(props: DrawerPrimitive.Close.Props) {
+	return <DrawerPrimitive.Close data-slot="drawer-close" {...props} />
+}
