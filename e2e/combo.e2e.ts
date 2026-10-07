@@ -18,6 +18,11 @@ function comboTotal(page: Page, term: string) {
 		.getByRole("definition")
 }
 
+/** One remove button per group of identical steps. */
+function groups(page: Page) {
+	return combo(page).getByRole("button", { name: /^Remove group / })
+}
+
 function damageTotal(page: Page) {
 	return comboTotal(page, "Damage")
 }
@@ -241,7 +246,8 @@ test("Hail of Blades again right after its 3 attacks is ignored in strict mode a
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	await ready.click()
 	for (let count = 0; count < 4; count++) await attack.click()
-	await expect(steps(page)).toHaveCount(4)
+	// Four identical attacks in a row show as one group.
+	await expect(groups(page)).toHaveCount(1)
 	const once = await damageTotal(page).textContent()
 
 	// The second marker goes before the 4th attack, while the rune is on cooldown.
@@ -353,4 +359,83 @@ test("the damage splits by type: Teemo's attack is physical and magic, Ignite ad
 		.getByRole("button", { name: "Toxic Shot: applies: No" })
 		.click()
 	await expect(byType().nth(1)).not.toHaveText(magic ?? "")
+})
+
+test("a 12-attack Teemo combo collapses into one group, opens on demand, moves as a whole and loses a step from inside", async ({
+	page,
+}) => {
+	await page.goto("/champions/Teemo?lvl=9&skills=EQWEERE&tab=combo")
+	await combo(page)
+		.getByRole("button", { name: "Add Q, Blinding Dart" })
+		.click()
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	for (let count = 0; count < 12; count++) await attack.click()
+
+	// Collapsed: only the dart's own card has step controls.
+	await expect(groups(page)).toHaveCount(1)
+	await expect(steps(page)).toHaveCount(1)
+
+	// The group moves past the dart as a whole and keeps the focus.
+	const groupUp = combo(page).getByRole("button", {
+		name: /^Move group .* up$/,
+	})
+	await groupUp.click()
+	await expect(groupUp).toBeFocused()
+	await expect(groupUp).toBeDisabled()
+	await expect(
+		combo(page).getByRole("button", { name: /^Move step 13, Q · .* down$/ }),
+	).toBeDisabled()
+
+	const toggle = combo(page).getByRole("button", {
+		name: /^Show steps of group/,
+	})
+	await expect(toggle).toHaveAttribute("aria-expanded", "false")
+	await toggle.press("Enter")
+	const hide = combo(page).getByRole("button", { name: /^Hide steps of group/ })
+	await expect(hide).toHaveAttribute("aria-expanded", "true")
+	await expect(steps(page)).toHaveCount(13)
+
+	// Inside, a step moves only among the group's steps.
+	await expect(
+		combo(page).getByRole("button", { name: "Move step 1, Attack up" }),
+	).toBeDisabled()
+	await combo(page)
+		.getByRole("button", { name: "Remove step 5. Attack" })
+		.click()
+	await expect(steps(page)).toHaveCount(12)
+	await expect(hide).toHaveAttribute("aria-expanded", "true")
+
+	// Collapsing doesn't change the result, and × on the group removes all of its steps.
+	const afterRemove = await damageTotal(page).textContent()
+	await hide.click()
+	await expect(steps(page)).toHaveCount(1)
+	await expect(damageTotal(page)).toHaveText(afterRemove ?? "")
+	await combo(page)
+		.getByRole("button", { name: /^Remove group / })
+		.click()
+	await expect(groups(page)).toHaveCount(0)
+	await expect(steps(page)).toHaveCount(1)
+})
+
+test("in free mode a collapsed group has no answers; open, each of its steps is answered on its own", async ({
+	page,
+}) => {
+	await page.goto("/champions/Teemo?lvl=9&skills=EQWEERE&tab=combo")
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	for (let count = 0; count < 3; count++) await attack.click()
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	const strict = await damageTotal(page).textContent()
+
+	const noPoison = combo(page).getByRole("button", {
+		name: "Toxic Shot: applies: No",
+	})
+	await expect(noPoison).toHaveCount(0)
+	await combo(page)
+		.getByRole("button", { name: /^Show steps of group/ })
+		.click()
+	await expect(noPoison).toHaveCount(3)
+	await noPoison.first().click()
+	await expect(noPoison.first()).toHaveAttribute("aria-pressed", "true")
+	await expect(noPoison.nth(1)).toHaveAttribute("aria-pressed", "false")
+	await expect(damageTotal(page)).not.toHaveText(strict ?? "")
 })

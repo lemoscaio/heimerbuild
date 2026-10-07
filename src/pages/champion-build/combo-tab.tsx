@@ -129,6 +129,7 @@ export function ComboTab({
 					newMarkerId={markers.notice?.markerId}
 					onMove={combat.move}
 					onRemove={combat.remove}
+					onRemoveAll={combat.removeAll}
 					onRemoveMarker={markers.remove}
 					onWaitChange={combat.setWait}
 					onVariantChange={combat.setVariant}

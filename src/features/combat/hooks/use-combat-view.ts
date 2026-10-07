@@ -1,6 +1,12 @@
 import type { CombatAction, CombatTarget } from "@/lib/combat/combat"
 import type { AbilityVariant } from "@/lib/combat/registries/ability-hits"
 import type { BuildEffect } from "@/lib/effects/effect"
+import {
+	actionKey,
+	type GroupView,
+	groupRuns,
+	groupView,
+} from "../lib/combat-groups"
 import { situationLabel } from "../lib/combat-situations"
 import {
 	actionNumbers,
@@ -48,7 +54,54 @@ export type CombatMarkerItem = {
 
 export type CombatListItem = CombatStepItem | CombatMarkerItem
 
-/** The combo as its tab shows it: action cards and marker lines, and the totals. */
+/** A run of identical steps shown as one block, its steps listed on demand (issue 331). */
+export type CombatGroupItem = {
+	kind: "group"
+	/** Its smallest entry id: it stays while its steps move inside it. */
+	id: number
+	action: CombatAction
+	steps: CombatStepItem[]
+	/** Its first and last steps' numbers among the actions. */
+	numbers: { first: number; last: number }
+	view: GroupView
+}
+
+/** An item of the list as it shows: a step, a marker or a group. */
+export type CombatShownItem = CombatListItem | CombatGroupItem
+
+/** A step's identity for grouping, its ability variant read as the default one when none is picked. */
+function groupKey(item: CombatListItem) {
+	if (item.kind === "marker") return undefined
+	const { action } = item
+	return actionKey(
+		action.kind === "ability"
+			? { ...action, variant: action.variant ?? item.variants[0]?.id }
+			: action,
+	)
+}
+
+/** The list with each run of identical steps as one group (`groupRuns`), summed up by `groupView`. */
+function shownItems(items: readonly CombatListItem[]): CombatShownItem[] {
+	return groupRuns(items, groupKey).map((run): CombatShownItem => {
+		if (run.kind === "single") return run.item
+		const steps = run.items.filter(
+			(item): item is CombatStepItem => item.kind === "step",
+		)
+		const [first] = steps
+		const last = steps.at(-1)
+		if (!first || !last) throw new Error("A group always has steps")
+		return {
+			kind: "group",
+			id: Math.min(...steps.map(({ id }) => id)),
+			action: first.action,
+			steps,
+			numbers: { first: first.number, last: last.number },
+			view: groupView(steps),
+		}
+	})
+}
+
+/** The combo as its tab shows it: action cards, marker lines and groups of identical steps, and the totals. */
 export function useCombatView({
 	combat,
 	target,
@@ -96,7 +149,7 @@ export function useCombatView({
 	})
 
 	return {
-		items,
+		items: shownItems(items),
 		totals: result && combatTotals(result, target),
 	}
 }
