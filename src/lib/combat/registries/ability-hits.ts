@@ -36,6 +36,17 @@ export const LANDS_LABEL: VariantsLabel = {
 }
 
 /**
+ * The cast empowers the champion's next basic attack, which the same step makes: the attack's hit
+ * with the rule's damage as a bonus hit, as an attack (on-attack, on-hit, `endsOn: "attack"`).
+ */
+export type EmpoweredAttack = {
+	/** The damage counts the attack's total attack damage too (Savagery's `QTotalDamage`): the bonus is the rest. */
+	includesAttack?: true
+	/** The cast resets the attack timer (wiki): the attack never waits for it. */
+	resetsAttack?: true
+}
+
+/**
  * How an ability's cast hits when its tooltip's first damage is not the whole story. Without a
  * rule, a cast deals the first damage of its tooltip (`damage`, synced).
  */
@@ -55,6 +66,10 @@ export type AbilityHitRule = PatchRange & {
 	variants?: readonly AbilityVariant[]
 	/** What the variants pick, `LANDS_LABEL` when absent. */
 	variantsLabel?: VariantsLabel
+	/** The cast is an empowered basic attack (Savagery, Siphoning Strike). */
+	empowersAttack?: EmpoweredAttack
+	/** Its damage's unread parts (`notModeled`) count as 0, and what that assumes (no Siphoning Strike stacks). */
+	unreadAsZero?: string
 	/** Why the ability can't be cast at all (a passive only one): a cast is refused with it. */
 	noCast?: string
 	sourceUrl: string

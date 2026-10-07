@@ -52,15 +52,21 @@ function isAttackAbilityDamage({ effect }: BuildEffect): boolean {
 	)
 }
 
+type OutcomeKeysOptions = {
+	/** The item is a cast that empowers an attack (`empowersAttack`): it has an attack's outcomes too. */
+	empowersAttack?: boolean
+}
+
 /**
- * Whether a trigger fires on the item: an attack's `on-attack` and `on-hit`, a cast's own
- * triggers; ability damage on any cast, and on attacks while an ability's effect deals some on them.
+ * Whether a trigger fires on the item: an attack's `on-attack` and `on-hit` (an empowering cast's
+ * too), a cast's own triggers; ability damage on any cast, and on attacks while an ability's effect
+ * deals some on them.
  */
 function firesOn(
 	trigger: Trigger,
 	effect: BuildEffect,
 	item: CombatItem,
-	effects: readonly BuildEffect[],
+	{ effects, attacks }: { effects: readonly BuildEffect[]; attacks: boolean },
 ): boolean {
 	if (trigger.kind === "on-ability-damage") {
 		return (
@@ -68,8 +74,8 @@ function firesOn(
 			(item.kind === "attack" && effects.some(isAttackAbilityDamage))
 		)
 	}
-	if (item.kind === "attack") {
-		return trigger.kind === "on-attack" || trigger.kind === "on-hit"
+	if (attacks && (trigger.kind === "on-attack" || trigger.kind === "on-hit")) {
+		return true
 	}
 	if (item.kind !== "ability") return false
 	const { source } = effect.effect
@@ -87,31 +93,35 @@ function firesOn(
  * The outcomes the build's effects can have at an item, from their triggers alone: an `on-attack`
  * effect empowers attacks, a mark is applied by the actions that trigger its applier and consumed by
  * the actions its `consumedBy` names, a damage over time is applied by the actions that trigger it.
- * Markers, summoner spells and waits have none.
+ * A cast that empowers an attack has an attack's outcomes and consumes what attacks do. Markers,
+ * summoner spells and waits have none.
  */
 export function outcomeKeys(
 	item: CombatItem,
 	effects: readonly BuildEffect[],
 	form: string | undefined,
+	{ empowersAttack = false }: OutcomeKeysOptions = {},
 ): OutcomeKey[] {
 	if (item.kind !== "attack" && item.kind !== "ability") return []
 	const own = effects.filter((effect) => isInForm(effect, form))
-	const consumer: MarkConsumer = item.kind === "attack" ? "attack" : "ability"
+	const attacks = item.kind === "attack" || empowersAttack
+	const consumer: MarkConsumer = attacks ? "attack" : "ability"
+	const fires = (effect: BuildEffect) =>
+		firesOn(effect.effect.trigger, effect, item, { effects: own, attacks })
 	const keys: OutcomeKey[] = [
 		...own.flatMap((effect): OutcomeKey[] =>
-			item.kind === "attack" && effect.effect.trigger.kind === "on-attack"
+			attacks && effect.effect.trigger.kind === "on-attack"
 				? [{ kind: "empowered", effectId: effect.id }]
 				: [],
 		),
 		...own.flatMap((effect): OutcomeKey[] => {
-			const { applies, trigger } = effect.effect
-			return applies && firesOn(trigger, effect, item, own)
+			const { applies } = effect.effect
+			return applies && fires(effect)
 				? [{ kind: "mark-applied", mark: applies.mark }]
 				: []
 		}),
 		...own.flatMap((effect): OutcomeKey[] =>
-			dealsDamageOverTime(effect) &&
-			firesOn(effect.effect.trigger, effect, item, own)
+			dealsDamageOverTime(effect) && fires(effect)
 				? [{ kind: "damage-over-time", effectId: effect.id }]
 				: [],
 		),

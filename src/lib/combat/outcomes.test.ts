@@ -63,6 +63,19 @@ describe("outcomeKeys: which outcomes a step can have, from the effects' trigger
 		])
 	})
 
+	test("an ability that empowers an attack: its cast's outcomes and an attack's (issue 388)", () => {
+		expect(
+			ids({ kind: "ability", slot: "E" }, EFFECTS, undefined, {
+				empowersAttack: true,
+			}),
+		).toEqual([
+			"empowered:rush",
+			"mark-applied:harrier",
+			"mark-consumed:harrier",
+			"mark-consumed:flux",
+		])
+	})
+
 	test("summoner spells, waits and markers have none", () => {
 		expect(ids({ kind: "summoner", slot: 0 }, EFFECTS, undefined)).toEqual([])
 		expect(ids({ kind: "wait", seconds: 1 }, EFFECTS, undefined)).toEqual([])
