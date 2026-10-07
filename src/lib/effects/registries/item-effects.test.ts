@@ -73,3 +73,27 @@ describe("Liandry's Torment", () => {
 		])
 	})
 })
+
+// Wiki 2026-10-07: physical damage to a champion adds a Carve stack for 6 s, up to 5: 6% armor each.
+describe("Black Cleaver", () => {
+	test("physical damage reduces the target's armor by 6% per stack for 6 s, up to 30% at 5 stacks", () => {
+		const carve = ITEM_EFFECTS.find(({ id }) => id === "black-cleaver-carve")
+
+		expect(carve?.source).toEqual({ kind: "item", itemId: "3071" })
+		expect(carve?.trigger).toEqual({
+			kind: "on-damage",
+			damageType: "physical",
+		})
+		expect(carve?.holder).toBe("target")
+		expect(carve?.duration).toBe(6)
+		expect(carve?.stacks).toEqual({ max: 5 })
+		expect(carve?.grants).toEqual([
+			{
+				kind: "resistReduction",
+				resist: "armor",
+				mode: "percent",
+				amount: 0.3,
+			},
+		])
+	})
+})

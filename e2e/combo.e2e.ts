@@ -662,3 +662,23 @@ test("Twitch's Ambush gives its attack speed only once an attack breaks the camo
 	await expect(running).toHaveCount(3)
 	await expect(running.nth(2)).toHaveText(ahead)
 })
+
+test("Black Cleaver lowers the target's armor for the hits after each attack, and Rengar's leap does after its own hit", async ({
+	page,
+}) => {
+	await page.goto("/champions/Darius?lvl=9&items=3071&tab=combo&combo=aa.t1.aa")
+	const resists = combo(page).getByRole("list", { name: "Target resistances" })
+	const hits = combo(page).getByRole("list", { name: "Hits" })
+	// Every step after the first attack: the attack, the wait, the second attack.
+	await expect(resists).toHaveCount(3)
+	await expect(hits).toHaveCount(2)
+	// The same attack deals more on the armor the first one carved.
+	await expect(hits.nth(1)).not.toHaveText(
+		(await hits.nth(0).textContent()) ?? "",
+	)
+
+	await page.goto("/champions/Rengar?lvl=6&skills=QWEQQR&tab=combo&combo=r.aa")
+	await expect(steps(page)).toHaveCount(2)
+	// Nothing while camouflaged; the leap reduces the armor after it lands.
+	await expect(resists).toHaveCount(1)
+})

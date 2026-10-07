@@ -80,6 +80,7 @@ function stepView(overrides: Partial<StepView> = {}): StepView {
 		mainType: "physical",
 		marks: [],
 		effects: [],
+		resists: [],
 		healthShare: 0.9,
 		...overrides,
 	}
@@ -281,5 +282,19 @@ describe("groupView (issue 331, option A: totals plus counts)", () => {
 		expect(view.refused).toBe(1)
 		expect(view.changes).toBe(1)
 		expect(view.healthShare).toBe(0.7)
+	})
+
+	test("shows the target's resistances as its last step left them", () => {
+		const carved = { resist: "armor", from: 100, to: 88 } as const
+		const view = groupView([
+			{
+				time: 0,
+				view: stepView({ resists: [{ ...carved, to: 94 }] }),
+				outcomes: [],
+			},
+			{ time: 1, view: stepView({ resists: [carved] }), outcomes: [] },
+		])
+
+		expect(view.resists).toEqual([carved])
 	})
 })

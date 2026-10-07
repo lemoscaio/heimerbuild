@@ -9,6 +9,7 @@ import {
 	markerView,
 	outcomeChoice,
 	outcomeViews,
+	resistChangeText,
 	runningEffectText,
 	stepView,
 	strictOutcomeViews,
@@ -177,6 +178,19 @@ describe("stepView", () => {
 			{ name: "Heightened Senses (passive)", until: 2 },
 		])
 		expect(view.healthShare).toBe(0.91)
+	})
+
+	test("says which of the target's resistances its reductions changed, from its own to now", () => {
+		const carved = stepView(
+			{ ...STEP, resists: { armor: 35.25, magicResist: 50 } },
+			{ names: NAMES, target: TARGET },
+		)
+
+		expect(view.resists).toEqual([])
+		expect(carved.resists).toEqual([{ resist: "armor", from: 50, to: 35.25 }])
+		expect(carved.resists.map(resistChangeText)).toEqual([
+			"Target armor 50 → 35.3",
+		])
 	})
 
 	test("says what a running effect's pause switched off, and until when", () => {
