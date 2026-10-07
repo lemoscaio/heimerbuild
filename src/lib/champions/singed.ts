@@ -1,4 +1,4 @@
-// Singed: a Poison Trail cast is one pass through the trail, a 2 s poison ticking every 0.25 s.
+// Singed: a Poison Trail cast poisons for 2 s (one pass, the wiki's minimum), 4 s or 6 s, ticking every 0.25 s.
 // Fling deals its base plus a share of the target's maximum health.
 import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect } from "../effects/effect"
@@ -7,7 +7,8 @@ import { WIKI } from "./rule-helpers"
 
 export const SINGED_EFFECTS = [
 	{
-		// A cast is one pass through the trail: 2 s of poison, a tick every 0.25 s from the first contact.
+		// One pass through the trail: 2 s of poison, a tick every 0.25 s from the first contact. A
+		// longer stay refreshes it: the Q rule's variants set how long it runs.
 		id: "singed-q",
 		source: { kind: "ability", championKey: "Singed", slot: "Q" },
 		trigger: { kind: "after-use" },
@@ -36,6 +37,12 @@ export const SINGED_HIT_RULES = [
 		championKey: "Singed",
 		slot: "Q",
 		damage: null,
+		variants: [
+			{ id: "2s", label: "2 s", duration: 2 },
+			{ id: "4s", label: "4 s", duration: 4 },
+			{ id: "6s", label: "6 s", duration: 6 },
+		],
+		variantsLabel: { text: "Poisoned", name: "Time poisoned" },
 		since: "16.19",
 		sourceUrl: `${WIKI}Singed/Poison_Trail`,
 	},
