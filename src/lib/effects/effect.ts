@@ -239,6 +239,22 @@ export type EndsOn = "damage-taken" | "attack" | "cast" | "on-hit"
 /** What starts a pause (combat simulator): a basic attack, an ability cast. */
 export type PauseOn = Extract<EndsOn, "attack" | "cast">
 
+/** What breaks a state an effect waits in (combat simulator): a basic attack, an ability cast. */
+export type BreakOn = Extract<EndsOn, "attack" | "cast">
+
+/**
+ * A state the effect waits in before it runs (combat simulator): from its trigger (after its
+ * `delay`) for `duration`, or until one of `endsOn` breaks it; then its grants and duration start
+ * (Ambush's attack speed once the camouflage breaks). `label` names the state on a step
+ * ("camouflaged"); `ending` names its end on the panel's row ("camouflage breaks").
+ */
+export type StartsAfter = {
+	label: string
+	ending: string
+	duration: Amount
+	endsOn: readonly BreakOn[]
+}
+
 /**
  * Part of an effect switched off for `seconds` after each of `on`, then back on, while the rest
  * holds (Viego's E: its movement speed for 1 s after an attack or a cast; its attack speed stays).
@@ -306,6 +322,8 @@ export type Effect = PatchRange & {
 	endsOn?: EndsOn | readonly EndsOn[]
 	/** Part of it an event switches off for a while, the rest holding (combat simulator). */
 	pauses?: EffectPause
+	/** A state it waits in, which an event breaks or which runs out, before it runs (combat simulator). */
+	startsAfter?: StartsAfter
 	/** The mark it puts on the target when it triggers (combat simulator). */
 	applies?: MarkApplication
 	/** Who holds it: the attacker (absent), or the target (Ignite's burn, Toxic Shot's poison). */
