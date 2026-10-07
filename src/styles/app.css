@@ -136,6 +136,21 @@
 	}
 }
 
+/* shadcn's scroll-fade-y that leaves the scrollbar opaque: the fade covers the padding box,
+   which excludes the scrollbar, and the strip around it (border box minus padding box) stays.
+   It reaches full depth in the first 40px scrolled, and keyboard focus scrolls items clear of it. */
+@utility scroll-fade-content {
+	@apply scroll-fade-y;
+	--scroll-fade-reveal: --spacing(10);
+	scroll-padding-block: --spacing(10);
+	--scroll-fade-mask:
+		var(--scroll-fade-block), linear-gradient(#000 0 0),
+		linear-gradient(#000 0 0);
+	mask-origin: padding-box, border-box, padding-box;
+	-webkit-mask-composite: source-over, source-out, source-over;
+	mask-composite: add, subtract, add;
+}
+
 @layer base {
 	* {
 		@apply border-border;

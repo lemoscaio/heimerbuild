@@ -15,7 +15,7 @@ type PickerLayout = keyof typeof COLUMNS
 
 // A fixed height, so the popup keeps its size while the search narrows the grid.
 const gridVariants = cva(
-	"scrollbar-purple grid content-start gap-x-2 gap-y-3 overflow-y-auto p-1",
+	"scrollbar-purple scroll-fade-content grid content-start gap-x-2 gap-y-3 overflow-y-auto p-1",
 	{
 		variants: {
 			layout: {

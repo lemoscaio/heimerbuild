@@ -52,24 +52,19 @@ export function WorkbenchTabs({
 			<TabsContent value="items" keepMounted className="flex min-h-0 flex-col">
 				{items}
 			</TabsContent>
-			<TabsContent
-				value="runes"
-				className="scrollbar-purple min-h-0 overflow-y-auto pr-1"
-			>
-				{runes}
-			</TabsContent>
-			<TabsContent
-				value="skills"
-				className="scrollbar-purple min-h-0 overflow-y-auto pr-1"
-			>
-				{skills}
-			</TabsContent>
-			<TabsContent
-				value="combo"
-				className="scrollbar-purple min-h-0 overflow-y-auto pr-1"
-			>
-				{combo}
-			</TabsContent>
+			<ScrollingTabsContent value="runes">{runes}</ScrollingTabsContent>
+			<ScrollingTabsContent value="skills">{skills}</ScrollingTabsContent>
+			<ScrollingTabsContent value="combo">{combo}</ScrollingTabsContent>
 		</Tabs>
+	)
+}
+
+/** A tab panel that scrolls on its own, its edges faded while more lies beyond them. */
+function ScrollingTabsContent(props: React.ComponentProps<typeof TabsContent>) {
+	return (
+		<TabsContent
+			className="scrollbar-purple scroll-fade-content min-h-0 overflow-y-auto pr-1"
+			{...props}
+		/>
 	)
 }
