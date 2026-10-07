@@ -71,3 +71,22 @@ test("Mini Gnar's Hyper raises the movement speed, boosted by GNAR! once R has a
 		.click()
 	await expect(hyper).toHaveCount(0)
 })
+
+test("Master Yi's Highlander is off by default; on, it raises both speeds and goes into the link", async ({
+	page,
+}) => {
+	await page.goto("/champions/MasterYi?lvl=6&skills=QEQWQR")
+	const highlander = effectSwitch(page, /^Highlander \(R\)/)
+	await expect(highlander).not.toBeChecked()
+	const attackSpeed = await statTotal(page, "Attack Speed")
+	const movementSpeed = await statTotal(page, "Movement Speed")
+
+	await highlander.click()
+	await expect(page).toHaveURL(/[?&]effects=master-yi-r-active(?:&|$)/)
+	await expect
+		.poll(() => statTotal(page, "Attack Speed"))
+		.toBeGreaterThan(attackSpeed)
+	await expect
+		.poll(() => statTotal(page, "Movement Speed"))
+		.toBeGreaterThan(movementSpeed)
+})
