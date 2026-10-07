@@ -53,7 +53,8 @@ export function combatNames({
 		source(source) {
 			if (source.kind === "attack") return "Attack"
 			if (source.kind === "effect") {
-				const name = effectById.get(source.effectId)?.name ?? source.effectId
+				const effect = effectById.get(source.effectId)
+				const name = effect ? effectName(effect) : source.effectId
 				return source.fromSituation ? `${name} ${FROM_MARKER}` : name
 			}
 			if (source.slot === "passive") return passiveName

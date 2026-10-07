@@ -1,6 +1,7 @@
 import { AKALI_EFFECTS } from "../../champions/akali"
 import { BELVETH_EFFECTS } from "../../champions/belveth"
 import { BLITZCRANK_EFFECTS } from "../../champions/blitzcrank"
+import { BRAND_EFFECTS } from "../../champions/brand"
 import { CAMILLE_EFFECTS } from "../../champions/camille"
 import { DR_MUNDO_EFFECTS } from "../../champions/dr-mundo"
 import { DRAVEN_EFFECTS } from "../../champions/draven"
@@ -48,6 +49,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...AKALI_EFFECTS,
 	...BELVETH_EFFECTS,
 	...BLITZCRANK_EFFECTS,
+	...BRAND_EFFECTS,
 	...CAMILLE_EFFECTS,
 	...DR_MUNDO_EFFECTS,
 	...DRAVEN_EFFECTS,
