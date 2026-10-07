@@ -112,10 +112,20 @@ describe("Brand's Pyroclasm: the hits the user picks, each at its own time (issu
 		}
 	})
 
-	test("without a pick, R hits once (the first variant)", () => {
+	test("without a pick (a plain `r` in the link), R hits 3 times: its default, not the first", () => {
 		const result = simulate([cast("R")])
 
+		expect(hitsOf(allEvents(result), "R").map(({ time }) => time)).toEqual([
+			0, 0.3, 0.6,
+		])
+		expect(detonations(result)).toHaveLength(1)
+	})
+
+	test("1 hit deals R's damage once and adds one stack", () => {
+		const result = simulate([cast("R", "1")])
+
 		expect(hitsOf(allEvents(result), "R")).toHaveLength(1)
+		expect(result.steps[0]?.damageOverTime).toMatchObject([{ stacks: 1 }])
 		expect(detonations(result)).toEqual([])
 	})
 
