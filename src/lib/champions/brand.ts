@@ -1,7 +1,8 @@
 // Brand: each hit adds a Blaze stack (up to 3) and refreshes the burn, 2% of maximum health per
 // stack over 4 s. At 3 stacks the target detonates 2 s later, which leaves one stack and keeps
-// Blaze at one for 4 s. Pyroclasm hits the target 1 to 3 times, and Pillar of Flame deals 25% more
-// to an Ablaze target. Sear's stun, Conflagration's spread and Pyroclasm's slow deal no damage.
+// Blaze at one for 4 s. Pyroclasm hits the target 1 to 3 times (3 by default), and Pillar of Flame
+// deals 25% more to an Ablaze target. Sear's stun, Conflagration's spread and Pyroclasm's slow deal
+// no damage.
 import type {
 	AbilityHitRule,
 	AbilityVariant,
@@ -88,7 +89,12 @@ export const BRAND_HIT_RULES = [
 		// "Total Single-Target Damage" is 3 hits: the most one target takes.
 		championKey: "Brand",
 		slot: "R",
-		variants: [pyroclasmHits(1), pyroclasmHits(2), pyroclasmHits(3)],
+		// Owner decision (PR 391): 3 hits by default, the lone target the simulator shows.
+		variants: [
+			pyroclasmHits(1),
+			pyroclasmHits(2),
+			{ ...pyroclasmHits(3), default: true },
+		],
 		variantsLabel: { text: "Hits", name: "Hits on the target" },
 		since: "16.19",
 		sourceUrl: `${WIKI}Brand/Pyroclasm`,
