@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test"
+import { MAX_COMBAT_STEPS } from "@/lib/combat/combat"
 import {
 	addStep,
 	blockMove,
 	type CombatEntry,
 	clampWaitSeconds,
 	insertStep,
-	MAX_COMBAT_STEPS,
 	moveEntries,
 	removeStep,
 	setWaitSeconds,

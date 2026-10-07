@@ -15,6 +15,7 @@ import { useMatchState } from "@/features/match/hooks/use-match-state"
 import { useRunePage } from "@/features/runes/hooks/use-rune-page"
 import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
+import type { ComboLink } from "@/lib/combat/combo-link"
 import type { CombatBuild } from "@/lib/combat/simulate-combat"
 import {
 	availableEffects,
@@ -38,7 +39,10 @@ type UseChampionBuildOptions = {
 	source: BuildSource
 }
 
-/** Browser history per edit: Back undoes an item edit; every other edit replaces the entry. */
+/**
+ * Browser history per edit: Back undoes an item edit and a combo emptied (Clear, or its last entry
+ * removed); every other edit replaces the entry, so building a combo step by step never floods Back.
+ */
 const EDIT_HISTORY = {
 	championState: { replace: true },
 	skills: { replace: true },
@@ -47,13 +51,17 @@ const EDIT_HISTORY = {
 	summoners: { replace: true },
 	match: { replace: true },
 	effects: { replace: true },
+	combo: { replace: true },
+	comboEmptied: { replace: false },
+	target: { replace: true },
 } as const satisfies Record<string, BuildNavigation>
 
 export type ChampionBuild = ReturnType<typeof useChampionBuild>
 
 /**
  * A champion's build, composed from one hook per domain on a build source: champion state, skills,
- * items, rune page, summoner spells, match state and conditions (the effects turned on). Their values only come together in the stats and in each saved edit.
+ * items, rune page, summoner spells, match state and conditions (the effects turned on), plus the
+ * combo's values. Their values only come together in the stats and in each saved edit.
  */
 export function useChampionBuild({
 	patch,
@@ -147,6 +155,10 @@ export function useChampionBuild({
 			effects: conditions.value,
 			currentHealth: state.currentHealth,
 			gameTime: state.gameTime,
+			combo: state.combo,
+			free: state.free,
+			choices: state.choices,
+			target: state.target,
 		},
 		effects,
 	)
@@ -156,6 +168,11 @@ export function useChampionBuild({
 			dropUnusedConditionValues({ ...values, ...change }, effects),
 			navigation,
 		)
+	}
+
+	function saveCombo(change: ComboLink) {
+		const emptied = !!state.combo && !change.combo
+		save(change, emptied ? EDIT_HISTORY.comboEmptied : EDIT_HISTORY.combo)
 	}
 
 	// Level → skills: a new level also saves the points it keeps, or brings back the ones it kept.
@@ -231,6 +248,21 @@ export function useChampionBuild({
 		whatIf,
 		/** The combo's build, effects and summoner slots; undefined while the data loads. */
 		combat: combatInput(),
+		/** The combo's steps and markers, free mode and its choices, as link values. */
+		combo: {
+			value: {
+				combo: state.combo,
+				free: state.free,
+				choices: state.choices,
+			} satisfies ComboLink,
+			onChange: saveCombo,
+		},
+		/** The combo's target, as the `target` value. */
+		target: {
+			value: state.target,
+			onChange: (target: string | undefined) =>
+				save({ target }, EDIT_HISTORY.target),
+		},
 		/** The checked values: known items, checked runes, summoner spells and effects, the default form left out. */
 		values,
 	}

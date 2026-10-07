@@ -27,7 +27,27 @@ function damageTotal(page: Page) {
 	return comboTotal(page, "Damage")
 }
 
-test("Quinn's combo adds steps, moves one up with its button, removes one, and keeps out of the link", async ({
+/** What the combo shows, to compare two pages: its result, steps, inputs, mode, answers and target. */
+async function comboSnapshot(page: Page) {
+	const pressed = combo(page).getByRole("button", { pressed: true })
+	return {
+		result: await combo(page)
+			.getByRole("group", { name: "Combo result" })
+			.textContent(),
+		steps: await combo(page).getByRole("listitem").allTextContents(),
+		pressed: await pressed.evaluateAll((buttons) =>
+			buttons.map((button) => button.getAttribute("aria-label") ?? ""),
+		),
+		free: await combo(page)
+			.getByRole("switch", { name: "Free mode" })
+			.getAttribute("aria-checked"),
+		health: await combo(page)
+			.getByRole("textbox", { name: "Target health" })
+			.inputValue(),
+	}
+}
+
+test("Quinn's combo adds steps, moves one up with its button, removes one, and keeps them in the link", async ({
 	page,
 }) => {
 	await page.goto(
@@ -65,7 +85,7 @@ test("Quinn's combo adds steps, moves one up with its button, removes one, and k
 		.getByRole("button", { name: "Remove step 3. Ignite" })
 		.click()
 	await expect(steps(page)).toHaveCount(2)
-	await expect(page).not.toHaveURL(/combo=/)
+	await expect(page).toHaveURL(/[?&]combo=aa\.e(&|$)/)
 
 	// The target's numbers change the result.
 	const beforeTank = await damageTotal(page).textContent()
@@ -180,7 +200,7 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 	await expect(up).toBeVisible()
 })
 
-test("a marker goes at the start of a built combo from its chip's menu, or to the start from its own button", async ({
+test("a marker goes at the start of a built combo from its chip's menu, or to the start from its own button, and stays first in the link", async ({
 	page,
 }) => {
 	await page.goto(
@@ -195,24 +215,38 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 	const plain = await damageTotal(page).textContent()
 
 	// From the keyboard: the chip's arrow opens where the marker can go.
-	await combo(page)
-		.getByRole("button", { name: "Where to put marker: Hail of Blades ready" })
-		.focus()
-	await page.keyboard.press("Enter")
+	const where = combo(page).getByRole("button", {
+		name: "Where to put marker: Hail of Blades ready",
+	})
 	const atStart = page.getByRole("menuitem", { name: "Add at the start" })
+	await where.focus()
+	await page.keyboard.press("Enter")
 	await atStart.focus()
 	await page.keyboard.press("Enter")
 	const up = combo(page).getByRole("button", {
 		name: "Move marker Hail of Blades ready up",
 	})
 	await expect(up).toBeDisabled()
-	// It sits before the group, which stays whole.
+	// It sits before the group, which stays whole, and first in the link.
 	await expect(groups(page)).toHaveCount(1)
 	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
+	await expect(page).toHaveURL(/[?&]combo=m-hail-of-blades\.aa\.aa\.aa(&|$)/)
 	const empowered = await damageTotal(page).textContent()
 
 	await combo(page).getByRole("button", { name: "Undo" }).click()
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
+	await expect(up).toHaveCount(0)
+	await expect(page).toHaveURL(/[?&]combo=aa\.aa\.aa(&|$)/)
+
+	// Added at the start again, it stays first through a reload.
+	await where.click()
+	await atStart.click()
+	await page.reload()
+	await expect(up).toBeDisabled()
+	await expect(damageTotal(page)).toHaveText(empowered ?? "")
+	await combo(page)
+		.getByRole("button", { name: "Remove marker Hail of Blades ready" })
+		.click()
 	await expect(up).toHaveCount(0)
 
 	// Added at the end, it changes nothing until it goes to the start in one move.
@@ -228,6 +262,10 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 	await expect(toStart).toBeFocused()
 	await expect(toStart).toBeDisabled()
 	await expect(up).toBeDisabled()
+	await expect(damageTotal(page)).toHaveText(empowered ?? "")
+	await expect(page).toHaveURL(/[?&]combo=m-hail-of-blades\.aa\.aa\.aa(&|$)/)
+	await page.reload()
+	await expect(toStart).toBeDisabled()
 	await expect(damageTotal(page)).toHaveText(empowered ?? "")
 })
 
@@ -489,4 +527,59 @@ test("in free mode a collapsed group has no answers; open, each of its steps is 
 	await expect(noPoison.first()).toHaveAttribute("aria-pressed", "true")
 	await expect(noPoison.nth(1)).toHaveAttribute("aria-pressed", "false")
 	await expect(damageTotal(page)).not.toHaveText(strict ?? "")
+})
+
+test("a combo with a marker, a variant, a wait, free mode's answers and a target opens the same after a reload and from its copied link", async ({
+	page,
+	context,
+}) => {
+	await context.grantPermissions(["clipboard-read", "clipboard-write"])
+	await page.goto(
+		"/champions/Darius?lvl=9&skills=QWEQQRQEQ&runes=8100-9923-0-0-0__&tab=combo",
+	)
+	await combo(page)
+		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
+		.click()
+	const attack = combo(page).getByRole("button", { name: "Add Attack" })
+	await attack.click()
+	await attack.click()
+	await combo(page).getByRole("button", { name: "Add Q, Decimate" }).click()
+	await combo(page)
+		.getByRole("button", { name: /^Add Wait/ })
+		.click()
+	await expect(steps(page)).toHaveCount(4)
+
+	await combo(page)
+		.getByRole("group", { name: "How it lands" })
+		.getByRole("button", { name: "Inner handle" })
+		.click()
+	const wait = combo(page).getByRole("textbox", { name: "Wait in seconds" })
+	await wait.fill("1.5")
+	await wait.press("Enter")
+	const health = combo(page).getByRole("textbox", { name: "Target health" })
+	await health.fill("2500")
+	await health.press("Enter")
+	await combo(page).getByRole("switch", { name: "Free mode" }).click()
+	const firstAttack = combo(page)
+		.getByRole("listitem")
+		.filter({
+			has: page.getByRole("button", { name: "Remove step 1. Attack" }),
+		})
+	await firstAttack.getByRole("button", { name: "Hail of Blades: No" }).click()
+	await expect(page).toHaveURL(/[?&]choices=/)
+	await expect(page).toHaveURL(/[?&]target=2500-60-45\b/)
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const built = await comboSnapshot(page)
+
+	await page.reload()
+	await expect(steps(page)).toHaveCount(4)
+	expect(await comboSnapshot(page)).toEqual(built)
+
+	await page.getByRole("button", { name: "Copy link" }).first().click()
+	const link = await page.evaluate(() => navigator.clipboard.readText())
+	const opened = await context.newPage()
+	await opened.goto(link)
+	await expect(opened).toHaveURL(/[?&]tab=combo\b/)
+	await expect(steps(opened)).toHaveCount(4)
+	expect(await comboSnapshot(opened)).toEqual(built)
 })

@@ -112,7 +112,7 @@ export function useBuildPage({
 		matchState: build.matchState,
 		/** The build's conditional effects with their switches; `setOn` turns one on or off. */
 		conditions: build.conditions,
-		/** The combo: its target and steps, in memory, simulated on the build. */
+		/** The combo: its target and steps, kept in the link, simulated on the build. */
 		combat,
 		/** The page's runes that react to the chosen summoner spells, with what happens. */
 		summonerHints: runeSummonerHints(pageRunes, chosenSpells),

@@ -1,5 +1,12 @@
 import { FORM_ID_PATTERN } from "@schemas/champion"
 import * as z from "zod/mini"
+import {
+	type ComboLink,
+	normalizeComboChoices,
+	readComboItems,
+	serializeComboItems,
+	TARGET_PARAM_PATTERN,
+} from "@/lib/combat/combo-link"
 import { FULL_HEALTH, MIN_HEALTH } from "@/lib/effects/current-health"
 import type { EffectOverrides } from "@/lib/effects/effect"
 import {
@@ -53,6 +60,17 @@ const summonersSchema = z.union([
 	),
 ])
 
+// Unreadable tokens are dropped one by one; a value left with none is no value.
+const comboSchema = z.pipe(
+	z.string(),
+	z.transform((value) => serializeComboItems(readComboItems(value))),
+)
+
+const comboChoicesSchema = z.pipe(
+	z.string(),
+	z.transform(normalizeComboChoices),
+)
+
 /** Shareable build in the champion page URL, in the latest link format. Invalid values are dropped, never an error page. */
 export const buildSearchSchema = z.object({
 	/** The link format version; read links are migrated to it first (`readBuildSearch`). */
@@ -102,6 +120,17 @@ export const buildSearchSchema = z.object({
 		z.optional(z.int().check(z.gte(GAME_START), z.lte(MAX_GAME_TIME))),
 		undefined,
 	),
+	/** The combo's steps and situation markers, in order (`serializeComboItems`); absent means none. */
+	combo: z.catch(z.optional(comboSchema), undefined),
+	/** The combo's free mode, on; absent means strict. */
+	free: z.catch(z.optional(z.literal(1)), undefined),
+	/** Free mode's choices by step (`serializeComboChoices`); absent means the computed outcomes. */
+	choices: z.catch(z.optional(comboChoicesSchema), undefined),
+	/** The combo's target: a preset's id or its numbers; absent means the Dummy. Checked by the target later. */
+	target: z.catch(
+		z.optional(z.string().check(z.regex(TARGET_PARAM_PATTERN))),
+		undefined,
+	),
 })
 
 export type BuildSearch = z.infer<typeof buildSearchSchema>
@@ -137,9 +166,11 @@ export type BuildState = {
 	currentHealth?: number
 	/** Whole minutes into the game; `undefined` for its start. 0 stays out of the link too. */
 	gameTime?: number
-}
+	/** The combo's target, as the `target` value; `undefined` for the Dummy. */
+	target?: string
+} & ComboLink
 
-/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells, default effects, full health, game start) stay out of the URL. */
+/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells, default effects, full health, game start, no combo, strict mode, the Dummy) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
@@ -153,6 +184,10 @@ export function toBuildSearch({
 	effects,
 	currentHealth,
 	gameTime,
+	combo,
+	free,
+	choices,
+	target,
 }: BuildState): BuildSearch {
 	return {
 		lvl: level === MIN_LEVEL ? undefined : level,
@@ -167,6 +202,10 @@ export function toBuildSearch({
 		effects: serializeEffectOverrides(effects),
 		hp: currentHealth === FULL_HEALTH ? undefined : currentHealth,
 		min: gameTime === GAME_START ? undefined : gameTime,
+		combo,
+		free: free ? 1 : undefined,
+		choices,
+		target,
 		v: BUILD_LINK_VERSION,
 	}
 }

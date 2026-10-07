@@ -1,5 +1,5 @@
 import type { AbilitySlot, Champion } from "@schemas/champion"
-import type { CombatAction } from "@/lib/combat/combat"
+import { type CombatAction, MAX_COMBAT_STEPS } from "@/lib/combat/combat"
 import { CURATED_COMBAT_CHAMPIONS } from "@/lib/combat/curated-champions"
 import { outcomeKeys } from "@/lib/combat/outcomes"
 import { abilityVariants } from "@/lib/combat/registries/ability-hits"
@@ -15,7 +15,6 @@ import { combatKeys } from "../lib/combat-keys"
 import {
 	addStep,
 	insertStep,
-	MAX_COMBAT_STEPS,
 	moveEntries,
 	setStepVariant,
 	setWaitSeconds,

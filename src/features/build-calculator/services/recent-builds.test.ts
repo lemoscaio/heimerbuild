@@ -216,6 +216,20 @@ describe("recent builds", () => {
 		expect(readRecentBuilds({ storage })).toEqual([build("Tryndamere")])
 	})
 
+	test("keep the combo, its free mode and choices, and its target", () => {
+		const storage = memoryStorage()
+		const combo = {
+			combo: "m-hail-of-blades.aa.q-handle.t1_5",
+			free: true,
+			choices: "2e-hail-of-blades-n",
+			target: "tank",
+		}
+		recordRecentBuild({ ...build("Darius"), ...combo }, { storage })
+		expect(readRecentBuilds({ storage })).toEqual([
+			{ ...build("Darius"), ...combo },
+		])
+	})
+
 	test("list the newest first, one entry per champion", () => {
 		const storage = memoryStorage()
 		recordRecentBuild(build("Ahri"), { storage })

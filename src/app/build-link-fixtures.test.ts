@@ -71,6 +71,22 @@ const v1Links: LinkFixture[] = [
 			effects: "ghost,-teemo-w-passive",
 		},
 	},
+	{
+		name: "a combo with a marker, a variant, a wait, free mode's answer and a target, on the Combo tab",
+		link: "?lvl=9&patch=16.19.1&tab=combo&runes=8100-9923-0-0-0_0-0-0_0-0-0&skills=QWEQQRQEQ&combo=m-hail-of-blades.aa.aa.q-handle.t1_5&free=1&choices=2e-hail-of-blades-n&target=2500-60-45",
+		build: {
+			v: BUILD_LINK_VERSION,
+			lvl: 9,
+			patch: "16.19.1",
+			tab: "combo",
+			runes: "8100-9923-0-0-0_0-0-0_0-0-0",
+			skills: "QWEQQRQEQ",
+			combo: "m-hail-of-blades.aa.aa.q-handle.t1_5",
+			free: 1,
+			choices: "2e-hail-of-blades-n",
+			target: "2500-60-45",
+		},
+	},
 ]
 
 function openLink(link: string) {
@@ -78,11 +94,12 @@ function openLink(link: string) {
 }
 
 /** The link the app writes for a build it read, as the build source does. */
-function writeLink({ lvl, items, effects, ...search }: BuildSearch) {
+function writeLink({ lvl, items, effects, free, ...search }: BuildSearch) {
 	return stringifySearch(
 		toBuildSearch({
 			...search,
 			effects: parseEffectOverrides(effects),
+			free: free === 1,
 			patch: search.patch,
 			level: lvl ?? MIN_LEVEL,
 			itemIds: items ?? [],

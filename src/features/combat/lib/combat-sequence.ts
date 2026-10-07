@@ -1,13 +1,10 @@
-import type { CombatItem } from "@/lib/combat/combat"
+import { type CombatItem, MAX_COMBAT_STEPS } from "@/lib/combat/combat"
 
 /**
  * One entry of the combo the user builds: an action or a situation marker, with an id that follows
  * it when entries move.
  */
 export type CombatEntry = { id: number; action: CombatItem }
-
-/** Longer combos stop adding: a fight is a few seconds of actions (markers count too). */
-export const MAX_COMBAT_STEPS = 30
 
 /** A wait lasts 0.25 to 30 s, in quarter seconds; a new one lasts 1 s. */
 export const WAIT_SECONDS = { min: 0.25, max: 30, step: 0.25, initial: 1 }
