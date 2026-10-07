@@ -603,3 +603,19 @@ test("Master Yi's Highlander before his attacks speeds them up, so the combo end
 	await expect(steps(page)).toHaveCount(1)
 	await expect.poll(seconds).toBeLessThan(plain)
 })
+
+test("Viego's attack pauses part of Harrowed Path for a moment, and a cast pauses it again", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Viego?lvl=6&skills=QEWQQR&tab=combo&combo=e.aa.t1.q",
+	)
+	const running = combo(page).getByRole("list", { name: "Effects running" })
+	// One list per step: the E cast, the attack, the 1 s wait, the Q cast.
+	await expect(running).toHaveCount(4)
+	const afterCast = await running.nth(0).textContent()
+
+	await expect(running.nth(1)).not.toHaveText(afterCast ?? "")
+	await expect(running.nth(2)).toHaveText(afterCast ?? "")
+	await expect(running.nth(3)).not.toHaveText(afterCast ?? "")
+})

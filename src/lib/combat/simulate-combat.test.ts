@@ -782,6 +782,114 @@ describe("early endings: Rengar's R and Viego's E (issue 329)", async () => {
 	})
 })
 
+describe("pauses: part of an effect off for a while after an event (issue 351)", async () => {
+	const annie = await champion("Annie")
+	const annieSetup: Setup = {
+		champion: annie,
+		level: 1,
+		ranks: { Q: 1, W: 0, E: 0, R: 0 },
+	}
+	const viego: Setup = {
+		champion: await champion("Viego"),
+		level: 6,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+	}
+
+	function pausedOf(result: CombatResult, step: number, effectId: string) {
+		return result.steps[step]?.active.find(
+			(effect) => effect.effectId === effectId,
+		)?.paused
+	}
+
+	test("a cast switches the paused grants off for its seconds, then they come back", () => {
+		const focus: Effect = {
+			id: "test-paused-on-cast",
+			source: { kind: "ability", championKey: "Annie", slot: "passive" },
+			trigger: { kind: "always" },
+			pauses: { on: ["cast"], grants: ["attackDamage"], seconds: 2 },
+			grants: [{ kind: "stat", stat: "attackDamage", amount: 50 }],
+			since: "16.19",
+			sourceUrl: "https://example.com",
+		}
+		const result = simulateCombat({
+			build: buildOf(annieSetup),
+			effects: combatEffects(
+				{
+					patch: PATCH,
+					champion: annie,
+					ranks: annieSetup.ranks,
+					spells: [],
+					runes: [],
+				},
+				[[focus]],
+			),
+			summoners: [],
+			target: DUMMY,
+			actions: [
+				{ kind: "attack" },
+				{ kind: "ability", slot: "Q" },
+				{ kind: "attack" },
+				{ kind: "wait", seconds: 2 },
+				{ kind: "attack" },
+			],
+		})
+		const base = computeBuildStats(buildOf(annieSetup)).attackDamage.total
+
+		expect(hits(result, 0)[0]?.raw).toBeCloseTo(base + 50)
+		expect(hits(result, 2)[0]?.raw).toBeCloseTo(base)
+		expect(hits(result, 4)[0]?.raw).toBeCloseTo(base + 50)
+		expect(pausedOf(result, 1, "test-paused-on-cast")).toEqual({
+			until: (result.steps[1]?.time ?? Number.NaN) + 2,
+			grants: ["attackDamage"],
+		})
+		expect(pausedOf(result, 4, "test-paused-on-cast")).toBeUndefined()
+	})
+
+	test("Harrowed Path pauses only its movement speed for 1 s after an attack or a cast", () => {
+		const result = simulate(viego, [
+			{ kind: "ability", slot: "E" },
+			{ kind: "attack" },
+			{ kind: "wait", seconds: 1 },
+			{ kind: "ability", slot: "Q" },
+		])
+		const attackAt = result.steps[1]?.time ?? Number.NaN
+		const castAt = result.steps[3]?.time ?? Number.NaN
+
+		// The E cast starts it, so it isn't paused by its own cast.
+		expect(pausedOf(result, 0, "viego-e-active")).toBeUndefined()
+		expect(pausedOf(result, 1, "viego-e-active")).toEqual({
+			until: attackAt + 1,
+			grants: ["movementSpeedPercent"],
+		})
+		expect(pausedOf(result, 2, "viego-e-active")).toBeUndefined()
+		expect(pausedOf(result, 3, "viego-e-active")).toEqual({
+			until: castAt + 1,
+			grants: ["movementSpeedPercent"],
+		})
+	})
+
+	test("Harrowed Path's attack speed holds while its movement speed is paused", () => {
+		const effects = effectsOf(viego)
+		const running = (paused: ReadonlySet<string>) =>
+			computeBuildStats({
+				...buildOf(viego),
+				effects: {
+					available: effects,
+					overrides: { "viego-e-active": true },
+					paused,
+				},
+			})
+		const held = running(new Set())
+		const paused = running(new Set(["viego-e-active"]))
+		const without = computeBuildStats(buildOf(viego))
+
+		expect(paused.attackSpeed.total).toBeCloseTo(held.attackSpeed.total)
+		expect(paused.attackSpeed.total).toBeGreaterThan(without.attackSpeed.total)
+		expect(paused.movementSpeed.total).toBeCloseTo(without.movementSpeed.total)
+		expect(held.movementSpeed.total).toBeGreaterThan(paused.movementSpeed.total)
+	})
+})
+
 describe("buffs after casting in the combo (issue 318)", async () => {
 	const yi: Setup = {
 		champion: await champion("MasterYi"),

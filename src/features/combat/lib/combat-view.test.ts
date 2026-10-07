@@ -143,6 +143,36 @@ describe("stepView", () => {
 		expect(view.healthShare).toBe(0.91)
 	})
 
+	test("says what a running effect's pause switched off, and until when", () => {
+		const paused = stepView(
+			{
+				...STEP,
+				active: [
+					{
+						effectId: "quinn-w-passive",
+						holder: "attacker",
+						startedAt: 0,
+						endsAt: 2,
+						stacks: 1,
+						paused: {
+							until: 1,
+							grants: ["movementSpeedPercent", "movementSpeedFlat"],
+						},
+					},
+				],
+			},
+			{ names: NAMES, target: TARGET },
+		)
+
+		expect(paused.effects).toEqual([
+			{
+				name: "Heightened Senses (passive)",
+				until: 2,
+				paused: { label: "Move Speed", until: 1 },
+			},
+		])
+	})
+
 	test("says when a mark or a spent effect came from a marker", () => {
 		const fromStart = stepView(
 			{

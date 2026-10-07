@@ -589,3 +589,47 @@ describe("alwaysOnRankStats", () => {
 		expect(alwaysOnRankStats(undefined, [teemoPassive])).toBeUndefined()
 	})
 })
+
+describe("paused grants (issue 351)", () => {
+	const mist = bind({
+		id: "viego-e-active",
+		source: { kind: "ability", championKey: "Viego", slot: "E" },
+		trigger: { kind: "after-use" },
+		duration: 8,
+		pauses: {
+			on: ["attack", "cast"],
+			grants: ["movementSpeedPercent"],
+			seconds: 1,
+		},
+		grants: [
+			{ kind: "stat", stat: "attackSpeedPercent", amount: 0.3 },
+			{ kind: "stat", stat: "movementSpeedPercent", amount: 0.2 },
+			{ kind: "stat", stat: "movementSpeedPercent", amount: 0.04 },
+		],
+		since: "16.19",
+		sourceUrl: `${WIKI}Viego`,
+	})
+
+	test("while its pause holds, an effect's paused stat grants give nothing and the rest hold", () => {
+		const paused = { ...context, paused: new Set(["viego-e-active"]) }
+
+		expect(effectStatsInput([mist], paused)).toEqual({
+			stats: { attackSpeedPercent: 0.3 },
+		})
+		expect(resolveGrants(mist, paused)).toEqual([
+			{ kind: "stat", stat: "attackSpeedPercent", value: 0.3 },
+		])
+	})
+
+	test("without its pause, or with another effect's, every grant holds", () => {
+		const other = { ...context, paused: new Set(["ghost"]) }
+
+		expect(effectStatsInput([mist], context).stats).toEqual({
+			attackSpeedPercent: 0.3,
+			movementSpeedPercent: expect.closeTo(0.24),
+		})
+		expect(effectStatsInput([mist], other)).toEqual(
+			effectStatsInput([mist], context),
+		)
+	})
+})
