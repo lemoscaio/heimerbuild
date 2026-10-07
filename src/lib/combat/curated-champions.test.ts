@@ -46,7 +46,7 @@ describe("ABILITY_HIT_RULES", () => {
 			const names = spell?.damage?.map(({ name }) => name)
 			const damages = [
 				rule.damage ?? [],
-				...(rule.variants ?? []).map(({ damage }) => damage),
+				...(rule.variants ?? []).map(({ damage }) => damage ?? []),
 			].flat()
 			for (const damage of damages) {
 				expect(names).toContain(damage)

@@ -439,6 +439,74 @@ describe("damage over time from ability casts", async () => {
 		expect(ticks.at(-1)?.damage.raw).toBeGreaterThan(35)
 	})
 
+	describe("the time in the area is a variant: the ticks follow it (issue 353)", async () => {
+		const singed: Setup = {
+			champion: await champion("Singed"),
+			level: 9,
+			ranks: { Q: 1, W: 1, E: 1, R: 1 },
+		}
+		const poisonTrail = (variant?: string) =>
+			simulate(singed, [
+				{ kind: "ability", slot: "Q", ...(variant && { variant }) },
+			])
+		const total = (result: CombatResult) =>
+			ticksOf(result, "singed-q").reduce(
+				(sum, { damage }) => sum + damage.raw,
+				0,
+			)
+
+		test("Singed's Q poisoned 4 s: 16 ticks until 4 s, twice the minimum", () => {
+			const result = poisonTrail("4s")
+			const ticks = ticksOf(result, "singed-q")
+
+			expect(ticks).toHaveLength(16)
+			expect(ticks.at(-1)?.time).toBe(3.75)
+			expect(total(result)).toBeCloseTo(80)
+			expect(result.steps[0]?.damageOverTime[0]?.endsAt).toBe(4)
+		})
+
+		test("Singed's Q poisoned 6 s: 24 ticks, three times the minimum", () => {
+			expect(ticksOf(poisonTrail("6s"), "singed-q")).toHaveLength(24)
+			expect(total(poisonTrail("6s"))).toBeCloseTo(120)
+		})
+
+		test("no variant, or one the rule lacks, is the first: one pass, 2 s", () => {
+			expect(total(poisonTrail())).toBeCloseTo(40)
+			expect(total(poisonTrail("2s"))).toBeCloseTo(40)
+			expect(total(poisonTrail("9s"))).toBeCloseTo(40)
+		})
+
+		test("only the cast's own effects follow it: Sheen's spellblade keeps its 10 s", () => {
+			const result = simulate({ ...singed, items: [item("Sheen")] }, [
+				{ kind: "ability", slot: "Q", variant: "6s" },
+			])
+			const running = (effectId: string) =>
+				result.steps[0]?.active.find((effect) => effect.effectId === effectId)
+
+			expect(running("sheen-spellblade")?.endsAt).toBe(10)
+			expect(running("singed-q")?.endsAt).toBe(6)
+		})
+
+		test("Morgana's W: the whole pool by default, 1 s in it is 2 ticks", async () => {
+			const morgana: Setup = {
+				champion: await champion("Morgana"),
+				level: 9,
+				ranks: { Q: 1, W: 5, E: 1, R: 1 },
+			}
+			const tormentedShadow = (variant?: string) =>
+				ticksOf(
+					simulate(morgana, [
+						{ kind: "ability", slot: "W", ...(variant && { variant }) },
+					]),
+					"morgana-w",
+				).map(({ time }) => time)
+
+			expect(tormentedShadow()).toHaveLength(10)
+			expect(tormentedShadow("3s")).toEqual([0, 0.5, 1, 1.5, 2, 2.5])
+			expect(tormentedShadow("1s")).toEqual([0, 0.5])
+		})
+	})
+
 	test("free mode: No on a cast's damage over time leaves only its other damage", async () => {
 		const teemo: Setup = {
 			champion: await champion("Teemo"),

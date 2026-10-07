@@ -36,6 +36,13 @@ describe("the combo value", () => {
 		expect(readComboItems(serializeComboItems(EVERY_KIND))).toEqual(EVERY_KIND)
 	})
 
+	test("keeps a time in the area as a variant: Poison Trail poisoned 4 s", () => {
+		const items: CombatItem[] = [{ kind: "ability", slot: "Q", variant: "4s" }]
+
+		expect(serializeComboItems(items)).toBe("q-4s")
+		expect(readComboItems("q-4s")).toEqual(items)
+	})
+
 	test("is no value for an empty combo", () => {
 		expect(serializeComboItems([])).toBeUndefined()
 		expect(readComboItems(undefined)).toEqual([])

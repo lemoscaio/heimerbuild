@@ -323,6 +323,26 @@ test("Decimate's inner handle deals less than its outer blade, in either mode", 
 	await expect.poll(total).toBeLessThan(blade)
 })
 
+test("Poison Trail deals more the longer Singed's target stays poisoned, and the link keeps the time", async ({
+	page,
+}) => {
+	await page.goto("/champions/Singed?lvl=9&skills=QWEQQRQEQ&tab=combo&combo=q")
+	const poisoned = combo(page).getByRole("group", { name: "Time poisoned" })
+	// A link from before the time input opens as one pass: the first time.
+	await expect(poisoned.getByRole("button", { name: "2 s" })).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	)
+	await expect(damageTotal(page)).not.toHaveText("0")
+	const total = async () =>
+		Number((await damageTotal(page).textContent())?.replace(/\D/g, ""))
+	const onePass = await total()
+
+	await poisoned.getByRole("button", { name: "6 s" }).click()
+	await expect.poll(total).toBeGreaterThan(onePass)
+	await expect(page).toHaveURL(/[?&]combo=q-6s(&|$)/)
+})
+
 test("Hail of Blades again right after its 3 attacks is ignored in strict mode and forced in free mode", async ({
 	page,
 }) => {
