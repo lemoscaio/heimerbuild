@@ -1,4 +1,5 @@
 import type { AbilitySlot, DamageType } from "@schemas/champion"
+import type { StatKey } from "@schemas/item"
 import type { SummonerSlot } from "../summoner-slots"
 
 /**
@@ -125,6 +126,8 @@ export type ActiveEffect = {
 	/** Infinity for one that lasts until its `endsOn` event (Teemo's W passive). */
 	endsAt: number
 	stacks: number
+	/** While its pause holds: the stat grants switched off, and until when (Viego's E movement speed). */
+	paused?: { until: number; grants: readonly StatKey[] }
 }
 
 export type TargetMark = { mark: string; endsAt: number }
