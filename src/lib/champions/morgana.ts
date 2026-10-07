@@ -6,7 +6,8 @@ import { WIKI } from "./rule-helpers"
 
 export const MORGANA_EFFECTS = [
 	{
-		// A tick at the cast and every 0.5 s for 5 s, up to twice as much as the target's missing health grows.
+		// A tick at the cast and every 0.5 s while in the pool (5 s: 10 ticks, the wiki's total), up to
+		// twice as much as the target's missing health grows.
 		id: "morgana-w",
 		source: { kind: "ability", championKey: "Morgana", slot: "W" },
 		trigger: { kind: "after-use" },
@@ -32,14 +33,14 @@ export const MORGANA_EFFECTS = [
 
 export const MORGANA_HIT_RULES = [
 	{
-		// Its ticks are the `morgana-w` effect's damage over time; the whole pool first, as before the variants.
+		// Its ticks are the `morgana-w` effect's damage over time, while the target stays in the pool.
 		championKey: "Morgana",
 		slot: "W",
 		damage: null,
 		variants: [
-			{ id: "5s", label: "5 s", duration: 5 },
-			{ id: "3s", label: "3 s", duration: 3 },
 			{ id: "1s", label: "1 s", duration: 1 },
+			{ id: "3s", label: "3 s", duration: 3 },
+			{ id: "5s", label: "5 s", duration: 5 },
 		],
 		variantsLabel: { text: "In pool", name: "Time in the pool" },
 		since: "16.19",
