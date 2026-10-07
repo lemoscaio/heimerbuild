@@ -285,6 +285,8 @@ export type StartsAfter = {
 	ending: string
 	duration: Amount
 	endsOn: readonly BreakOn[]
+	/** What ends the state without running it (Rengar's R: a cast of W or E, no leap). */
+	dropsOn?: readonly BreakOn[]
 	/** Only a break starts it; running out drops it (no leap out of Rengar's R, no armor reduction). */
 	needsBreak?: true
 }
