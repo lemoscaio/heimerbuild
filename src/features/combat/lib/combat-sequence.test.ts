@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test"
 import {
 	addStep,
+	blockMove,
 	type CombatEntry,
 	clampWaitSeconds,
 	MAX_COMBAT_STEPS,
+	moveEntries,
 	moveStep,
 	removeStep,
 	setWaitSeconds,
@@ -48,6 +50,70 @@ describe("moveStep", () => {
 		expect(moveStep(steps, 3, 0).map(({ id }) => id)).toEqual([3, 1, 2])
 		expect(moveStep(steps, 1, 9).map(({ id }) => id)).toEqual([2, 3, 1])
 		expect(moveStep(steps, 7, 0)).toEqual(steps)
+	})
+})
+
+describe("moveEntries", () => {
+	test("moves several entries together, in their order, clamped to the list", () => {
+		const steps = combo(Q, ATTACK, ATTACK, ATTACK, Q)
+
+		expect(moveEntries(steps, [2, 3, 4], 0).map(({ id }) => id)).toEqual([
+			2, 3, 4, 1, 5,
+		])
+		expect(moveEntries(steps, [2, 3, 4], 9).map(({ id }) => id)).toEqual([
+			1, 5, 2, 3, 4,
+		])
+	})
+})
+
+describe("blockMove (issue 331)", () => {
+	// Q, a group of three attacks, a marker, then E: as the list shows them.
+	const ids = [1, 2, 3, 4, 5, 6]
+	const blocks = [[1], [2, 3, 4], [5], [6]]
+
+	test("a group moves past its whole neighbour", () => {
+		expect(blockMove(ids, blocks, { position: 1, direction: "up" })).toEqual({
+			ids: [2, 3, 4],
+			to: 0,
+			position: 0,
+		})
+		expect(blockMove(ids, blocks, { position: 1, direction: "down" })).toEqual({
+			ids: [2, 3, 4],
+			to: 2,
+			position: 2,
+		})
+	})
+
+	test("a step next to a group moves past the whole group", () => {
+		const steps = combo(Q, ATTACK, ATTACK, ATTACK)
+		const move = blockMove(ids, blocks, { position: 0, direction: "down" })
+
+		expect(move).toEqual({ ids: [1], to: 3, position: 1 })
+		expect(
+			moveEntries(steps, move?.ids ?? [], move?.to ?? 0).map(({ id }) => id),
+		).toEqual([2, 3, 4, 1])
+	})
+
+	test("nothing moves past the edges", () => {
+		expect(
+			blockMove(ids, blocks, { position: 0, direction: "up" }),
+		).toBeUndefined()
+		expect(
+			blockMove(ids, blocks, { position: 3, direction: "down" }),
+		).toBeUndefined()
+	})
+
+	test("inside a group, a step moves among the group's steps", () => {
+		const inside = [[2], [3], [4]]
+
+		expect(blockMove(ids, inside, { position: 1, direction: "up" })).toEqual({
+			ids: [3],
+			to: 1,
+			position: 0,
+		})
+		expect(
+			blockMove(ids, inside, { position: 2, direction: "down" }),
+		).toBeUndefined()
 	})
 })
 

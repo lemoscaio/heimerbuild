@@ -56,6 +56,40 @@ export function moveStep(
 	return [...rest.slice(0, at), moved, ...rest.slice(at)]
 }
 
+/** The combo with the entries `ids`, kept together in their order, moved to position `to` (clamped). */
+export function moveEntries(
+	entries: readonly CombatEntry[],
+	ids: readonly number[],
+	to: number,
+): CombatEntry[] {
+	const moving = new Set(ids)
+	const moved = entries.filter((entry) => moving.has(entry.id))
+	const rest = entries.filter((entry) => !moving.has(entry.id))
+	const at = Math.min(rest.length, Math.max(0, to))
+	return [...rest.slice(0, at), ...moved, ...rest.slice(at)]
+}
+
+/** A move of a block of entries: where its entries go and its new place among its siblings. */
+export type BlockMove = { ids: readonly number[]; to: number; position: number }
+
+/**
+ * Moving the block at `position` among `blocks` (the list as it shows: a step, a marker or a whole
+ * group) one place up or down, past its whole neighbour. None at the list's edge.
+ */
+export function blockMove(
+	entryIds: readonly number[],
+	blocks: readonly (readonly number[])[],
+	{ position, direction }: { position: number; direction: "up" | "down" },
+): BlockMove | undefined {
+	const block = blocks[position]
+	const neighbour = blocks[direction === "up" ? position - 1 : position + 1]
+	const start = block?.[0] === undefined ? -1 : entryIds.indexOf(block[0])
+	if (!block || !neighbour || start === -1) return undefined
+	return direction === "up"
+		? { ids: block, to: start - neighbour.length, position: position - 1 }
+		: { ids: block, to: start + neighbour.length, position: position + 1 }
+}
+
 /** The combo with a wait's length changed; another kind of step is left alone. */
 export function setWaitSeconds(
 	entries: readonly CombatEntry[],

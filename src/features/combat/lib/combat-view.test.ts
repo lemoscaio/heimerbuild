@@ -137,7 +137,9 @@ describe("stepView", () => {
 		expect(view.marks).toEqual([
 			{ mark: "Harrier", change: "consumed", fromMarker: false },
 		])
-		expect(view.effects).toEqual(["Heightened Senses (passive) · until 2.00 s"])
+		expect(view.effects).toEqual([
+			{ name: "Heightened Senses (passive)", until: 2 },
+		])
 		expect(view.healthShare).toBe(0.91)
 	})
 

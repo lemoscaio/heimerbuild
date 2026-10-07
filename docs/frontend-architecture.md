@@ -335,8 +335,9 @@ features/target/   useTarget (controlled: value + onChange, the level injected),
 features/combat/   useCombat (controlled CombatState: steps and markers, free mode, its choices; simulated on the injected input),
                    useCombatView (step cards, marker lines and totals), useMarkerUndo (add or remove a marker with Undo),
                    useStepReorder (each entry's Move up and Move down buttons, announced; drag and drop was dropped in issue 338);
-                   lib: combat-sequence (add, remove, move, waits, variants), combat-state (free choices, marker removal),
-                   combat-situations, combat-keys, combat-view, combat-format, ability-damage-status
+                   lib: combat-sequence (add, remove, move entries or a block past its neighbour, waits, variants),
+                   combat-state (free choices, marker removal), combat-groups (runs of identical steps and their
+                   summary), combat-situations, combat-keys, combat-view, combat-format, ability-damage-status
 pages/champion-build/combo-tab.tsx   assembles the two features; hooks/use-build-combat.ts wires them in memory
 ```
 

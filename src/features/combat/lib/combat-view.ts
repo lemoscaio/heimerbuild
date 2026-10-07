@@ -121,7 +121,8 @@ export type StepView = {
 	mainType?: DamageType
 	/** The marks it moved that no outcome reports (Valor marking during a wait); `fromMarker`: a marker put it there. */
 	marks: { mark: string; change: "applied" | "consumed"; fromMarker: boolean }[]
-	effects: string[]
+	/** The effects running after it, with when each ends (none: until its `endsOn` event). */
+	effects: { name: string; until?: number }[]
 	healthShare: number
 }
 
@@ -197,6 +198,26 @@ export function damageOverTimeView(
 	}
 }
 
+/** The effects running after a step, each once; `hidden` ones another line reports. */
+function runningEffects(
+	step: CombatStep,
+	{ names, hidden }: { names: CombatNames; hidden: ReadonlySet<string> },
+): StepView["effects"] {
+	const seen = new Map<string, StepView["effects"][number]>()
+	for (const { effectId, holder, endsAt } of step.active) {
+		if (hidden.has(effectId)) continue
+		const name =
+			holder === "target"
+				? `${names.effect(effectId)} on the target`
+				: names.effect(effectId)
+		const until = Number.isFinite(endsAt) ? endsAt : undefined
+		const key = `${name}@${until}`
+		if (!seen.has(key))
+			seen.set(key, { name, ...(until !== undefined && { until }) })
+	}
+	return [...seen.values()]
+}
+
 export function stepView(
 	step: CombatStep,
 	{ names, target }: { names: CombatNames; target: CombatTarget },
@@ -246,20 +267,10 @@ export function stepView(
 				: [],
 		),
 		// An effect its outcome or its damage over time line already reports gets no chip of its own.
-		effects: [
-			...new Set(
-				step.active.flatMap(({ effectId, holder, endsAt }) => {
-					if (empowering.has(effectId) || ticking.has(effectId)) return []
-					const name =
-						holder === "target"
-							? `${names.effect(effectId)} on the target`
-							: names.effect(effectId)
-					return Number.isFinite(endsAt)
-						? [`${name} · until ${formatSeconds(endsAt)}`]
-						: [name]
-				}),
-			),
-		],
+		effects: runningEffects(step, {
+			names,
+			hidden: new Set([...empowering, ...ticking]),
+		}),
 		healthShare: step.targetHealth / target.health,
 	}
 }
