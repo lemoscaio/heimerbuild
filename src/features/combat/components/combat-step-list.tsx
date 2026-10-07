@@ -209,7 +209,8 @@ function moveDescriber(items: readonly CombatShownItem[], names: ActionNames) {
 		const [id] = ids
 		const group = groups.find(({ steps }) => steps[0]?.id === id)
 		if (group && ids.length > 1) {
-			return `Group ${groupTitle(group, names)} is now item ${at + 1} of ${of}`
+			// Its step numbers change with the move: name it by its action.
+			return `Group ${actionLabel(group.action, names)} ×${group.steps.length} is now item ${at + 1} of ${of}`
 		}
 		const item = items.find((entry) => entry.id === id)
 		if (item?.kind === "marker") {
