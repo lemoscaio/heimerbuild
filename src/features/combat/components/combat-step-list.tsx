@@ -4,8 +4,13 @@ import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { NumberField } from "@/components/ui/number-field"
 import type { CombatAction } from "@/lib/combat/combat"
-import type { CombatListItem, CombatStepItem } from "../hooks/use-combat-view"
-import { useStepReorder } from "../hooks/use-step-reorder"
+import type {
+	CombatGroupItem,
+	CombatShownItem,
+	CombatStepItem,
+} from "../hooks/use-combat-view"
+import { useGroupExpansion } from "../hooks/use-group-expansion"
+import { type MoveAction, useStepReorder } from "../hooks/use-step-reorder"
 import { actionLabel } from "../lib/combat-format"
 import { WAIT_SECONDS } from "../lib/combat-sequence"
 import { outcomeChoice, strictOutcomeViews } from "../lib/combat-view"
@@ -15,6 +20,7 @@ import { CombatMoveButtons } from "./combat-move-buttons"
 import { CombatOutcomeChips } from "./combat-outcome-chips"
 import { CombatOutcomeChoices } from "./combat-outcome-choices"
 import { CombatStepCard } from "./combat-step-card"
+import { CombatStepGroup } from "./combat-step-group"
 import { CombatVariantInput } from "./combat-variant-input"
 
 /** Strict: outcomes are read-only; free: outcomes are answered per step. */
@@ -30,15 +36,18 @@ export type CombatListMode =
 	  }
 
 type CombatStepListProps = {
-	items: readonly CombatListItem[]
+	items: readonly CombatShownItem[]
 	mode: CombatListMode
 	/** The abilities as the form shows them, and the summoner slots, for the steps' names and icons. */
 	spells: readonly Pick<ChampionSpell, "slot" | "name" | "icon">[]
 	summoners: readonly (SummonerSpell | undefined)[]
 	/** The marker just added, pointed out. */
 	newMarkerId?: number
-	onMove: (id: number, to: number) => void
+	/** Moves the entries `ids`, kept together, to position `to`. */
+	onMove: (ids: readonly number[], to: number) => void
 	onRemove: (id: number) => void
+	/** Removes a whole group. */
+	onRemoveAll: (ids: readonly number[]) => void
 	onRemoveMarker: (id: number) => void
 	onWaitChange: (id: number, seconds: number) => void
 	onVariantChange: (id: number, variant: string) => void
@@ -112,9 +121,117 @@ function WaitLength({
 	)
 }
 
+type ActionNames = Parameters<typeof actionLabel>[1]
+
+type StepEntryProps = {
+	step: CombatStepItem
+	mode: CombatListMode
+	names: ActionNames
+	moves: { up: MoveAction; down: MoveAction }
+} & Pick<
+	CombatStepListProps,
+	"spells" | "summoners" | "onRemove" | "onWaitChange" | "onVariantChange"
+>
+
+/** An action's card with its own controls: its wait's length, its input, its outcomes. */
+function StepEntry({
+	step,
+	mode,
+	names,
+	moves,
+	spells,
+	summoners,
+	onRemove,
+	onWaitChange,
+	onVariantChange,
+}: StepEntryProps) {
+	const { id, action } = step
+	const label = actionLabel(action, names)
+	return (
+		<CombatStepCard
+			number={step.number}
+			label={label}
+			icon={
+				<CombatActionIcon
+					kind={action.kind}
+					icon={stepIcon(action, { spells, summoners })}
+				/>
+			}
+			time={step.time}
+			refused={step.refused}
+			view={step.view}
+			moves={
+				<CombatMoveButtons
+					label={`step ${step.number}, ${label}`}
+					className="flex-col"
+					{...moves}
+				/>
+			}
+			onRemove={() => onRemove(id)}
+		>
+			{action.kind === "wait" && (
+				<WaitLength
+					seconds={action.seconds}
+					onChange={(seconds) => onWaitChange(id, seconds)}
+				/>
+			)}
+			{action.kind === "ability" && (
+				<CombatVariantInput
+					variants={step.variants}
+					value={action.variant}
+					onValueChange={(variant) => onVariantChange(id, variant)}
+				/>
+			)}
+			<StepOutcomes step={step} mode={mode} />
+		</CombatStepCard>
+	)
+}
+
+/** "1–8. Attack ×8" */
+function groupTitle(group: CombatGroupItem, names: ActionNames) {
+	const { first, last } = group.numbers
+	return `${first}–${last}. ${actionLabel(group.action, names)} ×${group.steps.length}`
+}
+
+/** Each shown item's entry ids: a group's all of its steps'. */
+function itemBlocks(items: readonly CombatShownItem[]) {
+	return items.map((item) =>
+		item.kind === "group" ? item.steps.map(({ id }) => id) : [item.id],
+	)
+}
+
+/** What a screen reader hears after a move: the item, and its new place in the list or in its group. */
+function moveDescriber(items: readonly CombatShownItem[], names: ActionNames) {
+	const groups = items.filter(
+		(item): item is CombatGroupItem => item.kind === "group",
+	)
+	return (ids: readonly number[], { at, of }: { at: number; of: number }) => {
+		const [id] = ids
+		const group = groups.find(({ steps }) => steps[0]?.id === id)
+		if (group && ids.length > 1) {
+			return `Group ${groupTitle(group, names)} is now item ${at + 1} of ${of}`
+		}
+		const item = items.find((entry) => entry.id === id)
+		if (item?.kind === "marker") {
+			return `Marker ${item.view.label} is now item ${at + 1} of ${of}`
+		}
+		const inGroup = groups.find(({ steps }) =>
+			steps.some((step) => step.id === id),
+		)
+		const step =
+			inGroup?.steps.find((entry) => entry.id === id) ??
+			(item?.kind === "step" ? item : undefined)
+		const label = step ? actionLabel(step.action, names) : "The step"
+		return inGroup
+			? `${label} is now step ${at + 1} of ${of} in its group`
+			: `${label} is now item ${at + 1} of ${of}`
+	}
+}
+
 /**
- * The combo in order: action cards and situation marker lines, moved one place with their up and
- * down buttons, removed with ×.
+ * The combo in order: action cards, situation marker lines and groups of identical steps (issue
+ * 331), each moved with its up and down buttons and removed with ×. A step or a marker moves one
+ * entry; a group moves past its whole neighbour and goes as a whole; open, its steps move among themselves.
  */
 export function CombatStepList({
 	items,
@@ -124,31 +241,36 @@ export function CombatStepList({
 	newMarkerId,
 	onMove,
 	onRemove,
+	onRemoveAll,
 	onRemoveMarker,
 	onWaitChange,
 	onVariantChange,
 }: CombatStepListProps) {
 	const titleId = useId()
-	const byId = new Map(items.map((item) => [item.id, item]))
-	const names = {
+	const names: ActionNames = {
 		ability: (slot: string) =>
 			spells.find((spell) => spell.slot === slot)?.name ?? slot,
 		summoner: (slot: number) => summoners[slot]?.name ?? "Summoner spell",
 	}
+	const blocks = itemBlocks(items)
+	const entryIds = blocks.flat()
+	// A step or a marker moves one entry at a time, so it can go inside a run (and split it).
+	const entries = entryIds.map((id) => [id])
 	const reorder = useStepReorder({
-		ids: items.map(({ id }) => id),
+		entryIds,
 		onMove,
-		describeMove(id, to) {
-			const item = byId.get(id)
-			const label =
-				item?.kind === "marker"
-					? `Marker ${item.view.label}`
-					: item
-						? actionLabel(item.action, names)
-						: "The step"
-			return `${label} is now item ${to + 1} of ${items.length}`
-		},
+		describeMove: moveDescriber(items, names),
 	})
+	const expansion = useGroupExpansion()
+	const stepProps = {
+		mode,
+		names,
+		spells,
+		summoners,
+		onRemove,
+		onWaitChange,
+		onVariantChange,
+	}
 
 	return (
 		<section aria-labelledby={titleId} className="flex flex-col gap-1.5">
@@ -156,65 +278,72 @@ export function CombatStepList({
 				Steps
 			</h3>
 			<ol className="flex flex-col gap-1.5">
-				{items.map((item) => {
-					const { id } = item
-					const moves = reorder.moves(id)
+				{items.map((item, position) => {
+					const moves =
+						item.kind === "group"
+							? reorder.moves(blocks, position)
+							: reorder.moves(entries, entryIds.indexOf(item.id))
 					if (item.kind === "marker") {
 						return (
 							<CombatMarkerLine
-								key={id}
+								key={item.id}
 								view={item.view}
-								isNew={newMarkerId === id}
+								isNew={newMarkerId === item.id}
 								moves={
 									<CombatMoveButtons
 										label={`marker ${item.view.label}`}
 										{...moves}
 									/>
 								}
-								onRemove={() => onRemoveMarker(id)}
+								onRemove={() => onRemoveMarker(item.id)}
 							/>
 						)
 					}
-					const { action } = item
-					const label = actionLabel(action, names)
+					if (item.kind === "step") {
+						return (
+							<StepEntry
+								key={item.id}
+								step={item}
+								moves={moves}
+								{...stepProps}
+							/>
+						)
+					}
+					const ids = blocks[position] ?? []
+					const title = groupTitle(item, names)
+					const inside = item.steps.map(({ id }) => [id])
 					return (
-						<CombatStepCard
-							key={id}
-							number={item.number}
-							label={label}
+						<CombatStepGroup
+							key={`group-${item.id}`}
+							title={title}
 							icon={
 								<CombatActionIcon
-									kind={action.kind}
-									icon={stepIcon(action, { spells, summoners })}
+									kind={item.action.kind}
+									icon={stepIcon(item.action, { spells, summoners })}
 								/>
 							}
-							time={item.time}
-							refused={item.refused}
 							view={item.view}
+							{...(mode.kind === "free" && { changes: item.view.changes })}
 							moves={
 								<CombatMoveButtons
-									label={`step ${item.number}, ${label}`}
+									label={`group ${title}`}
 									className="flex-col"
 									{...moves}
 								/>
 							}
-							onRemove={() => onRemove(id)}
+							open={expansion.isOpen(ids)}
+							onOpenChange={(open) => expansion.setOpen(ids, open)}
+							onRemove={() => onRemoveAll(ids)}
 						>
-							{action.kind === "wait" && (
-								<WaitLength
-									seconds={action.seconds}
-									onChange={(seconds) => onWaitChange(id, seconds)}
+							{item.steps.map((step, index) => (
+								<StepEntry
+									key={step.id}
+									step={step}
+									moves={reorder.moves(inside, index)}
+									{...stepProps}
 								/>
-							)}
-							{action.kind === "ability" && (
-								<CombatVariantInput
-									variants={item.variants}
-									value={action.variant}
-									onValueChange={(variant) => onVariantChange(id, variant)}
-								/>
-							)}
-							<StepOutcomes step={item} mode={mode} />
-						</CombatStepCard>
+							))}
+						</CombatStepGroup>
 					)
 				})}
 			</ol>
