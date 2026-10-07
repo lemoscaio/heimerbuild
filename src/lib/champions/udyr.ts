@@ -1,10 +1,22 @@
 // Udyr: his stance buffs add up: "Switching Stances will not cause any additional effects granted by
 // the previous one to end prematurely" (wiki, Udyr). Awaken's level-scaled extras are left out.
+// Monk Training: each cast gives his next two attacks within 4 s 30% attack speed.
 import type { Effect } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
 
 export const UDYR_EFFECTS = [
+	{
+		id: "udyr-monk-training",
+		source: { kind: "ability", championKey: "Udyr", slot: "passive" },
+		trigger: { kind: "after-ability" },
+		label: "Monk Training",
+		duration: 4,
+		charges: 2,
+		grants: [{ kind: "stat", stat: "attackSpeedPercent", amount: 0.3 }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Udyr/Bridge_Between`,
+	},
 	{
 		id: "udyr-q-active",
 		source: { kind: "ability", championKey: "Udyr", slot: "Q" },

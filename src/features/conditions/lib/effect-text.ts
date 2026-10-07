@@ -9,14 +9,24 @@ const CONDITION_TEXT = {
 	"not-damaged-recently": "Not hit by a champion or turret for 5 s",
 } as const satisfies Record<EffectCondition, string>
 
-function lasting(duration: number | undefined, when: string) {
+/** How long it holds: its seconds, or its attacks within them ("For 2 attacks within 4 s"). */
+type Lasting = { duration: number | undefined; charges: number | undefined }
+
+function lasting({ duration, charges }: Lasting, when: string) {
+	if (duration !== undefined && charges !== undefined) {
+		return `For ${charges} attacks within ${duration} s ${when}`
+	}
 	if (duration !== undefined) return `For ${duration} s ${when}`
 	return `${when.charAt(0).toUpperCase()}${when.slice(1)}`
 }
 
 /** When the effect holds: "For 10 s after casting", "For 2.5 s after 3 hits", "While in this form". */
-export function conditionText({ effect, duration }: Condition): string {
-	const { trigger, form, stacks } = effect.effect
+export function conditionText({
+	effect,
+	duration: seconds,
+}: Condition): string {
+	const { trigger, form, stacks, charges } = effect.effect
+	const duration = { duration: seconds, charges }
 	switch (trigger.kind) {
 		case "always":
 			return form ? "While in this form" : "Always"

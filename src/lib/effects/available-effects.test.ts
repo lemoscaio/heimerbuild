@@ -271,7 +271,7 @@ describe("combatEffects", () => {
 		items: [{ id: "3078", name: "Trinity Force", icon: "trinity.png" }],
 	}
 
-	test("binds a passive's effects, the chosen items' and the target's, which the stats panel leaves out", () => {
+	test("binds a passive's effects, the chosen items' and the target's, which the stats panel leaves out, but for a listed one", () => {
 		expect(ids(combatEffects(quinn))).toEqual([
 			"quinn-harrier-mark",
 			"quinn-harrier-valor",
@@ -280,7 +280,8 @@ describe("combatEffects", () => {
 			"ignite",
 			"trinity-force-spellblade",
 		])
-		expect(ids(availableEffects(quinn))).toEqual([])
+		// Heightened Senses' passive is `listed`: a switch in the panel too.
+		expect(ids(availableEffects(quinn))).toEqual(["quinn-w-passive"])
 	})
 
 	test("a passive's effect is named after the passive", () => {

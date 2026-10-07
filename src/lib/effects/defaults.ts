@@ -57,6 +57,6 @@ const LISTED_BY_TRIGGER = {
 } as const satisfies Record<TriggerKind, boolean>
 
 /** The stats panel lists the attacker's own effects that a switch can stand in for; the combat simulator reads them all. */
-export function isListed({ trigger, holder }: Effect): boolean {
-	return LISTED_BY_TRIGGER[trigger.kind] && holder !== "target"
+export function isListed({ trigger, holder, listed }: Effect): boolean {
+	return (listed ?? LISTED_BY_TRIGGER[trigger.kind]) && holder !== "target"
 }
