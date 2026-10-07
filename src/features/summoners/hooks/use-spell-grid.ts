@@ -1,6 +1,6 @@
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import { useState } from "react"
-import { moveInGrid } from "../lib/grid-navigation"
+import { moveInGrid } from "@/lib/grid-navigation"
 
 type UseSpellGridOptions = {
 	spells: readonly SummonerSpell[]

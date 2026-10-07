@@ -31,6 +31,14 @@ export function ChampionBuildPage() {
 		search,
 		onSearchChange: (nextSearch, { replace }) =>
 			navigate({ search: nextSearch, replace, resetScroll: false }),
+		onChampionChange: (championKey, nextSearch, championSwitch) =>
+			navigate({
+				to: "/champions/$key",
+				params: { key: championKey },
+				search: nextSearch,
+				state: { championSwitch },
+				resetScroll: false,
+			}),
 	})
 	const isDesktop = useIsDesktop()
 	const buildHref = router.buildLocation({

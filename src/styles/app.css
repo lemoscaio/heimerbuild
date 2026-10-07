@@ -36,6 +36,9 @@
 	--color-outcome-line: #6b5a26;
 	--color-outcome-fill: #2a2414;
 	--color-forced: #e8896a;
+	/* What a champion switch keeps (green) and resets (orange). */
+	--color-kept: #5fb87a;
+	--color-reset: #e08a3c;
 
 	/* Rune tree accents, as in the game client. */
 	--color-precision: #c8aa6e;

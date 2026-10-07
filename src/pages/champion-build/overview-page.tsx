@@ -20,6 +20,8 @@ import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
 import { BuildEffectsList } from "./build-effects-list"
 import { ChampionSkills } from "./champion-skills"
+import { ChampionSwitchNotice } from "./champion-switch-notice"
+import { ChampionSwitcher } from "./champion-switcher"
 import { ComboTab } from "./combo-tab"
 import type { BuildPage } from "./hooks/use-build-page"
 
@@ -55,7 +57,14 @@ export function OverviewPage({
 							attackType={attackTypeAtLevel(champion, championState.level, {
 								form: championState.form?.id,
 							})}
-							formName={championState.form?.name}
+							avatar={
+								<ChampionSwitcher
+									build={build}
+									champion={champion}
+									patch={patch}
+									layout="popover"
+								/>
+							}
 							beside={
 								<SummonerSlots
 									summoners={build.summoners}
@@ -85,6 +94,13 @@ export function OverviewPage({
 							rankUpStats={build.rankUpStats}
 						/>
 					</WorkbenchPanel>
+					<ChampionSwitchNotice
+						summary={build.championSwitch.notice}
+						championName={champion.name}
+						level={championState.level}
+						onUndo={build.championSwitch.undo}
+						onDismiss={build.championSwitch.dismiss}
+					/>
 					<WorkbenchPanel>
 						<ItemSlots
 							items={items.list}
