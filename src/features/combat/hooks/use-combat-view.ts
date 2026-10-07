@@ -1,5 +1,9 @@
 import type { CombatAction, CombatTarget } from "@/lib/combat/combat"
-import type { AbilityVariant } from "@/lib/combat/registries/ability-hits"
+import {
+	type AbilityVariant,
+	LANDS_LABEL,
+	type VariantsLabel,
+} from "@/lib/combat/registries/ability-hits"
 import type { BuildEffect } from "@/lib/effects/effect"
 import {
 	actionKey,
@@ -43,6 +47,8 @@ export type CombatStepItem = {
 	attacksOnly?: string
 	/** The ways the ability can land, with the one picked (Decimate's outer blade). */
 	variants: readonly AbilityVariant[]
+	/** What the variants pick ("Lands", "Poisoned"). */
+	variantsLabel: VariantsLabel
 }
 
 /** A marker's line: its situation and what it did. */
@@ -145,6 +151,10 @@ export function useCombatView({
 					attacksOnly: attacksOnlyNote(outcomes, combat.attackOutcomes, names),
 				}),
 			variants: action.kind === "ability" ? combat.variants(action.slot) : [],
+			variantsLabel:
+				action.kind === "ability"
+					? combat.variantsLabel(action.slot)
+					: LANDS_LABEL,
 		}
 	})
 

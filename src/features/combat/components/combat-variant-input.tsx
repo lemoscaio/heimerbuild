@@ -1,9 +1,14 @@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/cn"
-import type { AbilityVariant } from "@/lib/combat/registries/ability-hits"
+import type {
+	AbilityVariant,
+	VariantsLabel,
+} from "@/lib/combat/registries/ability-hits"
 
 type CombatVariantInputProps = {
 	variants: readonly AbilityVariant[]
+	/** What they pick: "Lands" (Decimate), "Poisoned" (Poison Trail). */
+	label: VariantsLabel
 	/** The variant picked; the first when none is. */
 	value: string | undefined
 	onValueChange: (variant: string) => void
@@ -12,6 +17,7 @@ type CombatVariantInputProps = {
 /** Blue: an input the simulator can't know, picked per step in both modes (Decimate's outer blade or inner handle). */
 export function CombatVariantInput({
 	variants,
+	label,
 	value,
 	onValueChange,
 	className,
@@ -27,9 +33,9 @@ export function CombatVariantInput({
 			)}
 			{...props}
 		>
-			<span>Lands</span>
+			<span>{label.text}</span>
 			<ToggleGroup
-				aria-label="How it lands"
+				aria-label={label.name}
 				value={[current]}
 				onValueChange={([variant]) => {
 					if (variant) onValueChange(variant)

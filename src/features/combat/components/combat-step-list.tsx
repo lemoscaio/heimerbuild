@@ -178,6 +178,7 @@ function StepEntry({
 			{action.kind === "ability" && (
 				<CombatVariantInput
 					variants={step.variants}
+					label={step.variantsLabel}
 					value={action.variant}
 					onValueChange={(variant) => onVariantChange(id, variant)}
 				/>

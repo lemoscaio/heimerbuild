@@ -2,7 +2,11 @@ import type { AbilitySlot, Champion } from "@schemas/champion"
 import { type CombatAction, MAX_COMBAT_STEPS } from "@/lib/combat/combat"
 import { CURATED_COMBAT_CHAMPIONS } from "@/lib/combat/curated-champions"
 import { outcomeKeys } from "@/lib/combat/outcomes"
-import { abilityVariants } from "@/lib/combat/registries/ability-hits"
+import {
+	abilityVariants,
+	abilityVariantsLabel,
+	LANDS_LABEL,
+} from "@/lib/combat/registries/ability-hits"
 import {
 	type CombatInput as SimulationInput,
 	simulateCombat,
@@ -112,6 +116,15 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 						slot,
 					})
 				: [],
+		/** What an ability's variants pick: "Lands" (Decimate), "Poisoned" (Poison Trail). */
+		variantsLabel: (slot: AbilitySlot) =>
+			input
+				? abilityVariantsLabel({
+						championKey: input.build.champion.key,
+						patch: input.build.patch,
+						slot,
+					})
+				: LANDS_LABEL,
 		/** The champion's abilities as the selected form shows them. */
 		spells,
 		/** The champion's damage was checked on the wiki (`CURATED_COMBAT_CHAMPIONS`). */
