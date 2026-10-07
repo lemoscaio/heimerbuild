@@ -1,6 +1,5 @@
 import type { Champion } from "@schemas/champion"
 import { ChevronRight } from "lucide-react"
-import { GameIcon } from "@/components/common/game-icon"
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -11,11 +10,11 @@ import { attackTypeLabels } from "../lib/champion-labels"
 import { ChampionHeaderLayout } from "./champion-header-layout"
 
 type ChampionHeaderProps = {
-	champion: Pick<Champion, "name" | "title" | "icon" | "roles" | "lore">
+	champion: Pick<Champion, "name" | "title" | "roles" | "lore">
 	/** Melee or ranged at the selected level and form (Kayle turns ranged at 6). */
 	attackType: Champion["attackType"]
-	/** The selected form's name, over the portrait, for a champion with forms. */
-	formName?: string
+	/** The portrait, such as the button that switches the champion. */
+	avatar: React.ReactNode
 	/** Next to the portrait, such as the summoner spell slots. */
 	beside?: React.ReactNode
 }
@@ -23,18 +22,13 @@ type ChampionHeaderProps = {
 export function ChampionHeader({
 	champion,
 	attackType,
-	formName,
+	avatar,
 	beside,
 }: ChampionHeaderProps) {
 	return (
 		<>
 			<ChampionHeaderLayout>
-				<GameIcon
-					src={champion.icon}
-					name={champion.name}
-					caption={formName}
-					className="size-16 rounded-lg border-2 border-gold/70"
-				/>
+				{avatar}
 				{beside}
 				<div className="flex flex-col gap-0.5 font-display">
 					<h1 className="font-extrabold text-xl leading-tight">

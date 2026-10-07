@@ -20,6 +20,8 @@ import { SummonerSlots } from "@/features/summoners/components/summoner-slots"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { BuildEffectsList } from "./build-effects-list"
 import { ChampionSkills } from "./champion-skills"
+import { ChampionSwitchNotice } from "./champion-switch-notice"
+import { ChampionSwitcher } from "./champion-switcher"
 import { ComboTab } from "./combo-tab"
 import type { BuildPage } from "./hooks/use-build-page"
 
@@ -60,7 +62,14 @@ export function MobileBuildPage({
 				<>
 					<MobileChampionRow
 						champion={champion}
-						formName={championState.form?.name}
+						avatar={
+							<ChampionSwitcher
+								build={build}
+								champion={champion}
+								patch={patch}
+								layout="sheet"
+							/>
+						}
 						beside={
 							<SummonerSlots
 								summoners={build.summoners}
@@ -84,6 +93,13 @@ export function MobileBuildPage({
 						/>
 					)}
 					{patchNotice}
+					<ChampionSwitchNotice
+						summary={build.championSwitch.notice}
+						championName={champion.name}
+						level={championState.level}
+						onUndo={build.championSwitch.undo}
+						onDismiss={build.championSwitch.dismiss}
+					/>
 					<ChampionSkills
 						abilities={build.abilities ?? champion.abilities}
 						skills={build.skills}
