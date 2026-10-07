@@ -15,6 +15,7 @@ import type {
 	Grant,
 	MarkApplication,
 	MarkConsumer,
+	PauseOn,
 	Trigger,
 } from "../effects/effect"
 import {
@@ -114,6 +115,8 @@ type Instance = {
 	charges?: { used: number; max: number }
 	/** Running from a situation marker. */
 	fromSituation?: true
+	/** When its pause (`pauses`) ends, set by the last event that started one. */
+	pausedUntil?: number
 }
 
 /** A mark and the effect that applied it, whose cooldown may start when it leaves (`cooldownFrom`). */
@@ -341,6 +344,11 @@ function statsNow(sim: Simulation): ComputedStats {
 	)
 	const running = sim.active.filter(({ holder }) => holder === "attacker")
 	const runningIds = new Set(running.map(({ effect }) => effect.id))
+	const paused = new Set(
+		running
+			.filter((instance) => isPausedNow(sim, instance))
+			.map(({ effect }) => effect.id),
+	)
 	return computeBuildStats({
 		...sim.input.build,
 		effects: {
@@ -353,6 +361,7 @@ function statsNow(sim: Simulation): ComputedStats {
 			stacks: Object.fromEntries(
 				running.map(({ effect, stacks }) => [effect.id, stacks]),
 			),
+			paused,
 		},
 	})
 }
@@ -720,6 +729,20 @@ function endEffects(sim: Simulation, reason: EndsOn) {
 	}
 }
 
+function isPausedNow(sim: Simulation, { pausedUntil }: Instance) {
+	return pausedUntil !== undefined && pausedUntil > sim.time
+}
+
+/** Pauses part of the attacker's effects that pause on `reason`, for their `seconds` from now. */
+function pauseEffects(sim: Simulation, reason: PauseOn) {
+	for (const instance of sim.active) {
+		const { pauses } = instance.effect.effect
+		if (instance.holder === "attacker" && pauses?.on.includes(reason)) {
+			instance.pausedUntil = sim.time + pauses.seconds
+		}
+	}
+}
+
 function effectSource(instance: Instance): DamageSource {
 	return {
 		kind: "effect",
@@ -1045,6 +1068,7 @@ function attack(sim: Simulation, item: CombatItem) {
 	sim.actionStart = sim.log.length
 	const pending: PendingMarks = []
 	endEffects(sim, "attack")
+	pauseEffects(sim, "attack")
 	const held = empowerAttack(sim, pending)
 	spendCharges(sim)
 	deal(sim, {
@@ -1177,6 +1201,7 @@ function castAbility(
 	})
 	reduceCooldownsOnCast(sim)
 	endEffects(sim, "cast")
+	pauseEffects(sim, "cast")
 	triggerWhere(
 		sim,
 		(trigger, { effect }) =>
@@ -1333,17 +1358,35 @@ function settleDamageOverTime(sim: Simulation, steps: CombatStep[]) {
 	}
 }
 
+/** What a running effect has paused now, and until when. */
+function pausedView(
+	sim: Simulation,
+	{ effect, pausedUntil }: Pick<Instance, "effect" | "pausedUntil">,
+): Pick<ActiveEffect, "paused"> {
+	const { pauses } = effect.effect
+	if (!pauses || pausedUntil === undefined || pausedUntil <= sim.time) return {}
+	return { paused: { until: pausedUntil, grants: pauses.grants } }
+}
+
 function snapshot(sim: Simulation): Pick<CombatStep, "active" | "marks"> {
 	return {
 		active: sim.active
 			.filter(({ effect }) => isInForm(effect, sim.formId))
 			.map(
-				({ effect, holder, startedAt, endsAt, stacks }): ActiveEffect => ({
+				({
+					effect,
+					holder,
+					startedAt,
+					endsAt,
+					stacks,
+					pausedUntil,
+				}): ActiveEffect => ({
 					effectId: effect.id,
 					holder,
 					startedAt,
 					endsAt,
 					stacks,
+					...pausedView(sim, { effect, pausedUntil }),
 				}),
 			),
 		marks: sim.marks.map(({ mark, endsAt }) => ({ mark, endsAt })),

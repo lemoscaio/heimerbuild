@@ -3,6 +3,7 @@ import {
 	DAMAGE_TYPES,
 	type DamageType,
 } from "@schemas/champion"
+import type { StatKey } from "@schemas/item"
 import type {
 	CombatEvent,
 	CombatResult,
@@ -16,6 +17,7 @@ import type {
 } from "@/lib/combat/combat"
 import { outcomeId } from "@/lib/combat/outcomes"
 import type { BuildEffect, StartOption } from "@/lib/effects/effect"
+import { statDisplay } from "@/lib/stat-display"
 import { formatSeconds } from "./combat-format"
 
 /** The names the combo shows for the abilities, effects and marks it reports by id. */
@@ -111,6 +113,12 @@ export type DamageOverTimeView = {
 	notModeled: readonly string[]
 }
 
+export type RunningEffectView = {
+	name: string
+	until?: number
+	paused?: { label: string; until: number }
+}
+
 /** What a step's card shows: its hits and total, the marks it moved and the effects running after it. */
 export type StepView = {
 	hits: HitView[]
@@ -121,8 +129,11 @@ export type StepView = {
 	mainType?: DamageType
 	/** The marks it moved that no outcome reports (Valor marking during a wait); `fromMarker`: a marker put it there. */
 	marks: { mark: string; change: "applied" | "consumed"; fromMarker: boolean }[]
-	/** The effects running after it, with when each ends (none: until its `endsOn` event). */
-	effects: { name: string; until?: number }[]
+	/**
+	 * The effects running after it, with when each ends (none: until its `endsOn` event), and what
+	 * its pause switched off until when ("Move Speed" until 1.50 s).
+	 */
+	effects: RunningEffectView[]
 	healthShare: number
 }
 
@@ -198,22 +209,36 @@ export function damageOverTimeView(
 	}
 }
 
+/** The stats a pause switched off, by their shop names: "Move Speed". */
+function pausedLabel(grants: readonly StatKey[]) {
+	const labels = grants.map(
+		(stat) => statDisplay[stat].itemLabel ?? statDisplay[stat].label,
+	)
+	return [...new Set(labels)].join(", ")
+}
+
 /** The effects running after a step, each once; `hidden` ones another line reports. */
 function runningEffects(
 	step: CombatStep,
 	{ names, hidden }: { names: CombatNames; hidden: ReadonlySet<string> },
 ): StepView["effects"] {
-	const seen = new Map<string, StepView["effects"][number]>()
-	for (const { effectId, holder, endsAt } of step.active) {
+	const seen = new Map<string, RunningEffectView>()
+	for (const { effectId, holder, endsAt, paused } of step.active) {
 		if (hidden.has(effectId)) continue
 		const name =
 			holder === "target"
 				? `${names.effect(effectId)} on the target`
 				: names.effect(effectId)
 		const until = Number.isFinite(endsAt) ? endsAt : undefined
-		const key = `${name}@${until}`
+		const key = `${name}@${until}@${paused?.until}`
 		if (!seen.has(key))
-			seen.set(key, { name, ...(until !== undefined && { until }) })
+			seen.set(key, {
+				name,
+				...(until !== undefined && { until }),
+				...(paused && {
+					paused: { label: pausedLabel(paused.grants), until: paused.until },
+				}),
+			})
 	}
 	return [...seen.values()]
 }
