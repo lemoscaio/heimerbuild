@@ -1,4 +1,9 @@
 import { describe, expect, test } from "bun:test"
+import teemoBin from "../../../../scripts/sync-data/fixtures/champions/Teemo.bin.json"
+import teemoDetail from "../../../../scripts/sync-data/fixtures/champions/Teemo.json"
+import { normalizeChampion } from "../../../../scripts/sync-data/normalize-champions"
+import { computeBuildStats } from "../../stats/compute-build-stats"
+import { availableEffects } from "../available-effects"
 import { ITEM_EFFECTS } from "./item-effects"
 
 function grantsOf(id: string) {
@@ -95,5 +100,68 @@ describe("Black Cleaver", () => {
 				amount: 0.3,
 			},
 		])
+	})
+})
+
+// Wiki, checked 2026-10-08 (issue 409): each item's stacks are the build's match stacks.
+describe("items with match stacks", () => {
+	const PATCH = "16.19.1"
+	const teemo = normalizeChampion(teemoDetail, teemoBin, PATCH)
+	const ranks = { Q: 0, W: 0, E: 0, R: 0 }
+
+	/** Teemo's totals at level 9 holding the item (its effects, not its stats), with `matchStacks`. */
+	function statsWith(
+		item: { id: string; name: string },
+		matchStacks?: Record<string, number>,
+	) {
+		const available = availableEffects({
+			patch: PATCH,
+			champion: teemo,
+			ranks,
+			spells: [],
+			runes: [],
+			items: [{ ...item, icon: "" }],
+		})
+		return computeBuildStats({
+			champion: teemo,
+			patch: PATCH,
+			level: 9,
+			items: [],
+			shards: [],
+			ranks,
+			effects: { available, overrides: {} },
+			matchStacks,
+		})
+	}
+
+	const DARK_SEAL = { id: "1082", name: "Dark Seal" }
+	const MEJAI = { id: "3041", name: "Mejai's Soulstealer" }
+	const HEARTSTEEL = { id: "3084", name: "Heartsteel" }
+
+	test("Dark Seal: 4 ability power per Glory, 10 Glory at most", () => {
+		const ap = (count: number) =>
+			statsWith(DARK_SEAL, { "dark-seal-stacks": count }).abilityPower.total
+
+		expect(ap(6) - ap(0)).toBe(24)
+		expect(ap(25) - ap(0)).toBe(40)
+	})
+
+	test("Mejai's Soulstealer: 5 ability power per Glory up to 25, and 10% move speed from 10", () => {
+		const stats = (count: number) => statsWith(MEJAI, { "mejai-stacks": count })
+		const base = stats(0)
+
+		expect(stats(9).abilityPower.total - base.abilityPower.total).toBe(45)
+		expect(stats(9).movementSpeed.total).toBe(base.movementSpeed.total)
+		expect(stats(10).movementSpeed.total).toBeGreaterThan(
+			base.movementSpeed.total,
+		)
+		expect(stats(40).abilityPower.total - base.abilityPower.total).toBe(125)
+	})
+
+	test("Heartsteel: its permanent bonus health is the count itself", () => {
+		const health = (count: number) =>
+			statsWith(HEARTSTEEL, { "heartsteel-health": count }).health.bonus
+
+		expect(health(640) - health(0)).toBe(640)
 	})
 })

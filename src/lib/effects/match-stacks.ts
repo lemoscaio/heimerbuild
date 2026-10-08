@@ -1,19 +1,43 @@
-import type { Amount, Effect, MatchStackSource } from "./effect"
+import type {
+	Amount,
+	Effect,
+	MatchStackSource,
+	StacksThreshold,
+} from "./effect"
 
 /** Stacks by source id; a source without an entry has none. */
 export type MatchStacks = Readonly<Record<string, number>>
 
-/** Only guards typos: Nasus and Veigar pass 1000 in long games. */
+/** Only guards typos for an uncapped source: Nasus and Veigar pass 1000 in long games. */
 export const MAX_MATCH_STACKS = 9999
 
-/** A typed or stepped count as whole stacks, 0 to 9999. */
-export function clampMatchStacks(count: number): number {
-	return Math.min(MAX_MATCH_STACKS, Math.max(0, Math.round(count)))
+/** The most stacks a source holds: its cap, or 9999. */
+export function maxStacksOf(source: MatchStackSource | undefined): number {
+	return source?.capped ? source.sliderMax : MAX_MATCH_STACKS
 }
 
-/** The stacks a source has: none without an entry. */
-export function stacksOf(stacks: MatchStacks | undefined, sourceId: string) {
-	return stacks?.[sourceId] ?? 0
+/** A typed or stepped count as whole stacks, 0 to the source's most (9999 without one). */
+export function clampMatchStacks(
+	count: number,
+	source?: MatchStackSource,
+): number {
+	return Math.min(maxStacksOf(source), Math.max(0, Math.round(count)))
+}
+
+/** The stacks a source has, up to its cap: none without an entry. */
+export function stacksOf(
+	stacks: MatchStacks | undefined,
+	source: MatchStackSource,
+) {
+	return Math.min(stacks?.[source.id] ?? 0, maxStacksOf(source))
+}
+
+/** Whether the build's stacks reach the threshold (Mejai's 10 Glory). */
+export function reachesThreshold(
+	stacks: MatchStacks | undefined,
+	{ source, stacks: needed }: StacksThreshold,
+): boolean {
+	return stacksOf(stacks, source) >= needed
 }
 
 /** The stacks with `sourceId` at `count`; 0 leaves the stacks, and none left is `undefined`. */
@@ -35,25 +59,31 @@ function amountSources(amount: Amount): MatchStackSource[] {
 
 /** The match stack sources the effect reads, once each (Phenomenal Evil for Veigar's passive). */
 export function matchStackSources({ grants }: Effect): MatchStackSource[] {
-	const sources = grants.flatMap((grant) =>
-		"amount" in grant ? amountSources(grant.amount) : [],
-	)
+	const sources = grants.flatMap((grant) => [
+		...("amount" in grant ? amountSources(grant.amount) : []),
+		...(grant.from ? [grant.from.source] : []),
+	])
 	return sources.filter(
 		(source, index) =>
 			sources.findIndex(({ id }) => id === source.id) === index,
 	)
 }
 
-/** The stacks without the sources none of `effects` reads; as given while the effects load. */
+/** The stacks without the sources none of `effects` reads, each up to its cap; as given while the effects load. */
 export function usedMatchStacks(
 	stacks: MatchStacks | undefined,
 	effects: readonly Effect[] | undefined,
 ): MatchStacks | undefined {
 	if (!effects || !stacks) return stacks
-	const used = new Set(
-		effects.flatMap((effect) => matchStackSources(effect).map(({ id }) => id)),
+	const used = new Map(
+		effects.flatMap((effect) =>
+			matchStackSources(effect).map((source) => [source.id, source] as const),
+		),
 	)
-	const kept = Object.entries(stacks).filter(([id]) => used.has(id))
+	const kept = Object.keys(stacks).flatMap((id) => {
+		const source = used.get(id)
+		return source ? [[id, stacksOf(stacks, source)] as const] : []
+	})
 	return kept.length ? Object.fromEntries(kept) : undefined
 }
 

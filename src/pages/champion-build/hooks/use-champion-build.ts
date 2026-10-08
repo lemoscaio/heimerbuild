@@ -32,6 +32,7 @@ import {
 	computeBuildStats,
 	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
+import { attackTypeAtLevel } from "@/lib/stats/level-states"
 import { dropUnusedConditionValues } from "../lib/condition-values"
 
 type UseChampionBuildOptions = {
@@ -115,15 +116,16 @@ export function useChampionBuild({
 		value: state.summoners,
 		onChange: (value) => save({ summoners: value }, EDIT_HISTORY.summoners),
 	})
-	// Conditions read the other domains: the ranked abilities, the spells and the page's runes.
+	// Conditions read the other domains: the ranked abilities, the spells, the page's runes and the items.
 	const effectsBuild: EffectsBuild | undefined =
-		champion && skills.ranks && summonerSpells && runes
+		champion && skills.ranks && summonerSpells && runes && itemsById
 			? {
 					patch,
 					champion,
 					ranks: skills.ranks,
 					spells: summoners.slots.filter((spell) => spell !== undefined),
 					runes: selectedRunes(runePage.selection, runes),
+					items: items.list,
 				}
 			: undefined
 	const effects = effectsBuild && availableEffects(effectsBuild)
@@ -141,6 +143,12 @@ export function useChampionBuild({
 				champion && itemsAdaptiveType(champion.adaptiveType, items.list),
 			totals: basisInput && statBonusBasis(basisInput),
 			form: championState.form?.id,
+			attackType:
+				champion &&
+				attackTypeAtLevel(champion, championState.level, {
+					form: championState.formValue,
+					ranks: skills.ranks,
+				}),
 		},
 		value: state.effects ?? {},
 		onChange: (value) => save({ effects: value }, EDIT_HISTORY.effects),
@@ -223,7 +231,7 @@ export function useChampionBuild({
 		const { effects: _switches, ...build } = input
 		return {
 			build: { ...build, champion } satisfies CombatBuild,
-			effects: combatEffects({ ...effectsBuild, items: items.list }),
+			effects: combatEffects(effectsBuild),
 			summoners: summoners.slots,
 		}
 	}

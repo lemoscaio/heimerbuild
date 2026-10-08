@@ -19,6 +19,7 @@ function condition(id: string, fields: Partial<BuildEffect>): Condition {
 		usesCurrentHealth: false,
 		usesGameTime: false,
 		stackSources: [],
+		locked: [],
 		grants: [],
 	}
 }

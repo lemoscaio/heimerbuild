@@ -2,12 +2,12 @@ import { NumberField } from "@/components/ui/number-field"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/cn"
 import type { MatchStackSource } from "@/lib/effects/effect"
-import { MAX_MATCH_STACKS } from "@/lib/effects/match-stacks"
+import { maxStacksOf } from "@/lib/effects/match-stacks"
 import { sliderStacks, stacksFromField } from "../lib/stacks-input"
 
 type MatchStacksInputProps = {
 	source: MatchStackSource
-	/** Whole stacks, 0 to 9999. */
+	/** Whole stacks, 0 to the source's cap (9999 without one). */
 	value: number
 	onValueChange: (value: number) => void
 } & Omit<React.ComponentProps<"div">, "onChange">
@@ -16,7 +16,7 @@ const NO_GROUPING = { useGrouping: false } as const
 
 /**
  * One source's match stacks, which its effects read: a slider from 0 to the source's typical
- * late-game count, and a box with − and + that takes any count up to 9999.
+ * late-game count (or its cap), and a box with − and + that takes any count up to 9999 (or the cap).
  */
 export function MatchStacksInput({
 	source,
@@ -26,7 +26,7 @@ export function MatchStacksInput({
 	...props
 }: MatchStacksInputProps) {
 	function changeField(next: number | null) {
-		const count = stacksFromField(next)
+		const count = stacksFromField(next, source)
 		if (count !== undefined) onValueChange(count)
 	}
 
@@ -37,7 +37,7 @@ export function MatchStacksInput({
 				<NumberField
 					label={source.name}
 					min={0}
-					max={MAX_MATCH_STACKS}
+					max={maxStacksOf(source)}
 					step={1}
 					largeStep={10}
 					format={NO_GROUPING}

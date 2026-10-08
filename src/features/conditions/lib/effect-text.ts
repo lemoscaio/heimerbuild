@@ -185,12 +185,28 @@ function timingText(
 	return [lasts, decaying].filter(Boolean).join(", ")
 }
 
-/** An effect's shield parts (Iron Mantle's base and ratios) add up to one shield; heals alike. */
+/** Whether two grants show as one: shield or heal parts, or the same stat without a basis or timing. */
+function addsUp(a: ResolvedGrant, b: ResolvedGrant): boolean {
+	if (a.kind === "shield" || a.kind === "heal") return a.kind === b.kind
+	return (
+		a.kind === "stat" &&
+		b.kind === "stat" &&
+		a.stat === b.stat &&
+		!a.basis &&
+		!b.basis &&
+		!a.timing &&
+		!b.timing
+	)
+}
+
+/**
+ * An effect's shield parts (Iron Mantle's base and ratios) add up to one shield, heals alike, and
+ * so do plain bonuses to one stat (Legend: Alacrity's 3% and 1.5% per stack).
+ */
 function totalOutputs(grants: readonly ResolvedGrant[]): ResolvedGrant[] {
 	const merged: ResolvedGrant[] = []
 	for (const grant of grants) {
-		const isOutput = grant.kind === "shield" || grant.kind === "heal"
-		const total = isOutput && merged.find(({ kind }) => kind === grant.kind)
+		const total = merged.find((other) => addsUp(other, grant))
 		if (total) total.value += grant.value
 		else merged.push({ ...grant })
 	}
@@ -211,14 +227,18 @@ function grantsText(grants: readonly ResolvedGrant[], options: TimingOptions) {
  * duration when they differ: "+80% Attack Speed for 5 s · 282 shield for 2.5 s".
  */
 export function valuesText(condition: Condition): string {
-	const { grants, next, boostedBy = [], duration } = condition
+	const { grants, locked, next, boostedBy = [], duration } = condition
 	const options = { duration, perGrant: hasGrantDurations(condition) }
 	const now = grantsText(grants, options)
 	const value = next
 		? `${now} (next: ${grantsText(next.grants, options)} at ${next.gameTime} min)`
 		: now
+	const thresholds = locked.map(
+		({ threshold, grants: later }) =>
+			`${grantsText(later, options)} from ${threshold.stacks} stacks`,
+	)
 	const boosts = boostedBy.map(
 		({ name, slot, rank }) => `boosted by ${name} (${slot}${rank})`,
 	)
-	return [value, ...boosts].join(" · ")
+	return [value, ...thresholds, ...boosts].filter(Boolean).join(" · ")
 }
