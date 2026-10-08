@@ -8,6 +8,7 @@ import {
 import { combatEffects } from "../effects/available-effects"
 import { computeBuildStats } from "../stats/compute-build-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
+import { attackWindupTime } from "./attack-windup"
 import type {
 	CombatAction,
 	CombatEvent,
@@ -122,17 +123,29 @@ function ticksOf(result: CombatResult, effectId: string): Hit[] {
 
 const attack: CombatAction = { kind: "attack" }
 
-/** The times of the attacks at the build's resting attack speed, the first at 0. */
-function attackTimes(setup: Setup, count: number) {
-	const speed = computeBuildStats({
+/**
+ * When the attacks land at the build's resting attack speed: the first starts at 0, each lands
+ * at the end of its windup.
+ */
+function attackHitTimes(setup: Setup, count: number) {
+	const { attackSpeed } = computeBuildStats({
 		champion: setup.champion,
 		patch: PATCH,
 		level: setup.level,
 		items: setup.items ?? [],
 		shards: [],
 		ranks: setup.ranks,
-	}).attackSpeed.total
-	return Array.from({ length: count }, (_, index) => index / speed)
+	})
+	const windup = attackWindupTime(setup.champion.attackWindup, attackSpeed)
+	return Array.from(
+		{ length: count },
+		(_, index) => index / attackSpeed.total + windup,
+	)
+}
+
+/** Times compared to 2 decimals, which float sums of windups and timers need. */
+function rounded(times: readonly number[]) {
+	return times.map((time) => Math.round(time * 100) / 100)
 }
 
 describe("Teemo's Toxic Shot: applied on-hit by every attack", async () => {
@@ -144,8 +157,10 @@ describe("Teemo's Toxic Shot: applied on-hit by every attack", async () => {
 	// Wiki, rank 5 without AP or bonus AD: 65 on impact, then 30 every second for 4 s.
 	const impact = magic(65)
 	const tick = magic(30)
+	// The attack applies it as it lands, at the end of its windup.
+	const [hitAt = Number.NaN] = attackHitTimes(teemo, 1)
 
-	test("one attack: the impact on-hit, then 4 ticks a second apart, the last at 4 s", () => {
+	test("one attack: the impact on-hit, then 4 ticks a second apart, the last 4 s after the hit", () => {
 		const result = simulate(teemo, [attack])
 		const [step] = result.steps
 		const impactHit = step?.events.find(
@@ -162,52 +177,59 @@ describe("Teemo's Toxic Shot: applied on-hit by every attack", async () => {
 			effectId: "teemo-e",
 			application: "applied",
 			stacks: 1,
-			endsAt: 4,
+			endsAt: hitAt + 4,
 		})
 		const ticks = step?.damageOverTime[0]?.ticks ?? []
-		expect(ticks.map(({ time }) => time)).toEqual([1, 2, 3, 4])
+		expect(rounded(ticks.map(({ time }) => time))).toEqual(
+			rounded([1, 2, 3, 4].map((second) => hitAt + second)),
+		)
 		for (const entry of ticks) {
 			expect("damage" in entry && entry.damage.final).toBeCloseTo(tick)
 		}
 	})
 
 	test("the combo's time is the last tick's, after the last action", () => {
-		expect(simulate(teemo, [attack]).duration).toBe(4)
+		expect(simulate(teemo, [attack]).duration).toBeCloseTo(hitAt + 4)
 	})
 
 	test("a tick can kill after the last action: the kill's time is that tick's", () => {
-		// Enough health for the attack, the impact and one tick: the second tick, at 2 s, kills.
+		// Enough health for the attack, the impact and one tick: the second tick, 2 s after the hit, kills.
 		const physicalHit = allHits(simulate(teemo, [attack]))[0]?.damage.final ?? 0
 		const health = physicalHit + impact + tick * 1.5
 		const result = simulate({ ...teemo, target: { ...DUMMY, health } }, [
 			attack,
 		])
 
-		expect(result.kill).toEqual({ time: 2, step: 0 })
-		expect(result.duration).toBe(4)
+		expect(result.kill).toEqual({ time: expect.closeTo(hitAt + 2), step: 0 })
+		expect(result.duration).toBeCloseTo(hitAt + 4)
 	})
 
 	test("later attacks refresh it: the tick timer goes on, and each attack owns the ticks it added", () => {
-		const times = attackTimes(teemo, 3)
+		const times = attackHitTimes(teemo, 3)
 		const result = simulate(teemo, [attack, attack, attack])
 		const last = (times[2] ?? 0) + 4
+		// The tick timer runs from the first hit, a second apart.
 		const expected = Array.from(
-			{ length: Math.floor(last) },
-			(_, index) => index + 1,
+			{ length: Math.floor(last - hitAt) },
+			(_, index) => hitAt + index + 1,
 		)
 
-		expect(ticksOf(result, "teemo-e").map(({ time }) => time)).toEqual(expected)
+		expect(rounded(ticksOf(result, "teemo-e").map(({ time }) => time))).toEqual(
+			rounded(expected),
+		)
 		for (const [index, step] of result.steps.entries()) {
 			const summary = step.damageOverTime[0]
 			const from = index === 0 ? 0 : (times[index - 1] ?? 0) + 4
 			const until = (times[index] ?? 0) + 4
 			expect(summary?.application).toBe(index === 0 ? "applied" : "refreshed")
 			expect(summary?.endsAt).toBeCloseTo(until)
-			expect(summary?.ticks.map(({ time }) => time)).toEqual(
-				expected.filter((time) => time > from && time <= until),
+			expect(rounded(summary?.ticks.map(({ time }) => time) ?? [])).toEqual(
+				rounded(
+					expected.filter((time) => time > from + 1e-9 && time <= until + 1e-9),
+				),
 			)
 		}
-		expect(result.duration).toBe(expected.at(-1) ?? Number.NaN)
+		expect(result.duration).toBeCloseTo(expected.at(-1) ?? Number.NaN)
 	})
 
 	test("ticks land among later actions, logged by the step running then and owned by the attack", () => {
@@ -293,11 +315,11 @@ describe("Twitch's Deadly Venom: stacks from attacks", async () => {
 	const perStack = 3
 
 	test("each attack adds a stack and refreshes it; each tick deals the stacks it has then", () => {
-		const times = attackTimes(twitch, 3)
+		const times = attackHitTimes(twitch, 3)
 		const result = simulate(twitch, [attack, attack, attack])
 		const ticks = ticksOf(result, "twitch-deadly-venom")
 		const stacksAt = (time: number) =>
-			times.filter((attackTime) => attackTime < time).length
+			times.filter((hitTime) => hitTime < time).length
 
 		expect(
 			result.steps.map(({ damageOverTime }) => damageOverTime[0]),
@@ -489,11 +511,12 @@ describe("Liandry's Torment: ability damage burns for a share of maximum health"
 		const burn = result.steps[0]?.damageOverTime.find(
 			({ effectId }) => effectId === "liandrys-torment-burn",
 		)
+		const [hitAt = Number.NaN] = attackHitTimes(teemo, 1)
 
-		// The impact at 0 applies it; the poison's last tick at 4 s refreshes it to 7 s.
-		expect(burn?.endsAt).toBe(7)
-		expect(burn?.ticks.at(-1)?.time).toBe(7)
-		expect(result.duration).toBe(7)
+		// The impact applies it as the attack lands; the poison's last tick 4 s later refreshes it for 3 s.
+		expect(burn?.endsAt).toBeCloseTo(hitAt + 7)
+		expect(burn?.ticks.at(-1)?.time).toBeCloseTo(hitAt + 7)
+		expect(result.duration).toBeCloseTo(hitAt + 7)
 	})
 
 	test("free mode: No on a cast's burn prevents it; Yes on a cast that deals no damage applies it", () => {

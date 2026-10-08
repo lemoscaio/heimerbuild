@@ -81,6 +81,11 @@ function hits(result: CombatResult, step: number): DealtDamage[] {
 	)
 }
 
+/** When a step's first hit landed: an attack's, at the end of its windup. */
+function landedAt(result: CombatResult, step: number) {
+	return result.steps[step]?.events.find(({ kind }) => kind === "hit")?.time
+}
+
 /** Physical damage at `armor`: 100 / (100 + armor) of the raw. */
 function atArmor({ raw }: DealtDamage, armor: number) {
 	return (raw * 100) / (100 + armor)
@@ -130,7 +135,8 @@ describe("Black Cleaver's Carve (wiki: 6% armor per stack, up to 5, for 6 s)", a
 
 		expect(carve?.holder).toBe("target")
 		expect(carve?.stacks).toBe(2)
-		expect(carve?.endsAt).toBeCloseTo((result.steps[1]?.time ?? 0) + 6)
+		// From the second attack's hit, at the end of its windup.
+		expect(carve?.endsAt).toBeCloseTo((landedAt(result, 1) ?? 0) + 6)
 		expect(result.steps[2]?.resists).toBeUndefined()
 		const [hit] = hits(result, 3)
 		if (!hit) throw new Error("no hit after the wait")
@@ -217,7 +223,7 @@ describe("Rengar's Thrill of the Hunt: the leap deals R's bonus damage, then red
 		const reduction = result.steps[1]?.active.find(
 			({ effectId }) => effectId === "rengar-r-armor-reduction",
 		)
-		expect(reduction?.endsAt).toBeCloseTo((result.steps[1]?.time ?? 0) + 4)
+		expect(reduction?.endsAt).toBeCloseTo((landedAt(result, 1) ?? 0) + 4)
 	})
 
 	test("Savagery out of the camouflage is the leap too: its attack, its bonus, then R's", () => {
