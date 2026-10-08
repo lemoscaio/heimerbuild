@@ -39,6 +39,7 @@ import { attackTypeAtLevel } from "../stats/level-states"
 import { spellCooldown } from "../summoner-rune-interactions"
 import type { SummonerSlot } from "../summoner-slots"
 import { isCastOwnEffect } from "./area-ticks"
+import { attackWindupTime } from "./attack-windup"
 import type {
 	ActiveEffect,
 	CombatAction,
@@ -147,8 +148,9 @@ type Simulation = {
 	formId: string | undefined
 	context: EffectContext
 	time: number
-	/** When the action running ends: an attack after 1 / attack speed, an ability after its cast time. */
+	/** When the action running ends: an attack after its windup, an ability after its cast time. */
 	busyUntil: number
+	/** When the attack timer, started by an attack's windup, lets the next attack start. */
 	nextAttackAt: number
 	/** When each ability ("Q") or summoner slot ("summoner-0") is ready again. */
 	cooldowns: Map<string, number>
@@ -1358,22 +1360,33 @@ type StrikeOptions = {
 	pending?: PendingMarks
 	/** Deals an empowering cast's bonus right after the attack's own hit (Savagery). */
 	bonus?: () => void
+	/** The attack doesn't start the attack timer (Shield of Daybreak's). */
+	noAttackCooldown?: boolean
+}
+
+/** The attack's windup at the attacker's attack speed now (`attackWindupTime`). */
+function windupNow(sim: Simulation): number {
+	const { attackWindup } = sim.input.build.champion
+	return attackWindupTime(attackWindup, statsNow(sim).attackSpeed)
 }
 
 /**
- * A basic attack lands now: starts its on-attack effects, hits, applies on-hit, consumes marks;
- * the next one is 1 / attack speed later.
+ * A basic attack starts now: its on-attack effects start and its timer runs from here. It lands
+ * at the end of its windup (hit, on-hit, marks), which is all it keeps the champion busy for; the
+ * timer reads the attack speed after the hit (wiki "Attack speed", Attack timer).
  */
 function strike(
 	sim: Simulation,
 	item: CombatItem,
-	{ pending = [], bonus }: StrikeOptions = {},
+	{ pending = [], bonus, noAttackCooldown = false }: StrikeOptions = {},
 ) {
+	const startedAt = sim.time
 	endEffects(sim, "attack")
 	pauseEffects(sim, "attack")
 	const onTarget = breakWaiting(sim, "attack")
 	const held = empowerAttack(sim, pending)
 	spendCharges(sim)
+	advance(sim, sim.time + windupNow(sim))
 	deal(sim, {
 		source: { kind: "attack" },
 		type: "physical",
@@ -1385,13 +1398,15 @@ function strike(
 	consumeMarks(sim, "attack", pending)
 	applyMarks(sim, chooseMarks(sim, pending, item))
 	for (const waiting of onTarget) release(sim, waiting)
-	sim.nextAttackAt = sim.time + 1 / statsNow(sim).attackSpeed.total
-	sim.busyUntil = sim.nextAttackAt
+	if (!noAttackCooldown) {
+		sim.nextAttackAt = startedAt + 1 / statsNow(sim).attackSpeed.total
+	}
+	sim.busyUntil = sim.time
 	sim.active.push(...held)
 	endSpentCharges(sim)
 }
 
-/** A basic attack: waits for the attack timer, then lands (`strike`). */
+/** A basic attack: waits for the attack timer, then starts (`strike`). */
 function attack(sim: Simulation, item: CombatItem) {
 	advance(sim, Math.max(sim.time, sim.nextAttackAt))
 	sim.actionStart = sim.log.length
@@ -1495,7 +1510,8 @@ function abilityHit(
 
 /**
  * An empowering cast's attack (`empowersAttack`): it waits for the attack timer unless the cast
- * resets it, then lands as an attack with the cast's damage as a bonus hit (Savagery).
+ * resets it (it starts at once), then lands as an attack with the cast's damage as a bonus hit
+ * (Savagery).
  */
 function empoweredAttack(
 	sim: Simulation,
@@ -1503,11 +1519,14 @@ function empoweredAttack(
 	{ spell, rule, pending }: EmpoweredAttackInput,
 ) {
 	const { empowersAttack } = rule
-	if (!empowersAttack?.resetsAttack) {
+	if (empowersAttack?.resetsAttack) {
+		sim.nextAttackAt = sim.time
+	} else {
 		advance(sim, Math.max(sim.time, sim.nextAttackAt))
 	}
 	strike(sim, action, {
 		pending,
+		noAttackCooldown: !!empowersAttack?.noAttackCooldown,
 		bonus: () => {
 			const names = castDamages(spell, rule, action.variant)
 			const options = {
@@ -1667,7 +1686,7 @@ function castAbility(
 		slot,
 		castAt + abilityCooldown(cooldown, statsNow(sim).abilityHaste.total),
 	)
-	// An empowered attack keeps the champion busy until its next attack (`strike`), not its cast time.
+	// An empowered attack keeps the champion busy for its windup (`strike`), not its cast time.
 	if (!empowering) sim.busyUntil = sim.time + (spell.castTime ?? 0)
 	return undefined
 }
