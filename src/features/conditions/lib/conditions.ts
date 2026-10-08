@@ -11,6 +11,8 @@ import {
 	effectDuration,
 	isEffectOn,
 	isInForm,
+	type LockedGrants,
+	lockedGrants,
 	type ResolvedGrant,
 	resolveGrants,
 	stackEffects,
@@ -35,6 +37,8 @@ export type Condition = {
 	/** The match stacks its value follows, so its row carries each one's input. */
 	stackSources: readonly MatchStackSource[]
 	grants: readonly ResolvedGrant[]
+	/** What it grants once the match stacks reach a threshold they haven't yet (Mejai's move speed at 10). */
+	locked: readonly LockedGrants[]
 	/** What it grants from the next game time step on, for an effect that grows with the game time. */
 	next?: { gameTime: number; grants: readonly ResolvedGrant[] }
 	/** Seconds it lasts, when it says. */
@@ -108,6 +112,7 @@ export function conditionList(
 			usesGameTime: usesGameTime(effect.effect),
 			stackSources: matchStackSources(effect.effect),
 			grants: resolveGrants(effect, context),
+			locked: lockedGrants(effect, context),
 			next: nextStep(effect, context),
 			duration: effectDuration(effect, context),
 			stackedOutBy: stackedOut.get(effect.id),
