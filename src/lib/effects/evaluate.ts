@@ -1,4 +1,4 @@
-import type { Champion, RankStat } from "@schemas/champion"
+import type { AbilitySlot, Champion, RankStat } from "@schemas/champion"
 import type { StatKey } from "@schemas/item"
 import { type AdaptiveType, adaptiveForceStat } from "../stats/adaptive-force"
 import type { AttackSpeedMultipliers } from "../stats/attack-speed"
@@ -18,6 +18,7 @@ import type {
 	TableAmount,
 } from "./effect"
 import { GAME_START, gameTimeSteps, triangularSteps } from "./game-time"
+import { type MatchStacks, stacksOf } from "./match-stacks"
 import { resolveStacking, type StackingResult } from "./stacking"
 
 /** The build's state the amounts are read at. */
@@ -30,6 +31,8 @@ export type EffectContext = {
 	currentHealth?: number
 	/** Whole minutes into the game, which `gameTime` amounts read; absent means its start. */
 	gameTime?: number
+	/** The match stacks by source, which `matchStacks` amounts read; absent means none. */
+	matchStacks?: MatchStacks
 	/** What Adaptive Force grants become; without it, they have no value. */
 	adaptiveType?: AdaptiveType
 	/** The totals `stat` amounts read: the build's before the stat-dependent bonuses. */
@@ -67,6 +70,7 @@ export type ResolvedGrant = { timing?: ResolvedTiming } & (
 			mode: "flat" | "percent"
 			value: number
 	  }
+	| { kind: "counter"; counter: string; value: number }
 )
 
 /** The value of the last bracket or step whose `from` the value reached. */
@@ -152,6 +156,10 @@ export function resolveAmount(
 			const steps = gameTimeSteps(amount.every, context.gameTime ?? GAME_START)
 			return step === undefined ? undefined : step * triangularSteps(steps)
 		}
+		case "matchStacks":
+			return (
+				stacksOf(context.matchStacks, amount.source.id) * (amount.ratio ?? 1)
+			)
 		case "statDecay": {
 			const read = context.totals?.[amount.stat].total
 			return read === undefined
@@ -304,6 +312,11 @@ function resolveFullGrant(
 			const { kind, resist, mode } = grant
 			return value === undefined ? [] : [{ kind, resist, mode, value }]
 		}
+		case "counter": {
+			const value = resolveAmount(grant.amount, effect, context)
+			const { kind, counter } = grant
+			return value === undefined ? [] : [{ kind, counter, value }]
+		}
 		case "damage":
 		case "abilityDamage":
 		case "damageOverTime":
@@ -321,6 +334,29 @@ export function resolveGrants(
 	return effect.effect.grants.flatMap((grant) =>
 		resolveGrant(grant, effect, context),
 	)
+}
+
+/** The counts an ability's damage formulas read, by `counter` name (Siphoning Strike's `stacks`). */
+export type AbilityCounters = Readonly<Record<string, number>>
+
+/** The `counter` grants of the effects whose source is `ability`, summed by name. */
+export function abilityCounters(
+	effects: readonly BuildEffect[],
+	context: EffectContext,
+	ability: AbilitySlot | "passive",
+): AbilityCounters {
+	const counters: Record<string, number> = {}
+	for (const effect of effects) {
+		const { source } = effect.effect
+		if (source.kind !== "ability" || source.slot !== ability) continue
+		for (const resolved of resolveGrants(effect, context)) {
+			if (resolved.kind === "counter") {
+				counters[resolved.counter] =
+					(counters[resolved.counter] ?? 0) + resolved.value
+			}
+		}
+	}
+	return counters
 }
 
 /** The user's choice for the effect, else its default; an effect without a switch keeps its default. */

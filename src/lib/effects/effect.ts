@@ -56,6 +56,7 @@ export type RankValueAmount = {
  * `missingHealth` grows from 0 at full health to `max` at `fullAt` percent missing health, read from
  * the current health condition;
  * `gameTime` grows every `every` minutes of the game time condition (see `GameTimeAmount`);
+ * `matchStacks` is `ratio` per stack of a source the build sets (see `MatchStacksAmount`);
  * `statDecay` shrinks as a stat grows (see `StatDecayAmount`);
  * `attackType` is one value for melee and another for ranged (Hail of Blades: 90% and 60%).
  */
@@ -69,6 +70,7 @@ export type Amount =
 	  }
 	| MissingHealthAmount
 	| GameTimeAmount
+	| MatchStacksAmount
 	| StatDecayAmount
 	| { by: "attackType"; melee: TableAmount; ranged: TableAmount }
 
@@ -103,6 +105,24 @@ export type GameTimeAmount = {
 	every: number
 	growth: "triangular"
 	step: TableAmount
+}
+
+/**
+ * Permanent stacks a champion or item gathers over a match (Siphoning Strike's, Phenomenal Evil's):
+ * the build sets their count, one per source. `id` goes in links; `presets` are the input's shortcuts.
+ */
+export type MatchStackSource = {
+	id: string
+	/** Names the input ("Siphoning Strike stacks"). */
+	name: string
+	presets: readonly number[]
+}
+
+/** `ratio` (1 by default) per stack of `source` the build has (Phenomenal Evil: 1 AP per stack). */
+export type MatchStacksAmount = {
+	by: "matchStacks"
+	source: MatchStackSource
+	ratio?: number
 }
 
 export type DamageType = "physical" | "magic" | "true"
@@ -175,6 +195,16 @@ export type CooldownMultiplierGrant = {
 }
 
 /**
+ * Gives the source ability's damage formulas the count their `counter` part named `counter` reads
+ * (Siphoning Strike's `stacks`): the Skills tab and the combat simulator read it.
+ */
+export type CounterGrant = {
+	kind: "counter"
+	counter: string
+	amount: Amount
+}
+
+/**
  * Stats fold into the totals; an attack speed multiplier scales the bonus or total attack speed
  * after them; shields and heals are values of their own. The damage grants are the combat
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
@@ -199,6 +229,7 @@ export type Grant = GrantTiming &
 		  }
 		| ResistReductionGrant
 		| CooldownMultiplierGrant
+		| CounterGrant
 	)
 
 /**

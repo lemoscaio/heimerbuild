@@ -13,6 +13,7 @@ function tableAmounts(amount: Amount): TableAmount[] {
 		case "gameTime":
 			return [amount.step]
 		case "statDecay":
+		case "matchStacks":
 			return []
 		case "attackType":
 			return [amount.melee, amount.ranged]

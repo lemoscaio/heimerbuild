@@ -18,7 +18,7 @@ export type FormulaInput = {
 	rank?: number
 	level: number
 	target: TargetHealthState
-	/** The counts its `counter` parts read, by name (a hit rule variant's: Siphoning Strike's stacks). */
+	/** The counts its `counter` parts read, by name (the build's `counter` grants: Siphoning Strike's stacks). */
 	counters?: Readonly<Record<string, number>>
 }
 

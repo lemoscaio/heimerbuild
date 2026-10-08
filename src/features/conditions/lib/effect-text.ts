@@ -41,7 +41,10 @@ export function conditionText(condition: Condition): string {
 	if (startsAfter) return lasting(duration, `after ${startsAfter.ending}`)
 	switch (trigger.kind) {
 		case "always":
-			return form ? "While in this form" : "Always"
+			if (form) return "While in this form"
+			return condition.stackSources.length
+				? "Stacks gained over the match"
+				: "Always"
 		case "while":
 			return CONDITION_TEXT[trigger.condition]
 		case "after-use":
@@ -123,6 +126,8 @@ export function grantText(grant: ResolvedGrant): string {
 			return `${Math.round(grant.value)} ${grant.kind}`
 		case "resistReduction":
 			return `−${amountText(grant, grant.value)} target ${statDisplay[grant.resist].label}`
+		case "counter":
+			return `${amountText(grant, grant.value)} ${grant.counter}`
 	}
 }
 
@@ -135,6 +140,7 @@ function amountText(grant: ResolvedGrant, value: number): string {
 			return formatStat(Math.abs(value), "percent")
 		case "shield":
 		case "heal":
+		case "counter":
 			return String(Math.round(value))
 		case "resistReduction":
 			return formatStat(value, grant.mode === "percent" ? "percent" : "flat")
