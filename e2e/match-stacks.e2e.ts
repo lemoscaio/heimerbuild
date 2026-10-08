@@ -99,3 +99,34 @@ test("an old link with stacks on its Q step opens with them as the build's", asy
 	await expect(page).toHaveURL(/[?&]combo=q(?:&|$)/)
 	await expect(page).toHaveURL(/[?&]v=2(?:&|$)/)
 })
+
+test("Mejai's Glory stops at its cap, gives its move speed from 10 and leaves with the item", async ({
+	page,
+}) => {
+	await page.goto("/champions/Heimerdinger?items=3041")
+	const glory = stacks(page, "Mejai's Glory")
+	await expect(glory).toHaveValue("0")
+	const speed = await statTotal(page, "Movement Speed")
+	const ap = await statTotal(page, "Ability Power")
+
+	await glory.fill("9")
+	await glory.press("Enter")
+	await expect(page).toHaveURL(/[?&]stacks=mejai-stacks-9(?:&|$)/)
+	await expect.poll(() => statTotal(page, "Ability Power")).toBe(ap + 45)
+	expect(await statTotal(page, "Movement Speed")).toBe(speed)
+
+	await stacksSlider(page, "Mejai's Glory").press("ArrowRight")
+	await expect(page).toHaveURL(/[?&]stacks=mejai-stacks-10(?:&|$)/)
+	await expect
+		.poll(() => statTotal(page, "Movement Speed"))
+		.toBeGreaterThan(speed)
+
+	await glory.fill("40")
+	await glory.press("Tab")
+	await expect(glory).toHaveValue("25")
+	await expect(page).toHaveURL(/[?&]stacks=mejai-stacks-25(?:&|$)/)
+	await expect.poll(() => statTotal(page, "Ability Power")).toBe(ap + 125)
+
+	await page.getByRole("button", { name: "Remove Mejai's Soulstealer" }).click()
+	await expect(glory).toHaveCount(0)
+})

@@ -268,10 +268,13 @@ describe("combatEffects", () => {
 		},
 		spells: [spell("SummonerDot", "Ignite")],
 		runes: [],
-		items: [{ id: "3078", name: "Trinity Force", icon: "trinity.png" }],
+		items: [
+			{ id: "3078", name: "Trinity Force", icon: "trinity.png" },
+			{ id: "3041", name: "Mejai's Soulstealer", icon: "mejai.png" },
+		],
 	}
 
-	test("binds a passive's effects, the chosen items' and the target's, which the stats panel leaves out, but for a listed one", () => {
+	test("binds a passive's effects, the chosen items' and the target's; the stats panel lists only the listed ones", () => {
 		expect(ids(combatEffects(quinn))).toEqual([
 			"quinn-harrier-mark",
 			"quinn-harrier-valor",
@@ -279,9 +282,13 @@ describe("combatEffects", () => {
 			"quinn-w-passive",
 			"ignite",
 			"trinity-force-spellblade",
+			"mejai-glory",
 		])
-		// Heightened Senses' passive is `listed`: a switch in the panel too.
-		expect(ids(availableEffects(quinn))).toEqual(["quinn-w-passive"])
+		// Heightened Senses' passive is `listed`: a switch in the panel too. The spellblade is not.
+		expect(ids(availableEffects(quinn))).toEqual([
+			"quinn-w-passive",
+			"mejai-glory",
+		])
 	})
 
 	test("a passive's effect is named after the passive", () => {

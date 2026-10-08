@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import type { BuildEffect, Effect, MatchStackSource } from "./effect"
-import { resolveAmount } from "./evaluate"
+import { lockedGrants, resolveAmount, resolveGrants } from "./evaluate"
 import {
+	clampMatchStacks,
 	matchStackSources,
 	parseMatchStacks,
 	serializeMatchStacks,
@@ -94,6 +95,93 @@ describe("the matchStacks amount", () => {
 
 	test("names the sources its effect reads", () => {
 		expect(matchStackSources(stackedEffect())).toEqual([EVIL])
+	})
+})
+
+const GLORY: MatchStackSource = {
+	id: "mejai-stacks",
+	name: "Mejai's Glory",
+	sliderMax: 25,
+	capped: true,
+}
+
+/** Mejai's: 5 AP per Glory, and 10% move speed from 10 Glory. */
+const glory: BuildEffect = bound({
+	id: "mejai-glory",
+	source: { kind: "item", itemId: "3041" },
+	trigger: { kind: "always" },
+	grants: [
+		{
+			kind: "stat",
+			stat: "abilityPower",
+			amount: { by: "matchStacks", source: GLORY, ratio: 5 },
+		},
+		{
+			kind: "stat",
+			stat: "movementSpeedPercent",
+			amount: 0.1,
+			from: { source: GLORY, stacks: 10 },
+		},
+	],
+	since: "16.19",
+	sourceUrl: "https://example.com",
+})
+
+describe("a capped source", () => {
+	const at = (count: number) => ({
+		level: 9,
+		matchStacks: { "mejai-stacks": count },
+	})
+
+	test("reads a larger count as its cap", () => {
+		expect(resolveGrants(glory, at(40))[0]?.value).toBe(125)
+	})
+
+	test("clamps a typed count to its cap, an uncapped one to 9999", () => {
+		expect(clampMatchStacks(40, GLORY)).toBe(25)
+		expect(clampMatchStacks(40, EVIL)).toBe(40)
+		expect(clampMatchStacks(12345)).toBe(9999)
+	})
+
+	test("is saved at its cap at most", () => {
+		expect(usedMatchStacks({ "mejai-stacks": 40 }, [glory.effect])).toEqual({
+			"mejai-stacks": 25,
+		})
+	})
+})
+
+describe("a grant from a stack threshold", () => {
+	const at = (count: number) => ({
+		level: 9,
+		matchStacks: { "mejai-stacks": count },
+	})
+
+	test("holds only from its count on", () => {
+		const kinds = (count: number) =>
+			resolveGrants(glory, at(count)).map((grant) =>
+				grant.kind === "stat" ? grant.stat : grant.kind,
+			)
+
+		expect(kinds(9)).toEqual(["abilityPower"])
+		expect(kinds(10)).toEqual(["abilityPower", "movementSpeedPercent"])
+	})
+
+	test("is locked below it, with what it gives there", () => {
+		expect(lockedGrants(glory, at(4))).toEqual([
+			{
+				threshold: { source: GLORY, stacks: 10 },
+				grants: [{ kind: "stat", stat: "movementSpeedPercent", value: 0.1 }],
+			},
+		])
+		expect(lockedGrants(glory, at(10))).toEqual([])
+	})
+
+	test("names its source among the effect's", () => {
+		const gated: Effect = {
+			...glory.effect,
+			grants: glory.effect.grants.slice(1),
+		}
+		expect(matchStackSources(gated)).toEqual([GLORY])
 	})
 })
 

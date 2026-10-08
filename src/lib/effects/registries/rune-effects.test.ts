@@ -255,3 +255,122 @@ describe("Hail of Blades", () => {
 		})
 	})
 })
+
+// Wiki, checked 2026-10-08 (issue 409). Each rune's stacks are the build's match stacks.
+describe("runes with match stacks", () => {
+	const teemo = normalizeChampion(teemoDetail, teemoBin, "16.19.1")
+	const ranks = { Q: 0, W: 0, E: 0, R: 0 }
+
+	/** Teemo's totals at level 9 with `rune` on the page and `matchStacks`. */
+	async function statsWith(key: string, matchStacks?: Record<string, number>) {
+		const rune = await currentRune(key)
+		const available = availableEffects({
+			patch: PATCH,
+			champion: teemo,
+			ranks,
+			spells: [],
+			runes: [rune],
+		})
+		return computeBuildStats({
+			champion: teemo,
+			patch: PATCH,
+			level: 9,
+			items: [],
+			shards: [],
+			ranks,
+			effects: { available, overrides: {} },
+			matchStacks,
+		})
+	}
+
+	test("Legend: Alacrity gives 3% attack speed and 1.5% more per stack, up to 10", async () => {
+		const bonus = async (count?: number) =>
+			(
+				await statsWith(
+					"LegendAlacrity",
+					count === undefined ? undefined : { "legend-alacrity-stacks": count },
+				)
+			).attackSpeed.bonus
+		const none = (await statsWith("NimbusCloak")).attackSpeed.bonus
+
+		expect((await bonus()) - none).toBeCloseTo(
+			0.03 * teemo.stats.attackSpeed.ratio,
+		)
+		expect((await bonus(10)) - none).toBeCloseTo(
+			0.18 * teemo.stats.attackSpeed.ratio,
+		)
+		expect(await bonus(40)).toBeCloseTo(await bonus(10))
+	})
+
+	test("Legend: Bloodline gives 0.45% life steal per stack, and 85 health at its 15", async () => {
+		const at = (count: number) =>
+			statsWith("LegendBloodline", { "legend-bloodline-stacks": count })
+		const none = await statsWith("LegendBloodline")
+
+		expect((await at(14)).lifeStealPercent.total).toBeCloseTo(0.063)
+		expect((await at(14)).health.total).toBe(none.health.total)
+		expect((await at(15)).lifeStealPercent.total).toBeCloseTo(0.0675)
+		expect((await at(15)).health.total - none.health.total).toBe(85)
+	})
+
+	test("Overgrowth gives 3 health per stack, and 3.5% more health from 15", async () => {
+		const health = async (count?: number) =>
+			(
+				await statsWith(
+					"Overgrowth",
+					count === undefined ? undefined : { "overgrowth-stacks": count },
+				)
+			).health.total
+		const none = await health()
+
+		expect((await health(14)) - none).toBe(42)
+		expect(await health(15)).toBeCloseTo((none + 45) * 1.035)
+	})
+
+	test("Manaflow Band gives 25 mana per stack, up to 250", async () => {
+		const mana = async (count?: number) =>
+			(
+				await statsWith(
+					"ManaflowBand",
+					count === undefined ? undefined : { "manaflow-band-stacks": count },
+				)
+			).mana.total
+		const none = await mana()
+
+		expect((await mana(4)) - none).toBe(100)
+		expect((await mana(12)) - none).toBe(250)
+	})
+
+	test("Grasp of the Undying gives 5 health per proc, 2 for a ranged champion", async () => {
+		const grasp = RUNE_EFFECTS.find(({ id }) => id === "grasp-of-the-undying")
+		if (!grasp) throw new Error("No Grasp of the Undying effect")
+		const bound = { id: grasp.id, effect: grasp, name: "Grasp", icon: "" }
+		const health = (attackType: "melee" | "ranged") =>
+			resolveGrants(bound, {
+				level: 9,
+				attackType,
+				matchStacks: { "grasp-stacks": 30 },
+			})[0]?.value
+
+		expect(health("melee")).toBe(150)
+		expect(health("ranged")).toBe(60)
+		expect(
+			(await statsWith("GraspOfTheUndying", { "grasp-stacks": 30 })).health
+				.total,
+		).toBe((await statsWith("GraspOfTheUndying")).health.total + 60)
+	})
+
+	test("Biscuit Delivery gives 30 health per biscuit, 3 biscuits at most", async () => {
+		const health = async (count?: number) =>
+			(
+				await statsWith(
+					"BiscuitDelivery",
+					count === undefined ? undefined : { "biscuit-stacks": count },
+				)
+			).health.total
+		const none = await health()
+
+		expect((await health(2)) - none).toBe(60)
+		expect((await health(9)) - none).toBe(90)
+	})
+})

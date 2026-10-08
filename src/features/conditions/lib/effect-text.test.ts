@@ -29,6 +29,7 @@ function condition(
 		usesCurrentHealth: false,
 		usesGameTime: false,
 		stackSources: [],
+		locked: [],
 		grants: [],
 		duration: fields.duration,
 	}
@@ -210,6 +211,34 @@ describe("valuesText", () => {
 			}),
 		).toBe("235 shield · +20% Life Steal")
 	})
+
+	test("adds plain bonuses to one stat up (a base and its stacks)", () => {
+		const row = condition({ kind: "always" })
+		const speed = (value: number) =>
+			({ kind: "stat", stat: "attackSpeedPercent", value }) as const
+
+		expect(valuesText({ ...row, grants: [speed(0.03), speed(0.15)] })).toBe(
+			"+18% Attack Speed",
+		)
+	})
+
+	test("says what a stack threshold not reached yet gives, and from which count", () => {
+		const row = condition({ kind: "always" })
+		const source = { id: "mejai-stacks", name: "Mejai's Glory", sliderMax: 25 }
+		const speed = {
+			kind: "stat",
+			stat: "movementSpeedPercent",
+			value: 0.1,
+		} as const
+
+		expect(
+			valuesText({
+				...row,
+				grants: [ap(45)],
+				locked: [{ threshold: { source, stacks: 10 }, grants: [speed] }],
+			}),
+		).toBe("+45 Ability Power · +10% Move Speed from 10 stacks")
+	})
 })
 
 describe("grants on their own clock", () => {
@@ -305,6 +334,7 @@ describe("partLabel and stackedOutText", () => {
 			usesCurrentHealth: false,
 			usesGameTime: false,
 			stackSources: [],
+			locked: [],
 			grants: [],
 			stackedOutBy: stackedOutBy && bind(stackedOutBy),
 		}
