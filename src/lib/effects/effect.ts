@@ -165,12 +165,22 @@ export type ResistReductionGrant = {
 }
 
 /**
+ * Multiplies the cooldown of a cast of one of `slots` while its effect runs, after ability haste
+ * (combat simulator): Fury of the Sands halves Siphoning Strike's (0.5).
+ */
+export type CooldownMultiplierGrant = {
+	kind: "cooldownMultiplier"
+	slots: readonly AbilitySlot[]
+	amount: Amount
+}
+
+/**
  * Stats fold into the totals; an attack speed multiplier scales the bonus or total attack speed
  * after them; shields and heals are values of their own. The damage grants are the combat
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
  * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
  * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true
- * damage); so is `resistReduction`, on the target.
+ * damage); so are `resistReduction`, on the target, and `cooldownMultiplier`.
  */
 export type Grant = GrantTiming &
 	(
@@ -188,6 +198,7 @@ export type Grant = GrantTiming &
 				ratios: DamageRatios
 		  }
 		| ResistReductionGrant
+		| CooldownMultiplierGrant
 	)
 
 /**

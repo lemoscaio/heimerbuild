@@ -166,12 +166,20 @@ export const FORMULA_STATS = [
 	"lethality",
 ] as const
 
-/** One addend of a damage formula: a flat value, or `ratio` of a stat (its `part`, else the total). */
+/**
+ * One addend of a damage formula: a flat value, `ratio` of a stat (its `part`, else the total), or
+ * `ratio` of a count the game keeps that the build can't know, by name (Siphoning Strike's
+ * `stacks`; a combo hit rule's variant gives it).
+ */
 export const formulaPartSchema = z.union([
 	z.strictObject({ value: formulaValueSchema }),
 	z.strictObject({
 		stat: z.enum(FORMULA_STATS),
 		part: z.optional(z.enum(["base", "bonus"])),
+		ratio: formulaValueSchema,
+	}),
+	z.strictObject({
+		counter: z.string().check(z.minLength(1)),
 		ratio: formulaValueSchema,
 	}),
 ])

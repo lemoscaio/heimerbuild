@@ -1,5 +1,6 @@
 import { BRAUM_CAST_TIMES } from "../champions/braum"
 import { JANNA_CAST_TIMES } from "../champions/janna"
+import { JAX_CAST_TIMES } from "../champions/jax"
 import { LEONA_CAST_TIMES } from "../champions/leona"
 import { LISSANDRA_CAST_TIMES } from "../champions/lissandra"
 import { LUX_CAST_TIMES } from "../champions/lux"
@@ -19,6 +20,7 @@ import { ZAC_CAST_TIMES } from "../champions/zac"
 export const CHAMPION_CAST_TIMES = [
 	BRAUM_CAST_TIMES,
 	JANNA_CAST_TIMES,
+	JAX_CAST_TIMES,
 	LEONA_CAST_TIMES,
 	LISSANDRA_CAST_TIMES,
 	LUX_CAST_TIMES,

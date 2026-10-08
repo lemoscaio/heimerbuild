@@ -78,8 +78,10 @@ import {
 	ABILITY_HIT_RULES,
 	type AbilityHitRule,
 	type AbilityVariant,
+	type AttackSpeedHits,
 	defaultVariant,
 	findHitRule,
+	type LaterHits,
 } from "./registries/ability-hits"
 
 /** The build as the stats engine reads it, with the whole champion (its abilities and their damage). */
@@ -534,8 +536,8 @@ type AbilityDamageOptions = {
 	targetHealth?: number
 	/** The formula counts the attack's total attack damage, which an empowered attack's own hit deals. */
 	withoutAttack?: boolean
-	/** Its unread parts (`notModeled`) count as 0 (a hit rule's `unreadAsZero`). */
-	unreadAsZero?: boolean
+	/** The counts its `counter` parts read (a hit rule variant's `counters`). */
+	counters?: Readonly<Record<string, number>>
 }
 
 /** An ability's synced damage formula by name, as the form shows the ability. */
@@ -560,22 +562,22 @@ function dealAbilityDamage(
 	{
 		targetHealth = sim.health,
 		withoutAttack = false,
-		unreadAsZero = false,
+		counters,
 	}: AbilityDamageOptions = {},
 ) {
 	const { ranks, level } = sim.input.build
-	const synced = abilityFormula(sim, ability, name)
-	if (!synced) {
+	const formula = abilityFormula(sim, ability, name)
+	if (!formula) {
 		notModeledHit(sim, source, [`no synced damage named ${name}`])
 		return
 	}
-	const formula = unreadAsZero ? { ...synced, notModeled: undefined } : synced
 	const stats = statsNow(sim)
 	const total = evaluateDamage(formula, {
 		stats,
 		level,
 		...(ability !== "passive" && { rank: ranks?.[ability] }),
 		target: { maximum: sim.input.target.health, current: targetHealth },
+		...(counters && { counters }),
 	})
 	if (total === undefined) {
 		notModeledHit(sim, source, formula.notModeled ?? ["a value it lacks"])
@@ -1499,9 +1501,13 @@ function abilityHit(
 	} else {
 		// The cast's damages are one hit: a share of health reads it before any of them lands.
 		const targetHealth = sim.health
+		const counters = chosenVariant(rule, variant)?.counters
 		for (const name of names) {
 			const source = { kind: "ability", slot: spell.slot, name } as const
-			dealAbilityDamage(sim, spell.slot, name, source, { targetHealth })
+			dealAbilityDamage(sim, spell.slot, name, source, {
+				targetHealth,
+				counters,
+			})
 		}
 	}
 	if (rule?.onHit) onHit(sim, pending)
@@ -1531,7 +1537,7 @@ function empoweredAttack(
 			const names = castDamages(spell, rule, action.variant)
 			const options = {
 				withoutAttack: !!empowersAttack?.includesAttack,
-				unreadAsZero: !!rule.unreadAsZero,
+				counters: chosenVariant(rule, action.variant)?.counters,
 			}
 			for (const name of names) {
 				const source = { kind: "ability", slot: spell.slot, name } as const
@@ -1557,13 +1563,32 @@ function targetEffectIds(sim: Simulation): Set<string> {
 	)
 }
 
-/** The cast's hits after its first (its variant's `hits`), each `every` seconds later, for this step. */
+/** The hits a rule's `attackSpeedHits` make now: its `base`, plus one per step of bonus attack speed. */
+function attackSpeedHits(
+	sim: Simulation,
+	{ base, perBonusAttackSpeed, over }: AttackSpeedHits,
+): LaterHits {
+	const { ratio } = sim.input.build.champion.stats.attackSpeed
+	const bonus = statsNow(sim).attackSpeed.bonus / ratio
+	// A hair over each step, so a float just under 25% still counts as 25%.
+	const count = base + Math.floor(bonus / perBonusAttackSpeed + 1e-9)
+	return { count, every: over / count }
+}
+
+/**
+ * The cast's hits after its first (its variant's `hits`, else its rule's `attackSpeedHits`), each
+ * `every` seconds later, for this step.
+ */
 function scheduleLaterHits(
 	sim: Simulation,
 	spell: ChampionSpell,
 	variant: string | undefined,
 ) {
-	const hits = chosenVariant(hitRule(sim, spell.slot), variant)?.hits
+	const rule = hitRule(sim, spell.slot)
+	const scaled = rule?.attackSpeedHits
+	const hits =
+		chosenVariant(rule, variant)?.hits ??
+		(scaled && attackSpeedHits(sim, scaled))
 	if (!hits) return
 	for (let index = 1; index < hits.count; index++) {
 		sim.laterHits.push({
@@ -1631,6 +1656,21 @@ function reduceCooldownsOnCast(sim: Simulation) {
 	}
 }
 
+/** What the attacker's running effects multiply a cast's cooldown by (Fury of the Sands halves Siphoning Strike's). */
+function cooldownMultiplier(sim: Simulation, slot: AbilitySlot): number {
+	let multiplier = 1
+	for (const { effect, holder } of sim.active) {
+		if (holder !== "attacker") continue
+		for (const grant of effect.effect.grants) {
+			if (grant.kind !== "cooldownMultiplier" || !grant.slots.includes(slot)) {
+				continue
+			}
+			multiplier *= amountNow(sim, grant.amount, effect) ?? 1
+		}
+	}
+	return multiplier
+}
+
 function castAbility(
 	sim: Simulation,
 	action: Extract<CombatAction, { kind: "ability" }>,
@@ -1682,9 +1722,10 @@ function castAbility(
 		for (const waiting of onTarget) release(sim, waiting)
 	}
 	const cooldown = spell.cooldown[rank - 1] ?? 0
+	const haste = statsNow(sim).abilityHaste.total
 	sim.cooldowns.set(
 		slot,
-		castAt + abilityCooldown(cooldown, statsNow(sim).abilityHaste.total),
+		castAt + abilityCooldown(cooldown, haste) * cooldownMultiplier(sim, slot),
 	)
 	// An empowered attack keeps the champion busy for its windup (`strike`), not its cast time.
 	if (!empowering) sim.busyUntil = sim.time + (spell.castTime ?? 0)

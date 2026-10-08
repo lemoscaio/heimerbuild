@@ -226,7 +226,7 @@ describe("empowered attacks: a cast that is its champion's next attack (issue 38
 		expect(hits(result, 1).map(sourceName)).toContain("hail-of-blades")
 	})
 
-	test("Nasus's Q: his attack plus Siphoning Strike's base bonus, without stacks", async () => {
+	test("Nasus's Q: his attack plus Siphoning Strike's base bonus, with 0 stacks by default", async () => {
 		const nasus: Setup = {
 			champion: await champion("Nasus"),
 			level: 9,
@@ -236,7 +236,7 @@ describe("empowered attacks: a cast that is its champion's next attack (issue 38
 		const [attack, siphon] = hits(result, 0)
 
 		expect(attack?.source.kind).toBe("attack")
-		// Wiki, rank 1: 30 (+ stacks) bonus physical damage.
+		// Wiki, rank 1: 30 (+ 100% of stacks) bonus physical damage.
 		expect(siphon?.damage.raw).toBeCloseTo(30)
 		expect(result.steps[1]?.refused).toContain("on cooldown")
 	})
