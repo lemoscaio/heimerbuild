@@ -43,7 +43,7 @@
 		"16.19.1/champions/Fizz.json": "7c55a8052e",
 		"16.19.1/champions/Galio.json": "8fa1c13a37",
 		"16.19.1/champions/Gangplank.json": "80e31d2448",
-		"16.19.1/champions/Garen.json": "5701a51d64",
+		"16.19.1/champions/Garen.json": "cb35d7d737",
 		"16.19.1/champions/Gnar.json": "0cb0895978",
 		"16.19.1/champions/Gragas.json": "bd9160f206",
 		"16.19.1/champions/Graves.json": "c52ee3b32d",
@@ -56,7 +56,7 @@
 		"16.19.1/champions/Ivern.json": "56aa70c9b1",
 		"16.19.1/champions/Janna.json": "01328ce25b",
 		"16.19.1/champions/JarvanIV.json": "1cd2d56825",
-		"16.19.1/champions/Jax.json": "b19fbc1cfa",
+		"16.19.1/champions/Jax.json": "ffc281ea93",
 		"16.19.1/champions/Jayce.json": "8017b24407",
 		"16.19.1/champions/Jhin.json": "b1f27663ef",
 		"16.19.1/champions/Jinx.json": "a771fbbf7a",
@@ -95,7 +95,7 @@
 		"16.19.1/champions/Morgana.json": "80cb127bc7",
 		"16.19.1/champions/Naafiri.json": "e84b866087",
 		"16.19.1/champions/Nami.json": "ea9542b58d",
-		"16.19.1/champions/Nasus.json": "86b339798d",
+		"16.19.1/champions/Nasus.json": "fccc8f6b8b",
 		"16.19.1/champions/Nautilus.json": "93f15f244c",
 		"16.19.1/champions/Neeko.json": "e7103390d6",
 		"16.19.1/champions/Nidalee.json": "f68ad1ccc7",
@@ -116,7 +116,7 @@
 		"16.19.1/champions/Rell.json": "64094a3440",
 		"16.19.1/champions/Renata.json": "64d6909c2c",
 		"16.19.1/champions/Renekton.json": "ea630c7695",
-		"16.19.1/champions/Rengar.json": "4bc9af64f2",
+		"16.19.1/champions/Rengar.json": "4b988979b9",
 		"16.19.1/champions/Riven.json": "0fcade0df1",
 		"16.19.1/champions/Rumble.json": "2f57a7ad24",
 		"16.19.1/champions/Ryze.json": "5f13b32a8c",
@@ -182,5 +182,5 @@
 		"16.19.1/runes.json": "51aeb100e8",
 		"16.19.1/summoner-spells.json": "8a4cd741cf"
 	},
-	"generatedAt": "2026-10-08T00:44:39.079Z"
+	"generatedAt": "2026-10-08T03:50:45.235Z"
 }

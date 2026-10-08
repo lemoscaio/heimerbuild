@@ -1,7 +1,9 @@
 import type {
+	AbilityDamage,
 	AbilitySlot,
 	Champion,
 	ChampionForm,
+	ChampionSpell,
 	ChampionSummary,
 	LevelState,
 	SkillRules,
@@ -84,31 +86,74 @@ export function defineSkillRules({
 	}
 }
 
-/**
- * Sets the cast time of some of a champion's abilities (0 is none): an override like the others,
- * so it is logged, ranged by patch and reported once Riot's data agrees with it.
- */
-export function defineCastTimes({
-	championKey,
-	castTimes,
-	...override
-}: Omit<FieldOverride<Champion, "abilities">, "target" | "field" | "apply"> & {
+type AbilitiesOverride = Omit<
+	FieldOverride<Champion, "abilities">,
+	"target" | "field" | "apply"
+> & {
 	/** Data Dragon string id ("MonkeyKing"). */
 	championKey: string
-	castTimes: Partial<Record<AbilitySlot, number>>
-}): FieldOverride<Champion, "abilities"> {
+}
+
+/** What `defineAbilityFixes` changes, by slot; slots it leaves out keep Riot's data. */
+export type AbilityFixes = {
+	/** Seconds, 0 for none. */
+	castTimes?: Partial<Record<AbilitySlot, number>>
+	/** Seconds by rank, rank 1 first. */
+	cooldowns?: Partial<Record<AbilitySlot, readonly number[]>>
+	/** The ability's damage formulas, given the synced ones (a part the sync can't read). */
+	damage?: Partial<
+		Record<AbilitySlot, (damage: AbilityDamage[]) => AbilityDamage[]>
+	>
+}
+
+function fixSpell(spell: ChampionSpell, fixes: AbilityFixes): ChampionSpell {
+	const castTime = fixes.castTimes?.[spell.slot]
+	const cooldown = fixes.cooldowns?.[spell.slot]
+	const damage = fixes.damage?.[spell.slot]
+	return {
+		...spell,
+		...(castTime !== undefined && { castTime }),
+		...(cooldown && { cooldown: [...cooldown] }),
+		...(damage && spell.damage && { damage: damage(spell.damage) }),
+	}
+}
+
+/**
+ * Fixes a champion's abilities in one override: cast times, cooldowns and damage formulas all
+ * change `abilities`, so a champion needing more than one kind gets this instead of one of each.
+ */
+export function defineAbilityFixes({
+	championKey,
+	castTimes,
+	cooldowns,
+	damage,
+	...override
+}: AbilitiesOverride & AbilityFixes): FieldOverride<Champion, "abilities"> {
+	const fixes = { castTimes, cooldowns, damage }
 	return {
 		...override,
 		target: championKey,
 		field: "abilities",
 		apply: (abilities) => ({
 			...abilities,
-			spells: abilities.spells.map((spell) => {
-				const castTime = castTimes[spell.slot]
-				return castTime === undefined ? spell : { ...spell, castTime }
-			}) as Champion["abilities"]["spells"],
+			spells: abilities.spells.map((spell) =>
+				fixSpell(spell, fixes),
+			) as Champion["abilities"]["spells"],
 		}),
 	}
+}
+
+/**
+ * Sets the cast time of some of a champion's abilities (0 is none): an override like the others,
+ * so it is logged, ranged by patch and reported once Riot's data agrees with it.
+ */
+export function defineCastTimes({
+	castTimes,
+	...override
+}: AbilitiesOverride & {
+	castTimes: NonNullable<AbilityFixes["castTimes"]>
+}): FieldOverride<Champion, "abilities"> {
+	return defineAbilityFixes({ ...override, castTimes })
 }
 
 /**
@@ -116,27 +161,10 @@ export function defineCastTimes({
  * is logged, ranged by patch and reported once Riot's data agrees with it.
  */
 export function defineCooldowns({
-	championKey,
 	cooldowns,
 	...override
-}: Omit<FieldOverride<Champion, "abilities">, "target" | "field" | "apply"> & {
-	/** Data Dragon string id ("MonkeyKing"). */
-	championKey: string
-	/** Seconds by rank, rank 1 first. */
-	cooldowns: Partial<Record<AbilitySlot, readonly number[]>>
+}: AbilitiesOverride & {
+	cooldowns: NonNullable<AbilityFixes["cooldowns"]>
 }): FieldOverride<Champion, "abilities"> {
-	return {
-		...override,
-		target: championKey,
-		field: "abilities",
-		apply: (abilities) => ({
-			...abilities,
-			spells: abilities.spells.map((spell) => {
-				const cooldown = cooldowns[spell.slot]
-				return cooldown === undefined
-					? spell
-					: { ...spell, cooldown: [...cooldown] }
-			}) as Champion["abilities"]["spells"],
-		}),
-	}
+	return defineAbilityFixes({ ...override, cooldowns })
 }
