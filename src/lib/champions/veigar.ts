@@ -5,11 +5,12 @@ import type { Effect, MatchStackSource } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { WIKI } from "./rule-helpers"
 
-/** 1 per champion hit by an ability, 5 per champion takedown (wiki). */
+/** 1 per champion hit by an ability, 5 per champion takedown (wiki), uncapped. */
 export const PHENOMENAL_EVIL_STACKS = {
 	id: "phenomenal-evil",
 	name: "Phenomenal Evil stacks",
-	presets: [50, 150, 300],
+	// The wiki gives no typical count; late games reach several hundred.
+	sliderMax: 1000,
 } as const satisfies MatchStackSource
 
 export const VEIGAR_EFFECTS = [

@@ -1,13 +1,9 @@
 import { NumberField } from "@/components/ui/number-field"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/cn"
 import type { MatchStackSource } from "@/lib/effects/effect"
 import { MAX_MATCH_STACKS } from "@/lib/effects/match-stacks"
-import {
-	pressedStackPresets,
-	stacksFromField,
-	stacksFromPreset,
-} from "../lib/stacks-input"
+import { sliderStacks, stacksFromField } from "../lib/stacks-input"
 
 type MatchStacksInputProps = {
 	source: MatchStackSource
@@ -18,7 +14,10 @@ type MatchStacksInputProps = {
 
 const NO_GROUPING = { useGrouping: false } as const
 
-/** One source's match stacks, which its effects read: a count with − and +, and the source's presets. */
+/**
+ * One source's match stacks, which its effects read: a slider from 0 to the source's typical
+ * late-game count, and a box with − and + that takes any count up to 9999.
+ */
 export function MatchStacksInput({
 	source,
 	value,
@@ -26,15 +25,13 @@ export function MatchStacksInput({
 	className,
 	...props
 }: MatchStacksInputProps) {
-	function change(next: number | undefined) {
-		if (next !== undefined) onValueChange(next)
+	function changeField(next: number | null) {
+		const count = stacksFromField(next)
+		if (count !== undefined) onValueChange(count)
 	}
 
 	return (
-		<div
-			className={cn("flex flex-wrap items-center gap-x-3 gap-y-1.5", className)}
-			{...props}
-		>
+		<div className={cn("flex flex-col gap-0.5", className)} {...props}>
 			<div className="flex items-center gap-1.5">
 				<span className="text-subtle">Stacks</span>
 				<NumberField
@@ -45,25 +42,20 @@ export function MatchStacksInput({
 					largeStep={10}
 					format={NO_GROUPING}
 					value={value}
-					onValueChange={(next) => change(stacksFromField(next))}
+					onValueChange={changeField}
+					inputClassName="w-14"
 				/>
 			</div>
-			<ToggleGroup
-				aria-label={`${source.name} presets`}
-				value={pressedStackPresets(source.presets, value)}
-				onValueChange={(pressed) => change(stacksFromPreset(pressed))}
-			>
-				{source.presets.map((preset) => (
-					<ToggleGroupItem
-						key={preset}
-						value={String(preset)}
-						aria-label={`${preset} stacks`}
-						className="h-7 min-w-8 px-2 text-xs tabular-nums"
-					>
-						{preset}
-					</ToggleGroupItem>
-				))}
-			</ToggleGroup>
+			<Slider
+				aria-label={source.name}
+				min={0}
+				max={source.sliderMax}
+				step={1}
+				largeStep={10}
+				format={NO_GROUPING}
+				value={sliderStacks(value, source.sliderMax)}
+				onValueChange={(next) => onValueChange(next)}
+			/>
 		</div>
 	)
 }

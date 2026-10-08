@@ -10,11 +10,12 @@ import type { Effect, MatchStackSource } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
 
-/** Siphoning Strike's permanent stacks: 4 per kill, 10 for a champion or a large unit (wiki). */
+/** Siphoning Strike's permanent stacks: 4 per kill, 10 for a champion or a large unit (wiki), uncapped. */
 export const SIPHONING_STRIKE_STACKS = {
 	id: "siphoning-strike",
 	name: "Siphoning Strike stacks",
-	presets: [100, 250, 500],
+	// The wiki gives no typical count; long games pass 1000.
+	sliderMax: 1500,
 } as const satisfies MatchStackSource
 
 /** A time the target stays in an area, as a preset. */

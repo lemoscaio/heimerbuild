@@ -9,6 +9,10 @@ function stacks(page: Page, name: string) {
 	return effects(page).getByRole("textbox", { name, exact: true })
 }
 
+function stacksSlider(page: Page, name: string) {
+	return effects(page).getByRole("slider", { name, exact: true })
+}
+
 /** A stat's total, as the stats panel shows it. */
 async function statTotal(page: Page, label: string) {
 	const row = statsPanel(page)
@@ -42,16 +46,18 @@ test("Veigar's Phenomenal Evil stacks raise his AP, go into the link and survive
 	await expect(page).not.toHaveURL(/[?&]stacks=/)
 	const atStart = await statTotal(page, "Ability Power")
 
-	await effects(page).getByRole("button", { name: "150 stacks" }).click()
+	await evil.fill("150")
+	await evil.press("Enter")
 	await expect(page).toHaveURL(/[?&]stacks=phenomenal-evil-150(?:&|$)/)
+	await expect(stacksSlider(page, "Phenomenal Evil stacks")).toHaveValue("150")
 	await expect.poll(() => statTotal(page, "Ability Power")).toBe(atStart + 150)
 
 	await page.reload()
 	await expect(evil).toHaveValue("150")
 	await expect.poll(() => statTotal(page, "Ability Power")).toBe(atStart + 150)
 
-	await evil.fill("0")
-	await evil.press("Enter")
+	await stacksSlider(page, "Phenomenal Evil stacks").press("Home")
+	await expect(evil).toHaveValue("0")
 	await expect(page).not.toHaveURL(/[?&]stacks=/)
 	await expect.poll(() => statTotal(page, "Ability Power")).toBe(atStart)
 })
@@ -66,9 +72,18 @@ test("Nasus's Siphoning Strike stacks are the build's: the combo's Q reads them 
 	).toHaveCount(0)
 	const without = await comboDamage(page)
 
-	await effects(page).getByRole("button", { name: "250 stacks" }).click()
-	await expect(page).toHaveURL(/[?&]stacks=siphoning-strike-250(?:&|$)/)
+	const slider = stacksSlider(page, "Siphoning Strike stacks")
+	await slider.press("ArrowRight")
+	await slider.press("PageUp")
+	await expect(page).toHaveURL(/[?&]stacks=siphoning-strike-11(?:&|$)/)
 	await expect.poll(() => comboDamage(page)).toBeGreaterThan(without)
+
+	// Past the slider's end, the box keeps the count and the slider sits at its end.
+	const box = stacks(page, "Siphoning Strike stacks")
+	await box.fill("2400")
+	await box.press("Enter")
+	await expect(page).toHaveURL(/[?&]stacks=siphoning-strike-2400(?:&|$)/)
+	await expect(slider).toHaveValue("1500")
 })
 
 test("an old link with stacks on its Q step opens with them as the build's", async ({

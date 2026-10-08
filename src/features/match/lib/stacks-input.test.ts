@@ -1,17 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import {
-	pressedStackPresets,
-	stacksFromField,
-	stacksFromPreset,
-} from "./stacks-input"
-
-const PRESETS = [100, 250, 500]
+import { sliderStacks, stacksFromField } from "./stacks-input"
 
 describe("the match stacks input", () => {
-	test("presses the preset equal to the count, none otherwise", () => {
-		expect(pressedStackPresets(PRESETS, 250)).toEqual(["250"])
-		expect(pressedStackPresets(PRESETS, 0)).toEqual([])
-		expect(pressedStackPresets(PRESETS, 251)).toEqual([])
+	test("the slider sits at the count, and at its end past its max", () => {
+		expect(sliderStacks(250, 1500)).toBe(250)
+		expect(sliderStacks(0, 1500)).toBe(0)
+		expect(sliderStacks(2400, 1500)).toBe(1500)
 	})
 
 	test("a typed count becomes whole stacks from 0 to 9999", () => {
@@ -23,10 +17,5 @@ describe("the match stacks input", () => {
 
 	test("an emptied field keeps the last count", () => {
 		expect(stacksFromField(null)).toBeUndefined()
-	})
-
-	test("a preset sets its count; the pressed one clicked again keeps it", () => {
-		expect(stacksFromPreset(["500"])).toBe(500)
-		expect(stacksFromPreset([])).toBeUndefined()
 	})
 })

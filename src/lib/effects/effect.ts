@@ -109,13 +109,14 @@ export type GameTimeAmount = {
 
 /**
  * Permanent stacks a champion or item gathers over a match (Siphoning Strike's, Phenomenal Evil's):
- * the build sets their count, one per source. `id` goes in links; `presets` are the input's shortcuts.
+ * the build sets their count, one per source. `id` goes in links; `sliderMax` ends the input's slider
+ * (a typical late-game count), while its box takes any count up to `MAX_MATCH_STACKS`.
  */
 export type MatchStackSource = {
 	id: string
 	/** Names the input ("Siphoning Strike stacks"). */
 	name: string
-	presets: readonly number[]
+	sliderMax: number
 }
 
 /** `ratio` (1 by default) per stack of `source` the build has (Phenomenal Evil: 1 AP per stack). */

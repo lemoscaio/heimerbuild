@@ -12,7 +12,7 @@ import {
 const EVIL: MatchStackSource = {
 	id: "phenomenal-evil",
 	name: "Phenomenal Evil stacks",
-	presets: [50],
+	sliderMax: 1000,
 }
 
 function stackedEffect(ratio?: number): Effect {

@@ -102,7 +102,7 @@ describe("an effect that reads match stacks", () => {
 		const source = {
 			id: "phenomenal-evil",
 			name: "Phenomenal Evil stacks",
-			presets: [],
+			sliderMax: 1000,
 		}
 
 		expect(conditionText(always)).toBe("Always")
