@@ -51,8 +51,9 @@ describe("buildSearchSchema", () => {
 		expect(parse({ patch: "latest" }).patch).toBeUndefined()
 	})
 
-	test("accepts the expanded shop view and drops any other view", () => {
+	test("accepts the expanded shop and combo views and drops any other view", () => {
 		expect(parse({ view: "shop" }).view).toBe("shop")
+		expect(parse({ view: "combo" }).view).toBe("combo")
 		expect(parse({ view: "overview" }).view).toBeUndefined()
 		expect(parse({ view: 1 }).view).toBeUndefined()
 	})
@@ -238,9 +239,10 @@ describe("toBuildSearch", () => {
 		})
 	})
 
-	test("writes the shop view and leaves the overview out", () => {
+	test("writes the shop and combo views and leaves the overview out", () => {
 		const build = { level: 1, itemIds: [], patch: undefined }
 		expect(toBuildSearch({ ...build, view: "shop" }).view).toBe("shop")
+		expect(toBuildSearch({ ...build, view: "combo" }).view).toBe("combo")
 		expect(toBuildSearch({ ...build, view: "overview" }).view).toBeUndefined()
 	})
 

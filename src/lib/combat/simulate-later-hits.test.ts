@@ -138,6 +138,15 @@ describe("Brand's Pyroclasm: the hits the user picks, each at its own time (issu
 		expect(detonations(result).map(({ time }) => time)).toEqual([2.6])
 	})
 
+	test("the detonation belongs to R's step, though it lands while a later step runs", () => {
+		const result = simulate([cast("R", "3"), cast("Q"), cast("E")])
+
+		expect(detonations(result)).toMatchObject([{ delayed: { owner: 0 } }])
+		expect(result.steps[0]?.events).not.toContainEqual(
+			expect.objectContaining({ delayed: expect.anything() }),
+		)
+	})
+
 	test("2 hits leave 2 stacks and no detonation", () => {
 		const result = simulate([cast("R", "2")])
 
