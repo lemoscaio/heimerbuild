@@ -15,10 +15,16 @@ import type {
 	GrantStat,
 	RankValueAmount,
 	Resist,
+	StacksThreshold,
 	TableAmount,
 } from "./effect"
 import { GAME_START, gameTimeSteps, triangularSteps } from "./game-time"
-import { type MatchStacks, stacksOf } from "./match-stacks"
+import {
+	type MatchStacks,
+	reachesThreshold,
+	stacksOf,
+	withMatchStacks,
+} from "./match-stacks"
 import { resolveStacking, type StackingResult } from "./stacking"
 
 /** The build's state the amounts are read at. */
@@ -157,9 +163,9 @@ export function resolveAmount(
 			return step === undefined ? undefined : step * triangularSteps(steps)
 		}
 		case "matchStacks": {
-			const ratio = resolveTableAmount(amount.ratio ?? 1, effect, context)
+			const ratio = resolveAmount(amount.ratio ?? 1, effect, context)
 			if (ratio === undefined) return undefined
-			const stacks = stacksOf(context.matchStacks, amount.source.id)
+			const stacks = stacksOf(context.matchStacks, amount.source)
 			const value = Math.floor(stacks / (amount.per ?? 1)) * ratio
 			return Math.min(value, amount.max ?? Number.POSITIVE_INFINITY)
 		}
@@ -275,6 +281,9 @@ function resolveGrant(
 	context: EffectContext,
 ): ResolvedGrant[] {
 	if (isPaused(grant, effect, context)) return []
+	if (grant.from && !reachesThreshold(context.matchStacks, grant.from)) {
+		return []
+	}
 	const share = stackShare(effect, context)
 	const timing = grantTiming(grant, effect, context)
 	const elapsed = context.elapsed?.[effect.id]
@@ -337,6 +346,29 @@ export function resolveGrants(
 	return effect.effect.grants.flatMap((grant) =>
 		resolveGrant(grant, effect, context),
 	)
+}
+
+/** Grants a stack threshold still holds back, at the count that unlocks them. */
+export type LockedGrants = {
+	threshold: StacksThreshold
+	grants: readonly ResolvedGrant[]
+}
+
+/** The effect's grants whose threshold the build's stacks haven't reached, each as it gives at its threshold. */
+export function lockedGrants(
+	effect: BuildEffect,
+	context: EffectContext,
+): LockedGrants[] {
+	return effect.effect.grants.flatMap((grant) => {
+		const threshold = grant.from
+		if (!threshold || reachesThreshold(context.matchStacks, threshold)) {
+			return []
+		}
+		const { source, stacks } = threshold
+		const matchStacks = withMatchStacks(context.matchStacks, source.id, stacks)
+		const grants = resolveGrant(grant, effect, { ...context, matchStacks })
+		return grants.length ? [{ threshold, grants }] : []
+	})
 }
 
 /** The counts an ability's damage formulas read, by `counter` name (Siphoning Strike's `stacks`). */

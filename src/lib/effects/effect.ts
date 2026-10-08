@@ -72,7 +72,14 @@ export type Amount =
 	| GameTimeAmount
 	| MatchStacksAmount
 	| StatDecayAmount
-	| { by: "attackType"; melee: TableAmount; ranged: TableAmount }
+	| AttackTypeAmount
+
+/** One value for melee and another for ranged, at the champion's attack type (Hail of Blades). */
+export type AttackTypeAmount = {
+	by: "attackType"
+	melee: TableAmount
+	ranged: TableAmount
+}
 
 /**
  * Grows from 0 at full health to `max` at `fullAt` percent missing health. As a `stat` ratio, a
@@ -117,6 +124,8 @@ export type MatchStackSource = {
 	/** Names the input ("Siphoning Strike stacks"). */
 	name: string
 	sliderMax: number
+	/** `sliderMax` is the game's cap: the box stops there too, and a larger count reads as it (Mejai's 25). */
+	capped?: true
 }
 
 /**
@@ -127,7 +136,7 @@ export type MatchStackSource = {
 export type MatchStacksAmount = {
 	by: "matchStacks"
 	source: MatchStackSource
-	ratio?: TableAmount
+	ratio?: TableAmount | AttackTypeAmount
 	per?: number
 	max?: number
 }
@@ -220,6 +229,7 @@ export type CounterGrant = {
  * damage); so are `resistReduction`, on the target, and `cooldownMultiplier`.
  */
 export type Grant = GrantTiming &
+	GrantThreshold &
 	(
 		| { kind: "stat"; stat: GrantStat; amount: Amount }
 		| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; amount: Amount }
@@ -248,6 +258,12 @@ export type GrantTiming = {
 	duration?: Amount
 	decay?: { over?: Amount; to?: Amount }
 }
+
+/** A count of a match stack source: Mejai's Soulstealer at 10 Glory. */
+export type StacksThreshold = { source: MatchStackSource; stacks: number }
+
+/** A grant that holds only `from` a source's count on (Mejai's 10% move speed at 10 Glory). */
+export type GrantThreshold = { from?: StacksThreshold }
 
 /** A state the champion holds while the effect lasts. */
 export type EffectCondition = "not-damaged-recently"
