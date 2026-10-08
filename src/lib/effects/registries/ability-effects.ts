@@ -3,6 +3,7 @@ import { BELVETH_EFFECTS } from "../../champions/belveth"
 import { BLITZCRANK_EFFECTS } from "../../champions/blitzcrank"
 import { BRAND_EFFECTS } from "../../champions/brand"
 import { CAMILLE_EFFECTS } from "../../champions/camille"
+import { CHOGATH_EFFECTS } from "../../champions/chogath"
 import { DR_MUNDO_EFFECTS } from "../../champions/dr-mundo"
 import { DRAVEN_EFFECTS } from "../../champions/draven"
 import { EZREAL_EFFECTS } from "../../champions/ezreal"
@@ -25,12 +26,16 @@ import { OLAF_EFFECTS } from "../../champions/olaf"
 import { QUINN_EFFECTS } from "../../champions/quinn"
 import { RENGAR_EFFECTS } from "../../champions/rengar"
 import { SAMIRA_EFFECTS } from "../../champions/samira"
+import { SENNA_EFFECTS } from "../../champions/senna"
 import { SHYVANA_EFFECTS } from "../../champions/shyvana"
 import { SINGED_EFFECTS } from "../../champions/singed"
+import { SION_EFFECTS } from "../../champions/sion"
 import { SIVIR_EFFECTS } from "../../champions/sivir"
+import { SWAIN_EFFECTS } from "../../champions/swain"
 import { TALON_EFFECTS } from "../../champions/talon"
 import { TARIC_EFFECTS } from "../../champions/taric"
 import { TEEMO_EFFECTS } from "../../champions/teemo"
+import { THRESH_EFFECTS } from "../../champions/thresh"
 import { TRISTANA_EFFECTS } from "../../champions/tristana"
 import { TRUNDLE_EFFECTS } from "../../champions/trundle"
 import { TRYNDAMERE_EFFECTS } from "../../champions/tryndamere"
@@ -55,6 +60,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...BLITZCRANK_EFFECTS,
 	...BRAND_EFFECTS,
 	...CAMILLE_EFFECTS,
+	...CHOGATH_EFFECTS,
 	...DR_MUNDO_EFFECTS,
 	...DRAVEN_EFFECTS,
 	...EZREAL_EFFECTS,
@@ -77,12 +83,16 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...QUINN_EFFECTS,
 	...RENGAR_EFFECTS,
 	...SAMIRA_EFFECTS,
+	...SENNA_EFFECTS,
 	...SHYVANA_EFFECTS,
 	...SINGED_EFFECTS,
+	...SION_EFFECTS,
 	...SIVIR_EFFECTS,
+	...SWAIN_EFFECTS,
 	...TALON_EFFECTS,
 	...TARIC_EFFECTS,
 	...TEEMO_EFFECTS,
+	...THRESH_EFFECTS,
 	...TRISTANA_EFFECTS,
 	...TRUNDLE_EFFECTS,
 	...TRYNDAMERE_EFFECTS,

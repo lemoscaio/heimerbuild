@@ -156,10 +156,13 @@ export function resolveAmount(
 			const steps = gameTimeSteps(amount.every, context.gameTime ?? GAME_START)
 			return step === undefined ? undefined : step * triangularSteps(steps)
 		}
-		case "matchStacks":
-			return (
-				stacksOf(context.matchStacks, amount.source.id) * (amount.ratio ?? 1)
-			)
+		case "matchStacks": {
+			const ratio = resolveTableAmount(amount.ratio ?? 1, effect, context)
+			if (ratio === undefined) return undefined
+			const stacks = stacksOf(context.matchStacks, amount.source.id)
+			const value = Math.floor(stacks / (amount.per ?? 1)) * ratio
+			return Math.min(value, amount.max ?? Number.POSITIVE_INFINITY)
+		}
 		case "statDecay": {
 			const read = context.totals?.[amount.stat].total
 			return read === undefined
