@@ -16,6 +16,7 @@ import { JAYCE_EFFECTS } from "../../champions/jayce"
 import { JINX_EFFECTS } from "../../champions/jinx"
 import { KATARINA_EFFECTS } from "../../champions/katarina"
 import { KENNEN_EFFECTS } from "../../champions/kennen"
+import { KINDRED_EFFECTS } from "../../champions/kindred"
 import { MALPHITE_EFFECTS } from "../../champions/malphite"
 import { MASTER_YI_EFFECTS } from "../../champions/master-yi"
 import { MISS_FORTUNE_EFFECTS } from "../../champions/miss-fortune"
@@ -73,6 +74,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...JINX_EFFECTS,
 	...KATARINA_EFFECTS,
 	...KENNEN_EFFECTS,
+	...KINDRED_EFFECTS,
 	...MALPHITE_EFFECTS,
 	...MASTER_YI_EFFECTS,
 	...MISS_FORTUNE_EFFECTS,
