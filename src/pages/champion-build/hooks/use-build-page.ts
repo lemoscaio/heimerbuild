@@ -1,4 +1,4 @@
-import type { AbilitySlot } from "@schemas/champion"
+import { ABILITY_SLOTS, type AbilitySlot } from "@schemas/champion"
 import { useState } from "react"
 import { useItems } from "@/data/hooks/use-items"
 import { useRunes } from "@/data/hooks/use-runes"
@@ -6,6 +6,7 @@ import type {
 	BuildTab,
 	BuildView,
 } from "@/features/build-calculator/lib/build-search"
+import type { AbilityDamageBuild } from "@/features/skills/lib/ability-damage"
 import { track } from "@/lib/analytics/analytics"
 import { selectedRunes } from "@/lib/rune-selection"
 import {
@@ -97,6 +98,15 @@ export function useBuildPage({
 	}
 
 	/** The stats now and with one more rank in `slot`, when that ability's rank grants stats. */
+	/** What the Skills tab reads each ability's damage at: the stats, the level and each ability's counters. */
+	function abilityDamageBuild(): AbilityDamageBuild | undefined {
+		if (!stats) return undefined
+		const counters = Object.fromEntries(
+			ABILITY_SLOTS.map((slot) => [slot, build.abilityCounters(slot)]),
+		)
+		return { stats, level: championState.level, counters }
+	}
+
 	function rankUpStats(slot: AbilitySlot) {
 		if (!champion?.rankStats?.some((rankStat) => rankStat.slot === slot)) {
 			return undefined
@@ -118,13 +128,15 @@ export function useBuildPage({
 		/** The abilities in the selected form, which the skills row and tab show. */
 		abilities: build.abilities,
 		rankUpStats,
+		/** The build the Skills tab reads each ability's damage at. */
+		abilityDamage: abilityDamageBuild(),
 		/** The chosen items; `addItem` adds one from the shop and closes its details. */
 		items,
 		addItem,
 		runePage,
 		/** The two summoner spell slots; `pick`, `swap` and `clear` edit them. */
 		summoners,
-		/** The match's game time. */
+		/** The match's game time and the build's match stacks. */
 		matchState: build.matchState,
 		/** The build's conditional effects with their switches; `setOn` turns one on or off. */
 		conditions: build.conditions,

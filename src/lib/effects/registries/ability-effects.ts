@@ -36,6 +36,7 @@ import { TRUNDLE_EFFECTS } from "../../champions/trundle"
 import { TRYNDAMERE_EFFECTS } from "../../champions/tryndamere"
 import { TWITCH_EFFECTS } from "../../champions/twitch"
 import { UDYR_EFFECTS } from "../../champions/udyr"
+import { VEIGAR_EFFECTS } from "../../champions/veigar"
 import { VI_EFFECTS } from "../../champions/vi"
 import { VIEGO_EFFECTS } from "../../champions/viego"
 import { WARWICK_EFFECTS } from "../../champions/warwick"
@@ -87,6 +88,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...TRYNDAMERE_EFFECTS,
 	...TWITCH_EFFECTS,
 	...UDYR_EFFECTS,
+	...VEIGAR_EFFECTS,
 	...VI_EFFECTS,
 	...VIEGO_EFFECTS,
 	...WARWICK_EFFECTS,

@@ -1,23 +1,22 @@
 // Nasus: Siphoning Strike is an empowered attack that resets the attack timer, plus its stacks (the
-// Q variants). Spirit Fire's fire burns and lowers armor while the target stays in it, and Fury of
+// build's match stacks, `nasus-q-stacks`; none gained in a combo). Spirit Fire's fire burns and lowers armor while the target stays in it, and Fury of
 // the Sands' aura burns for up to 15 s and halves Siphoning Strike's cooldown. The life steal, the
 // slow and R's stats are left out.
 import type {
 	AbilityHitRule,
 	AbilityVariant,
 } from "../combat/registries/ability-hits"
-import type { Effect } from "../effects/effect"
+import type { Effect, MatchStackSource } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
 
-/** A preset of Siphoning Strike stacks, which the build can't know. */
-function stacks(count: number): AbilityVariant {
-	return {
-		id: String(count),
-		label: String(count),
-		counters: { stacks: count },
-	}
-}
+/** Siphoning Strike's permanent stacks: 4 per kill, 10 for a champion or a large unit (wiki), uncapped. */
+export const SIPHONING_STRIKE_STACKS = {
+	id: "siphoning-strike",
+	name: "Siphoning Strike stacks",
+	// The wiki gives no typical count; long games pass 1000.
+	sliderMax: 1500,
+} as const satisfies MatchStackSource
 
 /** A time the target stays in an area, as a preset. */
 function seconds(time: number): AbilityVariant {
@@ -25,6 +24,21 @@ function seconds(time: number): AbilityVariant {
 }
 
 export const NASUS_EFFECTS = [
+	{
+		// The synced `TotalDamage` adds 100% of the stacks as its `stacks` counter part.
+		id: "nasus-q-stacks",
+		source: { kind: "ability", championKey: "Nasus", slot: "Q" },
+		trigger: { kind: "always" },
+		grants: [
+			{
+				kind: "counter",
+				counter: "stacks",
+				amount: { by: "matchStacks", source: SIPHONING_STRIKE_STACKS },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Nasus/Siphoning_Strike`,
+	},
 	{
 		// A tick every second for 5 s (wiki), the first 1 s in: `TotalDotDamage` is 5 ticks. The armor
 		// reduction holds while in the fire; its 1 s linger after leaving is left out.
@@ -95,13 +109,10 @@ export const NASUS_EFFECTS = [
 
 export const NASUS_HIT_RULES = [
 	{
-		// `TotalDamage` is the attack plus the bonus and its stacks, which a kill grows (4, or 10 for a
-		// champion or a large unit; wiki): the player says how many.
+		// `TotalDamage` is the attack plus the bonus and its stacks (`nasus-q-stacks`).
 		championKey: "Nasus",
 		slot: "Q",
 		empowersAttack: { includesAttack: true, resetsAttack: true },
-		variants: [stacks(0), stacks(100), stacks(250), stacks(500)],
-		variantsLabel: { text: "Stacks", name: "Siphoning Strike stacks" },
 		since: "16.19",
 		sourceUrl: `${WIKI}Nasus/Siphoning_Strike`,
 	},

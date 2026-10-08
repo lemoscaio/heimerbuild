@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
 	type BuildLinkMigrations,
 	migrateBuildLink,
+	migrateQStacksToBuild,
 	readBuildLinkVersion,
 } from "./build-link-migrations"
 
@@ -61,5 +62,32 @@ describe("migrateBuildLink", () => {
 
 	test("marks a link of the first version, with no migrations yet, as v1", () => {
 		expect(migrateBuildLink({ lvl: 9 }, [])).toEqual({ lvl: 9, v: 1 })
+	})
+})
+
+describe("v1 → v2: Siphoning Strike's stacks move from the Q steps to the build", () => {
+	test("reads the first Q step's stacks as the build's and drops them from every step", () => {
+		expect(
+			migrateQStacksToBuild({ combo: "aa.q-100.e-3s.q-250", lvl: 9 }),
+		).toEqual({ combo: "aa.q.e-3s.q", stacks: "siphoning-strike-100", lvl: 9 })
+	})
+
+	test("a first Q step at 0 stacks (no variant) gives the build none", () => {
+		expect(migrateQStacksToBuild({ combo: "q.q-250" })).toEqual({
+			combo: "q.q",
+		})
+	})
+
+	test("keeps the link's own stacks, and other variants as they are", () => {
+		expect(
+			migrateQStacksToBuild({
+				combo: "q-100.q-handle",
+				stacks: "siphoning-strike-500",
+			}),
+		).toEqual({ combo: "q.q-handle", stacks: "siphoning-strike-500" })
+	})
+
+	test("leaves a link without a combo as it is", () => {
+		expect(migrateQStacksToBuild({ lvl: 3 })).toEqual({ lvl: 3 })
 	})
 })

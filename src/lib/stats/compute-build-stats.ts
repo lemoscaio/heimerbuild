@@ -1,13 +1,16 @@
-import type { Champion } from "@schemas/champion"
+import type { AbilitySlot, Champion } from "@schemas/champion"
 import type { ShardStat } from "@schemas/rune"
 import type { BuildEffect, EffectOverrides } from "../effects/effect"
 import {
+	type AbilityCounters,
+	abilityCounters,
 	activeEffects,
 	alwaysOnRankStats,
 	attackSpeedMultipliers,
 	type EffectContext,
 	effectStatsInput,
 } from "../effects/evaluate"
+import type { MatchStacks } from "../effects/match-stacks"
 import { itemsAdaptiveType } from "./adaptive-force"
 import { multiplyAttackSpeed } from "./attack-speed"
 import { selectedForm } from "./champion-forms"
@@ -55,34 +58,31 @@ export type BuildStatsInput = {
 	currentHealth?: number
 	/** Whole minutes into the game, which some effects read; absent means its start. */
 	gameTime?: number
+	/** The match stacks by source, which some effects read; absent means none. */
+	matchStacks?: MatchStacks
 }
 
 const NO_EFFECTS: BuildEffectsInput = { available: [], overrides: {} }
 
-function evaluateBuild({
+/** The build's state its effects' amounts read. */
+function effectContext({
 	champion,
-	patch,
 	level,
 	form,
 	items,
-	shards,
 	ranks,
 	effects = NO_EFFECTS,
 	currentHealth,
 	gameTime,
-}: BuildStatsInput) {
-	// Adaptive Force becomes AD or AP from the items, so the shards and effects read them.
-	const shardInput = shardStatsInput(shards, {
-		level,
-		defaultAdaptiveType: champion.adaptiveType,
-		items,
-	})
-	const context: EffectContext = {
+	matchStacks,
+}: BuildStatsInput): EffectContext {
+	return {
 		level,
 		ranks,
 		rankStats: champion.rankStats,
 		currentHealth,
 		gameTime,
+		matchStacks,
 		adaptiveType: itemsAdaptiveType(champion.adaptiveType, items),
 		form: selectedForm(champion.forms, form, { ranks })?.id,
 		...(champion.attackType && {
@@ -96,6 +96,26 @@ function evaluateBuild({
 		...(effects.paused && { paused: effects.paused }),
 		...(effects.elapsed && { elapsed: effects.elapsed }),
 	}
+}
+
+function evaluateBuild(input: BuildStatsInput) {
+	const {
+		champion,
+		patch,
+		level,
+		form,
+		items,
+		shards,
+		ranks,
+		effects = NO_EFFECTS,
+	} = input
+	// Adaptive Force becomes AD or AP from the items, so the shards and effects read them.
+	const shardInput = shardStatsInput(shards, {
+		level,
+		defaultAdaptiveType: champion.adaptiveType,
+		items,
+	})
+	const context = effectContext(input)
 	const active = activeEffects(effects.available, effects.overrides, context)
 	const rankStats = alwaysOnRankStats(champion.rankStats, effects.available)
 	const sources = [...items, shardInput, effectStatsInput(active, context)]
@@ -138,4 +158,18 @@ export function statBonusBasis(input: BuildStatsInput): ComputedStats {
  */
 export function computeBuildStats(input: BuildStatsInput): ComputedStats {
 	return evaluateBuild(input).totals
+}
+
+/** The counts `ability`'s damage formulas read from the build's active effects (Siphoning Strike's stacks). */
+export function buildAbilityCounters(
+	input: BuildStatsInput,
+	ability: AbilitySlot | "passive",
+): AbilityCounters {
+	const context = effectContext(input)
+	const { available, overrides } = input.effects ?? NO_EFFECTS
+	return abilityCounters(
+		activeEffects(available, overrides, context),
+		context,
+		ability,
+	)
 }

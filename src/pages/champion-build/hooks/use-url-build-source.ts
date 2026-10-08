@@ -10,6 +10,7 @@ import type {
 	BuildValues,
 } from "@/features/build-calculator/types/build-source"
 import { parseEffectOverrides } from "@/lib/effects/effect-overrides"
+import { parseMatchStacks } from "@/lib/effects/match-stacks"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 import type { ChampionSwitchSummary } from "../lib/champion-switch"
 
@@ -51,6 +52,7 @@ export function useUrlBuildSource({
 		effects: parseEffectOverrides(search.effects),
 		currentHealth: search.hp,
 		gameTime: search.min,
+		matchStacks: parseMatchStacks(search.stacks),
 		combo: search.combo,
 		free: search.free === 1 || undefined,
 		choices: search.choices,
@@ -75,6 +77,7 @@ export function useUrlBuildSource({
 			effects: values.effects,
 			currentHealth: values.currentHealth,
 			gameTime: values.gameTime,
+			matchStacks: values.matchStacks,
 			combo: values.combo,
 			free: values.free,
 			choices: values.choices,

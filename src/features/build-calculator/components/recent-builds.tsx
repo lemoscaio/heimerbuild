@@ -79,6 +79,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				effects: build.effects,
 				currentHealth: build.currentHealth,
 				gameTime: build.gameTime,
+				matchStacks: build.matchStacks,
 				combo: build.combo,
 				free: build.free,
 				choices: build.choices,

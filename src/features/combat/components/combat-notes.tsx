@@ -21,6 +21,11 @@ export function CombatNotes({
 				The combo starts from each effect's default and the situation markers
 				placed in it, and ignores the stats panel's switches.
 			</li>
+			<li className="flex items-start gap-1.5">
+				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
+				Stacks gained over the match (Siphoning Strike's, Phenomenal Evil's) are
+				set in the Effects list and don't grow during the combo.
+			</li>
 		</ul>
 	)
 }

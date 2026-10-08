@@ -1,6 +1,6 @@
 // Nasus: Siphoning Strike (Q) is instant and Fury of the Sands (R) takes 0.2 s; the game files
 // give 0.52 s and 0.25 s. Siphoning Strike's damage adds its stacks, a buff counter the sync can't
-// read: it becomes a `stacks` counter, which the combo's Q variants give.
+// read: it becomes a `stacks` counter, which the build's match stacks give (app: `nasus-q-stacks`).
 
 import { defineAbilityFixes } from "../overrides/define-champion-overrides"
 import type { AbilityDamage } from "../schemas/champion"

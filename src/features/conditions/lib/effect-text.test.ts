@@ -28,6 +28,7 @@ function condition(
 		isSwitchable: true,
 		usesCurrentHealth: false,
 		usesGameTime: false,
+		stackSources: [],
 		grants: [],
 		duration: fields.duration,
 	}
@@ -95,6 +96,22 @@ describe("conditionText", () => {
 	})
 })
 
+describe("an effect that reads match stacks", () => {
+	test("holds over the match instead of always", () => {
+		const always = condition({ kind: "always" })
+		const source = {
+			id: "phenomenal-evil",
+			name: "Phenomenal Evil stacks",
+			sliderMax: 1000,
+		}
+
+		expect(conditionText(always)).toBe("Always")
+		expect(conditionText({ ...always, stackSources: [source] })).toBe(
+			"Stacks gained over the match",
+		)
+	})
+})
+
 describe("grantText", () => {
 	test("shows stats like item stats, and shields and heals as whole numbers", () => {
 		expect(
@@ -102,6 +119,9 @@ describe("grantText", () => {
 		).toBe("+35.3% Move Speed")
 		expect(grantText({ kind: "shield", value: 269.4118 })).toBe("269 shield")
 		expect(grantText({ kind: "heal", value: 192 })).toBe("192 heal")
+		expect(grantText({ kind: "counter", counter: "stacks", value: 250 })).toBe(
+			"250 stacks",
+		)
 	})
 
 	test("says which stat a stat-dependent bonus reads", () => {
@@ -284,6 +304,7 @@ describe("partLabel and stackedOutText", () => {
 			isSwitchable: true,
 			usesCurrentHealth: false,
 			usesGameTime: false,
+			stackSources: [],
 			grants: [],
 			stackedOutBy: stackedOutBy && bind(stackedOutBy),
 		}

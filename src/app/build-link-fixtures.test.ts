@@ -7,6 +7,7 @@ import {
 	toBuildSearch,
 } from "@/features/build-calculator/lib/build-search"
 import { parseEffectOverrides } from "@/lib/effects/effect-overrides"
+import { parseMatchStacks } from "@/lib/effects/match-stacks"
 import { MIN_LEVEL } from "@/lib/stats/growth"
 import { stringifySearch } from "./search-params"
 
@@ -87,6 +88,19 @@ const v1Links: LinkFixture[] = [
 			target: "2500-60-45",
 		},
 	},
+	{
+		name: "Siphoning Strike's stacks on each Q step, which v2 keeps as the build's",
+		link: "?lvl=9&patch=16.19.1&tab=combo&skills=QWEQQRQEQ&combo=q-100.aa.q-100",
+		build: {
+			v: BUILD_LINK_VERSION,
+			lvl: 9,
+			patch: "16.19.1",
+			tab: "combo",
+			skills: "QWEQQRQEQ",
+			combo: "q.aa.q",
+			stacks: "siphoning-strike-100",
+		},
+	},
 ]
 
 function openLink(link: string) {
@@ -94,11 +108,19 @@ function openLink(link: string) {
 }
 
 /** The link the app writes for a build it read, as the build source does. */
-function writeLink({ lvl, items, effects, free, ...search }: BuildSearch) {
+function writeLink({
+	lvl,
+	items,
+	effects,
+	free,
+	stacks,
+	...search
+}: BuildSearch) {
 	return stringifySearch(
 		toBuildSearch({
 			...search,
 			effects: parseEffectOverrides(effects),
+			matchStacks: parseMatchStacks(stacks),
 			free: free === 1,
 			patch: search.patch,
 			level: lvl ?? MIN_LEVEL,
@@ -120,6 +142,17 @@ describe.each(v1Links)("a v1 link with $name", ({ link, build }) => {
 		const written = writeLink(openLink(link))
 		expect(written).toEndWith(`&v=${BUILD_LINK_VERSION}`)
 		expect(openLink(written)).toEqual(build)
+	})
+})
+
+describe("a v2 link keeps its Q variants and stacks as written", () => {
+	const link = "?lvl=9&combo=q-100&stacks=siphoning-strike-250&v=2"
+
+	test("opens without a migration", () => {
+		expect(openLink(link)).toMatchObject({
+			combo: "q-100",
+			stacks: "siphoning-strike-250",
+		})
 	})
 })
 

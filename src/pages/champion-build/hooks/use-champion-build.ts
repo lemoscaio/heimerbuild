@@ -1,3 +1,4 @@
+import type { AbilitySlot } from "@schemas/champion"
 import { useChampion } from "@/data/hooks/use-champion"
 import { useItems } from "@/data/hooks/use-items"
 import { useRunes } from "@/data/hooks/use-runes"
@@ -27,6 +28,7 @@ import { selectedRunes } from "@/lib/rune-selection"
 import { itemsAdaptiveType } from "@/lib/stats/adaptive-force"
 import {
 	type BuildStatsInput,
+	buildAbilityCounters,
 	computeBuildStats,
 	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
@@ -95,7 +97,7 @@ export function useChampionBuild({
 	const abilities =
 		champion && abilitiesInForm(champion.abilities, championState.form?.id)
 	const matchState = useMatchState({
-		value: { gameTime: state.gameTime },
+		value: { gameTime: state.gameTime, matchStacks: state.matchStacks },
 		onChange: (change) => save(change, EDIT_HISTORY.match),
 	})
 	const items = useBuildItems({
@@ -132,6 +134,7 @@ export function useChampionBuild({
 			level: championState.level,
 			currentHealth: championState.currentHealth,
 			gameTime: matchState.gameTime,
+			matchStacks: matchState.matchStacks,
 			ranks: skills.ranks,
 			rankStats: champion?.rankStats,
 			adaptiveType:
@@ -155,6 +158,7 @@ export function useChampionBuild({
 			effects: conditions.value,
 			currentHealth: state.currentHealth,
 			gameTime: state.gameTime,
+			matchStacks: state.matchStacks,
 			combo: state.combo,
 			free: state.free,
 			choices: state.choices,
@@ -204,6 +208,7 @@ export function useChampionBuild({
 			effects: { available: effects ?? [], overrides: state.effects ?? {} },
 			currentHealth: championState.currentHealth,
 			gameTime: matchState.gameTime,
+			matchStacks: matchState.matchStacks,
 			...change,
 		}
 	}
@@ -238,7 +243,7 @@ export function useChampionBuild({
 		items,
 		runePage,
 		summoners,
-		/** The match's game time. */
+		/** The match's game time and the build's match stacks. */
 		matchState,
 		conditions,
 		/** Totals with the items, stat shards, ranks and the effects turned on. */
@@ -246,6 +251,11 @@ export function useChampionBuild({
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes: whatIf({ shards: [] }),
 		whatIf,
+		/** The counts each ability's damage formulas read (Siphoning Strike's stacks), with the effects turned on. */
+		abilityCounters: (ability: AbilitySlot | "passive") => {
+			const input = statsInput()
+			return input ? buildAbilityCounters(input, ability) : {}
+		},
 		/** The combo's build, effects and summoner slots; undefined while the data loads. */
 		combat: combatInput(),
 		/** The combo's steps and markers, free mode and its choices, as link values. */

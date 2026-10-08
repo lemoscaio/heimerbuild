@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority"
-import { useId } from "react"
+import { Fragment, useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { Switch } from "@/components/ui/switch"
 import type { Condition } from "../lib/conditions"
@@ -16,6 +16,8 @@ type ConditionInputs = {
 	healthInput?: React.ReactNode
 	/** The game time input (`GameTimeInput`), shown on the rows whose effect reads it. */
 	gameTimeInput?: React.ReactNode
+	/** Each match stack source's input by source id, shown on the rows whose effect reads it. */
+	stacksInputs?: Readonly<Record<string, React.ReactNode>>
 }
 
 type EffectsListProps = ConditionInputs & {
@@ -26,7 +28,8 @@ type EffectsListProps = ConditionInputs & {
 
 /**
  * Under the stats: the build's effects, one card per source. A conditional part has its switch; an
- * always-on one only informs. A part that reads a condition value (current health, game time) carries its input.
+ * always-on one only informs. A part that reads a condition value (current health, game time, match
+ * stacks) carries its input.
  */
 export function EffectsList({
 	conditions,
@@ -118,6 +121,7 @@ function EffectRow({
 	onToggle,
 	healthInput,
 	gameTimeInput,
+	stacksInputs,
 }: EffectRowProps) {
 	const partId = useId()
 	const whenId = useId()
@@ -164,6 +168,9 @@ function EffectRow({
 				)}
 				{condition.usesCurrentHealth && healthInput}
 				{condition.usesGameTime && gameTimeInput}
+				{condition.stackSources.map(({ id }) => (
+					<Fragment key={id}>{stacksInputs?.[id]}</Fragment>
+				))}
 			</div>
 			{isSwitchable && (
 				<Switch

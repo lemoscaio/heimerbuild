@@ -169,7 +169,7 @@ export const FORMULA_STATS = [
 /**
  * One addend of a damage formula: a flat value, `ratio` of a stat (its `part`, else the total), or
  * `ratio` of a count the game keeps that the build can't know, by name (Siphoning Strike's
- * `stacks`; a combo hit rule's variant gives it).
+ * `stacks`; an effect's `counter` grant gives it).
  */
 export const formulaPartSchema = z.union([
 	z.strictObject({ value: formulaValueSchema }),

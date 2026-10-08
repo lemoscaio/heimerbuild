@@ -1,7 +1,11 @@
 import { type Boost, effectBoosts } from "@/lib/effects/boosts"
 import { usesCurrentHealth } from "@/lib/effects/current-health"
 import { isOnByDefault, isSwitchable } from "@/lib/effects/defaults"
-import type { BuildEffect, EffectOverrides } from "@/lib/effects/effect"
+import type {
+	BuildEffect,
+	EffectOverrides,
+	MatchStackSource,
+} from "@/lib/effects/effect"
 import {
 	type EffectContext,
 	effectDuration,
@@ -16,6 +20,7 @@ import {
 	nextGameTimeStep,
 	usesGameTime,
 } from "@/lib/effects/game-time"
+import { matchStackSources } from "@/lib/effects/match-stacks"
 
 /** One effect of the build with its switch and what it gives at the build's level and ranks. */
 export type Condition = {
@@ -27,6 +32,8 @@ export type Condition = {
 	usesCurrentHealth: boolean
 	/** Its value follows the game time, so its row carries the game time input. */
 	usesGameTime: boolean
+	/** The match stacks its value follows, so its row carries each one's input. */
+	stackSources: readonly MatchStackSource[]
 	grants: readonly ResolvedGrant[]
 	/** What it grants from the next game time step on, for an effect that grows with the game time. */
 	next?: { gameTime: number; grants: readonly ResolvedGrant[] }
@@ -99,6 +106,7 @@ export function conditionList(
 			isSwitchable: isSwitchable(effect.effect),
 			usesCurrentHealth: usesCurrentHealth(effect.effect),
 			usesGameTime: usesGameTime(effect.effect),
+			stackSources: matchStackSources(effect.effect),
 			grants: resolveGrants(effect, context),
 			next: nextStep(effect, context),
 			duration: effectDuration(effect, context),

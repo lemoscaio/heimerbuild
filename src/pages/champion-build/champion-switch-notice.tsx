@@ -17,6 +17,7 @@ const RESET_NAMES: Record<ChampionSwitchReset, string> = {
 	form: "the form",
 	skills: "skill points",
 	effects: "effect switches",
+	stacks: "match stacks",
 	combo: "the combo",
 }
 

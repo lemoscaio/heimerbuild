@@ -21,6 +21,7 @@ import type {
 	Trigger,
 } from "../effects/effect"
 import {
+	abilityCounters,
 	type EffectContext,
 	effectDuration,
 	isInForm,
@@ -343,6 +344,7 @@ function createSimulation(
 			rankStats: champion.rankStats,
 			currentHealth: input.build.currentHealth,
 			gameTime: input.build.gameTime,
+			matchStacks: input.build.matchStacks,
 			adaptiveType: itemsAdaptiveType(champion.adaptiveType, items),
 			form: formId,
 			attackType: attackTypeAtLevel(champion, level, { form: formId, ranks }),
@@ -546,8 +548,14 @@ type AbilityDamageOptions = {
 	targetHealth?: number
 	/** The formula counts the attack's total attack damage, which an empowered attack's own hit deals. */
 	withoutAttack?: boolean
-	/** The counts its `counter` parts read (a hit rule variant's `counters`). */
-	counters?: Readonly<Record<string, number>>
+}
+
+/** The counts the ability's formulas read from the attacker's running effects (Siphoning Strike's stacks). */
+function countersNow(sim: Simulation, ability: AbilitySlot | "passive") {
+	const running = sim.active
+		.filter(({ holder }) => holder === "attacker")
+		.map(({ effect }) => effect)
+	return abilityCounters(running, sim.context, ability)
 }
 
 /** An ability's synced damage formula by name, as the form shows the ability. */
@@ -572,7 +580,6 @@ function dealAbilityDamage(
 	{
 		targetHealth = sim.health,
 		withoutAttack = false,
-		counters,
 	}: AbilityDamageOptions = {},
 ) {
 	const { ranks, level } = sim.input.build
@@ -587,7 +594,7 @@ function dealAbilityDamage(
 		level,
 		...(ability !== "passive" && { rank: ranks?.[ability] }),
 		target: { maximum: sim.input.target.health, current: targetHealth },
-		...(counters && { counters }),
+		counters: countersNow(sim, ability),
 	})
 	if (total === undefined) {
 		notModeledHit(sim, source, formula.notModeled ?? ["a value it lacks"])
@@ -656,6 +663,7 @@ function tickDamage(
 				level,
 				...(ability !== "passive" && { rank: ranks?.[ability] }),
 				target,
+				counters: countersNow(sim, ability),
 			})
 			return raw === undefined
 				? undefined
@@ -1511,13 +1519,9 @@ function abilityHit(
 	} else {
 		// The cast's damages are one hit: a share of health reads it before any of them lands.
 		const targetHealth = sim.health
-		const counters = chosenVariant(rule, variant)?.counters
 		for (const name of names) {
 			const source = { kind: "ability", slot: spell.slot, name } as const
-			dealAbilityDamage(sim, spell.slot, name, source, {
-				targetHealth,
-				counters,
-			})
+			dealAbilityDamage(sim, spell.slot, name, source, { targetHealth })
 		}
 	}
 	if (rule?.onHit) onHit(sim, pending)
@@ -1545,10 +1549,7 @@ function empoweredAttack(
 		noAttackCooldown: !!empowersAttack?.noAttackCooldown,
 		bonus: () => {
 			const names = castDamages(spell, rule, action.variant)
-			const options = {
-				withoutAttack: !!empowersAttack?.includesAttack,
-				counters: chosenVariant(rule, action.variant)?.counters,
-			}
+			const options = { withoutAttack: !!empowersAttack?.includesAttack }
 			for (const name of names) {
 				const source = { kind: "ability", slot: spell.slot, name } as const
 				dealAbilityDamage(sim, spell.slot, name, source, options)

@@ -14,6 +14,11 @@ import {
 	serializeEffectOverrides,
 } from "@/lib/effects/effect-overrides"
 import { GAME_START, MAX_GAME_TIME } from "@/lib/effects/game-time"
+import {
+	type MatchStacks,
+	STACKS_PARAM_PATTERN,
+	serializeMatchStacks,
+} from "@/lib/effects/match-stacks"
 import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { UNSPENT_LEVEL_MARK } from "@/lib/skill-order-param"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
@@ -120,6 +125,11 @@ export const buildSearchSchema = z.object({
 		z.optional(z.int().check(z.gte(GAME_START), z.lte(MAX_GAME_TIME))),
 		undefined,
 	),
+	/** The match stacks by source (`serializeMatchStacks`), which some effects read; absent means none. */
+	stacks: z.catch(
+		z.optional(z.string().check(z.regex(STACKS_PARAM_PATTERN))),
+		undefined,
+	),
 	/** The combo's steps and situation markers, in order (`serializeComboItems`); absent means none. */
 	combo: z.catch(z.optional(comboSchema), undefined),
 	/** The combo's free mode, on; absent means strict. */
@@ -166,11 +176,13 @@ export type BuildState = {
 	currentHealth?: number
 	/** Whole minutes into the game; `undefined` for its start. 0 stays out of the link too. */
 	gameTime?: number
+	/** Stacks by source id; `undefined` for none. A 0 count stays out of the link too. */
+	matchStacks?: MatchStacks
 	/** The combo's target, as the `target` value; `undefined` for the Dummy. */
 	target?: string
 } & ComboLink
 
-/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells, default effects, full health, game start, no combo, strict mode, the Dummy) stay out of the URL. */
+/** The URL search for a build, in the latest link format. Defaults (level 1, no items, overview, items tab, no runes, default form, suggested skills, no summoner spells, default effects, full health, game start, no match stacks, no combo, strict mode, the Dummy) stay out of the URL. */
 export function toBuildSearch({
 	level,
 	itemIds,
@@ -184,6 +196,7 @@ export function toBuildSearch({
 	effects,
 	currentHealth,
 	gameTime,
+	matchStacks,
 	combo,
 	free,
 	choices,
@@ -202,6 +215,7 @@ export function toBuildSearch({
 		effects: serializeEffectOverrides(effects),
 		hp: currentHealth === FULL_HEALTH ? undefined : currentHealth,
 		min: gameTime === GAME_START ? undefined : gameTime,
+		stacks: serializeMatchStacks(matchStacks),
 		combo,
 		free: free ? 1 : undefined,
 		choices,
