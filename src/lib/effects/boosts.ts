@@ -12,8 +12,9 @@ function tableAmounts(amount: Amount): TableAmount[] {
 			return [amount.max]
 		case "gameTime":
 			return [amount.step]
-		case "statDecay":
 		case "matchStacks":
+			return amount.ratio === undefined ? [] : [amount.ratio]
+		case "statDecay":
 			return []
 		case "attackType":
 			return [amount.melee, amount.ranged]

@@ -119,11 +119,17 @@ export type MatchStackSource = {
 	sliderMax: number
 }
 
-/** `ratio` (1 by default) per stack of `source` the build has (Phenomenal Evil: 1 AP per stack). */
+/**
+ * `ratio` (1 by default; a table, such as a rank line) per stack of `source` the build has
+ * (Phenomenal Evil: 1 AP per stack; Feast: 80 / 120 / 160 health by R rank). With `per`, per
+ * whole `per` stacks (Absolution: 10% critical strike chance per 20); `max` caps the value.
+ */
 export type MatchStacksAmount = {
 	by: "matchStacks"
 	source: MatchStackSource
-	ratio?: number
+	ratio?: TableAmount
+	per?: number
+	max?: number
 }
 
 export type DamageType = "physical" | "magic" | "true"
