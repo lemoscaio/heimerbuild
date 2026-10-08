@@ -130,3 +130,29 @@ test("Mejai's Glory stops at its cap, gives its move speed from 10 and leaves wi
 	await page.getByRole("button", { name: "Remove Mejai's Soulstealer" }).click()
 	await expect(glory).toHaveCount(0)
 })
+
+test("Kindred's marks give attack range only from 4 on, in steps, and keep through a reload", async ({
+	page,
+}) => {
+	await page.goto("/champions/Kindred")
+	const marks = stacks(page, "Marks of the Kindred")
+	await expect(marks).toHaveValue("0")
+	const range = await statTotal(page, "Attack Range")
+
+	await marks.fill("3")
+	await marks.press("Enter")
+	await expect(page).toHaveURL(/[?&]stacks=kindred-marks-3(?:&|$)/)
+	expect(await statTotal(page, "Attack Range")).toBe(range)
+
+	await stacksSlider(page, "Marks of the Kindred").press("ArrowRight")
+	await expect(page).toHaveURL(/[?&]stacks=kindred-marks-4(?:&|$)/)
+	await expect.poll(() => statTotal(page, "Attack Range")).toBe(range + 75)
+
+	await stacksSlider(page, "Marks of the Kindred").press("End")
+	await expect(page).toHaveURL(/[?&]stacks=kindred-marks-30(?:&|$)/)
+	await expect.poll(() => statTotal(page, "Attack Range")).toBe(range + 250)
+
+	await page.reload()
+	await expect(marks).toHaveValue("30")
+	await expect.poll(() => statTotal(page, "Attack Range")).toBe(range + 250)
+})

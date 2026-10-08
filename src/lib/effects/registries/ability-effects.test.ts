@@ -421,6 +421,33 @@ describe("match stacks (wiki, current patch data; issue 400)", () => {
 		expect(gain(senna, "critChance", mist(45))).toBeCloseTo(0.2)
 		expect(gain(senna, "critChance", mist(19))).toBe(0)
 	})
+
+	test("Mark of the Kindred: 75 attack range at 4 marks, 25 more every 3, up to 250 at 25", async () => {
+		const kindred = await currentChampion("Kindred")
+		const range = (count: number) =>
+			gain(kindred, "attackRange", { "kindred-marks": count })
+
+		expect(range(3)).toBe(0)
+		expect(range(4)).toBe(75)
+		expect(range(9)).toBe(100)
+		expect(range(10)).toBe(125)
+		expect(range(25)).toBe(250)
+		expect(range(30)).toBe(250)
+	})
+
+	test("Dance of Arrows: 35% attack speed for 4 s, 5% more per mark", async () => {
+		const kindred = await currentChampion("Kindred")
+		const build = stackedBuild(kindred, { "kindred-marks": 6 })
+		const q = build.effects.available.find(({ id }) => id === "kindred-q")
+		if (!q) throw new Error("No Dance of Arrows effect")
+		const speed = resolveGrants(q, {
+			level: 9,
+			matchStacks: { "kindred-marks": 6 },
+		}).reduce((sum, { value }) => sum + value, 0)
+
+		expect(speed).toBeCloseTo(0.65)
+		expect(effectDuration(q, { level: 9 })).toBe(4)
+	})
 })
 
 type GainOptions = {

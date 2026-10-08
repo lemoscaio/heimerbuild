@@ -222,6 +222,20 @@ describe("valuesText", () => {
 		)
 	})
 
+	test("adds the next stack step, as the next game time step", () => {
+		const row = condition({ kind: "always" })
+		const range = (value: number) =>
+			({ kind: "stat", stat: "attackRange", value }) as const
+
+		expect(
+			valuesText({
+				...row,
+				grants: [range(75)],
+				nextStacks: { stacks: 7, grants: [range(100)] },
+			}),
+		).toBe("+75 Attack Range (next: +100 Attack Range at 7 stacks)")
+	})
+
 	test("says what a stack threshold not reached yet gives, and from which count", () => {
 		const row = condition({ kind: "always" })
 		const source = { id: "mejai-stacks", name: "Mejai's Glory", sliderMax: 25 }
