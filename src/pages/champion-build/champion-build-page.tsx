@@ -6,8 +6,10 @@ import { ShopStateProvider } from "@/features/item-shop/components/shop-state-pr
 import { useIsDesktop } from "@/hooks/use-is-desktop"
 import { track } from "@/lib/analytics/analytics"
 import { isRuneSelectionEmpty } from "@/lib/rune-selection"
+import { ExpandedComboPage } from "./expanded-combo-page"
 import { ExpandedShopPage } from "./expanded-shop-page"
 import { useBuildPage } from "./hooks/use-build-page"
+import { useComboToggleFocus } from "./hooks/use-combo-toggle-focus"
 import { MobileBuildPage } from "./mobile-build-page"
 import { OverviewPage } from "./overview-page"
 
@@ -18,7 +20,7 @@ const championRouteApi = getRouteApi("/page-with-header/champions/$key")
 // once one is open, the next opens instantly (Base UI groups tooltips under the provider).
 const TOOLTIP_DELAY_MS = 450
 
-/** Picks the screen: mobile below `lg`, else the overview or the expanded shop (`view=shop`). */
+/** Picks the screen: mobile below `lg`, else the overview, the expanded shop (`view=shop`) or combo (`view=combo`). */
 export function ChampionBuildPage() {
 	const { key } = championRouteApi.useParams()
 	const { patch, unavailablePatch } = championRouteApi.useLoaderData()
@@ -41,6 +43,7 @@ export function ChampionBuildPage() {
 			}),
 	})
 	const isDesktop = useIsDesktop()
+	const comboToggleRef = useComboToggleFocus(build.view)
 	const buildHref = router.buildLocation({
 		to: "/champions/$key",
 		params: { key },
@@ -86,6 +89,13 @@ export function ChampionBuildPage() {
 						patch={patch}
 						copyLink={copyLink}
 					/>
+				) : build.view === "combo" ? (
+					<ExpandedComboPage
+						build={build}
+						champion={build.champion}
+						copyLink={copyLink}
+						toggleRef={comboToggleRef}
+					/>
 				) : (
 					<OverviewPage
 						build={build}
@@ -93,6 +103,7 @@ export function ChampionBuildPage() {
 						patch={patch}
 						copyLink={copyLink}
 						patchNotice={patchNotice}
+						comboToggleRef={comboToggleRef}
 					/>
 				)}
 			</ShopStateProvider>

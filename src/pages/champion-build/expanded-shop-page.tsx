@@ -1,10 +1,10 @@
 import type { Champion } from "@schemas/champion"
-import { BuildBar } from "@/features/build-calculator/components/build-bar"
 import { ItemDetailsPanel } from "@/features/build-calculator/components/item-details-panel"
 import { ShopViewToggle } from "@/features/build-calculator/components/shop-view-toggle"
 import { WorkbenchLayout } from "@/features/build-calculator/components/workbench-layout"
 import { ItemShop } from "@/features/item-shop/components/item-shop"
 import { useAnalyticsContext } from "@/hooks/use-analytics-context"
+import { ChampionBuildBar } from "./champion-build-bar"
 import type { BuildPage } from "./hooks/use-build-page"
 
 type ExpandedShopPageProps = {
@@ -22,7 +22,7 @@ export function ExpandedShopPage({
 	copyLink,
 }: ExpandedShopPageProps) {
 	useAnalyticsContext("shop_mode", "expanded")
-	const { championState, items } = build
+	const { items } = build
 
 	return (
 		<WorkbenchLayout
@@ -50,21 +50,7 @@ export function ExpandedShopPage({
 					onClose={build.clearSelection}
 				/>
 			}
-			bar={
-				build.stats && (
-					<BuildBar
-						champion={champion}
-						formName={championState.form?.name}
-						level={championState.level}
-						onLevelChange={championState.setLevel}
-						items={items.list}
-						onRemoveItem={items.remove}
-						notice={items.notice}
-						announcement={items.announcement}
-						stats={build.stats}
-					/>
-				)
-			}
+			bar={<ChampionBuildBar build={build} champion={champion} />}
 		/>
 	)
 }
