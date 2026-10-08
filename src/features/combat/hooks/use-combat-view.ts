@@ -27,7 +27,7 @@ import {
 } from "../lib/combat-view"
 import type { Combat } from "./use-combat"
 
-type UseCombatViewOptions = {
+export type UseCombatViewOptions = {
 	combat: Combat
 	target: CombatTarget
 	effects: readonly BuildEffect[]
@@ -164,6 +164,8 @@ export function useCombatView({
 
 	return {
 		items: shownItems(items),
+		/** The same entries in the combo's order, ungrouped. */
+		list: items,
 		totals: result && combatTotals(result, target),
 	}
 }
