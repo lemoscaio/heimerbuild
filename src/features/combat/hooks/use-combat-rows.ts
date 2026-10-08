@@ -41,6 +41,8 @@ export function useCombatRows(options: UseCombatViewOptions) {
 
 	return {
 		items,
+		/** The entries in the combo's order, ungrouped (`useCombatView`'s list). */
+		list,
 		/** The entries' ids in the combo's order, which the moves follow whatever the order shown. */
 		entryIds: list.map(({ id }) => id),
 		totals,

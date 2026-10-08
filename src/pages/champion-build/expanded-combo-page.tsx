@@ -7,15 +7,20 @@ import { CombatActionKeys } from "@/features/combat/components/combat-action-key
 import { CombatFreeBanner } from "@/features/combat/components/combat-free-banner"
 import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-mode-switch"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
+import { CombatRowOrderSwitch } from "@/features/combat/components/combat-row-order-switch"
 import { CombatRowsToolbar } from "@/features/combat/components/combat-rows-toolbar"
 import { CombatSituationChips } from "@/features/combat/components/combat-situation-chips"
 import type { CombatListMode } from "@/features/combat/components/combat-step-outcomes"
 import { CombatStepRows } from "@/features/combat/components/combat-step-rows"
+import { CombatTimeline } from "@/features/combat/components/combat-timeline"
 import { CombatTiming } from "@/features/combat/components/combat-timing"
 import { CombatTotals } from "@/features/combat/components/combat-totals"
 import { CombatUncuratedNote } from "@/features/combat/components/combat-uncurated-note"
 import { CombatUndoNotice } from "@/features/combat/components/combat-undo-notice"
+import { CombatViewSwitch } from "@/features/combat/components/combat-view-switch"
 import { useCombatRows } from "@/features/combat/hooks/use-combat-rows"
+import { useCombatTimeline } from "@/features/combat/hooks/use-combat-timeline"
+import { useCombatViewMode } from "@/features/combat/hooks/use-combat-view-mode"
 import { useMarkerUndo } from "@/features/combat/hooks/use-marker-undo"
 import { TargetEditor } from "@/features/target/components/target-editor"
 import { ChampionBuildBar } from "./champion-build-bar"
@@ -124,12 +129,17 @@ export function ExpandedComboPage({
 	toggleRef,
 }: ExpandedComboPageProps) {
 	const { combat, target, effects } = build.combat
-	const rows = useCombatRows({
+	const viewOptions = {
 		combat,
 		target: target.target,
 		effects,
 		passiveName: champion.abilities.passive.name,
-	})
+	}
+	const rows = useCombatRows(viewOptions)
+	const timeline = useCombatTimeline(viewOptions)
+	const [viewMode, setViewMode] = useCombatViewMode()
+	const hasSteps = !!combat.entries.length
+	const sources = { spells: combat.spells, summoners: build.summoners.slots }
 	const markers = useMarkerUndo(combat)
 	const mode: CombatListMode = combat.free
 		? { kind: "free", onChoiceChange: combat.setChoice }
@@ -164,25 +174,26 @@ export function ExpandedComboPage({
 			}
 			shop={
 				<div className="@container flex min-h-0 flex-1 flex-col text-white">
-					<CombatRowsToolbar
-						count={stepCount}
-						order={rows.order}
-						onOrderChange={rows.setOrder}
-					/>
+					<CombatRowsToolbar count={stepCount}>
+						<CombatViewSwitch value={viewMode} onValueChange={setViewMode} />
+						{viewMode === "list" && (
+							<CombatRowOrderSwitch
+								value={rows.order}
+								onValueChange={rows.setOrder}
+							/>
+						)}
+					</CombatRowsToolbar>
 					<div
 						// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroller needs a tab stop to scroll by keyboard
 						tabIndex={0}
 						className="scrollbar-purple scroll-fade-content min-h-0 flex-1 overflow-y-auto outline-none"
 					>
-						{combat.entries.length ? (
+						{hasSteps && viewMode === "list" && (
 							<CombatStepRows
 								items={rows.items}
 								entryIds={rows.entryIds}
 								mode={mode}
-								sources={{
-									spells: combat.spells,
-									summoners: build.summoners.slots,
-								}}
+								sources={sources}
 								newMarkerId={markers.notice?.markerId}
 								onMove={combat.move}
 								onRemove={combat.remove}
@@ -190,7 +201,16 @@ export function ExpandedComboPage({
 								onWaitChange={combat.setWait}
 								onVariantChange={combat.setVariant}
 							/>
-						) : (
+						)}
+						{hasSteps && viewMode === "timeline" && timeline && (
+							<CombatTimeline
+								timeline={timeline}
+								items={rows.list}
+								sources={sources}
+								className="px-3.5 pt-2"
+							/>
+						)}
+						{!hasSteps && (
 							<p className="m-4 rounded-lg border border-line border-dashed p-4 text-center text-subtle text-xs">
 								No steps yet. Pick an attack, an ability or a summoner spell.
 							</p>

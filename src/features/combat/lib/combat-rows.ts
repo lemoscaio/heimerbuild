@@ -26,6 +26,8 @@ export type TimedHit = {
 	source: DamageSource
 	/** A damage over time's tick, else a hit. */
 	tick: boolean
+	/** An earlier step's effect dealt it once its delay or state was over (Counter Strike's strike). */
+	delayed: boolean
 	/** Absent for a hit the simulator has no number for. */
 	damage?: DealtDamage
 	/** The damage dealt so far, this hit's included, and the target's health then. */
@@ -54,6 +56,7 @@ export function timedHits(
 			step,
 			source: event.source,
 			tick: !!event.tick,
+			delayed: !!event.delayed,
 			...(damage && { damage }),
 			dealt,
 			targetHealth: Math.max(0, target.health - dealt),

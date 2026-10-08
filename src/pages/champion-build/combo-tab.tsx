@@ -6,14 +6,19 @@ import { CombatActionKeys } from "@/features/combat/components/combat-action-key
 import { CombatFreeBanner } from "@/features/combat/components/combat-free-banner"
 import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-mode-switch"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
+import { CombatRowsToolbar } from "@/features/combat/components/combat-rows-toolbar"
 import { CombatSituationChips } from "@/features/combat/components/combat-situation-chips"
 import { CombatStepList } from "@/features/combat/components/combat-step-list"
 import type { CombatListMode } from "@/features/combat/components/combat-step-outcomes"
+import { CombatTimeline } from "@/features/combat/components/combat-timeline"
 import { CombatTiming } from "@/features/combat/components/combat-timing"
 import { CombatTotals } from "@/features/combat/components/combat-totals"
 import { CombatUncuratedNote } from "@/features/combat/components/combat-uncurated-note"
 import { CombatUndoNotice } from "@/features/combat/components/combat-undo-notice"
+import { CombatViewSwitch } from "@/features/combat/components/combat-view-switch"
+import { useCombatTimeline } from "@/features/combat/hooks/use-combat-timeline"
 import { useCombatView } from "@/features/combat/hooks/use-combat-view"
+import { useCombatViewMode } from "@/features/combat/hooks/use-combat-view-mode"
 import { useMarkerUndo } from "@/features/combat/hooks/use-marker-undo"
 import { TargetEditor } from "@/features/target/components/target-editor"
 import type { BuildCombat } from "./hooks/use-build-combat"
@@ -38,12 +43,16 @@ export function ComboTab({
 }: ComboTabProps) {
 	const titleId = useId()
 	const { combat, target, effects } = buildCombat
-	const view = useCombatView({
+	const viewOptions = {
 		combat,
 		target: target.target,
 		effects,
 		passiveName: champion.abilities.passive.name,
-	})
+	}
+	const view = useCombatView(viewOptions)
+	const timeline = useCombatTimeline(viewOptions)
+	const [viewMode, setViewMode] = useCombatViewMode()
+	const hasSteps = !!combat.entries.length
 	const markers = useMarkerUndo(combat)
 	const mode: CombatListMode = combat.free
 		? { kind: "free", onChoiceChange: combat.setChoice }
@@ -113,7 +122,13 @@ export function ComboTab({
 					Free mode: times ignore cooldowns.
 				</p>
 			)}
-			{combat.entries.length ? (
+			<CombatRowsToolbar
+				count={view.list.filter(({ kind }) => kind === "step").length}
+				className="border-0 p-0"
+			>
+				<CombatViewSwitch value={viewMode} onValueChange={setViewMode} />
+			</CombatRowsToolbar>
+			{hasSteps && viewMode === "list" && (
 				<CombatStepList
 					items={view.items}
 					mode={mode}
@@ -127,7 +142,16 @@ export function ComboTab({
 					onWaitChange={combat.setWait}
 					onVariantChange={combat.setVariant}
 				/>
-			) : (
+			)}
+			{hasSteps && viewMode === "timeline" && timeline && (
+				<CombatTimeline
+					timeline={timeline}
+					items={view.list}
+					sources={{ spells: combat.spells, summoners }}
+					className="rounded-xl border border-line bg-surface-sunken/50 px-2 pt-1"
+				/>
+			)}
+			{!hasSteps && (
 				<p className="rounded-lg border border-line border-dashed p-4 text-center text-subtle text-xs">
 					No steps yet. Pick an attack, an ability or a summoner spell above.
 				</p>
