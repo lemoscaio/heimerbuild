@@ -72,6 +72,33 @@ describe("evaluateDamage", () => {
 	})
 })
 
+describe("evaluateDamage: a counter the build can't know", () => {
+	/** Siphoning Strike: 30 to 110, plus 100% AD, plus 100% of its stacks. */
+	const SIPHON: AbilityDamage = {
+		name: "TotalDamage",
+		type: "physical",
+		parts: [
+			{ value: { byRank: [30, 50, 70, 90, 110] } },
+			{ stat: "attackDamage", ratio: 1 },
+			{ counter: "stacks", ratio: 1 },
+		],
+	}
+	const INPUT = { stats: STATS, rank: 1, level: 9, target: TARGET }
+
+	test("adds the counter's count times its ratio (rank 1, 250 stacks: 30 + 160 AD + 250)", () => {
+		expect(
+			evaluateDamage(SIPHON, { ...INPUT, counters: { stacks: 250 } }),
+		).toBe(440)
+	})
+
+	test("has no number without the counter's count", () => {
+		expect(evaluateDamage(SIPHON, INPUT)).toBeUndefined()
+		expect(
+			evaluateDamage(SIPHON, { ...INPUT, counters: { other: 1 } }),
+		).toBeUndefined()
+	})
+})
+
 describe("evaluateDamage: a share of the target's health", () => {
 	/** 4% to 8% of the target's maximum health (+3% per 100 AP), as Zac's W. */
 	const MAXIMUM: AbilityDamage = {
