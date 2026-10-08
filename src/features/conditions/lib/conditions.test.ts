@@ -1,6 +1,15 @@
 import { describe, expect, test } from "bun:test"
-import type { BuildEffect, Effect } from "@/lib/effects/effect"
-import { conditionList, readConditions, setCondition } from "./conditions"
+import type {
+	BuildEffect,
+	Effect,
+	MatchStackSource,
+} from "@/lib/effects/effect"
+import {
+	conditionList,
+	readConditions,
+	setCondition,
+	stackInputRows,
+} from "./conditions"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
 
@@ -227,5 +236,50 @@ describe("conditionList", () => {
 		expect(
 			conditionList([passive, active], {}, context)[0]?.stackedOutBy,
 		).toBeUndefined()
+	})
+})
+
+describe("stackInputRows", () => {
+	const MARKS: MatchStackSource = {
+		id: "kindred-marks",
+		name: "Marks of the Kindred",
+		sliderMax: 30,
+	}
+	const EVIL: MatchStackSource = {
+		id: "phenomenal-evil",
+		name: "Phenomenal Evil stacks",
+		sliderMax: 1000,
+	}
+	function reading(id: string, sources: MatchStackSource[]) {
+		return bind({
+			id,
+			source: { kind: "ability", championKey: "Kindred", slot: "passive" },
+			trigger: { kind: "always" },
+			grants: sources.map((source) => ({
+				kind: "stat" as const,
+				stat: "attackRange" as const,
+				amount: { by: "matchStacks" as const, source },
+			})),
+			since: "16.19",
+			sourceUrl: WIKI,
+		})
+	}
+
+	test("puts each source's input on the first row that reads it", () => {
+		const rows = conditionList(
+			[
+				reading("kindred-passive", [MARKS]),
+				reading("kindred-q", [MARKS, EVIL]),
+				reading("other", []),
+			],
+			{},
+			{ level: 9 },
+		)
+
+		expect(Object.fromEntries(stackInputRows(rows))).toEqual({
+			"kindred-passive": [MARKS],
+			"kindred-q": [EVIL],
+			other: [],
+		})
 	})
 })

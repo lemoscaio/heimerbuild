@@ -131,7 +131,8 @@ export type MatchStackSource = {
 /**
  * `ratio` (1 by default; a table, such as a rank line) per stack of `source` the build has
  * (Phenomenal Evil: 1 AP per stack; Feast: 80 / 120 / 160 health by R rank). With `per`, per
- * whole `per` stacks (Absolution: 10% critical strike chance per 20); `max` caps the value.
+ * whole `per` stacks (Absolution: 10% critical strike chance per 20); `max` caps the value. With
+ * `steps`, the value of the last step the count reached instead (Mark of the Kindred's range).
  */
 export type MatchStacksAmount = {
 	by: "matchStacks"
@@ -139,7 +140,11 @@ export type MatchStacksAmount = {
 	ratio?: TableAmount | AttackTypeAmount
 	per?: number
 	max?: number
+	steps?: readonly StackStep[]
 }
+
+/** `value` from `from` stacks up to the next step's `from`. */
+export type StackStep = { from: number; value: number }
 
 export type DamageType = "physical" | "magic" | "true"
 

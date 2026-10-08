@@ -2,7 +2,8 @@ import { cva } from "class-variance-authority"
 import { Fragment, useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { Switch } from "@/components/ui/switch"
-import type { Condition } from "../lib/conditions"
+import type { MatchStackSource } from "@/lib/effects/effect"
+import { type Condition, stackInputRows } from "../lib/conditions"
 import { type EffectCard as Card, effectCards } from "../lib/effect-cards"
 import {
 	conditionText,
@@ -38,6 +39,7 @@ export function EffectsList({
 }: EffectsListProps) {
 	const headingId = useId()
 	if (!conditions.length) return null
+	const inputRows = stackInputRows(conditions)
 
 	return (
 		<section aria-labelledby={headingId} className="flex flex-col gap-1">
@@ -52,6 +54,7 @@ export function EffectsList({
 					<EffectCard
 						key={card.key}
 						card={card}
+						inputRows={inputRows}
 						onToggle={onToggle}
 						{...inputs}
 					/>
@@ -63,10 +66,12 @@ export function EffectsList({
 
 type EffectCardProps = ConditionInputs & {
 	card: Card
+	/** The stack sources whose input each row carries, by effect id. */
+	inputRows: ReadonlyMap<string, readonly MatchStackSource[]>
 	onToggle: (id: string, on: boolean) => void
 }
 
-function EffectCard({ card, onToggle, ...inputs }: EffectCardProps) {
+function EffectCard({ card, inputRows, onToggle, ...inputs }: EffectCardProps) {
 	const titleId = useId()
 
 	return (
@@ -80,6 +85,7 @@ function EffectCard({ card, onToggle, ...inputs }: EffectCardProps) {
 					<EffectRow
 						key={condition.effect.id}
 						condition={condition}
+						inputSources={inputRows.get(condition.effect.id) ?? []}
 						titleId={titleId}
 						onToggle={(on) => onToggle(condition.effect.id, on)}
 						{...inputs}
@@ -110,6 +116,8 @@ const effectValues = cva("font-medium tabular-nums", {
 
 type EffectRowProps = ConditionInputs & {
 	condition: Condition
+	/** The stack sources whose input this row carries: those no row above it carries. */
+	inputSources: readonly MatchStackSource[]
 	/** The card's title, which starts the row's name. */
 	titleId: string
 	onToggle: (on: boolean) => void
@@ -117,6 +125,7 @@ type EffectRowProps = ConditionInputs & {
 
 function EffectRow({
 	condition,
+	inputSources,
 	titleId,
 	onToggle,
 	healthInput,
@@ -168,7 +177,7 @@ function EffectRow({
 				)}
 				{condition.usesCurrentHealth && healthInput}
 				{condition.usesGameTime && gameTimeInput}
-				{condition.stackSources.map(({ id }) => (
+				{inputSources.map(({ id }) => (
 					<Fragment key={id}>{stacksInputs?.[id]}</Fragment>
 				))}
 			</div>

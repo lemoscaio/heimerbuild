@@ -223,16 +223,27 @@ function grantsText(grants: readonly ResolvedGrant[], options: TimingOptions) {
 
 /**
  * What the row's effect gives, from when it grows and what raises it: "+24 Ability Power (next: +48
- * Ability Power at 30 min)", "+60% Move Speed · boosted by GNAR! (R2)", and each grant's own
+ * Ability Power at 30 min)", "+75 Attack Range (next: +100 Attack Range at 7 stacks)", "+60% Move Speed · boosted by GNAR! (R2)", and each grant's own
  * duration when they differ: "+80% Attack Speed for 5 s · 282 shield for 2.5 s".
  */
 export function valuesText(condition: Condition): string {
-	const { grants, locked, next, boostedBy = [], duration } = condition
+	const {
+		grants,
+		locked,
+		next,
+		nextStacks,
+		boostedBy = [],
+		duration,
+	} = condition
 	const options = { duration, perGrant: hasGrantDurations(condition) }
 	const now = grantsText(grants, options)
-	const value = next
-		? `${now} (next: ${grantsText(next.grants, options)} at ${next.gameTime} min)`
-		: now
+	const atTime =
+		next && `next: ${grantsText(next.grants, options)} at ${next.gameTime} min`
+	const atStacks =
+		nextStacks &&
+		`next: ${grantsText(nextStacks.grants, options)} at ${nextStacks.stacks} stacks`
+	const upcoming = [atTime, atStacks].filter(Boolean).join("; ")
+	const value = upcoming ? `${now} (${upcoming})` : now
 	const thresholds = locked.map(
 		({ threshold, grants: later }) =>
 			`${grantsText(later, options)} from ${threshold.stacks} stacks`,

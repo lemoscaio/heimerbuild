@@ -2,6 +2,7 @@ import type {
 	Amount,
 	Effect,
 	MatchStackSource,
+	MatchStacksAmount,
 	StacksThreshold,
 } from "./effect"
 
@@ -49,6 +50,32 @@ export function withMatchStacks(
 	const { [sourceId]: _previous, ...others } = stacks ?? {}
 	const next = count > 0 ? { ...others, [sourceId]: count } : others
 	return Object.keys(next).length ? next : undefined
+}
+
+function matchStacksAmounts(amount: Amount): MatchStacksAmount[] {
+	if (typeof amount !== "object") return []
+	if (amount.by === "matchStacks") return [amount]
+	return amount.by === "stat" ? matchStacksAmounts(amount.ratio) : []
+}
+
+/**
+ * The next count of `source` past the build's at which one of the effect's stepped amounts changes
+ * (Mark of the Kindred: 7 marks after 4), or none past the last step.
+ */
+export function nextMatchStacksStep(
+	{ grants }: Effect,
+	source: MatchStackSource,
+	stacks: MatchStacks | undefined,
+): number | undefined {
+	const count = stacksOf(stacks, source)
+	const next = grants
+		.flatMap((grant) =>
+			"amount" in grant ? matchStacksAmounts(grant.amount) : [],
+		)
+		.filter((amount) => amount.source.id === source.id)
+		.flatMap(({ steps = [] }) => steps.map(({ from }) => from))
+		.filter((from) => from > count && from <= maxStacksOf(source))
+	return next.length ? Math.min(...next) : undefined
 }
 
 function amountSources(amount: Amount): MatchStackSource[] {

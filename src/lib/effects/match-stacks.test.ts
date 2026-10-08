@@ -4,6 +4,7 @@ import { lockedGrants, resolveAmount, resolveGrants } from "./evaluate"
 import {
 	clampMatchStacks,
 	matchStackSources,
+	nextMatchStacksStep,
 	parseMatchStacks,
 	serializeMatchStacks,
 	usedMatchStacks,
@@ -182,6 +183,58 @@ describe("a grant from a stack threshold", () => {
 			grants: glory.effect.grants.slice(1),
 		}
 		expect(matchStackSources(gated)).toEqual([GLORY])
+	})
+})
+
+describe("a stepped amount", () => {
+	const MARKS: MatchStackSource = {
+		id: "kindred-marks",
+		name: "Marks of the Kindred",
+		sliderMax: 30,
+	}
+	const range: Effect = {
+		id: "kindred-passive",
+		source: { kind: "ability", championKey: "Kindred", slot: "passive" },
+		trigger: { kind: "always" },
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackRange",
+				amount: {
+					by: "matchStacks",
+					source: MARKS,
+					steps: [
+						{ from: 4, value: 75 },
+						{ from: 7, value: 100 },
+					],
+				},
+			},
+		],
+		since: "16.19",
+		sourceUrl: "https://example.com",
+	}
+	const at = (count: number) => ({
+		level: 9,
+		matchStacks: { "kindred-marks": count },
+	})
+
+	test("is the last step the count reached, 0 before the first", () => {
+		const value = (count: number) =>
+			resolveGrants(bound(range), at(count))[0]?.value
+
+		expect(value(3)).toBe(0)
+		expect(value(4)).toBe(75)
+		expect(value(6)).toBe(75)
+		expect(value(40)).toBe(100)
+	})
+
+	test("knows the next count that changes it, none past the last step", () => {
+		const next = (count: number) =>
+			nextMatchStacksStep(range, MARKS, at(count).matchStacks)
+
+		expect(next(0)).toBe(4)
+		expect(next(4)).toBe(7)
+		expect(next(7)).toBeUndefined()
 	})
 })
 
