@@ -498,7 +498,7 @@ function Legend({ lanes }: { lanes: readonly TimelineLane[] }) {
 			{lanes.map(({ key, name }, index) => (
 				<span key={key} className="flex items-center gap-1.5">
 					<span
-						className={cn("h-3 w-2 rounded-sm opacity-70", laneColor(index))}
+						className={cn("size-2 rounded-full opacity-70", laneColor(index))}
 					/>
 					{name}
 				</span>
