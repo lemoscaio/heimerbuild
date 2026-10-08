@@ -1,5 +1,6 @@
 import * as z from "zod/mini"
 import { parseEffectOverrides } from "@/lib/effects/effect-overrides"
+import { parseMatchStacks } from "@/lib/effects/match-stacks"
 import {
 	readLocalStorage,
 	type StorageOptions,
@@ -64,6 +65,7 @@ const recentBuildSchema = z.pipe(
 			effects,
 			hp,
 			min,
+			stacks,
 			combo,
 			free,
 			choices,
@@ -81,6 +83,7 @@ const recentBuildSchema = z.pipe(
 			effects: parseEffectOverrides(effects),
 			currentHealth: hp,
 			gameTime: min,
+			matchStacks: parseMatchStacks(stacks),
 			combo,
 			free: free === 1 || undefined,
 			choices,
