@@ -172,7 +172,7 @@ describe("Black Cleaver's Carve (wiki: 6% armor per stack, up to 5, for 6 s)", a
 	})
 })
 
-describe("Rengar's Thrill of the Hunt: the leap reduces armor (wiki: 15 / 20 / 25 for 4 s)", async () => {
+describe("Rengar's Thrill of the Hunt: the leap deals R's bonus damage, then reduces armor (wiki: 100% AD, then 15 / 20 / 25 for 4 s)", async () => {
 	const rengar: Setup = {
 		champion: await champion("Rengar"),
 		level: 6,
@@ -180,14 +180,38 @@ describe("Rengar's Thrill of the Hunt: the leap reduces armor (wiki: 15 / 20 / 2
 	}
 	const R: CombatAction = { kind: "ability", slot: "R" }
 
-	test("the leap's own hit lands on full armor; the hits after it on 15 less, for 4 s", () => {
-		const result = simulate(rengar, [R, ATTACK, ATTACK])
-		const [leap] = hits(result, 1)
-		const [next] = hits(result, 2)
-		if (!leap || !next) throw new Error("missing hits")
+	/** The step's hits by source: "attack", an ability's damage name, or an effect id. */
+	function hitsBySource(result: CombatResult, step: number) {
+		return (result.steps[step]?.events ?? []).flatMap((event) => {
+			if (event.kind !== "hit" || !("damage" in event)) return []
+			const { source } = event
+			const name =
+				source.kind === "attack"
+					? "attack"
+					: source.kind === "ability"
+						? source.name
+						: source.effectId
+			return [{ name, damage: event.damage }]
+		})
+	}
 
+	test("R, AA: the cast deals nothing; the attack lands, then the bonus, both on full armor, then the armor drops for 4 s", () => {
+		const result = simulate(rengar, [R, ATTACK, ATTACK])
+		const leap = hitsBySource(result, 1)
+		const [next] = hits(result, 2)
+		if (!next) throw new Error("no hit after the leap")
+
+		expect(hits(result, 0)).toEqual([])
 		expect(armorAfter(result, 0)).toBeUndefined()
-		expect(leap.final).toBeCloseTo(atArmor(leap, 100))
+		expect(leap.map(({ name }) => name)).toEqual([
+			"attack",
+			"rengar-r-armor-reduction",
+		])
+		const [attack, bonus] = leap.map(({ damage }) => damage)
+		if (!attack || !bonus) throw new Error("missing leap hits")
+		// 100% AD: as much as the attack's own hit.
+		expect(bonus.raw).toBeCloseTo(attack.raw)
+		expect(bonus.final).toBeCloseTo(atArmor(bonus, 100))
 		expect(armorAfter(result, 1)).toBe(85)
 		expect(next.final).toBeCloseTo(atArmor(next, 85))
 		const reduction = result.steps[1]?.active.find(
@@ -196,16 +220,38 @@ describe("Rengar's Thrill of the Hunt: the leap reduces armor (wiki: 15 / 20 / 2
 		expect(reduction?.endsAt).toBeCloseTo((result.steps[1]?.time ?? 0) + 4)
 	})
 
-	test("Savagery out of the camouflage is the leap too", () => {
+	test("Savagery out of the camouflage is the leap too: its attack, its bonus, then R's", () => {
 		const result = simulate(rengar, [R, { kind: "ability", slot: "Q" }])
-		const [savagery] = hits(result, 1)
-		if (!savagery) throw new Error("no Savagery hit")
+		const leap = hitsBySource(result, 1)
 
-		expect(savagery.final).toBeCloseTo(atArmor(savagery, 100))
+		expect(leap.map(({ name }) => name)).toEqual([
+			"attack",
+			"QTotalDamage",
+			"rengar-r-armor-reduction",
+		])
+		for (const { damage } of leap) {
+			expect(damage.final).toBeCloseTo(atArmor(damage, 100))
+		}
 		expect(armorAfter(result, 1)).toBe(85)
 	})
 
-	test("is camouflaged until the leap, and without one there is no reduction", () => {
+	test.each(["W", "E"] as const)(
+		"a cast of %s ends Thrill of the Hunt without a leap: no bonus, no reduction, even on the next attack",
+		(slot) => {
+			const result = simulate(rengar, [R, { kind: "ability", slot }, ATTACK])
+
+			expect(result.steps[1]?.waiting).toBeUndefined()
+			expect(hitsBySource(result, 1).map(({ name }) => name)).not.toContain(
+				"rengar-r-armor-reduction",
+			)
+			expect(hitsBySource(result, 2).map(({ name }) => name)).toEqual([
+				"attack",
+			])
+			expect(result.steps.some(({ resists }) => resists)).toBe(false)
+		},
+	)
+
+	test("is camouflaged until the leap, and without one there is no bonus and no reduction", () => {
 		const result = simulate(rengar, [R, { kind: "wait", seconds: 30 }])
 
 		expect(result.steps[0]?.waiting).toEqual([
@@ -214,6 +260,7 @@ describe("Rengar's Thrill of the Hunt: the leap reduces armor (wiki: 15 / 20 / 2
 				label: "camouflaged",
 			}),
 		])
+		expect(result.total.final).toBe(0)
 		expect(result.steps.some(({ resists }) => resists)).toBe(false)
 		expect(
 			result.steps
@@ -228,7 +275,7 @@ describe("Rengar's Thrill of the Hunt: the leap reduces armor (wiki: 15 / 20 / 2
 			ATTACK,
 		])
 
-		// The R cast's damage adds a Carve stack, the leap a second: (100 − 15) × 0.88.
-		expect(armorAfter(result, 1)).toBeCloseTo(74.8)
+		// The leap's attack adds one Carve stack (its bonus lands in the same moment): (100 − 15) × 0.94.
+		expect(armorAfter(result, 1)).toBeCloseTo(79.9)
 	})
 })

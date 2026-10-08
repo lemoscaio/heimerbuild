@@ -923,10 +923,14 @@ function runOut(sim: Simulation, waiting: Waiting) {
 }
 
 /**
- * Breaks the states that `event` ends: the attacker's run now (an attack breaks Ambush's camouflage
- * as it starts); the target's are returned, to run after the action's hit (Rengar's leap).
+ * Drops the states `event` ends without running them (`dropsOn`), then breaks those it ends: the
+ * attacker's run now (an attack breaks Ambush's camouflage as it starts); the target's are
+ * returned, to run after the action's hit (Rengar's leap).
  */
 function breakWaiting(sim: Simulation, event: BreakEvent): Waiting[] {
+	sim.waiting = sim.waiting.filter(
+		({ effect }) => !isCoveredBy(effect.effect.startsAfter?.dropsOn, event),
+	)
 	const broken = sim.waiting.filter(({ effect }) =>
 		isCoveredBy(effect.effect.startsAfter?.endsOn, event),
 	)

@@ -3,6 +3,7 @@ import { BRIAR_FRENZY_RESOURCE } from "../champions/briar"
 import { GNAR_RANGED_ATTACK_TYPE } from "../champions/gnar"
 import { KLED_MOUNTED_HEALTH } from "../champions/kled"
 import { REKSAI_FURY_RESOURCE } from "../champions/rek-sai"
+import { RENGAR_COOLDOWNS } from "../champions/rengar"
 import { VIEGO_NO_MANA } from "../champions/viego"
 import { CHAMPION_CAST_TIMES } from "./champion-cast-times"
 import { CHAMPION_FORMS } from "./champion-forms"
@@ -20,6 +21,7 @@ export const CHAMPION_OVERRIDES: readonly ChampionOverride[] = [
 	GNAR_RANGED_ATTACK_TYPE,
 	KLED_MOUNTED_HEALTH,
 	REKSAI_FURY_RESOURCE,
+	RENGAR_COOLDOWNS,
 	VIEGO_NO_MANA,
 	...CHAMPION_LEVEL_STATES,
 	...CHAMPION_FORMS,

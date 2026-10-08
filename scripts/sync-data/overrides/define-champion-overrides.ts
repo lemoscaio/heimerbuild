@@ -110,3 +110,33 @@ export function defineCastTimes({
 		}),
 	}
 }
+
+/**
+ * Sets the cooldown per rank of some of a champion's abilities: an override like the others, so it
+ * is logged, ranged by patch and reported once Riot's data agrees with it.
+ */
+export function defineCooldowns({
+	championKey,
+	cooldowns,
+	...override
+}: Omit<FieldOverride<Champion, "abilities">, "target" | "field" | "apply"> & {
+	/** Data Dragon string id ("MonkeyKing"). */
+	championKey: string
+	/** Seconds by rank, rank 1 first. */
+	cooldowns: Partial<Record<AbilitySlot, readonly number[]>>
+}): FieldOverride<Champion, "abilities"> {
+	return {
+		...override,
+		target: championKey,
+		field: "abilities",
+		apply: (abilities) => ({
+			...abilities,
+			spells: abilities.spells.map((spell) => {
+				const cooldown = cooldowns[spell.slot]
+				return cooldown === undefined
+					? spell
+					: { ...spell, cooldown: [...cooldown] }
+			}) as Champion["abilities"]["spells"],
+		}),
+	}
+}

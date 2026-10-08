@@ -1,11 +1,14 @@
 // Rengar: Savagery's cast is its empowered attack, which resets the attack timer; its 40% attack
 // speed holds for that attack and the next within 3 s; its Ferocity bonus is left out. Thrill of
-// the Hunt's movement speed ends on his next attack or cast; that attack or cast is the leap, which
-// reduces the target's armor for 4 s after its hit (none without a leap).
+// the Hunt ends on his next attack or a cast of W or E. The attack is the leap (Savagery's too):
+// after its hit it deals R's bonus damage, then reduces the target's armor for 4 s.
 import type { AbilityHitRule } from "../combat/registries/ability-hits"
-import type { Effect } from "../effects/effect"
+import type { Effect, SlotCast } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
+
+/** Wiki: "Attacking or casting abilities other than Savagery ends Thrill of the Hunt immediately." */
+const CAST_BUT_SAVAGERY: SlotCast = { kind: "cast", slots: ["W", "E"] }
 
 export const RENGAR_EFFECTS = [
 	{
@@ -20,11 +23,11 @@ export const RENGAR_EFFECTS = [
 		sourceUrl: `${WIKI}Rengar/Savagery`,
 	},
 	{
-		// Attacking or casting anything but Savagery ends it (wiki): Savagery's empowered attack does.
+		// Savagery's empowered attack ends it as an attack.
 		id: "rengar-r-active",
 		source: { kind: "ability", championKey: "Rengar", slot: "R" },
 		trigger: { kind: "after-use" },
-		endsOn: ["attack", "cast"],
+		endsOn: ["attack", CAST_BUT_SAVAGERY],
 		duration: { by: "rankValue", label: "Duration" },
 		grants: [
 			{
@@ -37,21 +40,24 @@ export const RENGAR_EFFECTS = [
 		sourceUrl: `${WIKI}Rengar/Thrill_of_the_Hunt`,
 	},
 	{
-		// The camouflage breaks as Thrill of the Hunt ends; 4 s from the wiki, no synced line.
+		// The leap is his next attack: "deals 100% AD additional physical damage, then inflicts armor
+		// reduction for 4 seconds" (wiki); 4 s has no synced line.
 		id: "rengar-r-armor-reduction",
 		source: { kind: "ability", championKey: "Rengar", slot: "R" },
 		trigger: { kind: "after-use" },
 		holder: "target",
-		label: "armor reduction",
+		label: "leap",
 		startsAfter: {
 			label: "camouflaged",
 			ending: "the leap",
 			duration: { by: "rankValue", label: "Duration" },
-			endsOn: ["attack", "cast"],
+			endsOn: ["attack"],
+			dropsOn: [CAST_BUT_SAVAGERY],
 			needsBreak: true,
 		},
 		duration: 4,
 		grants: [
+			{ kind: "abilityDamage", ability: "R", name: "BonusDamage" },
 			{
 				kind: "resistReduction",
 				resist: "armor",
@@ -72,5 +78,13 @@ export const RENGAR_HIT_RULES = [
 		empowersAttack: { includesAttack: true, resetsAttack: true },
 		since: "16.19",
 		sourceUrl: `${WIKI}Rengar/Savagery`,
+	},
+	{
+		// The cast deals nothing: its `BonusDamage` lands with the leap (rengar-r-armor-reduction).
+		championKey: "Rengar",
+		slot: "R",
+		damage: null,
+		since: "16.19",
+		sourceUrl: `${WIKI}Rengar/Thrill_of_the_Hunt`,
 	},
 ] satisfies readonly AbilityHitRule[]
