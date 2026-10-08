@@ -10,7 +10,7 @@ export type TargetHealthState = { maximum: number; current: number }
 
 /**
  * What a synced damage formula reads: the attacker's stats, the ability's rank (none for a
- * passive), the champion level and the target's health (for a share of it).
+ * passive), the champion level, the target's health (for a share of it) and its counters.
  */
 export type FormulaInput = {
 	stats: ComputedStats
@@ -18,6 +18,8 @@ export type FormulaInput = {
 	rank?: number
 	level: number
 	target: TargetHealthState
+	/** The counts its `counter` parts read, by name (a hit rule variant's: Siphoning Strike's stacks). */
+	counters?: Readonly<Record<string, number>>
 }
 
 /** The target's health a share reads: its maximum, current or missing health. */
@@ -48,9 +50,9 @@ export function formulaValueAt(
 }
 
 /**
- * The raw damage of a synced formula: its parts summed (a flat value, or a ratio of a stat's
- * total or its `part`), times the multiplier, times the target's health it is a share of.
- * Undefined when it is not modeled or a value is missing.
+ * The raw damage of a synced formula: its parts summed (a flat value, a ratio of a stat's total
+ * or its `part`, or of a counter), times the multiplier, times the target's health it is a share
+ * of. Undefined when it is not modeled or a value (a counter's included) is missing.
  */
 export function evaluateDamage(
 	damage: AbilityDamage,
@@ -67,6 +69,12 @@ export function evaluateDamage(
 		}
 		const ratio = formulaValueAt(part.ratio, input)
 		if (ratio === undefined) return undefined
+		if ("counter" in part) {
+			const count = input.counters?.[part.counter]
+			if (count === undefined) return undefined
+			sum += ratio * count
+			continue
+		}
 		sum += ratio * input.stats[part.stat][part.part ?? "total"]
 	}
 	const multiplier =
