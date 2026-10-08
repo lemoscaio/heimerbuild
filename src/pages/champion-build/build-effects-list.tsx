@@ -48,7 +48,7 @@ export function BuildEffectsList({
 					<MatchStacksInput
 						key={source.id}
 						source={source}
-						value={stacksOf(matchState.matchStacks, source.id)}
+						value={stacksOf(matchState.matchStacks, source)}
 						onValueChange={(count) =>
 							matchState.setMatchStacks(source.id, count)
 						}
