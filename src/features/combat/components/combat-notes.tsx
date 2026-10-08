@@ -14,7 +14,7 @@ export function CombatNotes({
 		>
 			<li className="flex items-start gap-1.5">
 				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
-				Projectile travel time isn't counted.
+				Travel time of projectiles and dashes isn't counted.
 			</li>
 			<li className="flex items-start gap-1.5">
 				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
