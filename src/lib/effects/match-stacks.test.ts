@@ -52,6 +52,46 @@ describe("the matchStacks amount", () => {
 		expect(resolveAmount(amount, effect, other)).toBe(0)
 	})
 
+	test("counts whole `per` stacks and stops at `max`", () => {
+		const stepped = {
+			by: "matchStacks",
+			source: EVIL,
+			ratio: 10,
+			per: 20,
+			max: 25,
+		} as const
+		const at = (count: number) =>
+			resolveAmount(stepped, effect, {
+				level: 9,
+				matchStacks: { "phenomenal-evil": count },
+			})
+
+		expect(at(19)).toBe(0)
+		expect(at(39)).toBe(10)
+		expect(at(40)).toBe(20)
+		expect(at(100)).toBe(25)
+	})
+
+	test("reads a table ratio at the build's state", () => {
+		const perRank = {
+			by: "matchStacks",
+			source: EVIL,
+			ratio: { by: "rankValue", label: "Health per Stack" },
+		} as const
+		const feast: BuildEffect = {
+			...effect,
+			slot: "R",
+			rankValues: [{ label: "Health per Stack", values: [80, 120, 160] }],
+		}
+		const context = {
+			level: 16,
+			ranks: { Q: 5, W: 5, E: 5, R: 2 },
+			matchStacks: { "phenomenal-evil": 4 },
+		}
+
+		expect(resolveAmount(perRank, feast, context)).toBe(480)
+	})
+
 	test("names the sources its effect reads", () => {
 		expect(matchStackSources(stackedEffect())).toEqual([EVIL])
 	})

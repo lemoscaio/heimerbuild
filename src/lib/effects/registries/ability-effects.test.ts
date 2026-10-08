@@ -309,11 +309,15 @@ describe("match stacks (wiki, current patch data; issue 400)", () => {
 	const ranks = { Q: 1, W: 1, E: 1, R: 1 }
 
 	/** A build of `champion` at level 9 with its effects and `matchStacks`, as the build page computes it. */
-	function stackedBuild(champion: Champion, matchStacks?: MatchStacks) {
+	function stackedBuild(
+		champion: Champion,
+		matchStacks?: MatchStacks,
+		atRanks: Record<AbilitySlot, number> = ranks,
+	) {
 		const available = availableEffects({
 			patch: PATCH,
 			champion,
-			ranks,
+			ranks: atRanks,
 			spells: [],
 			runes: [],
 		})
@@ -323,10 +327,22 @@ describe("match stacks (wiki, current patch data; issue 400)", () => {
 			level: 9,
 			items: [],
 			shards: [],
-			ranks,
+			ranks: atRanks,
 			effects: { available, overrides: {} },
 			matchStacks,
 		}
+	}
+
+	/** How much `stat`'s `part` grows with `matchStacks` over none. */
+	function gain(
+		champion: Champion,
+		stat: StatName,
+		matchStacks: MatchStacks,
+		{ part = "total", atRanks = ranks }: GainOptions = {},
+	) {
+		const at = (stacks?: MatchStacks) =>
+			computeBuildStats(stackedBuild(champion, stacks, atRanks))[stat][part]
+		return at(matchStacks) - at()
 	}
 
 	test("Phenomenal Evil Power: 1 ability power per stack, none without stacks", async () => {
@@ -352,7 +368,65 @@ describe("match stacks (wiki, current patch data; issue 400)", () => {
 			),
 		).toEqual({})
 	})
+
+	test("Damnation: 1 ability power and 1 bonus armor per soul", async () => {
+		const thresh = await currentChampion("Thresh")
+		const souls = { "thresh-souls": 120 }
+
+		expect(gain(thresh, "abilityPower", souls)).toBe(120)
+		expect(gain(thresh, "armor", souls, { part: "bonus" })).toBe(120)
+	})
+
+	test("Ravenous Flock: 15 bonus health per Soul Fragment", async () => {
+		const swain = await currentChampion("Swain")
+
+		expect(
+			gain(swain, "health", { "swain-soul-fragments": 12 }, { part: "bonus" }),
+		).toBe(180)
+	})
+
+	test("Soul Furnace: its bonus health once W has a point", async () => {
+		const sion = await currentChampion("Sion")
+		const health = { "sion-health": 640 }
+
+		expect(gain(sion, "health", health, { part: "bonus" })).toBe(640)
+		expect(gain(sion, "health", health, { atRanks: { ...ranks, W: 0 } })).toBe(
+			0,
+		)
+	})
+
+	test("Feast: 80 to 160 bonus health and 4.7 to 7.7 attack range per stack by R rank, the range up to 75", async () => {
+		const chogath = await currentChampion("Chogath")
+		const rank = (R: number) => ({ atRanks: { ...ranks, R } })
+
+		expect(gain(chogath, "health", { "feast-stacks": 5 }, rank(1))).toBe(400)
+		expect(gain(chogath, "health", { "feast-stacks": 5 }, rank(3))).toBe(800)
+		expect(
+			gain(chogath, "attackRange", { "feast-stacks": 5 }, rank(1)),
+		).toBeCloseTo(23.5)
+		expect(
+			gain(chogath, "attackRange", { "feast-stacks": 9 }, rank(3)),
+		).toBeCloseTo(69.3)
+		expect(gain(chogath, "attackRange", { "feast-stacks": 10 }, rank(3))).toBe(
+			75,
+		)
+	})
+
+	test("Absolution: 0.75 bonus AD per Mist stack, 20 attack range and 10% critical strike chance per 20", async () => {
+		const senna = await currentChampion("Senna")
+		const mist = (count: number) => ({ "senna-mist": count })
+
+		expect(gain(senna, "attackDamage", mist(45))).toBeCloseTo(33.75)
+		expect(gain(senna, "attackRange", mist(45))).toBe(40)
+		expect(gain(senna, "critChance", mist(45))).toBeCloseTo(0.2)
+		expect(gain(senna, "critChance", mist(19))).toBe(0)
+	})
 })
+
+type GainOptions = {
+	part?: "base" | "bonus" | "total"
+	atRanks?: Record<AbilitySlot, number>
+}
 
 type FormBuild = {
 	form?: string
