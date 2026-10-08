@@ -3,6 +3,7 @@ import { type Champion, championSchema } from "@schemas/champion"
 import { combatEffects } from "../effects/available-effects"
 import { computeBuildStats } from "../stats/compute-build-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
+import { attackWindupTime } from "./attack-windup"
 import type {
 	CombatAction,
 	CombatEvent,
@@ -136,10 +137,14 @@ describe("Nasus (issue 397)", async () => {
 		})
 	})
 
-	test("Siphoning Strike is instant: the attack lands at the cast (wiki: no cast time)", () => {
+	test("Siphoning Strike is instant: its attack lands at the end of the attack's windup (wiki: no cast time)", () => {
 		const result = simulate(nasus, [cast("Q")])
+		const windup = attackWindupTime(
+			nasus.champion.attackWindup,
+			computeBuildStats(buildOf(nasus)).attackSpeed,
+		)
 
-		expect(hitsFrom(result, "TotalDamage")[0]?.time).toBe(0)
+		expect(hitsFrom(result, "TotalDamage")[0]?.time).toBeCloseTo(windup)
 	})
 
 	test("Spirit Fire burns once a second while the target stays in it, and lowers its armor by 30% at rank 1 (wiki)", () => {
@@ -292,10 +297,13 @@ describe("Jax (issue 397)", async () => {
 		const ranked = { ...jax, level: 6, ranks: { Q: 1, W: 1, E: 1, R: 1 } }
 		const result = simulate(ranked, [...Array(6).fill(ATTACK), cast("R")])
 		const passive = hitsFrom(result, "jax-r-passive-strike")
+		const attacks = allHits(result).filter(
+			({ source }) => source.kind === "attack",
+		)
 
 		expect(passive.map(({ time }) => time)).toEqual([
-			result.steps[2]?.time,
-			result.steps[5]?.time,
+			attacks[2]?.time,
+			attacks[5]?.time,
 		])
 		expect(passive[0]?.damage).toMatchObject({ type: "magic", raw: 75 })
 		expect(hitsFrom(result, "SwingDamageTotal")[0]?.damage.raw).toBe(100)
