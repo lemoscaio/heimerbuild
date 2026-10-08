@@ -12,7 +12,7 @@ const R_PASSIVE = "jax-r-passive"
 export const JAX_EFFECTS = [
 	{
 		// Wiki: 5% to 12.5% per stack at levels 1 to 16 (+1.5% at 4, 7, 10, 13, 16), up to 8 stacks
-		// for 2.5 s; on-attack, the same moment as on-hit without a windup. All 8 fall off together.
+		// for 2.5 s, on-attack; kept on-hit, a windup later (PR 399). All 8 fall off together.
 		id: "jax-passive",
 		source: { kind: "ability", championKey: "Jax", slot: "passive" },
 		trigger: { kind: "on-hit" },
