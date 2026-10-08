@@ -2,8 +2,6 @@ import type { ChampionSpell } from "@schemas/champion"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
-import { NumberField } from "@/components/ui/number-field"
-import type { CombatAction } from "@/lib/combat/combat"
 import type {
 	CombatGroupItem,
 	CombatShownItem,
@@ -11,29 +9,20 @@ import type {
 } from "../hooks/use-combat-view"
 import { useGroupExpansion } from "../hooks/use-group-expansion"
 import { type MoveAction, useStepReorder } from "../hooks/use-step-reorder"
+import {
+	type ActionNames,
+	actionIcon,
+	actionNames,
+} from "../lib/combat-action-names"
 import { actionLabel } from "../lib/combat-format"
-import { WAIT_SECONDS } from "../lib/combat-sequence"
-import { outcomeChoice, strictOutcomeViews } from "../lib/combat-view"
 import { CombatActionIcon } from "./combat-action-icon"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
-import { CombatOutcomeChips } from "./combat-outcome-chips"
-import { CombatOutcomeChoices } from "./combat-outcome-choices"
 import { CombatStepCard } from "./combat-step-card"
 import { CombatStepGroup } from "./combat-step-group"
+import { type CombatListMode, CombatStepOutcomes } from "./combat-step-outcomes"
 import { CombatVariantInput } from "./combat-variant-input"
-
-/** Strict: outcomes are read-only; free: outcomes are answered per step. */
-export type CombatListMode =
-	| { kind: "strict" }
-	| {
-			kind: "free"
-			onChoiceChange: (
-				id: number,
-				outcome: string,
-				happened: boolean | undefined,
-			) => void
-	  }
+import { CombatWaitLength } from "./combat-wait-length"
 
 type CombatStepListProps = {
 	items: readonly CombatShownItem[]
@@ -52,76 +41,6 @@ type CombatStepListProps = {
 	onWaitChange: (id: number, seconds: number) => void
 	onVariantChange: (id: number, variant: string) => void
 }
-
-function stepIcon(
-	action: CombatAction,
-	{ spells, summoners }: Pick<CombatStepListProps, "spells" | "summoners">,
-) {
-	if (action.kind === "ability") {
-		const spell = spells.find(({ slot }) => slot === action.slot)
-		return spell && { src: spell.icon, name: spell.name }
-	}
-	if (action.kind === "summoner") {
-		const spell = summoners[action.slot]
-		return spell && { src: spell.icon, name: spell.name }
-	}
-	return undefined
-}
-
-/** A step's outcomes: read-only in strict mode, answered in free mode. */
-function StepOutcomes({
-	step,
-	mode,
-}: {
-	step: CombatStepItem
-	mode: CombatListMode
-}) {
-	if (step.refused) return null
-	if (mode.kind === "strict")
-		return <CombatOutcomeChips outcomes={strictOutcomeViews(step.outcomes)} />
-	return (
-		<CombatOutcomeChoices
-			outcomes={step.outcomes}
-			note={step.attacksOnly}
-			onAnswer={(id, answer) => {
-				const outcome = step.outcomes.find((entry) => entry.id === id)
-				if (outcome) {
-					mode.onChoiceChange(step.id, id, outcomeChoice(outcome, answer))
-				}
-			}}
-		/>
-	)
-}
-
-/** A wait's length, in quarter seconds; an emptied field keeps the last length. */
-function WaitLength({
-	seconds,
-	onChange,
-}: {
-	seconds: number
-	onChange: (seconds: number) => void
-}) {
-	return (
-		<div className="flex items-center gap-1.5 text-xs">
-			<NumberField
-				label="Wait in seconds"
-				min={WAIT_SECONDS.min}
-				max={WAIT_SECONDS.max}
-				step={WAIT_SECONDS.step}
-				value={seconds}
-				onValueChange={(next) => {
-					if (next !== null) onChange(next)
-				}}
-				className="[&_input]:w-12"
-			/>
-			<span aria-hidden className="text-subtle">
-				s
-			</span>
-		</div>
-	)
-}
-
-type ActionNames = Parameters<typeof actionLabel>[1]
 
 type StepEntryProps = {
 	step: CombatStepItem
@@ -154,7 +73,7 @@ function StepEntry({
 			icon={
 				<CombatActionIcon
 					kind={action.kind}
-					icon={stepIcon(action, { spells, summoners })}
+					icon={actionIcon(action, { spells, summoners })}
 				/>
 			}
 			time={step.time}
@@ -170,7 +89,7 @@ function StepEntry({
 			onRemove={() => onRemove(id)}
 		>
 			{action.kind === "wait" && (
-				<WaitLength
+				<CombatWaitLength
 					seconds={action.seconds}
 					onChange={(seconds) => onWaitChange(id, seconds)}
 				/>
@@ -183,7 +102,7 @@ function StepEntry({
 					onValueChange={(variant) => onVariantChange(id, variant)}
 				/>
 			)}
-			<StepOutcomes step={step} mode={mode} />
+			<CombatStepOutcomes step={step} mode={mode} />
 		</CombatStepCard>
 	)
 }
@@ -249,11 +168,7 @@ export function CombatStepList({
 	onVariantChange,
 }: CombatStepListProps) {
 	const titleId = useId()
-	const names: ActionNames = {
-		ability: (slot: string) =>
-			spells.find((spell) => spell.slot === slot)?.name ?? slot,
-		summoner: (slot: number) => summoners[slot]?.name ?? "Summoner spell",
-	}
+	const names = actionNames({ spells, summoners })
 	const blocks = itemBlocks(items)
 	const entryIds = blocks.flat()
 	// A step or a marker moves one entry at a time, so it can go inside a run (and split it).
@@ -322,7 +237,7 @@ export function CombatStepList({
 							icon={
 								<CombatActionIcon
 									kind={item.action.kind}
-									icon={stepIcon(item.action, { spells, summoners })}
+									icon={actionIcon(item.action, { spells, summoners })}
 								/>
 							}
 							view={item.view}
