@@ -44,7 +44,7 @@ export type EffectsBuild = {
 	spells: readonly SummonerSpell[]
 	/** The rune page's runes. */
 	runes: readonly Rune[]
-	/** The chosen items, whose effects only the combat simulator reads (`combatEffects`). */
+	/** The chosen items. */
 	items?: readonly Pick<Item, "id" | "name" | "icon">[]
 }
 
@@ -156,14 +156,14 @@ export function combatEffects(
 }
 
 /**
- * The effects the stats panel lists and switches: the build's own, without its items' (none
- * on screen yet) and without those only a combat sequence fires (`isListed`).
+ * The effects the stats panel lists and switches: the build's own, without those only a combat
+ * sequence fires (`isListed`).
  */
 export function availableEffects(
 	build: EffectsBuild,
 	registries: readonly (readonly Effect[])[] = EFFECT_REGISTRIES,
 ): BuildEffect[] {
-	return combatEffects({ ...build, items: [] }, registries).filter(
-		({ effect }) => isListed(effect),
+	return combatEffects(build, registries).filter(({ effect }) =>
+		isListed(effect),
 	)
 }
