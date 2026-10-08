@@ -1,4 +1,5 @@
 import type { Champion } from "@schemas/champion"
+import { ComboViewIconToggle } from "@/features/build-calculator/components/combo-view-icon-toggle"
 import { FormToggle } from "@/features/build-calculator/components/form-toggle"
 import { ItemDetailsCard } from "@/features/build-calculator/components/item-details-card"
 import { ItemSlots } from "@/features/build-calculator/components/item-slots"
@@ -31,6 +32,8 @@ type OverviewPageProps = {
 	patch: string
 	copyLink: React.ReactNode
 	patchNotice: React.ReactNode
+	/** Gets the focus back after collapsing the combo (`useComboToggleFocus`). */
+	comboToggleRef: React.Ref<HTMLButtonElement>
 }
 
 /** From `lg` up: champion and build on the left, Items | Runes in the center, stats on the right. */
@@ -40,6 +43,7 @@ export function OverviewPage({
 	patch,
 	copyLink,
 	patchNotice,
+	comboToggleRef,
 }: OverviewPageProps) {
 	const { championState, items } = build
 	const isRunesTab = build.tab === "runes"
@@ -156,6 +160,13 @@ export function OverviewPage({
 							combat={build.combat}
 							champion={champion}
 							summoners={build.summoners.slots}
+							actions={
+								<ComboViewIconToggle
+									ref={comboToggleRef}
+									view={build.view}
+									onViewChange={build.setView}
+								/>
+							}
 						/>
 					}
 				/>

@@ -69,9 +69,15 @@ export function useBuildPage({
 	const pageRunes = runes ? selectedRunes(runePage.selection, runes) : []
 	const chosenSpells = summoners.slots.filter((spell) => spell !== undefined)
 
-	// Leaving for the expanded shop drops the tab: the overview comes back on Items.
+	// Leaving for the expanded shop drops the tab: the overview comes back on Items. The expanded
+	// combo keeps the Combo tab, so collapsing it comes back there.
 	function setView(nextView: BuildView) {
-		source.updatePage(build.values, { view: nextView }, { replace: false })
+		const nextTab = nextView === "shop" ? undefined : tab
+		source.updatePage(
+			build.values,
+			{ view: nextView, tab: nextView === "combo" ? "combo" : nextTab },
+			{ replace: false },
+		)
 	}
 
 	// Replaces the history entry, like a level change: Back leaves the page, not a tab.
@@ -134,7 +140,7 @@ export function useBuildPage({
 		statsWithoutRunes: build.statsWithoutRunes,
 		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
 		runesPreview,
-		/** The overview workbench or the expanded shop, kept in the URL. */
+		/** The overview workbench, the expanded shop or the expanded combo, kept in the URL. */
 		view,
 		setView,
 		/** The open center tab, Items, Runes or Skills, kept in the URL. */

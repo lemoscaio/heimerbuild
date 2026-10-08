@@ -1,6 +1,5 @@
 import type { Champion } from "@schemas/champion"
 import type { SummonerSpell } from "@schemas/summoner-spell"
-import { CircleAlert } from "lucide-react"
 import { useId } from "react"
 import { Button } from "@/components/ui/button"
 import { CombatActionKeys } from "@/features/combat/components/combat-action-keys"
@@ -8,12 +7,11 @@ import { CombatFreeBanner } from "@/features/combat/components/combat-free-banne
 import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-mode-switch"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
 import { CombatSituationChips } from "@/features/combat/components/combat-situation-chips"
-import {
-	type CombatListMode,
-	CombatStepList,
-} from "@/features/combat/components/combat-step-list"
+import { CombatStepList } from "@/features/combat/components/combat-step-list"
+import type { CombatListMode } from "@/features/combat/components/combat-step-outcomes"
 import { CombatTiming } from "@/features/combat/components/combat-timing"
 import { CombatTotals } from "@/features/combat/components/combat-totals"
+import { CombatUncuratedNote } from "@/features/combat/components/combat-uncurated-note"
 import { CombatUndoNotice } from "@/features/combat/components/combat-undo-notice"
 import { useCombatView } from "@/features/combat/hooks/use-combat-view"
 import { useMarkerUndo } from "@/features/combat/hooks/use-marker-undo"
@@ -24,6 +22,8 @@ type ComboTabProps = {
 	combat: BuildCombat
 	champion: Champion
 	summoners: readonly (SummonerSpell | undefined)[]
+	/** At the end of the header: the switch to the expanded combo, on desktop. */
+	actions?: React.ReactNode
 }
 
 /**
@@ -34,6 +34,7 @@ export function ComboTab({
 	combat: buildCombat,
 	champion,
 	summoners,
+	actions,
 }: ComboTabProps) {
 	const titleId = useId()
 	const { combat, target, effects } = buildCombat
@@ -67,6 +68,7 @@ export function ComboTab({
 							Clear
 						</Button>
 					)}
+					{actions}
 				</div>
 			</div>
 			<div className="grid gap-4 md:grid-cols-[1fr_auto]">
@@ -90,15 +92,7 @@ export function ComboTab({
 				<TargetEditor target={target} />
 			</div>
 			{!combat.isCurated && (
-				<p className="flex items-start gap-2 rounded-lg border border-line-strong p-3 text-prose text-xs leading-snug">
-					<CircleAlert
-						aria-hidden="true"
-						className="mt-0.5 size-3.5 shrink-0 text-warning"
-					/>
-					{champion.name}'s damage isn't checked against the wiki yet: abilities
-					the combo can't count are marked "Not modeled", and their hits show
-					why.
-				</p>
+				<CombatUncuratedNote championName={champion.name} />
 			)}
 			{markers.notice && (
 				<CombatUndoNotice

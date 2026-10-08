@@ -94,6 +94,13 @@ export type EffectHolder = "attacker" | "target"
 /** A damage over time's tick, and the step whose application it belongs to (by item index). */
 export type TickOwner = { owner: number }
 
+/**
+ * A hit an earlier step's effect deals once its delay or state is over (Counter Strike's strike 1 s
+ * after the cast, Blaze's detonation): the step it belongs to. It stays among the events of the step
+ * running when it lands, which its card shows.
+ */
+export type DelayedHit = { delayed?: TickOwner }
+
 /** Everything that happens, in order; `time` is seconds from the combo's start. */
 export type CombatEvent =
 	| { kind: "cast"; time: number; source: CastSource }
@@ -105,6 +112,8 @@ export type CombatEvent =
 			tick?: TickOwner
 			/** A later hit of its cast (Pyroclasm's bounces), on the step of the cast (`LaterHits`). */
 			laterHit?: TickOwner
+			/** {@link DelayedHit} */
+			delayed?: TickOwner
 	  }
 	/** A hit the simulator has no number for, with why (a share of the target's health). */
 	| {
@@ -114,6 +123,7 @@ export type CombatEvent =
 			notModeled: readonly string[]
 			tick?: TickOwner
 			laterHit?: TickOwner
+			delayed?: TickOwner
 	  }
 	| { kind: "on-hit"; time: number }
 	| { kind: "mark-applied"; time: number; mark: string; endsAt: number }

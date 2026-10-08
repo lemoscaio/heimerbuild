@@ -286,6 +286,28 @@ describe("Jax (issue 397)", async () => {
 		])
 	})
 
+	test("Counter Strike's strike belongs to E's step, though it lands while a later step runs", () => {
+		const result = simulate(jax, [cast("E"), ATTACK, ATTACK])
+		const strikes = allHits(result).filter(
+			({ source }) => source.kind === "effect" && source.effectId === "jax-e",
+		)
+		const attacks = allHits(result).filter(
+			({ source }) => source.kind === "attack",
+		)
+
+		expect(strikes.map(({ delayed }) => delayed)).toEqual([
+			{ owner: 0 },
+			{ owner: 0 },
+		])
+		expect(result.steps[0]?.events).not.toContainEqual(
+			expect.objectContaining({ delayed: { owner: 0 } }),
+		)
+		expect(attacks.map(({ delayed }) => delayed)).toEqual([
+			undefined,
+			undefined,
+		])
+	})
+
 	test("Leap Strike and Empower are instant (wiki)", () => {
 		const ranked = { ...jax, level: 3, ranks: { Q: 1, W: 1, E: 1, R: 0 } }
 		const result = simulate(ranked, [cast("Q"), cast("W")])

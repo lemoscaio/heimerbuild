@@ -50,6 +50,7 @@ import type {
 	CombatTarget,
 	DamageSource,
 	DamageTotals,
+	DelayedHit,
 	EffectHolder,
 	OutcomeChoices,
 	OutcomeKey,
@@ -471,6 +472,13 @@ function laterHitOf(
 	return owner === undefined || tick ? {} : { laterHit: { owner } }
 }
 
+/** {@link DelayedHit}: dealt for an earlier step than the one running, other than as a tick or a later hit. */
+function delayedOf(sim: Simulation, tick: TickOwner | undefined): DelayedHit {
+	const { owner } = sim
+	if (owner === undefined || owner === sim.step || tick) return {}
+	return sim.laterHitOf === undefined ? { delayed: { owner } } : {}
+}
+
 function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	// A basic attack doesn't read the reduction it applies; other damage does (wiki Black Cleaver).
 	const ownFirst = source.kind !== "attack"
@@ -491,6 +499,7 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 		damage: { type, raw, final },
 		...(tick && { tick }),
 		...laterHitOf(sim, tick),
+		...delayedOf(sim, tick),
 	})
 	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
@@ -509,6 +518,7 @@ function notModeledHit(
 		notModeled: reasons,
 		...(tick && { tick }),
 		...laterHitOf(sim, tick),
+		...delayedOf(sim, tick),
 	})
 	triggerOnAbilityDamage(sim, source)
 }
