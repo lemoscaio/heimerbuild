@@ -134,7 +134,8 @@ test("Mejai's Glory stops at its cap, gives its move speed from 10 and leaves wi
 test("Kindred's marks give attack range only from 4 on, in steps, and keep through a reload", async ({
 	page,
 }) => {
-	await page.goto("/champions/Kindred")
+	// With Q learned, Dance of Arrows reads the marks too: its row shares the passive's one input.
+	await page.goto("/champions/Kindred?lvl=3&skills=QWE")
 	const marks = stacks(page, "Marks of the Kindred")
 	await expect(marks).toHaveValue("0")
 	const range = await statTotal(page, "Attack Range")
