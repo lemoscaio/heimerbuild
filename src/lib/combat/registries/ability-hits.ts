@@ -2,6 +2,7 @@ import type { AbilitySlot } from "@schemas/champion"
 import { isInPatchRange, type PatchRange } from "@schemas/patch-range"
 import { ANNIE_HIT_RULES } from "../../champions/annie"
 import { BLITZCRANK_HIT_RULES } from "../../champions/blitzcrank"
+import { BRAND_HIT_RULES } from "../../champions/brand"
 import { DARIUS_HIT_RULES } from "../../champions/darius"
 import { EZREAL_HIT_RULES } from "../../champions/ezreal"
 import { GAREN_HIT_RULES } from "../../champions/garen"
@@ -31,7 +32,17 @@ export type AbilityVariant = {
 	damage?: string | readonly string[]
 	/** How long the cast's own effects (`after-use`) run instead of their duration: the time in its area. */
 	duration?: number
+	/** The cast hits the target `count` times, `every` seconds apart (Pyroclasm's bounces). */
+	hits?: LaterHits
+	/** The one a step without a pick gets, instead of the first (Pyroclasm's 3 hits). */
+	default?: true
 }
+
+/**
+ * Each hit after the first deals the cast's damage again at its own time and triggers the `on-cast`
+ * effects marked `perHit` (a Blaze stack); the step of the cast owns it.
+ */
+export type LaterHits = { count: number; every: number }
 
 /** What a rule's variants pick, as the step's input says it: `text` beside them, `name` for assistive tech. */
 export type VariantsLabel = { text: string; name: string }
@@ -65,11 +76,16 @@ export type AbilityHitRule = PatchRange & {
 	 * the target's health); `null` deals none (an effect deals it, or nothing does in v1).
 	 */
 	damage?: string | readonly string[] | null
+	/**
+	 * The damage the cast deals instead while the target holds `effect` as the hit lands, before the
+	 * cast's own effects (Pillar of Flame on an Ablaze target).
+	 */
+	whenTargetHas?: { effect: string; damage: string | readonly string[] }
 	/** The hit applies on-hit effects like a basic attack: it spends a spellblade, detonates a mark. */
 	onHit?: true
 	/** The cast's damage is known not to be simulated, and why; the hit shows that instead of a number. */
 	notModeled?: string
-	/** The ways the cast can land, the first by default; each step picks one (an input, never an outcome). */
+	/** The ways the cast can land, the first (or the one marked `default`) by default; each step picks one. */
 	variants?: readonly AbilityVariant[]
 	/** What the variants pick, `LANDS_LABEL` when absent. */
 	variantsLabel?: VariantsLabel
@@ -89,6 +105,7 @@ export type AbilityHitRule = PatchRange & {
 export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 	...ANNIE_HIT_RULES,
 	...BLITZCRANK_HIT_RULES,
+	...BRAND_HIT_RULES,
 	...DARIUS_HIT_RULES,
 	...EZREAL_HIT_RULES,
 	...GAREN_HIT_RULES,
@@ -130,6 +147,13 @@ export function abilityVariants(
 	rules: readonly AbilityHitRule[] = ABILITY_HIT_RULES,
 ): readonly AbilityVariant[] {
 	return findHitRule(rules, query)?.variants ?? []
+}
+
+/** The variant a step without a pick gets: the one marked `default`, else the first. */
+export function defaultVariant(
+	variants: readonly AbilityVariant[],
+): AbilityVariant | undefined {
+	return variants.find((variant) => variant.default) ?? variants[0]
 }
 
 /** What an ability's variants pick (`variantsLabel`), "Lands" by default. */

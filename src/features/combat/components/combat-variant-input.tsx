@@ -2,7 +2,10 @@ import { cva } from "class-variance-authority"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/cn"
 import type { AreaVariant } from "@/lib/combat/area-ticks"
-import type { VariantsLabel } from "@/lib/combat/registries/ability-hits"
+import {
+	defaultVariant,
+	type VariantsLabel,
+} from "@/lib/combat/registries/ability-hits"
 
 /** With its ticks, a variant reads "1 s · 3 ticks" on one line, stacked on phones in the same 32 px. */
 const variantItem = cva(
@@ -34,7 +37,7 @@ type CombatVariantInputProps = {
 	variants: readonly AreaVariant[]
 	/** What they pick: "Lands" (Decimate), "In trail" (Poison Trail). */
 	label: VariantsLabel
-	/** The variant picked; the first when none is. */
+	/** The variant picked; the default (`defaultVariant`) when none is. */
 	value: string | undefined
 	onValueChange: (variant: string) => void
 } & Omit<React.ComponentProps<"div">, "defaultValue">
@@ -48,7 +51,7 @@ export function CombatVariantInput({
 	className,
 	...props
 }: CombatVariantInputProps) {
-	const current = value ?? variants[0]?.id
+	const current = value ?? defaultVariant(variants)?.id
 	if (!variants.length || !current) return null
 	return (
 		<div

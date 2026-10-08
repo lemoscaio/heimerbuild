@@ -8,6 +8,7 @@ import {
 	insertStep,
 	moveEntries,
 	removeStep,
+	setStepVariant,
 	setWaitSeconds,
 } from "./combat-sequence"
 
@@ -156,5 +157,41 @@ describe("waits", () => {
 			seconds: 2.5,
 		})
 		expect(setWaitSeconds(steps, 1, 3)[0]?.action).toEqual(ATTACK)
+	})
+})
+
+describe("setStepVariant", () => {
+	const R = { kind: "ability", slot: "R" } as const
+	const hits = [
+		{ id: "1", label: "1" },
+		{ id: "2", label: "2" },
+		{ id: "3", label: "3", default: true as const },
+	]
+	const variantsOf = () => hits
+
+	test("a pick other than the default is saved on that step only", () => {
+		const steps = setStepVariant(combo(Q, R), 2, "1", variantsOf)
+
+		expect(steps.map(({ action }) => action)).toEqual([
+			Q,
+			{ kind: "ability", slot: "R", variant: "1" },
+		])
+	})
+
+	test("picking the default saves no variant, so the link omits it (issue 389)", () => {
+		const picked = setStepVariant(combo(R), 1, "1", variantsOf)
+
+		expect(setStepVariant(picked, 1, "3", variantsOf)[0]?.action).toEqual(R)
+	})
+
+	test("without a marked default, the first variant is the default", () => {
+		const blade = [
+			{ id: "blade", label: "Outer blade" },
+			{ id: "handle", label: "Inner handle" },
+		]
+
+		expect(
+			setStepVariant(combo(Q), 1, "blade", () => blade)[0]?.action,
+		).toEqual(Q)
 	})
 })

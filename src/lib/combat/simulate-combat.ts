@@ -77,6 +77,7 @@ import {
 	ABILITY_HIT_RULES,
 	type AbilityHitRule,
 	type AbilityVariant,
+	defaultVariant,
 	findHitRule,
 } from "./registries/ability-hits"
 
@@ -184,6 +185,10 @@ type Simulation = {
 	delayed: Delayed[]
 	/** Effects in their `startsAfter` state, until an event breaks it or `until`. */
 	waiting: Waiting[]
+	/** Casts' hits still to land (`LaterHits`: Pyroclasm's bounces). */
+	laterHits: LaterHit[]
+	/** The step whose cast's later hit is landing now, which shows its hits. */
+	laterHitOf?: number
 }
 
 type Delayed = {
@@ -194,6 +199,13 @@ type Delayed = {
 }
 
 type Waiting = { until: number; effect: BuildEffect; owner: number }
+
+type LaterHit = {
+	at: number
+	spell: ChampionSpell
+	variant: string | undefined
+	owner: number
+}
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
 type PendingMarks = PendingMark[]
@@ -361,6 +373,7 @@ function createSimulation(
 		damageTriggeredAt: new Map(),
 		delayed: [],
 		waiting: [],
+		laterHits: [],
 	}
 	startCooldowns(sim)
 	return sim
@@ -445,6 +458,15 @@ function triggerOnDamage(sim: Simulation, type: DamageType) {
 	sim.onDamage = false
 }
 
+/** A hit landing with a cast's later hit shows on that cast's step; a tick shows with its application. */
+function laterHitOf(
+	sim: Simulation,
+	tick: TickOwner | undefined,
+): { laterHit?: TickOwner } {
+	const owner = sim.laterHitOf
+	return owner === undefined || tick ? {} : { laterHit: { owner } }
+}
+
 function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	// A basic attack doesn't read the reduction it applies; other damage does (wiki Black Cleaver).
 	const ownFirst = source.kind !== "attack"
@@ -464,6 +486,7 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 		source,
 		damage: { type, raw, final },
 		...(tick && { tick }),
+		...laterHitOf(sim, tick),
 	})
 	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
@@ -481,6 +504,7 @@ function notModeledHit(
 		source,
 		notModeled: reasons,
 		...(tick && { tick }),
+		...laterHitOf(sim, tick),
 	})
 	triggerOnAbilityDamage(sim, source)
 }
@@ -1270,7 +1294,7 @@ type AdvanceOptions = {
 	periodic?: boolean
 }
 
-/** What happens next on its own before `until`: a delayed effect, a tick, an effect or a mark running out, a periodic effect. */
+/** What happens next on its own before `until`: a delayed effect, a later hit, a tick, an effect or a mark running out, a periodic effect. */
 function nextTimedEvent(
 	sim: Simulation,
 	until: number,
@@ -1287,6 +1311,9 @@ function nextTimedEvent(
 	}
 	for (const waiting of sim.waiting) {
 		consider(waiting.until, () => runOut(sim, waiting))
+	}
+	for (const hit of sim.laterHits) {
+		consider(hit.at, () => landLaterHit(sim, hit))
 	}
 	for (const instance of sim.active) {
 		consider(nextTickAt(instance), () => tick(sim, instance))
@@ -1392,24 +1419,35 @@ function damageNames(damage: string | readonly string[] | null) {
 	return typeof damage === "string" ? [damage] : damage
 }
 
-/** The variant a cast picked, the first by default; none when its rule has no variants. */
+/** The variant a cast picked, else its default (`defaultVariant`); none when its rule has no variants. */
 function chosenVariant(
 	rule: AbilityHitRule | undefined,
 	variant: string | undefined,
 ): AbilityVariant | undefined {
 	const variants = rule?.variants ?? []
-	return variants.find(({ id }) => id === variant) ?? variants[0]
+	return variants.find(({ id }) => id === variant) ?? defaultVariant(variants)
+}
+
+type AbilityHitOptions = {
+	/** The effects the target held as the hit landed, before the cast's own (`whenTargetHas`). */
+	held?: ReadonlySet<string>
 }
 
 /**
- * The tooltip damages a cast deals: its chosen variant's (the first by default), its rule's (one,
- * several or none), else the tooltip's first.
+ * The tooltip damages a cast deals: its rule's `whenTargetHas` while the target held that effect,
+ * its chosen variant's (the first by default), its rule's (one, several or none), else the
+ * tooltip's first.
  */
 function castDamages(
 	spell: ChampionSpell,
 	rule: AbilityHitRule | undefined,
 	variant: string | undefined,
+	{ held }: AbilityHitOptions = {},
 ): readonly string[] {
+	const condition = rule?.whenTargetHas
+	if (condition && held?.has(condition.effect)) {
+		return damageNames(condition.damage)
+	}
 	const damage = chosenVariant(rule, variant)?.damage
 	if (damage !== undefined) return damageNames(damage)
 	if (rule?.damage === undefined) {
@@ -1425,9 +1463,10 @@ function abilityHit(
 	spell: ChampionSpell,
 	pending: PendingMarks,
 	variant: string | undefined,
+	options?: AbilityHitOptions,
 ) {
 	const rule = hitRule(sim, spell.slot)
-	const names = castDamages(spell, rule, variant)
+	const names = castDamages(spell, rule, variant, options)
 	if (rule?.notModeled) {
 		notModeledHit(
 			sim,
@@ -1484,6 +1523,61 @@ type EmpoweredAttackInput = {
 	rule: AbilityHitRule
 	/** The marks the cast's effects apply, after the attack's hit. */
 	pending: PendingMarks
+}
+
+/** The effects the target holds now, by id. */
+function targetEffectIds(sim: Simulation): Set<string> {
+	return new Set(
+		sim.active
+			.filter(({ holder }) => holder === "target")
+			.map(({ effect }) => effect.id),
+	)
+}
+
+/** The cast's hits after its first (its variant's `hits`), each `every` seconds later, for this step. */
+function scheduleLaterHits(
+	sim: Simulation,
+	spell: ChampionSpell,
+	variant: string | undefined,
+) {
+	const hits = chosenVariant(hitRule(sim, spell.slot), variant)?.hits
+	if (!hits) return
+	for (let index = 1; index < hits.count; index++) {
+		sim.laterHits.push({
+			at: sim.time + index * hits.every,
+			spell,
+			variant,
+			owner: sim.step,
+		})
+	}
+}
+
+/**
+ * A cast's later hit lands, for its step: the `on-cast` effects marked `perHit` (a Blaze stack),
+ * then the cast's hit again. Free mode's choices of the action running don't reach it.
+ */
+function landLaterHit(sim: Simulation, hit: LaterHit) {
+	sim.laterHits = sim.laterHits.filter((entry) => entry !== hit)
+	const { spell, variant, owner } = hit
+	const held = targetEffectIds(sim)
+	const pending: PendingMarks = []
+	const { owner: previous, forced } = sim
+	sim.owner = owner
+	sim.laterHitOf = owner
+	sim.forced = undefined
+	triggerWhere(
+		sim,
+		(trigger) =>
+			trigger.kind === "on-cast" &&
+			!!trigger.perHit &&
+			(trigger.slots?.includes(spell.slot) ?? true),
+		pending,
+	)
+	abilityHit(sim, spell, pending, variant, { held })
+	applyMarks(sim, pending)
+	sim.owner = previous
+	sim.laterHitOf = undefined
+	sim.forced = forced
 }
 
 /** Why an ability can't be cast now; undefined when it can. Free mode ignores its cooldown. */
@@ -1543,6 +1637,7 @@ function castAbility(
 	}
 	const onTarget = empowering ? [] : breakWaiting(sim, cast)
 	const areaTime = chosenVariant(rule, action.variant)?.duration
+	const held = targetEffectIds(sim)
 	triggerWhere(
 		sim,
 		(trigger, effect) =>
@@ -1558,7 +1653,8 @@ function castAbility(
 	if (empowering) {
 		empoweredAttack(sim, action, { spell, rule: empowering, pending })
 	} else {
-		abilityHit(sim, spell, pending, action.variant)
+		abilityHit(sim, spell, pending, action.variant, { held })
+		scheduleLaterHits(sim, spell, action.variant)
 		applyMarks(sim, chooseMarks(sim, pending, action))
 		for (const waiting of onTarget) release(sim, waiting)
 	}
@@ -1798,10 +1894,15 @@ export function simulateCombat(
 	const sim = createSimulation(input, hitRules)
 	const steps: CombatStep[] = []
 	let logged = 0
-	// An action owns what happens from it until the next action starts (a burn ticking on); markers own nothing.
+	// An action owns what happens from it until the next action starts (a burn ticking on), and its
+	// cast's later hits; markers own nothing.
 	const closeStep = () => {
 		const last = steps.findLast(({ action }) => action.kind !== "situation")
-		last?.events.push(...sim.log.slice(logged))
+		for (const event of sim.log.slice(logged)) {
+			const owner = event.kind === "hit" ? event.laterHit?.owner : undefined
+			const step = owner === undefined ? last : steps[owner]
+			step?.events.push(event)
+		}
 		if (last) last.targetHealth = sim.health
 		logged = sim.log.length
 	}

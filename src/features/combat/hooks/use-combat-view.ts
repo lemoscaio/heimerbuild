@@ -1,6 +1,7 @@
 import type { AreaVariant } from "@/lib/combat/area-ticks"
 import type { CombatAction, CombatTarget } from "@/lib/combat/combat"
 import {
+	defaultVariant,
 	LANDS_LABEL,
 	type VariantsLabel,
 } from "@/lib/combat/registries/ability-hits"
@@ -81,7 +82,10 @@ function groupKey(item: CombatListItem) {
 	const { action } = item
 	return actionKey(
 		action.kind === "ability"
-			? { ...action, variant: action.variant ?? item.variants[0]?.id }
+			? {
+					...action,
+					variant: action.variant ?? defaultVariant(item.variants)?.id,
+				}
 			: action,
 	)
 }
