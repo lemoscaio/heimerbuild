@@ -22,7 +22,11 @@ import {
 	nextGameTimeStep,
 	usesGameTime,
 } from "@/lib/effects/game-time"
-import { matchStackSources } from "@/lib/effects/match-stacks"
+import {
+	matchStackSources,
+	nextMatchStacksStep,
+	withMatchStacks,
+} from "@/lib/effects/match-stacks"
 
 /** One effect of the build with its switch and what it gives at the build's level and ranks. */
 export type Condition = {
@@ -39,6 +43,8 @@ export type Condition = {
 	grants: readonly ResolvedGrant[]
 	/** What it grants once the match stacks reach a threshold they haven't yet (Mejai's move speed at 10). */
 	locked: readonly LockedGrants[]
+	/** What it grants from the next stack count that changes it, for one that grows in steps (Kindred's range). */
+	nextStacks?: { stacks: number; grants: readonly ResolvedGrant[] }
 	/** What it grants from the next game time step on, for an effect that grows with the game time. */
 	next?: { gameTime: number; grants: readonly ResolvedGrant[] }
 	/** Seconds it lasts, when it says. */
@@ -82,6 +88,27 @@ function nextStep(
 		: { gameTime, grants: resolveGrants(effect, { ...context, gameTime }) }
 }
 
+/** The effect's grants at the next count of its sources that changes a stepped amount. */
+function nextStacksStep(
+	effect: BuildEffect,
+	context: EffectContext,
+): Condition["nextStacks"] {
+	for (const source of matchStackSources(effect.effect)) {
+		const stacks = nextMatchStacksStep(
+			effect.effect,
+			source,
+			context.matchStacks,
+		)
+		if (stacks === undefined) continue
+		const matchStacks = withMatchStacks(context.matchStacks, source.id, stacks)
+		return {
+			stacks,
+			grants: resolveGrants(effect, { ...context, matchStacks }),
+		}
+	}
+	return undefined
+}
+
 /** The choices with `effect` turned on or off; back to its default, it leaves the choices. */
 export function setCondition(
 	value: EffectOverrides,
@@ -114,6 +141,7 @@ export function conditionList(
 			grants: resolveGrants(effect, context),
 			locked: lockedGrants(effect, context),
 			next: nextStep(effect, context),
+			nextStacks: nextStacksStep(effect, context),
 			duration: effectDuration(effect, context),
 			stackedOutBy: stackedOut.get(effect.id),
 			...(boostedBy.length > 0 && { boostedBy }),
