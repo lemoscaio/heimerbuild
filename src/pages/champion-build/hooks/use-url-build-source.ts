@@ -94,7 +94,7 @@ export function useUrlBuildSource({
 
 	return {
 		...source,
-		/** The overview workbench or the expanded shop. */
+		/** The overview workbench, the expanded shop or the expanded combo. */
 		view: page.view ?? "overview",
 		/** The open center tab: Items, Runes, Skills or Combo. */
 		tab: page.tab ?? "items",
