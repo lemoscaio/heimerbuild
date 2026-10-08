@@ -5,6 +5,7 @@ import { type Rune, runesFileSchema } from "@schemas/rune"
 import { combatEffects } from "../effects/available-effects"
 import { computeBuildStats } from "../stats/compute-build-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
+import { attackWindupTime } from "./attack-windup"
 import type {
 	CombatAction,
 	CombatEvent,
@@ -110,18 +111,23 @@ describe("empowered attacks: a cast that is its champion's next attack (issue 38
 		level: 9,
 		ranks: { Q: 3, W: 1, E: 1, R: 1 },
 	}
-	const atRest = computeBuildStats(buildOf(rengar)).attackSpeed.total
+	const { base, total: atRest } = computeBuildStats(buildOf(rengar)).attackSpeed
 	const ratio = rengar.champion.stats.attackSpeed.ratio
+	const savageSpeed = atRest + ratio * 0.4
+	/** Rengar's windup (wiki: 20%) at an attack speed. */
+	const windup = (total: number) =>
+		attackWindupTime(rengar.champion.attackWindup, { base, total })
 
-	test("Rengar's Q alone is his attack plus Savagery's bonus, physical, at the cast", () => {
+	test("Rengar's Q alone is his attack plus Savagery's bonus, physical, at the end of its windup", () => {
 		const result = simulate(rengar, [Q])
 		const [attack, savagery] = hits(result, 0)
 		if (!attack || !savagery) throw new Error("missing hits")
 		const ad = attack.damage.raw
 
 		expect(hits(result, 0).map(sourceName)).toEqual(["attack", "QTotalDamage"])
-		expect(attack.time).toBe(0)
-		expect(savagery.time).toBe(0)
+		// The cast starts Savagery's 40% attack speed before its attack winds up.
+		expect(attack.time).toBeCloseTo(windup(savageSpeed))
+		expect(savagery.time).toBe(attack.time)
 		// Wiki, rank 3: 90 (+ 5% AD) bonus physical damage.
 		expect(savagery.damage).toEqual({
 			type: "physical",
@@ -131,18 +137,28 @@ describe("empowered attacks: a cast that is its champion's next attack (issue 38
 		expect(result.steps[0]?.events.map(({ kind }) => kind)).toContain("on-hit")
 	})
 
-	test("the attack after it waits a full attack timer from its hit, at Savagery's 40% attack speed", () => {
+	test("the attack after it waits a full attack timer from its start, at Savagery's 40% attack speed", () => {
 		const result = simulate(rengar, [Q, ATTACK])
 
-		expect(result.steps[1]?.time).toBeCloseTo(1 / (atRest + ratio * 0.4))
+		expect(result.steps[1]?.time).toBeCloseTo(1 / savageSpeed)
 	})
 
-	test("after an attack it waits for the attack timer, like an attack", () => {
+	test("after an attack it resets the attack timer: it starts as the attack's windup ends", () => {
 		const result = simulate(rengar, [ATTACK, Q])
 		const [attack] = hits(result, 1)
 
-		expect(result.steps[1]?.time).toBeCloseTo(1 / atRest)
-		expect(attack?.time).toBeCloseTo(1 / atRest)
+		expect(result.steps[1]?.time).toBeCloseTo(windup(atRest))
+		expect(attack?.time).toBeCloseTo(windup(atRest) + windup(savageSpeed))
+	})
+
+	test("AA, Q, AA is faster than AA, AA, AA (the reset saves the rest of the first attack's timer)", () => {
+		const reset = simulate(rengar, [ATTACK, Q, ATTACK])
+		const plain = simulate(rengar, [ATTACK, ATTACK, ATTACK])
+
+		// The third attack waits for the timer the Savagery attack started.
+		expect(reset.steps[2]?.time).toBeCloseTo(windup(atRest) + 1 / savageSpeed)
+		expect(plain.steps[2]?.time).toBeCloseTo(2 / atRest)
+		expect(reset.duration).toBeLessThan(plain.duration)
 	})
 
 	test("it is the first of Savagery's two faster attacks: the one after it is the last", () => {
@@ -250,6 +266,83 @@ describe("empowered attacks: a cast that is its champion's next attack (issue 38
 		expect(empower?.damage).toMatchObject({
 			type: "magic",
 			raw: expect.closeTo(50),
+		})
+	})
+})
+
+describe("attack windup: an attack keeps the champion busy only until it lands (issue 395)", async () => {
+	const darius: Setup = {
+		champion: await champion("Darius"),
+		level: 9,
+		ranks: { Q: 5, W: 2, E: 1, R: 1 },
+	}
+	const { attackSpeed } = computeBuildStats(buildOf(darius))
+	// Wiki: 20% windup with a 0.5 modifier, so bonus attack speed shortens it half as much.
+	const windup = attackWindupTime({ percent: 0.2, modifier: 0.5 }, attackSpeed)
+	const period = 1 / attackSpeed.total
+
+	test("the attack's hit lands at the end of its windup, and the combo's time is that hit", () => {
+		const result = simulate(darius, [ATTACK])
+
+		expect(darius.champion.attackWindup).toEqual({
+			percent: 0.2,
+			modifier: 0.5,
+		})
+		expect(result.steps[0]?.time).toBe(0)
+		expect(hits(result, 0)[0]?.time).toBeCloseTo(windup)
+		expect(result.duration).toBeCloseTo(windup)
+	})
+
+	test("a cast after an attack starts once the windup ends", () => {
+		const result = simulate(darius, [ATTACK, Q])
+
+		expect(result.steps[1]?.time).toBeCloseTo(windup)
+	})
+
+	test("the next plain attack still waits for the attack timer", () => {
+		const result = simulate(darius, [ATTACK, ATTACK])
+
+		expect(result.steps[1]?.time).toBeCloseTo(period)
+		expect(result.duration).toBeCloseTo(period + windup)
+	})
+
+	test("AA, W, AA is faster than AA, AA, AA: Crippling Strike starts right after the first windup", () => {
+		const reset = simulate(darius, [ATTACK, W, ATTACK])
+		const plain = simulate(darius, [ATTACK, ATTACK, ATTACK])
+
+		expect(reset.steps.map(({ time }) => time)).toEqual([
+			0,
+			expect.closeTo(windup),
+			expect.closeTo(windup + period),
+		])
+		expect(reset.duration).toBeCloseTo(windup + period + windup)
+		expect(plain.duration).toBeCloseTo(2 * period + windup)
+		expect(reset.duration).toBeLessThan(plain.duration)
+	})
+
+	test("Leona's Shield of Daybreak doesn't put her attack on cooldown: the next attack starts after its windup", async () => {
+		const leona: Setup = {
+			champion: await champion("Leona"),
+			level: 9,
+			ranks: { Q: 5, W: 2, E: 1, R: 1 },
+		}
+		const leonaWindup = attackWindupTime(
+			leona.champion.attackWindup,
+			computeBuildStats(buildOf(leona)).attackSpeed,
+		)
+		const result = simulate(leona, [ATTACK, Q, ATTACK])
+		const [attack, shield] = hits(result, 1)
+
+		expect(result.steps.map(({ time }) => time)).toEqual([
+			0,
+			expect.closeTo(leonaWindup),
+			expect.closeTo(2 * leonaWindup),
+		])
+		expect(attack?.source.kind).toBe("attack")
+		// Wiki, rank 5: 110 (+ 30% AP) bonus magic damage.
+		expect(shield?.damage).toMatchObject({
+			type: "magic",
+			raw: expect.closeTo(110),
 		})
 	})
 })

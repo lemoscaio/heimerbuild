@@ -655,12 +655,14 @@ test("Twitch's Ambush gives its attack speed only once an attack breaks the camo
 	expect(camouflaged).not.toBe(ahead)
 	await expect(running.nth(2)).not.toHaveText(camouflaged)
 
-	// Waiting less than the delay, the attack comes before the camouflage, which is still ahead.
+	// Waiting less than the delay, the attack starts before the camouflage and doesn't break it:
+	// the camouflage begins during its windup and is still on after it lands.
 	await page.goto(
 		"/champions/Twitch?lvl=3&skills=QWE&tab=combo&combo=q.t0_5.aa",
 	)
 	await expect(running).toHaveCount(3)
-	await expect(running.nth(2)).toHaveText(ahead)
+	await expect(running.nth(1)).toHaveText(ahead)
+	await expect(running.nth(2)).toHaveText(camouflaged)
 })
 
 test("Black Cleaver lowers the target's armor for the hits after each attack, and Rengar's leap does after its own hit", async ({

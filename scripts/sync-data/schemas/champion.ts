@@ -43,6 +43,16 @@ export const championStatsSchema = z.strictObject({
 	attackRange: growthStat,
 })
 
+/**
+ * The basic attack's windup (wiki "Attack speed", Windup): `percent` of the attack time passes
+ * before the attack lands, and `modifier` scales how much bonus attack speed shortens it (1 fully,
+ * Darius 0.5). From the CommunityDragon `basicAttack` (`normalize-attack-windup.ts`).
+ */
+export const attackWindupSchema = z.strictObject({
+	percent: z.number().check(z.positive(), z.lt(1)),
+	modifier: z.number().check(z.gte(0), z.lte(1)),
+})
+
 const attackTypeSchema = z.enum(["melee", "ranged"])
 
 /** `perLevel` counts from level 1; `growth: "linear"` adds it once per level instead of following the growth curve. */
@@ -454,6 +464,7 @@ export const championSchema = z.strictObject({
 	/** What Adaptive Force becomes when bonus AD and AP are equal (CommunityDragon `mAdaptiveForceToAbilityPowerWeight`). */
 	adaptiveType: z.enum(["ad", "ap"]),
 	stats: championStatsSchema,
+	attackWindup: attackWindupSchema,
 	/** Passive and Q/W/E/R: names, icons, ranks, per-rank values, cast times and damage formulas. */
 	abilities: championAbilitiesSchema,
 	/** Applied by the skill order; absent means the default rules. */
@@ -467,6 +478,7 @@ export const championSchema = z.strictObject({
 })
 
 export type ChampionStats = z.infer<typeof championStatsSchema>
+export type AttackWindup = z.infer<typeof attackWindupSchema>
 export type LevelState = z.infer<typeof levelStateSchema>
 export type ChampionForm = z.infer<typeof championFormSchema>
 export type AbilitySlot = z.infer<typeof abilitySlotSchema>

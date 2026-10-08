@@ -9,6 +9,7 @@ import { GAREN_HIT_RULES } from "../../champions/garen"
 import { JANNA_HIT_RULES } from "../../champions/janna"
 import { JAX_HIT_RULES } from "../../champions/jax"
 import { JINX_HIT_RULES } from "../../champions/jinx"
+import { LEONA_HIT_RULES } from "../../champions/leona"
 import { MAOKAI_HIT_RULES } from "../../champions/maokai"
 import { MONKEY_KING_HIT_RULES } from "../../champions/monkey-king"
 import { MORGANA_HIT_RULES } from "../../champions/morgana"
@@ -60,8 +61,10 @@ export const LANDS_LABEL: VariantsLabel = {
 export type EmpoweredAttack = {
 	/** The damage counts the attack's total attack damage too (Savagery's `QTotalDamage`): the bonus is the rest. */
 	includesAttack?: true
-	/** The cast resets the attack timer (wiki): the attack never waits for it. */
+	/** The cast resets the attack timer (wiki): the attack starts at once, even right after another's windup. */
 	resetsAttack?: true
+	/** The attack doesn't put the basic attack on cooldown (Shield of Daybreak): the next may start after its windup. */
+	noAttackCooldown?: true
 }
 
 /**
@@ -112,6 +115,7 @@ export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 	...JANNA_HIT_RULES,
 	...JAX_HIT_RULES,
 	...JINX_HIT_RULES,
+	...LEONA_HIT_RULES,
 	...MAOKAI_HIT_RULES,
 	...MONKEY_KING_HIT_RULES,
 	...MORGANA_HIT_RULES,

@@ -9,6 +9,10 @@ import {
 	ddragonSpellSchema,
 	normalizeAbilities,
 } from "./normalize-abilities"
+import {
+	basicAttackSchema,
+	normalizeAttackWindup,
+} from "./normalize-attack-windup"
 import { normalizeFormAbilities } from "./normalize-form-abilities"
 import {
 	applyOverrides,
@@ -89,6 +93,7 @@ const characterRecordSchema = z.object({
 	__type: z.literal("CharacterRecord"),
 	damagePerLevelModifiable: modifiableFloat,
 	attackSpeedRatioModifiable: modifiableFloat,
+	basicAttack: basicAttackSchema.optional(),
 	purchaseIdentities: z.array(z.string()).optional(),
 	// 1 for champions whose Adaptive Force defaults to ability power, absent otherwise.
 	mAdaptiveForceToAbilityPowerWeight: z.number().optional(),
@@ -265,6 +270,7 @@ export function normalizeChampionWithReport(
 			movementSpeed: { base: stats.movespeed, perLevel: 0 },
 			attackRange: { base: stats.attackrange, perLevel: 0 },
 		},
+		attackWindup: normalizeAttackWindup(record.basicAttack),
 		abilities,
 		...(rankStats.length ? { rankStats } : {}),
 	})

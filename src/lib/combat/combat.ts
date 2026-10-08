@@ -175,7 +175,7 @@ export type DamageOverTimeSummary = {
  */
 export type CombatStep = {
 	action: CombatItem
-	/** When it ran (an attack waits for the attack timer). */
+	/** When it started (an attack waits for the attack timer, and lands at the end of its windup). */
 	time: number
 	situation?: SituationStatus
 	/** The outcomes the build's effects can have at this action (`outcomeKeys`), and which happened. */

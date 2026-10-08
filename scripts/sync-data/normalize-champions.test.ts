@@ -173,6 +173,13 @@ describe("normalizeChampion", () => {
 		})
 	})
 
+	test("takes the attack windup from the CommunityDragon basic attack", () => {
+		expect(heimerdinger().attackWindup).toEqual({ percent: 0.2, modifier: 1 })
+		expect(
+			normalizeChampion(garenDetail, garenBin, VERSION).attackWindup,
+		).toEqual({ percent: 0.18, modifier: 0.5 })
+	})
+
 	test("falls back to Data Dragon when the game file omits a stat", () => {
 		const { stats } = normalizeChampion(
 			heimerdingerDetail,

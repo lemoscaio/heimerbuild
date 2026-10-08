@@ -10,6 +10,7 @@ import { combatEffects } from "../effects/available-effects"
 import type { BuildEffect, Effect } from "../effects/effect"
 import { computeBuildStats } from "../stats/compute-build-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
+import { attackWindupTime } from "./attack-windup"
 import type {
 	CombatAction,
 	CombatEvent,
@@ -126,8 +127,26 @@ function hits(result: CombatResult, step: number): DealtDamage[] {
 	)
 }
 
+/** When a step's own first hit landed: an attack's, at the end of its windup. */
+function landedAt(result: CombatResult, step: number) {
+	return (
+		result.steps[step]?.events.find(
+			(event) => event.kind === "hit" && !event.tick,
+		)?.time ?? 0
+	)
+}
+
 function kinds(events: readonly CombatEvent[] | undefined) {
 	return (events ?? []).map((event) => event.kind)
+}
+
+/** The champion's attack windup at its attack speed at rest, or at `total` attacks per second. */
+function windupOf(setup: Setup, total?: number) {
+	const { attackSpeed } = computeBuildStats(buildOf(setup))
+	return attackWindupTime(setup.champion.attackWindup, {
+		base: attackSpeed.base,
+		total: total ?? attackSpeed.total,
+	})
 }
 
 function physical(raw: number, armor = DUMMY.armor) {
@@ -149,6 +168,10 @@ describe("Quinn: Harrier and Heightened Senses (worked example 1)", async () => 
 	const bonusAD = 30
 	// Wiki: Harrier deals 15 + 105 / 17 × (level − 1) (+ 40% bonus AD); Heightened Senses rank 1 +28% attack speed.
 	const harrier = physical(15 + (105 / 17) * 8 + 0.4 * bonusAD)
+	// Bonus attack speed adds to the total scaled by the champion's ratio.
+	const hastened =
+		atRest.attackSpeed.total + setup.champion.stats.attackSpeed.ratio * 0.28
+	const firstHit = windupOf(setup)
 	const result = simulate(setup, [
 		{ kind: "ability", slot: "E" },
 		{ kind: "attack" },
@@ -178,37 +201,35 @@ describe("Quinn: Harrier and Heightened Senses (worked example 1)", async () => 
 		expect(attackHit?.final).toBeCloseTo(physical(atRest.attackDamage.total))
 		expect(harrierHit?.final).toBeCloseTo(harrier)
 		expect(marked?.marks).toEqual([])
+		// The attack starts at 0 and lands at the end of its windup (wiki: 17.5%).
+		expect(marked?.events[0]?.time).toBeCloseTo(firstHit)
 		expect(marked?.active).toContainEqual({
 			effectId: "quinn-w-passive",
 			holder: "attacker",
-			startedAt: 0,
-			endsAt: 2,
+			startedAt: firstHit,
+			endsAt: firstHit + 2,
 			stacks: 1,
 		})
 	})
 
-	test("the W passive's attack speed sets the next attack's time, and it runs out at 2 s", () => {
-		// Bonus attack speed adds to the total scaled by the champion's ratio.
-		const hastened =
-			atRest.attackSpeed.total + setup.champion.stats.attackSpeed.ratio * 0.28
-
+	test("the W passive's attack speed, from the hit, sets the next attack's time from the first attack's start", () => {
 		expect(plain?.time).toBeCloseTo(1 / hastened)
 		expect(hits(result, 2)).toHaveLength(1)
-		expect(plain?.events.at(-1)).toEqual({
-			kind: "expire",
-			time: 2,
-			effectId: "quinn-w-passive",
-			holder: "attacker",
-		})
+		expect(hits(result, 2)[0]).toBeDefined()
 	})
 
-	test("Blinding Assault marks again after its 0.25 s cast, and the attack after it consumes the new mark", () => {
+	test("Blinding Assault starts once the attack's windup ends and marks again; the next attack waits for the attack timer and consumes the new mark", () => {
 		// Blinding Assault rank 4: 170 (+ 95% bonus AD) (+ 50% AP).
 		expect(hits(result, 3)[0]?.final).toBeCloseTo(
 			physical(170 + 0.95 * bonusAD),
 		)
+		expect(assault?.time).toBeCloseTo(
+			(plain?.time ?? 0) + windupOf(setup, hastened),
+		)
 		expect(assault?.marks.map(({ mark }) => mark)).toEqual(["quinn-harrier"])
-		expect(remarked?.time).toBeCloseTo((assault?.time ?? 0) + 0.25)
+		// Its 0.25 s cast ends before the attack timer the last attack started.
+		expect(remarked?.time).toBeCloseTo((plain?.time ?? 0) + 1 / hastened)
+		expect(remarked?.time).toBeGreaterThan((assault?.time ?? 0) + 0.25)
 		expect(hits(result, 4)[1]?.final).toBeCloseTo(harrier)
 	})
 
@@ -272,7 +293,7 @@ describe("Quinn's starting situation and Valor's periodic mark (issue 330)", asy
 
 		expect(result.steps[0]?.events).toContainEqual({
 			kind: "mark-consumed",
-			time: 0,
+			time: windupOf(marked),
 			mark: "quinn-harrier",
 			fromSituation: true,
 		})
@@ -288,17 +309,19 @@ describe("Quinn's starting situation and Valor's periodic mark (issue 330)", asy
 			{ kind: "wait", seconds: 8 },
 			{ kind: "attack" },
 		])
+		// The first attack consumes the starting mark as it lands, at the end of its windup.
+		const consumedAt = windupOf(marked)
 
-		expect(marksApplied(result, 1)).toEqual([7])
+		expect(marksApplied(result, 1)).toEqual([consumedAt + 7])
 		expect(result.steps[1]?.marks).toEqual([
-			{ mark: "quinn-harrier", endsAt: 11 },
+			{ mark: "quinn-harrier", endsAt: consumedAt + 11 },
 		])
 		const consumed = result.steps[2]?.events.find(
 			(event) => event.kind === "mark-consumed",
 		)
 		expect(consumed).toEqual({
 			kind: "mark-consumed",
-			time: result.steps[2]?.time ?? 0,
+			time: expect.closeTo((result.steps[2]?.time ?? 0) + windupOf(marked)),
 			mark: "quinn-harrier",
 		})
 		expect(hits(result, 2)[1]?.final).toBeCloseTo(harrier)
@@ -322,19 +345,22 @@ describe("Quinn's starting situation and Valor's periodic mark (issue 330)", asy
 	})
 
 	test("once an ability's mark leaves, Valor waits 1 s with no mark on the target", () => {
+		// The wait starts after the first attack's windup, so 6 s puts Vault past 6 s.
 		const result = simulate(marked, [
 			{ kind: "attack" },
-			{ kind: "wait", seconds: 5 },
+			{ kind: "wait", seconds: 6 },
 			{ kind: "ability", slot: "E" },
 			{ kind: "attack" },
 			{ kind: "wait", seconds: 1 },
 		])
-		const consumedAt = result.steps[3]?.time ?? 0
+		const consumedAt =
+			result.steps[3]?.events.find((event) => event.kind === "mark-consumed")
+				?.time ?? 0
 		const applied = result.steps
 			.slice(3)
 			.flatMap((_, index) => marksApplied(result, index + 3))
 
-		// Valor's own cooldown ends at 7 s; Vault's mark, consumed after 6 s, pushes it to 1 s later.
+		// Valor's own cooldown ends 7 s after the first hit; Vault's mark, consumed later, pushes it to 1 s after.
 		expect(consumedAt).toBeGreaterThan(6)
 		expect(applied).toEqual([consumedAt + 1])
 	})
@@ -348,7 +374,12 @@ describe("Quinn's starting situation and Valor's periodic mark (issue 330)", asy
 
 		expect(
 			result.steps[1]?.events.find((event) => event.kind === "mark-consumed"),
-		).toEqual({ kind: "mark-consumed", time: 0, mark: "quinn-harrier" })
+		).toEqual({
+			kind: "mark-consumed",
+			time: windupOf(marked),
+			mark: "quinn-harrier",
+		})
+		// Valor's cooldown ran from the overwrite at 0; Vault's mark left 1 s earlier than that.
 		expect(marksApplied(result, 2)).toEqual([7])
 	})
 
@@ -364,7 +395,10 @@ describe("Quinn's starting situation and Valor's periodic mark (issue 330)", asy
 		])
 
 		expect(crit).toBeCloseTo(0.3)
-		expect(marksApplied(result, 1)[0]).toBeCloseTo(7 * 0.99 ** 30)
+		// From the first attack's hit, which consumed the starting mark.
+		expect(marksApplied(result, 1)[0]).toBeCloseTo(
+			windupOf(critical) + 7 * 0.99 ** 30,
+		)
 	})
 
 	test("after the last action, Valor marks nothing more", () => {
@@ -418,11 +452,12 @@ describe("Ziggs's Short Fuse: ready at the start, periodic, shortened by casts (
 			{ kind: "attack" },
 		])
 
+		// Spent as the first attack lands, at the end of its windup.
 		expect(
 			result.steps[1]?.active.find(
 				({ effectId }) => effectId === "ziggs-short-fuse",
 			)?.startedAt,
-		).toBe(12)
+		).toBeCloseTo(windupOf(ready) + 12)
 		expect(hits(result, 2)[1]?.final).toBeCloseTo(shortFuse)
 	})
 
@@ -437,7 +472,7 @@ describe("Ziggs's Short Fuse: ready at the start, periodic, shortened by casts (
 			result.steps[2]?.active.find(
 				({ effectId }) => effectId === "ziggs-short-fuse",
 			)?.startedAt,
-		).toBe(7)
+		).toBeCloseTo(windupOf(ready) + 7)
 	})
 })
 
@@ -1215,9 +1250,9 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 		expect(hits(result, 4)).toHaveLength(1)
 	})
 
-	test("once its charges are used, its cooldown starts from the last one", () => {
+	test("once its charges are used, its cooldown starts from the last one's hit", () => {
 		const result = run([rush, attack, attack, attack, attack])
-		const third = result.steps[3]?.time ?? 0
+		const third = landedAt(result, 3)
 
 		expect(outcomeOf(result, 4, "rush")).toMatchObject({
 			happened: false,
@@ -1244,7 +1279,7 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 			rush,
 			attack,
 		])
-		const readyAt = (result.steps[3]?.time ?? 0) + 10
+		const readyAt = landedAt(result, 3) + 10
 
 		expect(result.steps[5]?.situation).toEqual({
 			status: "applied",
@@ -1255,7 +1290,7 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 
 	test("a marker while a use in the combo still has its effect on cooldown is ignored, and says until when", () => {
 		const result = run([rush, attack, attack, attack, rush, attack])
-		const readyAt = (result.steps[3]?.time ?? 0) + 10
+		const readyAt = landedAt(result, 3) + 10
 
 		expect(result.steps[4]?.situation).toEqual({
 			status: "ignored",
@@ -1516,18 +1551,19 @@ describe("the combo's time is its last damage (issue 338, decision 1a)", async (
 	const run = (items: readonly CombatItem[]) =>
 		simulateCombat(inputOf(quinn, items))
 
-	test("3 attacks: the third hit, not the attack period after it", () => {
+	test("3 attacks: the third hit, at the end of its windup, not the attack period after it", () => {
 		const result = run([attack, attack, attack])
 
-		expect(result.duration).toBeCloseTo(1.96, 2)
-		expect(result.duration).toBe(result.steps[2]?.time ?? Number.NaN)
+		expect(result.steps[2]?.time).toBeCloseTo(1.96, 2)
+		expect(result.duration).toBeCloseTo(1.96 + windupOf(quinn), 2)
+		expect(result.duration).toBe(landedAt(result, 2))
 	})
 
 	test("a Harrier marker before the third attack: still its hit, though Heightened Senses runs 2 s more", () => {
 		const result = run([attack, attack, harrier, attack])
 
-		expect(result.duration).toBeCloseTo(1.96, 2)
-		expect(result.activeUntil).toBeCloseTo(3.96, 2)
+		expect(result.duration).toBe(landedAt(result, 3))
+		expect(result.activeUntil).toBeCloseTo(result.duration + 2)
 	})
 
 	test("a Harrier marker before the first attack: Heightened Senses' attack speed makes it shorter", () => {
@@ -1577,9 +1613,10 @@ describe("Hail of Blades (issue 338)", async () => {
 			final: expect.closeTo(trueDamage(9, 30)),
 		})
 		expect(hits(result, 4)).toHaveLength(1)
+		// Its cooldown starts as its third attack lands.
 		expect(outcomeOf(result, 4, "hail-of-blades")).toMatchObject({
 			happened: false,
-			readyAt: expect.closeTo((result.steps[3]?.time ?? 0) + 10),
+			readyAt: expect.closeTo(landedAt(result, 3) + 10),
 		})
 	})
 
@@ -1744,7 +1781,8 @@ describe("grants on their own clock (issue 373)", async () => {
 			{ kind: "attack" },
 		])
 		const castAt = result.steps[0]?.time ?? Number.NaN
-		const elapsed = (result.steps[2]?.time ?? Number.NaN) - castAt
+		// The attack's damage is read as it lands, at the end of its windup.
+		const elapsed = landedAt(result, 2) - castAt
 
 		expect(elapsed).toBeLessThan(2)
 		expect(attackRaw(result, 2)).toBeCloseTo(atRest + 40 - 30 * (elapsed / 2))
@@ -1807,8 +1845,12 @@ describe("an effect that starts when a state ends: Twitch's Ambush (issue 372)",
 		const result = simulate(twitch, [ambush, wait(0.5), attack])
 
 		expect(result.steps[1]?.waiting?.[0]).toMatchObject({ from: 1 })
+		expect(result.steps[2]?.time).toBeLessThan(1)
 		expect(ambushOf(result, 2)).toBeUndefined()
-		expect(result.steps[2]?.waiting?.[0]).toMatchObject({ from: 1 })
+		// The camouflage begins during its windup, and the attack started before it doesn't break it.
+		expect(result.steps[2]?.waiting).toEqual([
+			{ effectId: "twitch-q-active", label: "camouflaged", until: 11 },
+		])
 	})
 
 	test("after a 1 s wait it is camouflaged, and the attack breaks it as it starts", () => {

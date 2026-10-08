@@ -17,6 +17,12 @@
 			"baseValue": 175.0,
 			"__type": "ModifiableFloat"
 		},
+		"basicAttack": {
+			"mAttackDelayCastOffsetPercent": -0.11999999731779099,
+			"mAttackDelayCastOffsetPercentAttackSpeedRatio": 0.5,
+			"mAttackProbability": 0.5,
+			"__type": "AttackSlotData"
+		},
 		"purchaseIdentities": ["Melee"],
 		"__type": "CharacterRecord",
 		"spellNames": [
