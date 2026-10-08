@@ -35,8 +35,6 @@ export type AbilityVariant = {
 	duration?: number
 	/** The cast hits the target `count` times, `every` seconds apart (Pyroclasm's bounces). */
 	hits?: LaterHits
-	/** The counts its damage reads that the build can't know, by `counter` name (Siphoning Strike's stacks). */
-	counters?: Readonly<Record<string, number>>
 	/** The one a step without a pick gets, instead of the first (Pyroclasm's 3 hits). */
 	default?: true
 }

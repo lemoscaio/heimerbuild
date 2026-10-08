@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { type Champion, championSchema } from "@schemas/champion"
 import { combatEffects } from "../effects/available-effects"
+import type { MatchStacks } from "../effects/match-stacks"
 import { computeBuildStats } from "../stats/compute-build-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { attackWindupTime } from "./attack-windup"
@@ -37,10 +38,19 @@ type Setup = {
 	level: number
 	ranks: AbilityRanks
 	target?: CombatTarget
+	matchStacks?: MatchStacks
 }
 
-function buildOf({ champion, level, ranks }: Setup): CombatBuild {
-	return { champion, patch: PATCH, level, items: [], shards: [], ranks }
+function buildOf({ champion, level, ranks, matchStacks }: Setup): CombatBuild {
+	return {
+		champion,
+		patch: PATCH,
+		level,
+		items: [],
+		shards: [],
+		ranks,
+		matchStacks,
+	}
 }
 
 function simulate(setup: Setup, actions: readonly CombatAction[]) {
@@ -125,16 +135,21 @@ describe("Nasus (issue 397)", async () => {
 		ranks: { Q: 1, W: 1, E: 1, R: 1 },
 	}
 
-	test("Siphoning Strike adds its stacks: 250 stacks at rank 1 is 30 + 250 bonus physical damage (wiki)", () => {
-		const [siphon] = hitsFrom(
-			simulate(nasus, [cast("Q", "250")]),
+	test("Siphoning Strike adds the build's stacks: 250 stacks at rank 1 is 30 + 250 bonus physical damage (wiki)", () => {
+		const stacked = { ...nasus, matchStacks: { "siphoning-strike": 250 } }
+		const siphons = hitsFrom(
+			simulate(stacked, [cast("Q"), wait(8), cast("Q")]),
 			"TotalDamage",
 		)
 
-		expect(siphon?.damage).toMatchObject({
-			type: "physical",
-			raw: expect.closeTo(280),
-		})
+		expect(siphons.map(({ damage }) => damage.type)).toEqual([
+			"physical",
+			"physical",
+		])
+		expect(siphons.map(({ damage }) => damage.raw)).toEqual([
+			expect.closeTo(280),
+			expect.closeTo(280),
+		])
 	})
 
 	test("Siphoning Strike is instant: its attack lands at the end of the attack's windup (wiki: no cast time)", () => {

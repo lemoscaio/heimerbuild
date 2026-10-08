@@ -7,12 +7,16 @@ import {
 import teemoBin from "../../../../scripts/sync-data/fixtures/champions/Teemo.bin.json"
 import teemoDetail from "../../../../scripts/sync-data/fixtures/champions/Teemo.json"
 import { normalizeChampion } from "../../../../scripts/sync-data/normalize-champions"
-import { computeBuildStats } from "../../stats/compute-build-stats"
+import {
+	buildAbilityCounters,
+	computeBuildStats,
+} from "../../stats/compute-build-stats"
 import type { ComputedStats, StatName } from "../../stats/compute-stats"
 import { softCapMovementSpeed } from "../../stats/movement-speed"
 import { availableEffects, combatEffects } from "../available-effects"
 import { usesCurrentHealth } from "../current-health"
 import { type EffectContext, effectDuration, resolveGrants } from "../evaluate"
+import type { MatchStacks } from "../match-stacks"
 import { ABILITY_EFFECTS } from "./ability-effects"
 
 const PATCH = "16.19.1"
@@ -298,6 +302,55 @@ describe("Tryndamere's Bloodlust (wiki, current patch data)", () => {
 		expect(at(1)).toEqual([20, 35, 50, 65, 80])
 		// 80 / 90 AD per 1% missing health at rank 5.
 		expect(at(55)[4]).toBeCloseTo(40)
+	})
+})
+
+describe("match stacks (wiki, current patch data; issue 400)", () => {
+	const ranks = { Q: 1, W: 1, E: 1, R: 1 }
+
+	/** A build of `champion` at level 9 with its effects and `matchStacks`, as the build page computes it. */
+	function stackedBuild(champion: Champion, matchStacks?: MatchStacks) {
+		const available = availableEffects({
+			patch: PATCH,
+			champion,
+			ranks,
+			spells: [],
+			runes: [],
+		})
+		return {
+			champion,
+			patch: PATCH,
+			level: 9,
+			items: [],
+			shards: [],
+			ranks,
+			effects: { available, overrides: {} },
+			matchStacks,
+		}
+	}
+
+	test("Phenomenal Evil Power: 1 ability power per stack, none without stacks", async () => {
+		const veigar = await currentChampion("Veigar")
+		const ap = (matchStacks?: MatchStacks) =>
+			computeBuildStats(stackedBuild(veigar, matchStacks)).abilityPower.total
+
+		expect(ap({ "phenomenal-evil": 250 }) - ap()).toBe(250)
+		expect(ap({ "siphoning-strike": 250 })).toBe(ap())
+	})
+
+	test("Siphoning Strike: its stacks are Q's `stacks` counter, 0 without stacks", async () => {
+		const nasus = await currentChampion("Nasus")
+		const counters = (matchStacks?: MatchStacks) =>
+			buildAbilityCounters(stackedBuild(nasus, matchStacks), "Q")
+
+		expect(counters({ "siphoning-strike": 250 })).toEqual({ stacks: 250 })
+		expect(counters()).toEqual({ stacks: 0 })
+		expect(
+			buildAbilityCounters(
+				stackedBuild(nasus, { "siphoning-strike": 250 }),
+				"W",
+			),
+		).toEqual({})
 	})
 })
 
