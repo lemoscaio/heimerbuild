@@ -163,9 +163,10 @@ export function resolveAmount(
 			return step === undefined ? undefined : step * triangularSteps(steps)
 		}
 		case "matchStacks": {
+			const stacks = stacksOf(context.matchStacks, amount.source)
+			if (amount.steps) return bracketValue(amount.steps, stacks) ?? 0
 			const ratio = resolveAmount(amount.ratio ?? 1, effect, context)
 			if (ratio === undefined) return undefined
-			const stacks = stacksOf(context.matchStacks, amount.source)
 			const value = Math.floor(stacks / (amount.per ?? 1)) * ratio
 			return Math.min(value, amount.max ?? Number.POSITIVE_INFINITY)
 		}
