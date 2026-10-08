@@ -148,3 +148,20 @@ export function conditionList(
 		}
 	})
 }
+
+/**
+ * The stack sources whose input each row carries, by effect id: a source's input sits on the first
+ * row that reads it, so two effects of one source (Kindred's passive and Q) share one input.
+ */
+export function stackInputRows(
+	conditions: readonly Condition[],
+): ReadonlyMap<string, readonly MatchStackSource[]> {
+	const placed = new Set<string>()
+	return new Map(
+		conditions.map(({ effect, stackSources }) => {
+			const own = stackSources.filter(({ id }) => !placed.has(id))
+			for (const { id } of own) placed.add(id)
+			return [effect.id, own] as const
+		}),
+	)
+}
