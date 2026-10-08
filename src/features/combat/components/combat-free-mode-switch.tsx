@@ -31,7 +31,10 @@ export function CombatFreeModeSwitch({
 				onCheckedChange={onCheckedChange}
 				aria-describedby={hintId}
 			/>
-			<label htmlFor={switchId} className="cursor-pointer font-semibold">
+			<label
+				htmlFor={switchId}
+				className="cursor-pointer whitespace-nowrap font-semibold"
+			>
 				Free mode
 			</label>
 			<span id={hintId} className="text-subtle max-sm:sr-only">

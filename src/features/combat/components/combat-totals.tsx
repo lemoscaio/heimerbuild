@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority"
 import { cn } from "@/lib/cn"
 import {
 	DAMAGE_TYPE_NAMES,
@@ -15,8 +16,20 @@ const SHORT_NAMES = {
 	true: "true",
 } as const satisfies Record<DamageTypePart["type"], string>
 
+const figures = cva("grid grid-cols-2 gap-1.5", {
+	variants: {
+		layout: {
+			/** One row from `sm` up: the Combo tab. */
+			row: "sm:grid-cols-[4fr_2fr_2fr_3fr]",
+			/** Two by two: the expanded combo's side column. */
+			square: "",
+		},
+	},
+})
+
 type CombatTotalsProps = {
 	totals: Totals
+	layout?: "row" | "square"
 	/** More figures after the damage and its share: the time and the kill (`CombatTiming`). */
 	children?: React.ReactNode
 } & React.ComponentProps<"fieldset">
@@ -70,6 +83,7 @@ function DamageByType({ parts }: { parts: readonly DamageTypePart[] }) {
 /** The combo's result: damage after mitigation by type, its share of the target's health, then the given figures. */
 export function CombatTotals({
 	totals,
+	layout = "row",
 	children,
 	className,
 	...props
@@ -78,10 +92,7 @@ export function CombatTotals({
 		<div className="flex flex-col gap-1.5">
 			<fieldset
 				aria-label="Combo result"
-				className={cn(
-					"grid grid-cols-2 gap-1.5 sm:grid-cols-[4fr_2fr_2fr_3fr]",
-					className,
-				)}
+				className={cn(figures({ layout }), className)}
 				{...props}
 			>
 				<CombatTotal
