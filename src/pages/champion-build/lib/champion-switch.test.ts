@@ -80,6 +80,17 @@ describe("switchChampionValues", () => {
 		expect(summary.resets).toEqual(["effects"])
 	})
 
+	test("resets the champion's match stacks", () => {
+		const { values, summary } = switchChampionValues({
+			level: 9,
+			itemIds: [],
+			matchStacks: { "siphoning-strike": 250 },
+		})
+
+		expect(values.matchStacks).toBeUndefined()
+		expect(summary.resets).toEqual(["stacks"])
+	})
+
 	test("counts the combo reset for a target or free mode without steps", () => {
 		expect(
 			switchChampionValues({ level: 1, itemIds: [], target: "tank" }).summary

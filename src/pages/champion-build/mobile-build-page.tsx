@@ -169,6 +169,7 @@ export function MobileBuildPage({
 					abilities={build.abilities ?? champion.abilities}
 					skills={build.skills}
 					layout="list"
+					damage={build.abilityDamage}
 				/>
 			}
 			combo={

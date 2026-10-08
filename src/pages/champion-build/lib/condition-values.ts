@@ -2,6 +2,7 @@ import type { BuildValues } from "@/features/build-calculator/types/build-source
 import { usesCurrentHealth } from "@/lib/effects/current-health"
 import type { BuildEffect } from "@/lib/effects/effect"
 import { usesGameTime } from "@/lib/effects/game-time"
+import { usedMatchStacks } from "@/lib/effects/match-stacks"
 
 function isUsed(
 	effects: readonly BuildEffect[],
@@ -11,8 +12,8 @@ function isUsed(
 }
 
 /**
- * The build's values without the condition values (current health, game time) that no available
- * effect uses, like a link's choice for an effect the build lacks. As given while the effects load.
+ * The build's values without the condition values (current health, game time, each source's match
+ * stacks) that no available effect uses, like a link's choice for an effect the build lacks. As given while the effects load.
  */
 export function dropUnusedConditionValues(
 	values: BuildValues,
@@ -25,5 +26,9 @@ export function dropUnusedConditionValues(
 			? values.currentHealth
 			: undefined,
 		gameTime: isUsed(effects, usesGameTime) ? values.gameTime : undefined,
+		matchStacks: usedMatchStacks(
+			values.matchStacks,
+			effects.map(({ effect }) => effect),
+		),
 	}
 }

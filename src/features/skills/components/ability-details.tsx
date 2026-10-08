@@ -1,8 +1,14 @@
-import type { ChampionAbilities, ChampionSpell } from "@schemas/champion"
+import type {
+	ChampionAbilities,
+	ChampionSpell,
+	DamageType,
+} from "@schemas/champion"
+import { cva } from "class-variance-authority"
 import { useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { cn } from "@/lib/cn"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
+import { type AbilityDamageBuild, abilityDamageAt } from "../lib/ability-damage"
 import { formatAbilityValue, rankTableLines } from "../lib/ability-values"
 import { UnavailableReason } from "./unavailable-reason"
 
@@ -10,10 +16,16 @@ type AbilityDetailsProps = {
 	abilities: ChampionAbilities
 	/** The ranks at the current level, highlighted in each table. */
 	ranks: AbilityRanks | undefined
+	/** The build each ability's damage is read at; none while it loads. */
+	damage?: AbilityDamageBuild
 }
 
-/** The passive and each ability: description, then cooldown, cost and every value per rank. */
-export function AbilityDetails({ abilities, ranks }: AbilityDetailsProps) {
+/** The passive and each ability: description, its damage at the build, then cooldown, cost and every value per rank. */
+export function AbilityDetails({
+	abilities,
+	ranks,
+	damage,
+}: AbilityDetailsProps) {
 	const { passive } = abilities
 
 	return (
@@ -33,6 +45,13 @@ export function AbilityDetails({ abilities, ranks }: AbilityDetailsProps) {
 					description={spell.description}
 					unavailableReason={spell.unavailable?.reason}
 				>
+					{damage && (
+						<SpellDamage
+							spell={spell}
+							rank={ranks?.[spell.slot] ?? 0}
+							build={damage}
+						/>
+					)}
 					<RankTable spell={spell} rank={ranks?.[spell.slot] ?? 0} />
 				</AbilityCard>
 			))}
@@ -94,6 +113,43 @@ function AbilityCard({
 			)}
 			{children}
 		</article>
+	)
+}
+
+const damageValue = cva("font-bold tabular-nums", {
+	variants: {
+		type: {
+			physical: "text-physical",
+			magic: "text-magic",
+			true: "text-true-damage",
+		},
+	},
+})
+
+// cva types a "true" key as a boolean variant.
+function damageVariant(type: DamageType) {
+	return type === "true" || type
+}
+
+type SpellDamageProps = {
+	spell: ChampionSpell
+	rank: number
+	build: AbilityDamageBuild
+}
+
+/** The tooltip's first damage at the build's stats and rank, before the target's resistances. */
+function SpellDamage({ spell, rank, build }: SpellDamageProps) {
+	const damage = abilityDamageAt(spell, rank, build)
+	if (!damage) return null
+
+	return (
+		<p className="text-xs">
+			<span className="text-subtle">Damage with this build: </span>
+			<span className={damageValue({ type: damageVariant(damage.type) })}>
+				{Math.round(damage.value)} {damage.type}
+			</span>
+			<span className="text-subtle"> before resistances</span>
+		</p>
 	)
 }
 

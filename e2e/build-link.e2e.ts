@@ -17,7 +17,7 @@ function keystone(page: Page) {
 		.getByRole("radio", { name: "Arcane Comet", exact: true })
 }
 
-test("a link without a version opens the same build as its v=1 link, and an edit writes v=1", async ({
+test("a link without a version opens the same build as its v=1 link, and an edit writes the current version (v=2)", async ({
 	page,
 	context,
 }) => {
@@ -37,6 +37,6 @@ test("a link without a version opens the same build as its v=1 link, and an edit
 	await expect(statsPanel(versioned)).toHaveText(stats ?? "")
 
 	await levelSlider(page).fill("7")
-	await expect(page).toHaveURL(/[?&]v=1\b/)
+	await expect(page).toHaveURL(/[?&]v=2\b/)
 	await expect(page).toHaveURL(/[?&]lvl=7\b/)
 })

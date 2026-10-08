@@ -4,6 +4,7 @@ import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { useSkillActions } from "../hooks/use-skill-actions"
 import type { Skills } from "../hooks/use-skills"
+import type { AbilityDamageBuild } from "../lib/ability-damage"
 import { AbilityDetails } from "./ability-details"
 import { SkillOrderGrid } from "./skill-order-grid"
 import { SkillOrderList } from "./skill-order-list"
@@ -16,10 +17,17 @@ type SkillsTabProps = {
 	skills: Skills
 	/** `grid`: abilities by levels, as in the game; `list`: a row per level, for phones. */
 	layout: keyof typeof ORDER_LAYOUTS
+	/** The build each ability's damage is read at; none while it loads. */
+	damage?: AbilityDamageBuild
 }
 
 /** The detailed view: the whole skill order to edit, then every ability's values per rank. */
-export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
+export function SkillsTab({
+	abilities,
+	skills,
+	layout,
+	damage,
+}: SkillsTabProps) {
 	const titleId = useId()
 	const actions = useSkillActions(skills, abilities)
 	const OrderView = ORDER_LAYOUTS[layout]
@@ -106,7 +114,11 @@ export function SkillsTab({ abilities, skills, layout }: SkillsTabProps) {
 				</p>
 			)}
 			<h2 className="font-bold font-display text-base">Abilities</h2>
-			<AbilityDetails abilities={abilities} ranks={skills.ranks} />
+			<AbilityDetails
+				abilities={abilities}
+				ranks={skills.ranks}
+				damage={damage}
+			/>
 			<PoliteStatus message={actions.announcement} />
 		</section>
 	)

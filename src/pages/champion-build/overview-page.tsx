@@ -153,6 +153,7 @@ export function OverviewPage({
 							abilities={build.abilities ?? champion.abilities}
 							skills={build.skills}
 							layout="grid"
+							damage={build.abilityDamage}
 						/>
 					}
 					combo={
