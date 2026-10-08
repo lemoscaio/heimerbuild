@@ -7,8 +7,10 @@ import { DR_MUNDO_EFFECTS } from "../../champions/dr-mundo"
 import { DRAVEN_EFFECTS } from "../../champions/draven"
 import { EZREAL_EFFECTS } from "../../champions/ezreal"
 import { FIORA_EFFECTS } from "../../champions/fiora"
+import { GAREN_EFFECTS } from "../../champions/garen"
 import { GNAR_EFFECTS } from "../../champions/gnar"
 import { JANNA_EFFECTS } from "../../champions/janna"
+import { JAX_EFFECTS } from "../../champions/jax"
 import { JAYCE_EFFECTS } from "../../champions/jayce"
 import { JINX_EFFECTS } from "../../champions/jinx"
 import { KATARINA_EFFECTS } from "../../champions/katarina"
@@ -18,6 +20,7 @@ import { MASTER_YI_EFFECTS } from "../../champions/master-yi"
 import { MISS_FORTUNE_EFFECTS } from "../../champions/miss-fortune"
 import { MONKEY_KING_EFFECTS } from "../../champions/monkey-king"
 import { MORGANA_EFFECTS } from "../../champions/morgana"
+import { NASUS_EFFECTS } from "../../champions/nasus"
 import { OLAF_EFFECTS } from "../../champions/olaf"
 import { QUINN_EFFECTS } from "../../champions/quinn"
 import { RENGAR_EFFECTS } from "../../champions/rengar"
@@ -55,8 +58,10 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...DRAVEN_EFFECTS,
 	...EZREAL_EFFECTS,
 	...FIORA_EFFECTS,
+	...GAREN_EFFECTS,
 	...GNAR_EFFECTS,
 	...JANNA_EFFECTS,
+	...JAX_EFFECTS,
 	...JAYCE_EFFECTS,
 	...JINX_EFFECTS,
 	...KATARINA_EFFECTS,
@@ -67,6 +72,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...MONKEY_KING_EFFECTS,
 	...OLAF_EFFECTS,
 	...MORGANA_EFFECTS,
+	...NASUS_EFFECTS,
 	...QUINN_EFFECTS,
 	...RENGAR_EFFECTS,
 	...SAMIRA_EFFECTS,

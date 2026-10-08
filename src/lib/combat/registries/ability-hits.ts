@@ -35,6 +35,8 @@ export type AbilityVariant = {
 	duration?: number
 	/** The cast hits the target `count` times, `every` seconds apart (Pyroclasm's bounces). */
 	hits?: LaterHits
+	/** The counts its damage reads that the build can't know, by `counter` name (Siphoning Strike's stacks). */
+	counters?: Readonly<Record<string, number>>
 	/** The one a step without a pick gets, instead of the first (Pyroclasm's 3 hits). */
 	default?: true
 }
@@ -44,6 +46,16 @@ export type AbilityVariant = {
  * effects marked `perHit` (a Blaze stack); the step of the cast owns it.
  */
 export type LaterHits = { count: number; every: number }
+
+/**
+ * Hits spread evenly over `over` seconds from the cast's: `base`, plus one per `perBonusAttackSpeed`
+ * of bonus attack speed (Judgment: 7 spins, plus one per 25%, over 3 s).
+ */
+export type AttackSpeedHits = {
+	base: number
+	perBonusAttackSpeed: number
+	over: number
+}
 
 /** What a rule's variants pick, as the step's input says it: `text` beside them, `name` for assistive tech. */
 export type VariantsLabel = { text: string; name: string }
@@ -94,8 +106,8 @@ export type AbilityHitRule = PatchRange & {
 	variantsLabel?: VariantsLabel
 	/** The cast is an empowered basic attack (Savagery, Siphoning Strike). */
 	empowersAttack?: EmpoweredAttack
-	/** Its damage's unread parts (`notModeled`) count as 0, and what that assumes (no Siphoning Strike stacks). */
-	unreadAsZero?: string
+	/** The cast hits again and again, more with bonus attack speed (Judgment's spins). */
+	attackSpeedHits?: AttackSpeedHits
 	/** Why the ability can't be cast at all (a passive only one): a cast is refused with it. */
 	noCast?: string
 	sourceUrl: string
