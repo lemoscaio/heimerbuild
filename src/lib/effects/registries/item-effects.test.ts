@@ -10,7 +10,7 @@ import {
 	percentBonusBasis,
 } from "../../stats/compute-build-stats"
 import { availableEffects } from "../available-effects"
-import { resolveGrants } from "../evaluate"
+import { resolveAmount, resolveGrants } from "../evaluate"
 import { ITEM_EFFECTS } from "./item-effects"
 
 function grantsOf(id: string) {
@@ -246,5 +246,176 @@ describe("Rabadon's Deathcap", async () => {
 				basis: { stat: "abilityPower", ratio: 0.3 },
 			},
 		])
+	})
+})
+
+function effectOf(id: string) {
+	const effect = ITEM_EFFECTS.find((entry) => entry.id === id)
+	if (!effect) throw new Error(`no item effect ${id}`)
+	return effect
+}
+
+// Wiki, checked 2026-10-09 (issue 418). Their damage is an on-hit effect's, kept off the stats panel.
+describe("on-hit items", () => {
+	test.each([
+		["recurve-bow-sting", "1043", "physical", 15, {}],
+		["wits-end-fray", "3091", "magic", 45, {}],
+		[
+			"nashors-tooth-icathian-bite",
+			"3115",
+			"magic",
+			15,
+			{ abilityPower: 0.15 },
+		],
+		["guinsoos-rageblade-wrath", "3124", "magic", 30, {}],
+		[
+			"terminus-shadow",
+			"3302",
+			"magic",
+			30,
+			{ bonusAttackDamage: 0.1, abilityPower: 0.1 },
+		],
+	] as const)(
+		"%s deals %s's damage on-hit",
+		(id, itemId, damageType, base, ratios) => {
+			const effect = effectOf(id)
+
+			expect(effect.source).toEqual({ kind: "item", itemId })
+			expect(effect.trigger).toEqual({ kind: "on-hit" })
+			expect(effect.listed).toBe(false)
+			expect(effect.grants).toEqual([
+				{ kind: "damage", damageType, base, ratios },
+			])
+		},
+	)
+
+	test("Blade of the Ruined King: 9% (6% ranged) of the target's current health", () => {
+		expect(effectOf("blade-of-the-ruined-king-mists-edge").grants).toEqual([
+			{
+				kind: "damage",
+				damageType: "physical",
+				ratios: {},
+				targetHealth: {
+					health: "current",
+					ratio: { by: "attackType", melee: 0.09, ranged: 0.06 },
+				},
+			},
+		])
+	})
+
+	test("Titanic Hydra: 1% (0.5% ranged) of the user's maximum health", () => {
+		expect(effectOf("titanic-hydra-cleave").grants).toEqual([
+			{
+				kind: "damage",
+				damageType: "physical",
+				base: {
+					by: "stat",
+					stat: "health",
+					ratio: { by: "attackType", melee: 0.01, ranged: 0.005 },
+				},
+				ratios: {},
+			},
+		])
+	})
+
+	test("none of them gets a row in the Effects list", () => {
+		const PATCH = "16.19.1"
+		const teemo = normalizeChampion(teemoDetail, teemoBin, PATCH)
+		const ids = ["1043", "3091", "3115", "3124", "3153", "3161", "3302"]
+		const available = availableEffects({
+			patch: PATCH,
+			champion: teemo,
+			ranks: { Q: 0, W: 0, E: 0, R: 0 },
+			spells: [],
+			runes: [],
+			items: ids.map((id) => ({ id, name: id, icon: "" })),
+		})
+
+		expect(available).toEqual([])
+	})
+})
+
+// Wiki item data: 150 + 5 × (x − 1) at levels 1 and 9 to 20 (150 to level 8, 200 at 18); ranged × 0.8.
+describe("Kraken Slayer's Bring It Down", () => {
+	const strike = effectOf("kraken-slayer-bring-it-down")
+	const [grant] = strike.grants
+	const base = grant?.kind === "damage" ? grant.base : undefined
+
+	function baseAt(level: number, attackType: "melee" | "ranged") {
+		if (!base || Array.isArray(base)) throw new Error("no single base")
+		const build = { id: strike.id, effect: strike, name: "", icon: "" }
+		return resolveAmount(
+			base as Exclude<typeof base, readonly unknown[]>,
+			build,
+			{
+				level,
+				attackType,
+			},
+		)
+	}
+
+	test("deals 150 to level 8, 155 at 9, 200 at 18 (melee); 120 and 160 ranged", () => {
+		expect([1, 8, 9, 18].map((level) => baseAt(level, "melee"))).toEqual([
+			150, 150, 155, 200,
+		])
+		expect(baseAt(1, "ranged")).toBeCloseTo(120)
+		expect(baseAt(18, "ranged")).toBeCloseTo(160)
+	})
+
+	test("strikes at the third stack, using them up, up to 75% more by missing health", () => {
+		const stacks = effectOf("kraken-slayer-stacks")
+
+		expect(stacks).toMatchObject({ duration: 4, stacks: { max: 3 } })
+		expect(strike.trigger).toEqual({
+			kind: "on-max-stacks",
+			effect: "kraken-slayer-stacks",
+		})
+		expect(strike.consumes).toBe("kraken-slayer-stacks")
+		expect(grant).toMatchObject({ missingHealthBonus: 0.75 })
+	})
+})
+
+// Wiki, checked 2026-10-09: Seething Strike's 4 s is V26.18's, the 7th attack's phantom hit V26.14's.
+describe("Guinsoo's Rageblade", () => {
+	test("Seething Strike: 8% attack speed per attack for 4 s, up to 32% at 4 stacks", () => {
+		expect(effectOf("guinsoos-rageblade-seething-strike")).toMatchObject({
+			trigger: { kind: "on-hit", attacksOnly: true },
+			duration: 4,
+			stacks: { max: 4 },
+			grants: [{ kind: "stat", stat: "attackSpeedPercent", amount: 0.32 }],
+		})
+	})
+
+	test("full, its attacks gather phantom stacks; the third applies on-hit again 0.15 s later", () => {
+		expect(effectOf("guinsoos-rageblade-phantom-stacks")).toMatchObject({
+			trigger: { kind: "on-hit", attacksOnly: true },
+			requiresMaxStacks: "guinsoos-rageblade-seething-strike",
+			duration: 4,
+			stacks: { max: 3 },
+		})
+		expect(effectOf("guinsoos-rageblade-phantom-hit")).toMatchObject({
+			trigger: {
+				kind: "on-max-stacks",
+				effect: "guinsoos-rageblade-phantom-stacks",
+			},
+			consumes: "guinsoos-rageblade-phantom-stacks",
+			delay: { seconds: 0.15 },
+			grants: [{ kind: "applyOnHit" }],
+		})
+	})
+})
+
+// Wiki, checked 2026-10-09: "3% increased damage" per stack for 6 s, "stacking up to 4 times".
+describe("Spear of Shojin's Focused Will", () => {
+	test("each ability's damage adds a stack: up to 12% more ability damage", () => {
+		expect(effectOf("spear-of-shojin-focused-will")).toMatchObject({
+			source: { kind: "item", itemId: "3161" },
+			trigger: { kind: "on-action-damage", abilitiesOnly: true },
+			duration: 6,
+			stacks: { max: 4 },
+			grants: [
+				{ kind: "damageAmplification", amount: 0.12, abilitiesOnly: true },
+			],
+		})
 	})
 })

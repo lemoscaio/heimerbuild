@@ -261,8 +261,9 @@ export type CounterGrant = {
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
  * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
  * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true
- * damage), `damageAmplification` on all the attacker's damage while it runs (Press the Attack's 8%),
- * `bonusTrueDamage` that share of each hit after mitigation, as true damage (First Strike's 7%);
+ * damage), `damageAmplification` on the attacker's damage while it runs (Press the Attack's 8%),
+ * `bonusTrueDamage` that share of each hit after mitigation, as true damage (First Strike's 7%),
+ * `applyOnHit`, on-hit effects applied once more as its effect takes effect (Guinsoo's Phantom Hit);
  * so are `resistReduction`, on the target, `cooldownMultiplier` and `attackMultiplier`.
  */
 export type Grant = GrantTiming &
@@ -280,9 +281,20 @@ export type Grant = GrantTiming &
 		| CooldownMultiplierGrant
 		| AttackMultiplierGrant
 		| CounterGrant
-		| { kind: "damageAmplification"; amount: Amount }
+		| DamageAmplificationGrant
 		| { kind: "bonusTrueDamage"; amount: Amount }
+		| { kind: "applyOnHit" }
 	)
+
+/**
+ * Multiplies the attacker's damage after mitigation by 1 + `amount` while its effect runs, scaled
+ * by its stacks (Spear of Shojin: 12% at 4); `abilitiesOnly`: only an ability's damage.
+ */
+export type DamageAmplificationGrant = {
+	kind: "damageAmplification"
+	amount: Amount
+	abilitiesOnly?: true
+}
 
 /**
  * Damage as a `base` plus ratios of the attacker's stats: dealt when its effect takes effect
@@ -293,13 +305,17 @@ export type DamageGrant = { kind: "damage" } & EffectDamage
 /**
  * Damage an effect deals: a `base`, its parts added up (Dark Harvest: 30 + 11 per soul; a share of
  * the attacker's health: Grasp), plus ratios of the attacker's stats, `perBonusAttackSpeed` more
- * per 100% bonus attack speed (Lethal Tempo: 1).
+ * per 100% bonus attack speed (Lethal Tempo: 1), and a `targetHealth` share read as the hit began
+ * (Blade of the Ruined King: 9% of current health). `missingHealthBonus`: up to that share more as
+ * the target's missing health grows to 100% (Kraken Slayer: 0.75).
  */
 export type EffectDamage = {
 	damageType: EffectDamageType
 	base?: Amount | readonly Amount[]
 	ratios: DamageRatios
 	perBonusAttackSpeed?: number
+	targetHealth?: { health: TargetHealth; ratio: Amount }
+	missingHealthBonus?: number
 }
 
 /**
@@ -338,8 +354,9 @@ export type EffectCondition = "not-damaged-recently"
  * source, once per moment (Black Cleaver's Carve); the `effect` with that id reaching its
  * `stacks.max` (Blaze's detonation at 3 stacks); or an action's damage landing, once per action, its
  * later hits and ticks not again (`on-action-damage`: Electrocute's stacks; with `targetBelow`, only
- * while the hit leaves the target under that share of its health: Dark Harvest's 50%). `on-hit` with
- * `attacksOnly` skips an ability's on-hit (Press the Attack's stacks).
+ * while the hit leaves the target under that share of its health: Dark Harvest's 50%; with
+ * `abilitiesOnly`, only a Q, W, E or R's damage: Spear of Shojin). `on-hit` with `attacksOnly` skips
+ * an ability's on-hit and a phantom hit's (Press the Attack's stacks, Seething Strike).
  */
 export type Trigger =
 	| { kind: "always" }
@@ -355,7 +372,7 @@ export type Trigger =
 	| { kind: "on-ability-damage" }
 	| { kind: "on-max-stacks"; effect: string }
 	| { kind: "on-damage"; damageType: DamageType }
-	| { kind: "on-action-damage"; targetBelow?: number }
+	| { kind: "on-action-damage"; targetBelow?: number; abilitiesOnly?: true }
 
 export type TriggerKind = Trigger["kind"]
 
@@ -504,6 +521,11 @@ export type Effect = PatchRange & {
 	consumes?: string
 	/** It triggers only while the effect with this id is off cooldown (Electrocute's stacks). */
 	requiresReady?: string
+	/**
+	 * It triggers only while the effect with this id is at its most stacks, read before the hit's
+	 * on-hit effects trigger (Guinsoo's phantom stacks, once Seething Strike is full).
+	 */
+	requiresMaxStacks?: string
 	/** Who holds it: the attacker (absent), or the target (Ignite's burn, Toxic Shot's poison). */
 	holder?: "target"
 	/** Replaces the trigger's default (`isOnByDefault`). */
