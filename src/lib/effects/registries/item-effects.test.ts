@@ -1,9 +1,16 @@
 import { describe, expect, test } from "bun:test"
+import { championSchema } from "@schemas/champion"
+import { ItemsFileSchema } from "@schemas/item"
 import teemoBin from "../../../../scripts/sync-data/fixtures/champions/Teemo.bin.json"
 import teemoDetail from "../../../../scripts/sync-data/fixtures/champions/Teemo.json"
 import { normalizeChampion } from "../../../../scripts/sync-data/normalize-champions"
-import { computeBuildStats } from "../../stats/compute-build-stats"
+import {
+	type BuildStatsInput,
+	computeBuildStats,
+	percentBonusBasis,
+} from "../../stats/compute-build-stats"
 import { availableEffects } from "../available-effects"
+import { resolveGrants } from "../evaluate"
 import { ITEM_EFFECTS } from "./item-effects"
 
 function grantsOf(id: string) {
@@ -163,5 +170,81 @@ describe("items with match stacks", () => {
 			statsWith(HEARTSTEEL, { "heartsteel-health": count }).health.bonus
 
 		expect(health(640) - health(0)).toBe(640)
+	})
+})
+
+// Wiki, checked 2026-10-08 (issue 416): "Magical Opus: Increase your ability power by 30%."
+describe("Rabadon's Deathcap", async () => {
+	const DATA = new URL("../../../../public/data/", import.meta.url)
+	const { currentPatch: PATCH } = await Bun.file(
+		new URL("manifest.json", DATA),
+	).json()
+	const veigar = championSchema.parse(
+		await Bun.file(new URL(`${PATCH}/champions/Veigar.json`, DATA)).json(),
+	)
+	const { items } = ItemsFileSchema.parse(
+		await Bun.file(new URL(`${PATCH}/items.json`, DATA)).json(),
+	)
+	function itemOf(itemId: string) {
+		const item = items.find(({ id }) => id === itemId)
+		if (!item) throw new Error(`no item ${itemId} in the patch data`)
+		return item
+	}
+	const deathcap = itemOf("3089")
+	const ranks = { Q: 0, W: 0, E: 0, R: 0 }
+
+	/** Veigar at level 1 holding Rabadon's Deathcap, its stats and its effects. */
+	function input(matchStacks?: Record<string, number>): BuildStatsInput {
+		const available = availableEffects({
+			patch: PATCH,
+			champion: veigar,
+			ranks,
+			spells: [],
+			runes: [],
+			items: [deathcap],
+		})
+		return {
+			champion: veigar,
+			patch: PATCH,
+			level: 1,
+			items: [deathcap],
+			shards: [],
+			ranks,
+			effects: { available, overrides: {} },
+			matchStacks,
+		}
+	}
+
+	test("alone at level 1 it gives 169 ability power: its 130 and 30% more", () => {
+		expect(deathcap.stats.abilityPower).toBe(130)
+		expect(computeBuildStats(input()).abilityPower.total).toBeCloseTo(169)
+	})
+
+	test("the 30% includes the match stacks: 100 Phenomenal Evil stacks give (130 + 100) × 1.3", () => {
+		const stats = computeBuildStats(input({ "phenomenal-evil": 100 }))
+
+		expect(stats.abilityPower.total).toBeCloseTo((130 + 100) * 1.3)
+	})
+
+	test("its row tells the bonus and what it reads: +39 of 130 ability power", () => {
+		const build = input()
+		const opus = build.effects?.available.find(
+			({ id }) => id === "rabadons-deathcap-magical-opus",
+		)
+		if (!opus) throw new Error("Magical Opus is not in the build")
+
+		expect(
+			resolveGrants(opus, {
+				level: 1,
+				percentBasis: percentBonusBasis(build),
+			}),
+		).toEqual([
+			{
+				kind: "stat",
+				stat: "abilityPower",
+				value: expect.closeTo(39),
+				basis: { stat: "abilityPower", ratio: 0.3 },
+			},
+		])
 	})
 })

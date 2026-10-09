@@ -7,6 +7,7 @@ import {
 	activeEffects,
 	alwaysOnRankStats,
 	attackSpeedMultipliers,
+	type EvaluationStep,
 	effectStatsInput,
 	isEffectOn,
 	resolveAmount,
@@ -336,6 +337,29 @@ describe("resolveAmount, amounts that read the build", () => {
 		expect(resolveAmount(amount, malphiteW, context)).toBeUndefined()
 	})
 
+	test("a percent-of-total amount is its ratio of the totals with every flat bonus, never of the stat-dependent basis", () => {
+		const amount = { by: "percentOfTotal", stat: "armor", ratio: 0.3 } as const
+		const percentBasis = totalsWith({ armor: 200 })
+		const totals = totalsWith({ armor: 100 })
+
+		expect(
+			resolveAmount(amount, malphiteW, { ...context, totals, percentBasis }),
+		).toBe(60)
+		expect(resolveAmount(amount, malphiteW, { ...context, totals })).toBe(
+			undefined,
+		)
+		expect(
+			resolveGrants(alwaysOnGrant(amount), { ...context, percentBasis }),
+		).toEqual([
+			{
+				kind: "stat",
+				stat: "armor",
+				value: 60,
+				basis: { stat: "armor", ratio: 0.3 },
+			},
+		])
+	})
+
 	test("a stat decay amount shrinks by its factor per step of the stat: Harrier's 7 s at 0 to 2.56 s at 100% crit", () => {
 		const amount = {
 			by: "statDecay",
@@ -558,6 +582,29 @@ describe("effectStatsInput", () => {
 				{ step: "stat-dependent" },
 			),
 		).toEqual({ stats: { armor: expect.closeTo(20) } })
+	})
+
+	test("the percent-of-total grants have their own step, after the stat-dependent ones", () => {
+		const percent = alwaysOnGrant({
+			by: "percentOfTotal",
+			stat: "armor",
+			ratio: 0.3,
+		})
+		const active = [teemoPassive, malphiteW, percent]
+		const totals = totalsWith({ armor: 100 })
+		const percentBasis = totalsWith({ armor: 120 })
+		const at = (step: EvaluationStep) =>
+			effectStatsInput(active, { ...context, totals, percentBasis }, { step })
+
+		expect(at("effects")).toEqual({
+			stats: { movementSpeedPercent: expect.closeTo(0.2) },
+		})
+		expect(at("stat-dependent")).toEqual({
+			stats: { armor: expect.closeTo(20) },
+		})
+		expect(at("percent-of-total")).toEqual({
+			stats: { armor: expect.closeTo(36) },
+		})
 	})
 
 	test("sums the active effects' stats; shields stay out", () => {
