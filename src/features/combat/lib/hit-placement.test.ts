@@ -413,6 +413,16 @@ describe("List, expanded combo and Timeline agree (issue 429)", () => {
 		},
 	)
 
+	test("the Timeline's health only goes down, a proc landing with its attack showing the same", () => {
+		const healths = VAYNE.timeline.entries.flatMap((entry) =>
+			entry.kind !== "marker" && entry.targetHealth !== undefined
+				? [entry.targetHealth]
+				: [],
+		)
+
+		expect(healths).toEqual(healths.toSorted((a, b) => b - a))
+	})
+
 	test("the Timeline names the phantom hit's card after its effect, not its first on-hit", () => {
 		const names = VAYNE.timeline.entries.flatMap((entry) =>
 			entry.kind === "proc" &&
