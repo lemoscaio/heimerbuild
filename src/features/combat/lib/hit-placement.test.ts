@@ -15,7 +15,7 @@ import { ITEM_EFFECTS } from "@/lib/effects/registries/item-effects"
 import { RUNE_EFFECTS } from "@/lib/effects/registries/rune-effects"
 import { abilitiesInForm } from "@/lib/form-abilities"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
-import { combatRows, timedHits } from "./combat-rows"
+import { combatRows, outsideRows, timedHits } from "./combat-rows"
 import { combatTimeline } from "./combat-timeline"
 import { type CombatNames, combatNames, stepView } from "./combat-view"
 import {
@@ -452,4 +452,25 @@ describe("List, expanded combo and Timeline agree (issue 429)", () => {
 
 		expect(labels).toEqual(["Fray", "Mist's Edge", "Wrath"])
 	})
+})
+
+// PROTOTYPE (PR 434, remove before merge with the outside layout).
+describe("outsideRows", () => {
+	test.each(["hit", "step"] as const)(
+		"in %s order, the running total goes down the rows and procs as shown, to the combo's damage",
+		(order) => {
+			const rows = combatRows(VAYNE.result, { ...VAYNE, order })
+			const entries = outsideRows(rows, { target: VAYNE.target, order })
+			const dealt = entries.map((entry) =>
+				entry.kind === "item" ? entry.item.dealt : entry.proc.dealt,
+			)
+
+			expect(entries.filter(({ kind }) => kind === "proc")).toHaveLength(2)
+			expect(dealt).toEqual(dealt.toSorted((a, b) => a - b))
+			expect(dealt.at(-1)).toBeCloseTo(VAYNE.result.total.final)
+			for (const entry of entries) {
+				if (entry.kind === "item") expect(entry.item.procs).toEqual([])
+			}
+		},
+	)
 })
