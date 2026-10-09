@@ -1,7 +1,7 @@
 import * as z from "zod/mini"
 import { MOCKUP_BUILD_IDS } from "./mockup-builds"
 
-export const MOCKUP_OPTIONS = ["expand", "columns", "bars"] as const
+export const MOCKUP_OPTIONS = ["expand", "columns", "bars", "sources"] as const
 
 export type MockupOption = (typeof MOCKUP_OPTIONS)[number]
 
@@ -13,7 +13,7 @@ const mockupSearchSchema = z.object({
 		undefined,
 	),
 	preview: z.catch(z.optional(z.boolean()), undefined),
-	/** The option shown below `lg`; wider screens show all three side by side. */
+	/** The option shown below `lg`; wider screens show them all side by side. */
 	option: z.catch(z.optional(z.enum(MOCKUP_OPTIONS)), undefined),
 })
 
