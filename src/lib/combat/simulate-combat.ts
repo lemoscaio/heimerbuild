@@ -523,6 +523,32 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
 	triggerOnActionDamage(sim, source)
+	dealBonusTrueDamage(sim, source, final)
+}
+
+/**
+ * Each running effect's `bonusTrueDamage`: its share of a hit's damage after mitigation, the hit that
+ * started it included (wiki First Strike); its own hits add none. Its missile's travel isn't counted.
+ */
+function dealBonusTrueDamage(
+	sim: Simulation,
+	source: DamageSource,
+	final: number,
+) {
+	for (const instance of sim.active) {
+		if (instance.holder !== "attacker") continue
+		const { effect } = instance
+		if (source.kind === "effect" && source.effectId === effect.id) continue
+		for (const grant of effect.effect.grants) {
+			if (grant.kind !== "bonusTrueDamage") continue
+			const share = resolveAmount(grant.amount, effect, sim.context) ?? 0
+			deal(sim, {
+				source: effectSource(instance),
+				type: "true",
+				raw: share * final,
+			})
+		}
+	}
 }
 
 /** What the attacker's running effects multiply its damage by, after mitigation (Press the Attack's 8%). */
@@ -550,10 +576,13 @@ function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	const action = sim.owner ?? sim.step
 	const pending: PendingMarks = []
 	for (const effect of sim.input.effects) {
-		if (effect.effect.trigger.kind !== "on-action-damage") continue
+		const { trigger: on } = effect.effect
+		if (on.kind !== "on-action-damage") continue
 		const hit = isActionPerHit(sim, source, effect.id) ? `@${sim.time}` : ""
 		const key = `${effect.id}@${action}${hit}`
 		if (sim.actionDamageTriggered.has(key)) continue
+		const below = on.targetBelow ?? Number.POSITIVE_INFINITY
+		if (sim.health >= below * sim.input.target.health) continue
 		sim.actionDamageTriggered.add(key)
 		const by = source.kind === "attack" ? "attack" : "other"
 		trigger(sim, effect, pending, { by })
@@ -680,13 +709,15 @@ function grantDamage(
 	grant: EffectDamage,
 	effect: BuildEffect,
 ): { type: DamageType; raw: number } | undefined {
-	const base =
-		grant.base === undefined
-			? 0
-			: resolveAmount(grant.base, effect, sim.context)
-	if (base === undefined) return undefined
 	const { champion } = sim.input.build
 	const stats = statsNow(sim)
+	const parts = [grant.base ?? 0]
+		.flat()
+		.map((part) =>
+			resolveAmount(part, effect, { ...sim.context, totals: stats }),
+		)
+	if (parts.some((part) => part === undefined)) return undefined
+	const base = parts.reduce<number>((sum, part) => sum + (part ?? 0), 0)
 	const type = effectDamageType(grant.damageType, {
 		stats,
 		ratios: grant.ratios,
@@ -918,7 +949,10 @@ function trigger(
 		requiresReady,
 	} = effect.effect
 	if (requiresReady && isOnCooldown(sim, requiresReady)) return
+	const cooldownAtTrigger = !endsOn && !cooldownFrom
 	if (delay && !landing) {
+		// Its cooldown runs from the trigger, so it can't trigger again while it waits to land.
+		if (cooldownAtTrigger) startCooldown(sim, effect)
 		const owner = sim.owner ?? sim.step
 		sim.delayed.push({
 			at: sim.time + delay.seconds,
@@ -938,7 +972,7 @@ function trigger(
 	if (!isEndedBy(effect, "on-hit")) {
 		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
 	}
-	if (!endsOn && !cooldownFrom) startCooldown(sim, effect)
+	if (cooldownAtTrigger && !(delay && landing)) startCooldown(sim, effect)
 
 	const duration = options.duration ?? effectDuration(effect, sim.context)
 	if (!duration) return
