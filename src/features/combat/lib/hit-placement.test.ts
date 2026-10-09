@@ -334,14 +334,12 @@ describe("the List's cards (stepView on placed steps)", () => {
 
 	test("Grasp of the Undying's proc is a line of the attack (on-hit, though it has a cooldown)", () => {
 		const views = listViews(
-			combo({ ...GAREN, runes: [rune("GraspOfTheUndying")] }, [
-				{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
-				ATTACK,
-			]),
+			// Ready at the start (issue 317).
+			combo({ ...GAREN, runes: [rune("GraspOfTheUndying")] }, [ATTACK]),
 		)
 
 		expect(procIds(views)).toEqual([])
-		expect(views[1]?.hits.map(({ name }) => name)).toContain(
+		expect(views[0]?.hits.map(({ name }) => name)).toContain(
 			"Grasp of the Undying",
 		)
 	})
