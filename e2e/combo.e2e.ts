@@ -696,3 +696,21 @@ test("Black Cleaver lowers the target's armor for the hits after each attack, an
 	// Nothing while camouflaged; the leap reduces the armor after it lands.
 	await expect(resists).toHaveCount(1)
 })
+
+test("a cooldown started on cooldown leaves the link with its item: no orphan in the Combo start", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Annie?lvl=9&skills=QWEQQRQEQ&items=3057&tab=combo&combo=q&start=-sheen-spellblade",
+	)
+	const addBack = combo(page).getByRole("button", {
+		name: "Add back a cooldown ready at the start",
+	})
+	await expect(addBack).toBeVisible()
+
+	await page.getByRole("button", { name: "Remove Sheen" }).first().click()
+	await expect(addBack).toHaveCount(0)
+	await combo(page).getByRole("button", { name: "Add Attack" }).click()
+	await expect(page).toHaveURL(/[?&]combo=q\.aa(&|$)/)
+	await expect(page).not.toHaveURL(/[?&]start=/)
+})
