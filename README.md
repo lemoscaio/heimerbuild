@@ -17,7 +17,7 @@
 - **Know when a build isn't possible in-game.** Build what you want; if it breaks a game rule (two pairs of boots, two copies of a legendary), Heimerbuild tells you which rule and why.
 - **Find the right item fast.** Filter the shop by role or by stats, sort it by any stat, and check price, stats and description in a tooltip.
 - **Spend skill points like in the game.** Pick which ability gets each level's point, with the game's rank rules and the rank-up tooltip ("Damage 80 → 125"), and see the whole order and every ability's values per rank in the Skills tab; levels you leave alone follow the game's suggested order, and ranks that grant stats show on the stats panel.
-- **Try a combo.** In the Combo tab, add attacks, abilities, summoner spells and waits in order and see each step's damage against a target (presets or your own health, armor and magic resist), the effects running, and whether and when it kills. Checked on the wiki for Annie, Brand, Braum, Ezreal, Janna, Leona, Lissandra, Lux, Maokai, Morgana, Nautilus, Quinn, Singed, Taric, Veigar, Zac and Ziggs; other champions show what isn't modeled yet.
+- **Try a combo.** In the Combo tab, add attacks, abilities, summoner spells and waits in order and see each step's damage against a target (presets or your own health, armor and magic resist), the effects running, and whether and when it kills. Checked on the wiki for Annie, Brand, Braum, Ezreal, Garen, Janna, Jax, Leona, Lissandra, Lux, Maokai, Morgana, Nasus, Nautilus, Quinn, Rengar, Singed, Taric, Teemo, Veigar, Zac and Ziggs; other champions show what isn't modeled yet.
 - **Share a build with a link.** The champion, level, items and skill points live in the URL.
 - **Champion details:** roles, attack type and lore.
 
@@ -25,10 +25,16 @@
 
 League is a game of numbers. A small change to an AD ratio can reshape the meta, and deciding between two items often comes down to math the client never shows you. Practice Tool can answer some of it, but it means starting a match, buying items and reading numbers by hand.
 
-Heimerbuild answers those questions in seconds, with numbers you can trust. Today it covers champion and item stats. Next up:
+Heimerbuild answers those questions in seconds, with numbers you can trust. Today it covers:
 
-- **Damage calculator:** auto-attack and ability damage against a chosen champion, damage taken, and eventually full combos.
-- **More build parameters:** runes, item stacks, dragons and role quest rewards.
+- **Stats:** champion stats at any level with items, runes, summoner spells, skill points, champion forms and conditional effects (current health, game time, match stacks such as Nasus's or Mejai's).
+- **Abilities:** each ability's values per rank, and its damage with the build.
+- **Combos:** a combo simulator against a target dummy, with attack timing, cooldowns, damage over time, resist reduction and a step list or timeline of every hit.
+
+Next up:
+
+- **Damage calculator:** the opponent's build as the target, damage taken, critical strikes, and more item and rune procs in combos.
+- **More build parameters:** dragons, role quest rewards and expected gold by game time.
 - **Build suggestions** based on win rates, and **pro builds**.
 - **Community builds** that players can publish, explain and vote on.
 
