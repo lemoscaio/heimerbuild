@@ -274,12 +274,7 @@ export type Grant = GrantTiming &
 		| DamageGrant
 		| { kind: "abilityDamage"; ability: AbilitySlot | "passive"; name: string }
 		| DamageOverTimeGrant
-		| {
-				kind: "onAttackDamage"
-				damageType: DamageType
-				base?: TableAmount
-				ratios: DamageRatios
-		  }
+		| ({ kind: "onAttackDamage" } & EffectDamage)
 		| ResistReductionGrant
 		| CooldownMultiplierGrant
 		| AttackMultiplierGrant
@@ -291,11 +286,17 @@ export type Grant = GrantTiming &
  * Damage as a `base` plus ratios of the attacker's stats: dealt when its effect takes effect
  * (Electrocute), or when an on-hit spends it (a spellblade, `endsOn: "on-hit"`).
  */
-export type DamageGrant = {
-	kind: "damage"
+export type DamageGrant = { kind: "damage" } & EffectDamage
+
+/**
+ * Damage an effect deals: a `base` (by melee or ranged too: Lethal Tempo's bolt) plus ratios of the
+ * attacker's stats, `perBonusAttackSpeed` more per 100% bonus attack speed (Lethal Tempo: 1).
+ */
+export type EffectDamage = {
 	damageType: EffectDamageType
-	base?: TableAmount
+	base?: TableAmount | AttackTypeAmount
 	ratios: DamageRatios
+	perBonusAttackSpeed?: number
 }
 
 /**
@@ -308,11 +309,17 @@ export type GrantTiming = {
 	decay?: { over?: Amount; to?: Amount }
 }
 
+/** Stacks an `on-action-damage` trigger adds, by a basic attack's damage or other damage (Conqueror). */
+export type StackGain = { attack: Amount; other: Amount }
+
 /** A count of a match stack source: Mejai's Soulstealer at 10 Glory. */
 export type StacksThreshold = { source: MatchStackSource; stacks: number }
 
-/** A grant that holds only `from` a source's count on (Mejai's 10% move speed at 10 Glory). */
-export type GrantThreshold = { from?: StacksThreshold }
+/**
+ * A grant that holds only `from` a source's count on (Mejai's 10% move speed at 10 Glory), or only
+ * `atMaxStacks` of its effect, whole (Lethal Tempo's bolt at 6 stacks).
+ */
+export type GrantThreshold = { from?: StacksThreshold; atMaxStacks?: true }
 
 /** A state the champion holds while the effect lasts. */
 export type EffectCondition = "not-damaged-recently"
@@ -472,6 +479,7 @@ export type Effect = PatchRange & {
 		shares?: readonly number[]
 		/** A new stack doesn't refresh its duration: it runs from the first (Electrocute's 3 s). */
 		keepsDuration?: true
+		gain?: StackGain
 	}
 	/**
 	 * The basic attacks it holds for, then it ends: an `on-attack` one's include the attack that

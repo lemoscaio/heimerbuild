@@ -138,6 +138,11 @@ export type AbilityHitRule = PatchRange & {
 	 * (Noxian Guillotine: 20% per Hemorrhage stack, double at 5).
 	 */
 	perTargetStack?: { effect: string; bonus: number }
+	/**
+	 * The `on-action-damage` effects, by id, that count each of its hits as an action of its own
+	 * instead of one per cast (wiki Conqueror: Judgment stacks it "for every tick of damage").
+	 */
+	actionPerHit?: readonly string[]
 	sourceUrl: string
 }
 

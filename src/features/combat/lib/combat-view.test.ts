@@ -261,6 +261,32 @@ describe("stepView", () => {
 		expect(runningEffectText({ name: "Teemo's W" })).toBe("Teemo's W")
 	})
 
+	test("says the stacks of an effect that has several (issue 417)", () => {
+		const names = combatNames({
+			passiveName: "Courage",
+			spells: [],
+			effects: [bound({ id: "conqueror" }, "Conqueror")],
+		})
+		const conqueror = stepView(
+			{
+				...STEP,
+				active: [
+					{
+						effectId: "conqueror",
+						holder: "attacker",
+						startedAt: 0,
+						endsAt: 5.26,
+						stacks: 6,
+						maxStacks: 12,
+					},
+				],
+			},
+			{ names, target: TARGET },
+		).effects.map(runningEffectText)
+
+		expect(conqueror).toEqual(["Conqueror · 6/12 stacks · until 5.26 s"])
+	})
+
 	test("says when a mark or a spent effect came from a marker", () => {
 		const fromStart = stepView(
 			{
@@ -424,6 +450,22 @@ describe("outcomeViews", () => {
 				"Harrier",
 			),
 		],
+	})
+
+	test("an empowering effect with stacks says them (Lethal Tempo, issue 417)", () => {
+		const [tempo] = outcomeViews(
+			[
+				{
+					kind: "empowered",
+					effectId: "hail-of-blades",
+					happened: true,
+					stacks: { count: 3, max: 6 },
+				},
+			],
+			{ names },
+		)
+
+		expect(tempo?.detail).toBe("3/6 stacks")
 	})
 
 	test("names each outcome, with an empowered attack's charge or when the effect is ready again", () => {
