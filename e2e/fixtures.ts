@@ -33,6 +33,20 @@ export const test = base.extend({
 	},
 })
 
+/**
+ * A locator's text once it stops changing. The Stats panel's numbers count to each new value
+ * (about 200 ms), so a text read right after an edit or a data load can catch them halfway.
+ */
+export async function settledText(locator: Locator) {
+	let text = await locator.textContent()
+	for (;;) {
+		await locator.page().waitForTimeout(300)
+		const next = await locator.textContent()
+		if (next === text) return text
+		text = next
+	}
+}
+
 export function statsPanel(page: Page) {
 	return page.getByRole("region", { name: "Champion stats" })
 }

@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { statsPanel, test } from "./fixtures"
+import { settledText, statsPanel, test } from "./fixtures"
 
 function row(page: Page, name: string) {
 	return page.getByRole("radiogroup", { name, exact: true })
@@ -18,7 +18,7 @@ test("a rune page changes the stats with its shards, and a copied link restores 
 	await page.getByRole("tab", { name: "Runes" }).click()
 	const stats = statsPanel(page)
 	await expect(stats).toBeVisible()
-	const withoutRunes = await stats.textContent()
+	const withoutRunes = await settledText(stats)
 
 	await choice(page, "Primary tree", "Sorcery").click()
 	await choice(page, "Sorcery keystone", "Arcane Comet").click()
@@ -36,7 +36,7 @@ test("a rune page changes the stats with its shards, and a copied link restores 
 	await expect(
 		choice(page, "Defense shard", "Tenacity and Slow Resist"),
 	).toBeChecked()
-	const withRunes = await stats.textContent()
+	const withRunes = await settledText(stats)
 
 	await page.getByRole("button", { name: "Copy link" }).click()
 	await expect(page.getByRole("status").filter({ hasText: /\S/ })).toBeVisible()

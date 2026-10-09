@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { levelSlider, statsPanel, test } from "./fixtures"
+import { levelSlider, settledText, statsPanel, test } from "./fixtures"
 
 // Teemo at level 5 with W at rank 2: Move Quick's passive is on by default.
 const TEEMO = "/champions/Teemo?lvl=5&skills=QWEQW"
@@ -16,7 +16,7 @@ async function movementSpeed(page: Page) {
 	const row = statsPanel(page)
 		.getByRole("listitem")
 		.filter({ has: page.getByText("Movement Speed", { exact: true }) })
-	const text = (await row.textContent()) ?? ""
+	const text = (await settledText(row)) ?? ""
 	return Number(/\d+(?:\.\d+)?/.exec(text)?.[0])
 }
 
@@ -26,7 +26,7 @@ test("a link's effect choices change the stats and stay through an edit, a reloa
 	await page.goto(TEEMO)
 	const stats = statsPanel(page)
 	await expect(stats).toBeVisible()
-	const withPassive = await stats.textContent()
+	const withPassive = await settledText(stats)
 
 	await page.goto(`${TEEMO}&effects=-teemo-w-passive`)
 	await expect(stats).not.toHaveText(withPassive ?? "")

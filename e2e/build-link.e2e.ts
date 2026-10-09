@@ -3,6 +3,7 @@ import {
 	chosenItems,
 	itemNames,
 	levelSlider,
+	settledText,
 	statsPanel,
 	test,
 } from "./fixtures"
@@ -25,7 +26,7 @@ test("a link without a version opens the same build as its v=1 link, and an edit
 	await expect(levelSlider(page)).toHaveValue("6")
 	await expect(chosenItems(page)).toHaveCount(2)
 	await expect(keystone(page)).toBeChecked()
-	const stats = await statsPanel(page).textContent()
+	const stats = await settledText(statsPanel(page))
 	const items = await itemNames(chosenItems(page))
 
 	const versioned = await context.newPage()
