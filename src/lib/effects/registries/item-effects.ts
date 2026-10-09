@@ -1,4 +1,4 @@
-import type { Effect, MatchStackSource } from "../effect"
+import type { Effect, LevelStep, MatchStackSource } from "../effect"
 import { VERIFIED_ON } from "./verified-on"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
@@ -27,13 +27,32 @@ export const HEARTSTEEL_HEALTH = {
 	sliderMax: 1500,
 } as const satisfies MatchStackSource
 
+const KRAKEN_SLAYER_STACKS = "kraken-slayer-stacks"
+const SEETHING_STRIKE = "guinsoos-rageblade-seething-strike"
+const PHANTOM_STACKS = "guinsoos-rageblade-phantom-stacks"
+
+/**
+ * Bring It Down's damage by level: wiki item data `150 + 5 × (x − 1)` with x = 1 to level 8, then
+ * level − 7 (155 at 9, 200 at 18); ranged deals 80% of it.
+ */
+function bringItDown(scale: number): LevelStep[] {
+	return [
+		{ from: 1, value: 150 * scale },
+		...Array.from({ length: 10 }, (_, index) => ({
+			from: 9 + index,
+			value: (155 + 5 * index) * scale,
+		})),
+	]
+}
+
 /**
  * Item effects. The spellblades, Torment and Carve are the combat simulator's (`listed: false` keeps
  * the spellblades off the stats panel); the match stacks are the panel's too. The ratios match
  * CommunityDragon's 16.19 item data (`SpellbladeMultiplier`, `SpellbladeADRatio`, `LichBaneAPValue`).
  * A spellblade is primed at an ability's cast and spent by the next on-hit, which deals its damage
  * and starts its cooldown (wiki "Spellblade"). Liandry's burn checked on the wiki on 2026-10-06,
- * Black Cleaver's Carve on 2026-10-07.
+ * Black Cleaver's Carve on 2026-10-07, the on-hit items (issue 418) on 2026-10-09: their damage is
+ * an `on-hit` effect's, so an ability that applies on-hit applies it too (`listed: false`).
  */
 export const ITEM_EFFECTS: readonly Effect[] = [
 	{
@@ -205,5 +224,214 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Rabadon%27s_Deathcap`,
+	},
+	{
+		// Wiki: "Basic attacks deal 15 bonus physical damage on-hit."
+		id: "recurve-bow-sting",
+		source: { kind: "item", itemId: "1043" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "Sting",
+		grants: [{ kind: "damage", damageType: "physical", base: 15, ratios: {} }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Recurve_Bow`,
+	},
+	{
+		// Wiki: "Basic attacks deal 45 bonus magic damage on-hit."
+		id: "wits-end-fray",
+		source: { kind: "item", itemId: "3091" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "Fray",
+		grants: [{ kind: "damage", damageType: "magic", base: 45, ratios: {} }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Wit%27s_End`,
+	},
+	{
+		// Wiki: "Basic attacks deal 15 (+ 15% AP) bonus magic damage on-hit."
+		id: "nashors-tooth-icathian-bite",
+		source: { kind: "item", itemId: "3115" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "Icathian Bite",
+		grants: [
+			{
+				kind: "damage",
+				damageType: "magic",
+				base: 15,
+				ratios: { abilityPower: 0.15 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Nashor%27s_Tooth`,
+	},
+	{
+		// Wiki: "Basic attacks deal 30 (+10% bonus AD) (+ 10% AP) bonus magic damage on-hit."
+		id: "terminus-shadow",
+		source: { kind: "item", itemId: "3302" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "Shadow",
+		grants: [
+			{
+				kind: "damage",
+				damageType: "magic",
+				base: 30,
+				ratios: { bonusAttackDamage: 0.1, abilityPower: 0.1 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Terminus`,
+	},
+	{
+		// Wiki: on-hit "(Melee 1% / Ranged 0.5%) maximum health bonus physical damage to the target"
+		// (the user's health). The cone behind it and Titanic Crescent (an active) are left out.
+		id: "titanic-hydra-cleave",
+		source: { kind: "item", itemId: "3748" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "Cleave",
+		grants: [
+			{
+				kind: "damage",
+				damageType: "physical",
+				base: {
+					by: "stat",
+					stat: "health",
+					ratio: { by: "attackType", melee: 0.01, ranged: 0.005 },
+				},
+				ratios: {},
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Titanic_Hydra`,
+	},
+	{
+		// Wiki: "bonus physical damage on-hit equal to (Melee 9% / Ranged 6%) of the target's current
+		// health", read as the attack began ("calculates at the beginning of the damage event").
+		id: "blade-of-the-ruined-king-mists-edge",
+		source: { kind: "item", itemId: "3153" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "Mist's Edge",
+		grants: [
+			{
+				kind: "damage",
+				damageType: "physical",
+				ratios: {},
+				targetHealth: {
+					health: "current",
+					ratio: { by: "attackType", melee: 0.09, ranged: 0.06 },
+				},
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Blade_of_the_Ruined_King`,
+	},
+	{
+		// Wiki: attacks "grant a stack for 4 seconds, up to 2 stacks. At 2 stacks, the next basic attack
+		// consumes all stacks": here 3 stacks, the third striking. Ranged gains them on-hit too.
+		id: KRAKEN_SLAYER_STACKS,
+		source: { kind: "item", itemId: "6672" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "stacks",
+		duration: 4,
+		stacks: { max: 3 },
+		grants: [],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Kraken_Slayer`,
+	},
+	{
+		// Wiki: "(Melee 150 – 210 / Ranged 120 – 168) (based on level) bonus physical damage on-hit,
+		// increased by 0% – 75% (based on target's missing health)"; levels 19 and 20 give the 210.
+		id: "kraken-slayer-bring-it-down",
+		source: { kind: "item", itemId: "6672" },
+		trigger: { kind: "on-max-stacks", effect: KRAKEN_SLAYER_STACKS },
+		consumes: KRAKEN_SLAYER_STACKS,
+		label: "Bring It Down",
+		grants: [
+			{
+				kind: "damage",
+				damageType: "physical",
+				base: {
+					by: "attackType",
+					melee: { by: "championLevel", steps: bringItDown(1) },
+					ranged: { by: "championLevel", steps: bringItDown(0.8) },
+				},
+				ratios: {},
+				missingHealthBonus: 0.75,
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Kraken_Slayer`,
+	},
+	{
+		// Wiki: "Basic attacks deal 30 bonus magic damage on-hit."
+		id: "guinsoos-rageblade-wrath",
+		source: { kind: "item", itemId: "3124" },
+		trigger: { kind: "on-hit" },
+		listed: false,
+		label: "Wrath",
+		grants: [{ kind: "damage", damageType: "magic", base: 30, ratios: {} }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Guinsoo%27s_Rageblade`,
+	},
+	{
+		// Wiki: attacks "grant 8% bonus attack speed for 4 seconds, stacking up to 4 times" (on-attack
+		// in game; here as the attack lands).
+		id: SEETHING_STRIKE,
+		source: { kind: "item", itemId: "3124" },
+		trigger: { kind: "on-hit", attacksOnly: true },
+		listed: false,
+		label: "Seething Strike",
+		duration: 4,
+		stacks: { max: 4 },
+		grants: [{ kind: "stat", stat: "attackSpeedPercent", amount: 0.32 }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Guinsoo%27s_Rageblade`,
+	},
+	{
+		// Wiki: "At maximum stacks, basic attacks on-attack also grant a Phantom stack for 4 seconds, up
+		// to 2 stacks"; the next one spends them (here the third stack), so the 7th attack first (V26.14).
+		id: PHANTOM_STACKS,
+		source: { kind: "item", itemId: "3124" },
+		trigger: { kind: "on-hit", attacksOnly: true },
+		requiresMaxStacks: SEETHING_STRIKE,
+		listed: false,
+		label: "Phantom stacks",
+		duration: 4,
+		stacks: { max: 3 },
+		grants: [],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Guinsoo%27s_Rageblade`,
+	},
+	{
+		// Wiki: "a Phantom Hit that applies on-hit effects to the target after a 0.15-second delay";
+		// single-use on-hit effects (a spellblade) are spent by the attack itself.
+		id: "guinsoos-rageblade-phantom-hit",
+		source: { kind: "item", itemId: "3124" },
+		trigger: { kind: "on-max-stacks", effect: PHANTOM_STACKS },
+		consumes: PHANTOM_STACKS,
+		label: "Phantom Hit",
+		delay: { seconds: 0.15, label: "phantom hit" },
+		grants: [{ kind: "applyOnHit" }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Guinsoo%27s_Rageblade`,
+	},
+	{
+		// Wiki: ability damage from a non-innate cast instance "generates a stack of Focused Will for 6
+		// seconds, stacking up to 4 times", 3% more ability damage each; here one stack per action.
+		id: "spear-of-shojin-focused-will",
+		source: { kind: "item", itemId: "3161" },
+		trigger: { kind: "on-action-damage", abilitiesOnly: true },
+		label: "Focused Will",
+		duration: 6,
+		stacks: { max: 4 },
+		grants: [
+			{ kind: "damageAmplification", amount: 0.12, abilitiesOnly: true },
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Spear_of_Shojin`,
 	},
 ]
