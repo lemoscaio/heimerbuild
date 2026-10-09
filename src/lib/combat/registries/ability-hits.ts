@@ -27,14 +27,12 @@ import { ZAC_HIT_RULES } from "../../champions/zac"
 
 /**
  * A way to land a cast the simulator can't know, which the player picks per step: Decimate's outer
- * blade or inner handle, how long the target stays in Poison Trail. `damage` replaces the rule's.
+ * blade or inner handle, Pyroclasm's hits. `damage` replaces the rule's.
  */
 export type AbilityVariant = {
 	id: string
 	label: string
 	damage?: string | readonly string[]
-	/** How long the cast's own effects (`after-use`) run instead of their duration: the time in its area. */
-	duration?: number
 	/** The cast hits the target `count` times, `every` seconds apart (Pyroclasm's bounces). */
 	hits?: LaterHits
 	/** The one a step without a pick gets, instead of the first (Pyroclasm's 3 hits). */
@@ -50,8 +48,9 @@ export type AbilityVariant = {
 export type LaterHits = { count: number; every: number }
 
 /**
- * Hits spread evenly over `over` seconds from the cast's: `base`, plus one per `perBonusAttackSpeed`
- * of bonus attack speed (Judgment: 7 spins, plus one per 25%, over 3 s).
+ * Hits spread evenly over `over` seconds, each landing as its share ends, the last at `over`:
+ * `base`, plus one per `perBonusAttackSpeed` of bonus attack speed (Judgment: 7 spins, plus one per
+ * 25%, over 3 s; wiki: each spin damages "at the moment that spin completes").
  */
 export type AttackSpeedHits = {
 	base: number
@@ -71,6 +70,32 @@ export type Recasts = { count: number; within: number; every: number }
  * at `fullAt` bonus attack speed and beyond (Zap!: 0.6 s to 0.4 s at 250%).
  */
 export type AttackSpeedCastTime = { min: number; fullAt: number }
+
+/**
+ * How long the target stays in the cast's area, in seconds, which each step picks (issue 427): its
+ * full `max` by default. The cast's own effects (`after-use`) run that long plus `after`, and its
+ * `attackSpeedHits` land only up to it.
+ */
+export type TimeInArea = {
+	/** The shortest: Judgment's 1 s recast lock, Poison Trail's one pass (0 s). */
+	min: number
+	/** The longest and the default: the effect's full duration. */
+	max: number
+	/** The control's step: a tick's interval, so each step changes the ticks. */
+	step: number
+	/** Seconds its own effects run on after the target leaves (Poison Trail poisons 2 s more). */
+	after?: number
+	/** What the time says on the step ("In trail", "Spinning"). */
+	label: VariantsLabel
+	/** What its `attackSpeedHits` are called on the step ("4 of 7 spins"). */
+	hitsName?: string
+}
+
+/**
+ * While its time in the area runs, the champion can't declare basic attacks (Judgment): in strict
+ * mode an attack waits for it. A cast of `endedBy` ends it and the cast's hits still to land.
+ */
+export type BlocksAttacks = { endedBy: readonly AbilitySlot[] }
 
 /** What a rule's variants pick, as the step's input says it: `text` beside them, `name` for assistive tech. */
 export type VariantsLabel = { text: string; name: string }
@@ -119,6 +144,10 @@ export type AbilityHitRule = PatchRange & {
 	variants?: readonly AbilityVariant[]
 	/** What the variants pick, `LANDS_LABEL` when absent. */
 	variantsLabel?: VariantsLabel
+	/** How long the target stays in its area, picked per step in seconds (Judgment, Poison Trail). */
+	timeInArea?: TimeInArea
+	/** No basic attacks while its time in the area runs (Judgment). */
+	blocksAttacks?: BlocksAttacks
 	/** The cast is an empowered basic attack (Savagery, Siphoning Strike). */
 	empowersAttack?: EmpoweredAttack
 	/** The cast hits again and again, more with bonus attack speed (Judgment's spins). */
@@ -205,6 +234,25 @@ export function defaultVariant(
 	variants: readonly AbilityVariant[],
 ): AbilityVariant | undefined {
 	return variants.find((variant) => variant.default) ?? variants[0]
+}
+
+/** The time in an ability's area its step picks (`timeInArea`), if it has one. */
+export function abilityTimeInArea(
+	query: HitRuleQuery,
+	rules: readonly AbilityHitRule[] = ABILITY_HIT_RULES,
+): TimeInArea | undefined {
+	return findHitRule(rules, query)?.timeInArea
+}
+
+/** A step's seconds in the area: its pick on the range's steps and within it, the full `max` without one. */
+export function areaSeconds(
+	{ min, max, step }: Pick<TimeInArea, "min" | "max" | "step">,
+	seconds: number | undefined,
+): number {
+	if (seconds === undefined || !Number.isFinite(seconds)) return max
+	const stepped = min + Math.round((seconds - min) / step) * step
+	// Steps of 0.25 and 0.5 are exact in binary; rounding to 1/100 drops any float noise left.
+	return Math.min(max, Math.max(min, Math.round(stepped * 100) / 100))
 }
 
 /** What an ability's variants pick (`variantsLabel`), "Lands" by default. */

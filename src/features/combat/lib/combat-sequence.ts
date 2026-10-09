@@ -2,7 +2,9 @@ import type { AbilitySlot } from "@schemas/champion"
 import { type CombatItem, MAX_COMBAT_STEPS } from "@/lib/combat/combat"
 import {
 	type AbilityVariant,
+	areaSeconds,
 	defaultVariant,
+	type TimeInArea,
 } from "@/lib/combat/registries/ability-hits"
 
 /**
@@ -128,5 +130,28 @@ export function setStepVariant(
 		const { variant: _picked, ...action } = entry.action
 		const isDefault = defaultVariant(variantsOf(action.slot))?.id === variant
 		return { ...entry, action: isDefault ? action : { ...action, variant } }
+	})
+}
+
+/**
+ * The combo with an ability step's time in the area set (issue 427), on its range's steps and
+ * within it; the full time is saved as none, so the link omits it. Other steps are left alone.
+ */
+export function setStepInArea(
+	entries: readonly CombatEntry[],
+	id: number,
+	seconds: number,
+	timeInAreaOf: (slot: AbilitySlot) => TimeInArea | undefined,
+): CombatEntry[] {
+	return entries.map((entry) => {
+		if (entry.id !== id || entry.action.kind !== "ability") return entry
+		const { inArea: _picked, ...action } = entry.action
+		const range = timeInAreaOf(action.slot)
+		if (!range) return entry
+		const inArea = areaSeconds(range, seconds)
+		return {
+			...entry,
+			action: inArea === range.max ? action : { ...action, inArea },
+		}
 	})
 }

@@ -2,10 +2,7 @@
 // build's match stacks, `nasus-q-stacks`; none gained in a combo). Spirit Fire's fire burns and lowers armor while the target stays in it, and Fury of
 // the Sands' aura burns for up to 15 s and halves Siphoning Strike's cooldown. The life steal, the
 // slow and R's stats are left out.
-import type {
-	AbilityHitRule,
-	AbilityVariant,
-} from "../combat/registries/ability-hits"
+import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect, MatchStackSource } from "../effects/effect"
 import { VERIFIED_ON } from "../effects/registries/verified-on"
 import { percentLine, WIKI } from "./rule-helpers"
@@ -17,11 +14,6 @@ export const SIPHONING_STRIKE_STACKS = {
 	// The wiki gives no typical count; long games pass 1000.
 	sliderMax: 1500,
 } as const satisfies MatchStackSource
-
-/** A time the target stays in an area, as a preset. */
-function seconds(time: number): AbilityVariant {
-	return { id: `${time}s`, label: `${time} s`, duration: time }
-}
 
 export const NASUS_EFFECTS = [
 	{
@@ -94,7 +86,7 @@ export const NASUS_EFFECTS = [
 		sourceUrl: `${WIKI}Nasus/Fury_of_the_Sands`,
 	},
 	{
-		// On cast, not after use: the R variants' time in the aura doesn't shorten it.
+		// On cast, not after use: R's time in the aura doesn't shorten it.
 		id: "nasus-r-siphoning-strike",
 		source: { kind: "ability", championKey: "Nasus", slot: "R" },
 		trigger: { kind: "on-cast", slots: ["R"] },
@@ -120,8 +112,12 @@ export const NASUS_HIT_RULES = [
 		// The cast deals `InitialDamage`; the `nasus-e` effect burns while the target stays in the fire.
 		championKey: "Nasus",
 		slot: "E",
-		variants: [seconds(1), seconds(3), seconds(5)],
-		variantsLabel: { text: "In fire", name: "Time in the fire" },
+		timeInArea: {
+			min: 1,
+			max: 5,
+			step: 1,
+			label: { text: "In fire", name: "Time in the fire" },
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Nasus/Spirit_Fire`,
 	},
@@ -130,8 +126,12 @@ export const NASUS_HIT_RULES = [
 		championKey: "Nasus",
 		slot: "R",
 		damage: null,
-		variants: [seconds(5), seconds(10), seconds(15)],
-		variantsLabel: { text: "In aura", name: "Time in the aura" },
+		timeInArea: {
+			min: 0.5,
+			max: 15,
+			step: 0.5,
+			label: { text: "In aura", name: "Time in the aura" },
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Nasus/Fury_of_the_Sands`,
 	},

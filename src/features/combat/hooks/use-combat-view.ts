@@ -1,11 +1,18 @@
-import type { AreaVariant } from "@/lib/combat/area-ticks"
-import type { CombatAction, CombatTarget } from "@/lib/combat/combat"
+import type {
+	CombatAction,
+	CombatStep,
+	CombatTarget,
+} from "@/lib/combat/combat"
 import {
+	type AbilityVariant,
+	areaSeconds,
 	defaultVariant,
 	LANDS_LABEL,
+	type TimeInArea,
 	type VariantsLabel,
 } from "@/lib/combat/registries/ability-hits"
 import type { BuildEffect } from "@/lib/effects/effect"
+import { formatAreaResult } from "../lib/combat-format"
 import {
 	actionKey,
 	type GroupView,
@@ -47,9 +54,19 @@ export type CombatStepItem = {
 	/** Free mode: the outcomes only attacks have, said on an ability's card. */
 	attacksOnly?: string
 	/** The ways the ability can land, with the one picked (Decimate's outer blade). */
-	variants: readonly AreaVariant[]
-	/** What the variants pick ("Lands", "Poisoned"). */
+	variants: readonly AbilityVariant[]
+	/** What the variants pick ("Lands", "Hits"). */
 	variantsLabel: VariantsLabel
+	/** The time the target stays in the ability's area, when it has one (issue 427). */
+	area?: CombatStepArea
+}
+
+/** A step's time in the area: its range, the seconds it runs and what they deal ("4 of 7 spins", "3 ticks"). */
+export type CombatStepArea = {
+	range: TimeInArea
+	seconds: number
+	/** What its seconds deal, said beside them; absent when the step was refused. */
+	result?: string
 }
 
 /** A marker's line: its situation and what it did. */
@@ -85,9 +102,30 @@ function groupKey(item: CombatListItem) {
 			? {
 					...action,
 					variant: action.variant ?? defaultVariant(item.variants)?.id,
+					inArea: item.area?.seconds,
 				}
 			: action,
 	)
+}
+
+/** An ability step's time in its area and what it deals, when its ability has one. */
+function stepArea(
+	combat: Combat,
+	action: Extract<CombatAction, { kind: "ability" }>,
+	step: CombatStep | undefined,
+): CombatStepArea | undefined {
+	const range = combat.timeInArea(action.slot)
+	if (!range) return undefined
+	const seconds = areaSeconds(range, action.inArea)
+	const result =
+		step &&
+		!step.refused &&
+		formatAreaResult({
+			hits: step.hits,
+			ticks: combat.areaTicks(action.slot, seconds),
+			hitsName: range.hitsName,
+		})
+	return { range, seconds, ...(result && { result }) }
 }
 
 /** The list with each run of identical steps as one group (`groupRuns`), summed up by `groupView`. */
@@ -141,6 +179,7 @@ export function useCombatView({
 			}
 		}
 		const outcomes = step?.outcomes ?? []
+		const area = action.kind === "ability" && stepArea(combat, action, step)
 		return {
 			kind: "step",
 			id: entry.id,
@@ -159,6 +198,7 @@ export function useCombatView({
 				action.kind === "ability"
 					? combat.variantsLabel(action.slot)
 					: LANDS_LABEL,
+			...(area && { area }),
 		}
 	})
 

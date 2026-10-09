@@ -10,6 +10,7 @@ import {
 } from "../lib/combat-action-names"
 import { actionLabel } from "../lib/combat-format"
 import { CombatActionIcon } from "./combat-action-icon"
+import { CombatAreaTimeInput } from "./combat-area-time-input"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
 import { type CombatListMode, CombatStepOutcomes } from "./combat-step-outcomes"
@@ -31,6 +32,8 @@ type CombatStepRowsProps = {
 	onRemoveMarker: (id: number) => void
 	onWaitChange: (id: number, seconds: number) => void
 	onVariantChange: (id: number, variant: string) => void
+	/** An ability step's seconds in its area (issue 427). */
+	onInAreaChange: (id: number, seconds: number) => void
 } & React.ComponentProps<"section">
 
 /** The columns' names, over the rows; each row's cells say theirs to screen readers. */
@@ -60,7 +63,12 @@ type StepRowEntryProps = {
 	names: ActionNames
 } & Pick<
 	CombatStepRowsProps,
-	"mode" | "sources" | "onRemove" | "onWaitChange" | "onVariantChange"
+	| "mode"
+	| "sources"
+	| "onRemove"
+	| "onWaitChange"
+	| "onVariantChange"
+	| "onInAreaChange"
 >
 
 /** A step's row with its own controls: its wait's length, its input, its outcomes. */
@@ -73,6 +81,7 @@ function StepRowEntry({
 	onRemove,
 	onWaitChange,
 	onVariantChange,
+	onInAreaChange,
 }: StepRowEntryProps) {
 	const { id, action } = step
 	const label = actionLabel(action, names)
@@ -112,6 +121,12 @@ function StepRowEntry({
 							onValueChange={(variant) => onVariantChange(id, variant)}
 						/>
 					)}
+					{step.area && (
+						<CombatAreaTimeInput
+							area={step.area}
+							onSecondsChange={(seconds) => onInAreaChange(id, seconds)}
+						/>
+					)}
 				</>
 			}
 			outcomes={<CombatStepOutcomes step={step} mode={mode} />}
@@ -149,6 +164,7 @@ export function CombatStepRows({
 	onRemoveMarker,
 	onWaitChange,
 	onVariantChange,
+	onInAreaChange,
 	className,
 	...props
 }: CombatStepRowsProps) {
@@ -166,6 +182,7 @@ export function CombatStepRows({
 		onRemove,
 		onWaitChange,
 		onVariantChange,
+		onInAreaChange,
 	}
 
 	return (

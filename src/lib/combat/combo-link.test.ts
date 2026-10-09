@@ -36,11 +36,29 @@ describe("the combo value", () => {
 		expect(readComboItems(serializeComboItems(EVERY_KIND))).toEqual(EVERY_KIND)
 	})
 
-	test("keeps a time in the area as a variant: 4 s in Poison Trail", () => {
-		const items: CombatItem[] = [{ kind: "ability", slot: "Q", variant: "4s" }]
+	test("keeps a time in the area in seconds, `_` as the decimal point (issue 427)", () => {
+		const items: CombatItem[] = [
+			{ kind: "ability", slot: "E", inArea: 1.5 },
+			{ kind: "ability", slot: "Q", inArea: 0.25 },
+			{ kind: "ability", slot: "R", inArea: 15 },
+		]
 
-		expect(serializeComboItems(items)).toBe("q-4s")
-		expect(readComboItems("q-4s")).toEqual(items)
+		expect(serializeComboItems(items)).toBe("e-1_5s.q-0_25s.r-15s")
+		expect(readComboItems("e-1_5s.q-0_25s.r-15s")).toEqual(items)
+	})
+
+	test("reads the time presets of older links as the same seconds: 2 s in Poison Trail, 3 s in Tormented Shadow", () => {
+		expect(readComboItems("q-2s.w-3s.q-0s")).toEqual([
+			{ kind: "ability", slot: "Q", inArea: 2 },
+			{ kind: "ability", slot: "W", inArea: 3 },
+			{ kind: "ability", slot: "Q", inArea: 0 },
+		])
+	})
+
+	test("keeps a variant that is a number, without seconds: Pyroclasm's hits", () => {
+		expect(readComboItems("r-2")).toEqual([
+			{ kind: "ability", slot: "R", variant: "2" },
+		])
 	})
 
 	test("is no value for an empty combo", () => {

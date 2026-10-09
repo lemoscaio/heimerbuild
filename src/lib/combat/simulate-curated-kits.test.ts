@@ -112,6 +112,11 @@ function cast(slot: "Q" | "W" | "E" | "R", variant?: string): CombatAction {
 		: { kind: "ability", slot }
 }
 
+/** A cast with the seconds the target stays in its area (issue 427). */
+function castFor(slot: "Q" | "W" | "E" | "R", inArea: number): CombatAction {
+	return { kind: "ability", slot, inArea }
+}
+
 function wait(seconds: number): CombatAction {
 	return { kind: "wait", seconds }
 }
@@ -171,7 +176,7 @@ describe("Nasus (issue 397)", async () => {
 	})
 
 	test("Spirit Fire burns once a second while the target stays in it, and lowers its armor by 30% at rank 1 (wiki)", () => {
-		const result = simulate(nasus, [cast("E", "3s"), ATTACK])
+		const result = simulate(nasus, [castFor("E", 3), ATTACK])
 		const ticks = hitsFrom(result, "nasus-e")
 
 		expect(hitsFrom(result, "InitialDamage")[0]?.damage.raw).toBeCloseTo(50)
@@ -181,9 +186,11 @@ describe("Nasus (issue 397)", async () => {
 	})
 
 	test("Fury of the Sands' aura burns 1.5% of maximum health every 0.5 s at rank 1 for the time in it (wiki)", () => {
-		const ticks = hitsFrom(simulate(nasus, [cast("R", "5s")]), "nasus-r")
+		const ticks = hitsFrom(simulate(nasus, [castFor("R", 5)]), "nasus-r")
 
 		expect(ticks).toHaveLength(10)
+		// Its whole 15 s by default: 30 ticks.
+		expect(hitsFrom(simulate(nasus, [cast("R")]), "nasus-r")).toHaveLength(30)
 		expect(ticks[0]?.time).toBeCloseTo(0.5)
 		expect(ticks[0]?.damage.raw).toBeCloseTo(0.015 * DUMMY.health)
 	})
@@ -213,11 +220,13 @@ describe("Garen (issue 397)", async () => {
 		ranks: { Q: 0, W: 0, E: 1, R: 0 },
 	}
 
-	test("Judgment spins 7 times over 3 s, each 25% more to a lone target (wiki, level 1)", () => {
+	test("Judgment spins 7 times over 3 s, each landing as it completes, 25% more to a lone target (wiki, level 1)", () => {
 		const spins = hitsFrom(simulate(garen, [cast("E")]), "NearestEnemyBonus")
 
 		expect(spins).toHaveLength(7)
-		expect(spins.at(-1)?.time).toBeCloseTo((6 * 3) / 7)
+		// "Each spin damages all enemies in range at the moment that spin completes."
+		expect(spins[0]?.time).toBeCloseTo(3 / 7)
+		expect(spins.at(-1)?.time).toBeCloseTo(3)
 		expect(spins[0]?.damage.raw).toBeCloseTo(
 			1.25 * (4 + 0.4 * attackDamage(garen)),
 		)
@@ -230,12 +239,14 @@ describe("Garen (issue 397)", async () => {
 		expect(spins).toHaveLength(9)
 	})
 
-	test("6 spins lower the target's armor by 25%; fewer don't (wiki)", () => {
-		const after = simulate(garen, [cast("E"), wait(3), ATTACK])
-		const before = simulate(garen, [cast("E"), wait(1), ATTACK])
+	test("6 spins lower the target's armor by 25%; a Judgment ended before its 6th spin doesn't (wiki, issue 427)", () => {
+		const armorAfter = (spin: CombatAction) =>
+			simulate(garen, [spin, wait(3), ATTACK]).steps[2]?.resists?.armor ?? 70
 
-		expect(after.steps[2]?.resists?.armor).toBeCloseTo(70 * 0.75)
-		expect(before.steps[2]?.resists?.armor ?? 70).toBe(70)
+		expect(armorAfter(cast("E"))).toBeCloseTo(70 * 0.75)
+		// The 6th spin lands at 18/7 s: 2.75 s takes it, 2.5 s stops at 5.
+		expect(armorAfter(castFor("E", 2.75))).toBeCloseTo(70 * 0.75)
+		expect(armorAfter(castFor("E", 2.5))).toBe(70)
 	})
 
 	test("Decisive Strike and Courage are instant (wiki)", () => {

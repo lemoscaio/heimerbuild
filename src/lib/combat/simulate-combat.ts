@@ -84,6 +84,8 @@ import {
 	type AbilityHitRule,
 	type AbilityVariant,
 	type AttackSpeedHits,
+	areaSeconds,
+	type BlocksAttacks,
 	defaultVariant,
 	findHitRule,
 	type LaterHits,
@@ -208,7 +210,20 @@ type Simulation = {
 	laterHitOf?: number
 	/** The recasts each ability has left (`Recasts`), until when, and when the next may start. */
 	recasts: Map<AbilitySlot, RecastWindow>
+	/** A cast that stops basic attacks while it runs (`BlocksAttacks`: Judgment), and its step. */
+	attackLock?: AttackLock
+	/** Each step's cast hitting again and again (`attackSpeedHits`): its hits, and its full duration's. */
+	castHits: Map<number, { count: number; of: number }>
 }
+
+type AttackLock = BlocksAttacks & {
+	until: number
+	owner: number
+	slot: AbilitySlot
+}
+
+/** A hit landing this close after a time in an area ends still counts: the one exactly then does. */
+const AREA_EPSILON = 1e-9
 
 type RecastWindow = { left: number; until: number; nextAt: number }
 
@@ -401,6 +416,7 @@ function createSimulation(
 		waiting: [],
 		laterHits: [],
 		recasts: new Map(),
+		castHits: new Map(),
 	}
 	startCooldowns(sim)
 	return sim
@@ -1724,9 +1740,20 @@ function attackMultiplier(sim: Simulation): number {
 	return multiplier
 }
 
+/** When a cast stopping basic attacks lets one start (Judgment's spin); now in free mode or without one. */
+function attackLockEnd(sim: Simulation): number {
+	const until = sim.attackLock?.until ?? 0
+	return sim.free ? sim.time : Math.max(sim.time, until)
+}
+
+/** When a basic attack may start: after the attack timer and any cast stopping attacks. */
+function attackStartsAt(sim: Simulation): number {
+	return Math.max(sim.nextAttackAt, attackLockEnd(sim))
+}
+
 /** A basic attack: waits for the attack timer, then starts (`strike`). */
 function attack(sim: Simulation, item: CombatItem) {
-	advance(sim, Math.max(sim.time, sim.nextAttackAt))
+	advance(sim, attackStartsAt(sim))
 	sim.actionStart = sim.log.length
 	strike(sim, item)
 }
@@ -1861,10 +1888,12 @@ function empoweredAttack(
 	{ spell, rule, pending }: EmpoweredAttackInput,
 ) {
 	const { empowersAttack } = rule
+	// Its attack is declared like any other: a cast stopping attacks holds it (Decisive Strike in Judgment).
 	if (empowersAttack?.resetsAttack) {
+		advance(sim, attackLockEnd(sim))
 		sim.nextAttackAt = sim.time
 	} else {
-		advance(sim, Math.max(sim.time, sim.nextAttackAt))
+		advance(sim, attackStartsAt(sim))
 	}
 	strike(sim, action, {
 		pending,
@@ -1908,30 +1937,58 @@ function attackSpeedHits(
 	return { count, every: over / count }
 }
 
-/**
- * The cast's hits after its first (its variant's `hits`, else its rule's `attackSpeedHits`), each
- * `every` seconds later, for this step.
- */
+/** The cast's hits on the target: its variant's `hits`, else its rule's `attackSpeedHits` now. */
+function castHits(
+	sim: Simulation,
+	rule: AbilityHitRule | undefined,
+	variant: string | undefined,
+): LaterHits | undefined {
+	const scaled = rule?.attackSpeedHits
+	return (
+		chosenVariant(rule, variant)?.hits ??
+		(scaled && attackSpeedHits(sim, scaled))
+	)
+}
+
+type LaterHitsSchedule = {
+	hits: LaterHits | undefined
+	/** When its first hit lands. */
+	firstAt: number
+	/** The end of its time in the area: later hits land up to it, the one exactly then included. */
+	until: number
+}
+
+/** The cast's hits after its first, each `every` seconds later up to `until`, for this step. */
 function scheduleLaterHits(
 	sim: Simulation,
 	spell: ChampionSpell,
 	variant: string | undefined,
-	firstAt: number,
+	{ hits, firstAt, until }: LaterHitsSchedule,
 ) {
-	const rule = hitRule(sim, spell.slot)
-	const scaled = rule?.attackSpeedHits
-	const hits =
-		chosenVariant(rule, variant)?.hits ??
-		(scaled && attackSpeedHits(sim, scaled))
 	if (!hits) return
+	let count = 1
 	for (let index = 1; index < hits.count; index++) {
-		sim.laterHits.push({
-			at: firstAt + index * hits.every,
-			spell,
-			variant,
-			owner: sim.step,
-		})
+		const at = firstAt + index * hits.every
+		if (at > until + AREA_EPSILON) break
+		sim.laterHits.push({ at, spell, variant, owner: sim.step })
+		count++
 	}
+	if (hitRule(sim, spell.slot)?.attackSpeedHits) {
+		sim.castHits.set(sim.step, { count, of: hits.count })
+	}
+}
+
+/** A cast of a slot its `endedBy` names ends the cast stopping attacks, and its hits still to land. */
+function interruptAttackLock(sim: Simulation, slot: AbilitySlot) {
+	const lock = sim.attackLock
+	if (!lock || lock.until <= sim.time || !lock.endedBy.includes(slot)) return
+	const dropped = sim.laterHits.filter(
+		(hit) => hit.owner === lock.owner && hit.spell.slot === lock.slot,
+	)
+	sim.laterHits = sim.laterHits.filter((hit) => !dropped.includes(hit))
+	const hits = sim.castHits.get(lock.owner)
+	if (hits) hits.count -= dropped.length
+	sim.attackLock = undefined
 }
 
 /**
@@ -2080,6 +2137,7 @@ function castAbility(
 	const refusal = abilityRefusal(sim, spell, rank)
 	if (refusal) return refusal
 	advance(sim, recastAt(sim, slot))
+	interruptAttackLock(sim, slot)
 
 	const pending: PendingMarks = []
 	const castAt = sim.time
@@ -2100,7 +2158,11 @@ function castAbility(
 		pauseEffects(sim, "cast")
 	}
 	const onTarget = empowering ? [] : breakWaiting(sim, cast)
-	const areaTime = chosenVariant(rule, action.variant)?.duration
+	const area = rule?.timeInArea
+	const inArea = area && areaSeconds(area, action.inArea)
+	// The cast's own effects run the time in the area plus what lingers (Poison Trail's 2 s).
+	const areaTime =
+		area && inArea !== undefined ? inArea + (area.after ?? 0) : undefined
 	const held = targetEffectIds(sim)
 	triggerWhere(
 		sim,
@@ -2117,7 +2179,12 @@ function castAbility(
 	if (empowering) {
 		empoweredAttack(sim, action, { spell, rule: empowering, pending })
 	} else {
-		const hitAt = rule?.landsAtCastEnd ? sim.time + castTime : sim.time
+		const hits = castHits(sim, rule, action.variant)
+		// Spreading hits over a time land as each share ends (Judgment's spins, wiki).
+		const spreadFirst = rule?.attackSpeedHits && hits ? hits.every : 0
+		const hitAt = rule?.landsAtCastEnd
+			? sim.time + castTime
+			: sim.time + spreadFirst
 		if (hitAt > sim.time) {
 			const { variant } = action
 			sim.laterHits.push({
@@ -2130,7 +2197,16 @@ function castAbility(
 		} else {
 			abilityHit(sim, spell, pending, action.variant, { held })
 		}
-		scheduleLaterHits(sim, spell, action.variant, hitAt)
+		const until =
+			inArea === undefined ? Number.POSITIVE_INFINITY : castAt + inArea
+		scheduleLaterHits(sim, spell, action.variant, {
+			hits,
+			firstAt: hitAt,
+			until,
+		})
+		if (rule?.blocksAttacks && inArea !== undefined) {
+			sim.attackLock = { ...rule.blocksAttacks, until, owner: sim.step, slot }
+		}
 		applyMarks(sim, chooseMarks(sim, pending, action))
 		for (const waiting of onTarget) release(sim, waiting)
 	}
@@ -2371,7 +2447,7 @@ function totals(events: readonly CombatEvent[]) {
 
 /** When the action starts: an attack after the attack timer, a recast after its gap, the rest now. */
 function actionStartsAt(sim: Simulation, item: CombatAction): number {
-	if (item.kind === "attack") return Math.max(sim.time, sim.nextAttackAt)
+	if (item.kind === "attack") return attackStartsAt(sim)
 	return item.kind === "ability" ? recastAt(sim, item.slot) : sim.time
 }
 
@@ -2439,6 +2515,10 @@ export function simulateCombat(
 	advance(sim, Number.POSITIVE_INFINITY, { periodic: false })
 	closeStep()
 	settleDamageOverTime(sim, steps)
+	for (const [index, hits] of sim.castHits) {
+		const step = steps[index]
+		if (step) step.hits = hits
+	}
 	const duration = sim.log.findLast(({ kind }) => kind === "hit")?.time ?? 0
 	return {
 		steps,

@@ -16,6 +16,7 @@ import {
 } from "../lib/combat-action-names"
 import { actionLabel } from "../lib/combat-format"
 import { CombatActionIcon } from "./combat-action-icon"
+import { CombatAreaTimeInput } from "./combat-area-time-input"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
 import { CombatStepCard } from "./combat-step-card"
@@ -40,6 +41,8 @@ type CombatStepListProps = {
 	onRemoveMarker: (id: number) => void
 	onWaitChange: (id: number, seconds: number) => void
 	onVariantChange: (id: number, variant: string) => void
+	/** An ability step's seconds in its area (issue 427). */
+	onInAreaChange: (id: number, seconds: number) => void
 }
 
 type StepEntryProps = {
@@ -49,7 +52,12 @@ type StepEntryProps = {
 	moves: { up: MoveAction; down: MoveAction }
 } & Pick<
 	CombatStepListProps,
-	"spells" | "summoners" | "onRemove" | "onWaitChange" | "onVariantChange"
+	| "spells"
+	| "summoners"
+	| "onRemove"
+	| "onWaitChange"
+	| "onVariantChange"
+	| "onInAreaChange"
 >
 
 /** An action's card with its own controls: its wait's length, its input, its outcomes. */
@@ -63,6 +71,7 @@ function StepEntry({
 	onRemove,
 	onWaitChange,
 	onVariantChange,
+	onInAreaChange,
 }: StepEntryProps) {
 	const { id, action } = step
 	const label = actionLabel(action, names)
@@ -100,6 +109,12 @@ function StepEntry({
 					label={step.variantsLabel}
 					value={action.variant}
 					onValueChange={(variant) => onVariantChange(id, variant)}
+				/>
+			)}
+			{step.area && (
+				<CombatAreaTimeInput
+					area={step.area}
+					onSecondsChange={(seconds) => onInAreaChange(id, seconds)}
 				/>
 			)}
 			<CombatStepOutcomes step={step} mode={mode} />
@@ -166,6 +181,7 @@ export function CombatStepList({
 	onRemoveMarker,
 	onWaitChange,
 	onVariantChange,
+	onInAreaChange,
 }: CombatStepListProps) {
 	const titleId = useId()
 	const names = actionNames({ spells, summoners })
@@ -187,6 +203,7 @@ export function CombatStepList({
 		onRemove,
 		onWaitChange,
 		onVariantChange,
+		onInAreaChange,
 	}
 
 	return (

@@ -8,6 +8,7 @@ const COMBO: CombatState = {
 		{ id: 2, action: { kind: "attack" } },
 		{ id: 7, action: { kind: "ability", slot: "Q", variant: "handle" } },
 		{ id: 3, action: { kind: "wait", seconds: 1.5 } },
+		{ id: 9, action: { kind: "ability", slot: "E", inArea: 1.5 } },
 	],
 	free: true,
 	choices: { 2: { "empowered:hail-of-blades": false } },
@@ -16,7 +17,7 @@ const COMBO: CombatState = {
 describe("the combo's link values", () => {
 	test("hold its entries in order, free mode and the choices by position", () => {
 		expect(toCombatLink(COMBO)).toEqual({
-			combo: "m-hail-of-blades.aa.q-handle.t1_5",
+			combo: "m-hail-of-blades.aa.q-handle.t1_5.e-1_5s",
 			free: true,
 			choices: "2e-hail-of-blades-n",
 		})
@@ -27,7 +28,7 @@ describe("the combo's link values", () => {
 		expect(read.entries.map(({ action }) => action)).toEqual(
 			COMBO.entries.map(({ action }) => action),
 		)
-		expect(read.entries.map(({ id }) => id)).toEqual([1, 2, 3, 4])
+		expect(read.entries.map(({ id }) => id)).toEqual([1, 2, 3, 4, 5])
 		expect(read.free).toBe(true)
 		expect(read.choices).toEqual({ 2: { "empowered:hail-of-blades": false } })
 		expect(toCombatLink(read)).toEqual(toCombatLink(COMBO))

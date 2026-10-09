@@ -8,6 +8,7 @@ import {
 	insertStep,
 	moveEntries,
 	removeStep,
+	setStepInArea,
 	setStepVariant,
 	setWaitSeconds,
 } from "./combat-sequence"
@@ -193,5 +194,39 @@ describe("setStepVariant", () => {
 		expect(
 			setStepVariant(combo(Q), 1, "blade", () => blade)[0]?.action,
 		).toEqual(Q)
+	})
+})
+
+describe("setStepInArea (issue 427)", () => {
+	const E = { kind: "ability", slot: "E" } as const
+	const judgment = {
+		min: 1,
+		max: 3,
+		step: 0.25,
+		label: { text: "Spinning", name: "Time spinning" },
+	}
+	const timeInAreaOf = (slot: string) => (slot === "E" ? judgment : undefined)
+
+	test("a time is saved on that step only, on the range's steps and within it", () => {
+		const steps = combo(E, E)
+
+		expect(
+			setStepInArea(steps, 2, 1.6, timeInAreaOf).map(({ action }) => action),
+		).toEqual([E, { ...E, inArea: 1.5 }])
+		expect(setStepInArea(steps, 1, 0.2, timeInAreaOf)[0]?.action).toEqual({
+			...E,
+			inArea: 1,
+		})
+	})
+
+	test("the full time saves none, so the link omits it", () => {
+		const short = setStepInArea(combo(E), 1, 1.5, timeInAreaOf)
+
+		expect(setStepInArea(short, 1, 3, timeInAreaOf)[0]?.action).toEqual(E)
+		expect(setStepInArea(short, 1, 9, timeInAreaOf)[0]?.action).toEqual(E)
+	})
+
+	test("an ability without a time in an area is left alone", () => {
+		expect(setStepInArea(combo(Q), 1, 1.5, timeInAreaOf)[0]?.action).toEqual(Q)
 	})
 })

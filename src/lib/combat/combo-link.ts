@@ -23,8 +23,10 @@ const SEPARATOR = "."
 const ATTACK_TOKEN = "aa"
 const MARKER_PREFIX = "m-"
 const SUMMONER_KEYS = ["d", "f"] as const satisfies Record<SummonerSlot, string>
-const ABILITY_TOKEN = new RegExp(`^([qwer])(?:-(${ID}))?$`)
-const WAIT_TOKEN = /^t(\d{1,2}(?:_\d{1,2})?)$/
+const SECONDS = "\\d{1,2}(?:_\\d{1,2})?"
+// A time in the area (`e-1_5s`) is read before a variant id, which `2s` would also match.
+const ABILITY_TOKEN = new RegExp(`^([qwer])(?:-(?:(${SECONDS})s|(${ID})))?$`)
+const WAIT_TOKEN = new RegExp(`^t(${SECONDS})$`)
 const MARKER_TOKEN = new RegExp(`^${MARKER_PREFIX}(${ID})$`)
 const CHOICE_TOKEN = new RegExp(`^(\\d{1,2})([eacd])-(${ID})-([yn])$`)
 
@@ -38,19 +40,39 @@ const OUTCOME_CODES = {
 /** Shape of the `target` value: a preset id (`tank`) or health, armor and magic resist (`1800-60-45`). */
 export const TARGET_PARAM_PATTERN = /^(?:[a-z]+|\d{1,5}-\d{1,4}-\d{1,4})$/
 
+/** Seconds with `_` as the decimal point: `1_5` is 1.5. */
+function readSeconds(value: string): number {
+	return Number(value.replace("_", "."))
+}
+
+function secondsToken(seconds: number): string {
+	return String(seconds).replace(".", "_")
+}
+
+function abilityToken({
+	slot,
+	variant,
+	inArea,
+}: Extract<CombatItem, { kind: "ability" }>): string {
+	const key = slot.toLowerCase()
+	if (inArea !== undefined) return `${key}-${secondsToken(inArea)}s`
+	return variant ? `${key}-${variant}` : key
+}
+
 function readItem(token: string): CombatItem | undefined {
 	if (token === ATTACK_TOKEN) return { kind: "attack" }
 	if (token === SUMMONER_KEYS[0]) return { kind: "summoner", slot: 0 }
 	if (token === SUMMONER_KEYS[1]) return { kind: "summoner", slot: 1 }
-	const [, key, variant] = ABILITY_TOKEN.exec(token) ?? []
+	const [, key, inArea, variant] = ABILITY_TOKEN.exec(token) ?? []
 	const slot = ABILITY_SLOTS.find((entry) => entry.toLowerCase() === key)
 	if (slot) {
+		if (inArea) return { kind: "ability", slot, inArea: readSeconds(inArea) }
 		return variant
 			? { kind: "ability", slot, variant }
 			: { kind: "ability", slot }
 	}
 	const wait = WAIT_TOKEN.exec(token)?.[1]
-	if (wait) return { kind: "wait", seconds: Number(wait.replace("_", ".")) }
+	if (wait) return { kind: "wait", seconds: readSeconds(wait) }
 	const marker = MARKER_TOKEN.exec(token)?.[1]
 	return marker ? { kind: "situation", effectId: marker } : undefined
 }
@@ -59,14 +81,12 @@ function itemToken(item: CombatItem): string {
 	switch (item.kind) {
 		case "attack":
 			return ATTACK_TOKEN
-		case "ability": {
-			const slot = item.slot.toLowerCase()
-			return item.variant ? `${slot}-${item.variant}` : slot
-		}
+		case "ability":
+			return abilityToken(item)
 		case "summoner":
 			return SUMMONER_KEYS[item.slot]
 		case "wait":
-			return `t${String(item.seconds).replace(".", "_")}`
+			return `t${secondsToken(item.seconds)}`
 		case "situation":
 			return `${MARKER_PREFIX}${item.effectId}`
 	}

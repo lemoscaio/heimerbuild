@@ -89,6 +89,19 @@ const v1Links: LinkFixture[] = [
 		},
 	},
 	{
+		// Issue 427, no bump: `q-2s` keeps meaning 2 s in Poison Trail, and seconds are a new accepted value.
+		name: "a combo with times in the area: a preset of before issue 427 and a time in seconds",
+		link: "?lvl=9&patch=16.19.1&tab=combo&skills=QWEQQRQEQ&combo=q-2s.e-1_5s.w",
+		build: {
+			v: BUILD_LINK_VERSION,
+			lvl: 9,
+			patch: "16.19.1",
+			tab: "combo",
+			skills: "QWEQQRQEQ",
+			combo: "q-2s.e-1_5s.w",
+		},
+	},
+	{
 		name: "Siphoning Strike's stacks on each Q step, which v2 keeps as the build's",
 		link: "?lvl=9&patch=16.19.1&tab=combo&skills=QWEQQRQEQ&combo=q-100.aa.q-100",
 		build: {

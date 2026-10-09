@@ -1,6 +1,6 @@
 // Garen: Decisive Strike is an empowered attack that resets the attack timer. Judgment spins 7 times
-// over 3 s, plus one per 25% bonus attack speed, each dealing a lone target's 25% more; 6 hits lower
-// its armor by 25% for 6 s. Demacian Justice deals its base plus a share of missing health. The
+// over 3 s (or the step's 1 to 3 s), plus one per 25% bonus attack speed, each dealing a lone
+// target's 25% more, and no attack starts meanwhile; 6 hits lower its armor by 25% for 6 s. Demacian Justice deals its base plus a share of missing health. The
 // movement speed, silence, Courage and Perseverance are left out.
 import type { AbilityHitRule } from "../combat/registries/ability-hits"
 import type { Effect } from "../effects/effect"
@@ -46,6 +46,16 @@ export const GAREN_HIT_RULES = [
 		slot: "E",
 		damage: "NearestEnemyBonus",
 		attackSpeedHits: { base: 7, perBonusAttackSpeed: 0.25, over: 3 },
+		// "Judgment can be recast after 1 second while active"; "unable to declare basic attacks",
+		// "Decisive Strike and Courage are usable", "Demacian Justice interrupts".
+		timeInArea: {
+			min: 1,
+			max: 3,
+			step: 0.25,
+			label: { text: "Spinning", name: "Time spinning" },
+			hitsName: "spins",
+		},
+		blocksAttacks: { endedBy: ["R"] },
 		// Wiki Conqueror: Judgment is "special cased to stack Conqueror for every tick of damage", each
 		// spin a spell's 2 stacks (the Judgment page: "Each spin triggers a stack"). Electrocute: no.
 		actionPerHit: ["conqueror"],

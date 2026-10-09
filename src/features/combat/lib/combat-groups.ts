@@ -12,7 +12,7 @@ export const MIN_GROUP_SIZE = 3
 
 /**
  * What makes two steps identical: the same action with the same inputs (a wait's length, an
- * ability's variant). A marker never is, so it always splits a group.
+ * ability's variant and time in the area). A marker never is, so it always splits a group.
  */
 export function actionKey(action: CombatItem): string | undefined {
 	switch (action.kind) {
@@ -21,7 +21,7 @@ export function actionKey(action: CombatItem): string | undefined {
 		case "attack":
 			return "attack"
 		case "ability":
-			return `ability:${action.slot}:${action.variant ?? ""}`
+			return `ability:${action.slot}:${action.variant ?? ""}:${action.inArea ?? ""}`
 		case "summoner":
 			return `summoner:${action.slot}`
 		case "wait":
