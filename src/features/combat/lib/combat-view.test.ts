@@ -86,6 +86,22 @@ const STEP: CombatStep = {
 }
 
 describe("stepView", () => {
+	test("a step with later hits shows the state its last one left: what they cleared is gone", () => {
+		const waiting = { effectId: "quinn-w-passive", label: "strikes", until: 1 }
+		const view = stepView(
+			{
+				...STEP,
+				waiting: [waiting],
+				resists: { armor: 40, magicResist: 50 },
+				afterLaterHits: { active: [], marks: [] },
+			},
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
+		)
+
+		expect(view.effects).toEqual([])
+		expect(view.resists).toEqual([])
+	})
+
 	const view = stepView(STEP, {
 		names: NAMES,
 		target: TARGET,
