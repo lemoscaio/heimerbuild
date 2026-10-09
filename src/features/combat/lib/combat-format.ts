@@ -63,3 +63,22 @@ export function actionLabel(
 export function formatSecondsRange(from: number, to: number): string {
 	return `${SECONDS.format(from)}–${formatSeconds(to)}`
 }
+
+type AreaResult = {
+	/** A cast hitting again and again: the hits that landed, of its full duration's. */
+	hits?: { count: number; of: number }
+	ticks?: number
+	/** What the hits are called ("spins"); "hits" by default. */
+	hitsName?: string
+}
+
+/** What a time in an area deals, said beside it: "4 of 7 spins", "3 ticks"; nothing without either. */
+export function formatAreaResult({
+	hits,
+	ticks,
+	hitsName = "hits",
+}: AreaResult): string | undefined {
+	if (hits) return `${hits.count} of ${hits.of} ${hitsName}`
+	if (ticks === undefined) return undefined
+	return ticks === 1 ? "1 tick" : `${ticks} ticks`
+}

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import { type Champion, championSchema } from "@schemas/champion"
 import { combatEffects } from "../effects/available-effects"
-import { areaVariants } from "./area-ticks"
+import { areaTicks } from "./area-ticks"
 import { ticksInArea } from "./damage-over-time"
-import { abilityVariants } from "./registries/ability-hits"
+import { abilityTimeInArea, areaSeconds } from "./registries/ability-hits"
 
 // Real current-patch data (public/data).
 const DATA = new URL("../../../public/data/", import.meta.url)
@@ -41,8 +41,8 @@ describe("ticksInArea: every tick up to the time in the area, no more than the e
 	})
 })
 
-describe("areaVariants: each variant's ticks on the cast's own damage over time", async () => {
-	async function ticksOf(key: string, slot: "Q" | "W") {
+describe("areaTicks: the ticks a time in the area deals on the cast's own damage over time", async () => {
+	async function ticksFor(key: string, slot: "Q" | "W", seconds: number) {
 		const ranks = { Q: 1, W: 1, E: 1, R: 1 }
 		const build = await champion(key)
 		const effects = combatEffects({
@@ -53,31 +53,42 @@ describe("areaVariants: each variant's ticks on the cast's own damage over time"
 			runes: [],
 			items: [],
 		})
-		return areaVariants(
-			abilityVariants({ championKey: key, patch: PATCH, slot }),
-			{ slot, effects, context: { level: 9, ranks } },
-		).map(({ label, ticks }) => [label, ticks])
+		const range = abilityTimeInArea({ championKey: key, patch: PATCH, slot })
+		return areaTicks(seconds, range ?? {}, {
+			slot,
+			effects,
+			context: { level: 9, ranks },
+		})
 	}
 
 	test("Morgana's W: 1 / 3 / 5 s in the pool are 3 / 7 / 10 ticks", async () => {
-		expect(await ticksOf("Morgana", "W")).toEqual([
-			["1 s", 3],
-			["3 s", 7],
-			["5 s", 10],
-		])
+		expect(await ticksFor("Morgana", "W", 1)).toBe(3)
+		expect(await ticksFor("Morgana", "W", 3)).toBe(7)
+		expect(await ticksFor("Morgana", "W", 5)).toBe(10)
 	})
 
-	test("Singed's Q: 0 / 2 / 4 s in the trail are 8 / 16 / 24 ticks", async () => {
-		expect(await ticksOf("Singed", "Q")).toEqual([
-			["0 s", 8],
-			["2 s", 16],
-			["4 s", 24],
-		])
+	test("Singed's Q counts the 2 s poison after the trail: 0 / 2 / 4 s are 8 / 16 / 24 ticks", async () => {
+		expect(await ticksFor("Singed", "Q", 0)).toBe(8)
+		expect(await ticksFor("Singed", "Q", 2)).toBe(16)
+		expect(await ticksFor("Singed", "Q", 4)).toBe(24)
 	})
 
-	test("Darius's Q has no time in an area: no ticks", async () => {
-		const ticks = (await ticksOf("Darius", "Q")).map(([, count]) => count)
+	test("Darius's Q has no damage over time of its own: no ticks", async () => {
+		expect(await ticksFor("Darius", "Q", 1)).toBeUndefined()
+	})
+})
 
-		expect(ticks).toEqual([undefined, undefined])
+describe("areaSeconds: a step's time, on its range's steps and within it", () => {
+	const judgment = { min: 1, max: 3, step: 0.25 }
+
+	test("no time is the full one", () => {
+		expect(areaSeconds(judgment, undefined)).toBe(3)
+	})
+
+	test("a time out of the range is its nearest end, one off a step the nearest step", () => {
+		expect(areaSeconds(judgment, 0.2)).toBe(1)
+		expect(areaSeconds(judgment, 9)).toBe(3)
+		expect(areaSeconds(judgment, 1.6)).toBe(1.5)
+		expect(areaSeconds({ min: 0.5, max: 15, step: 0.5 }, 3.3)).toBe(3.5)
 	})
 })

@@ -8,7 +8,7 @@ import { WIKI } from "./rule-helpers"
 export const SINGED_EFFECTS = [
 	{
 		// One pass: 8 ticks over 2 s, the last at its end (the wiki's minimum). Staying in the trail
-		// refreshes it: the Q rule's variants set how long it runs. {@see SINGED_HIT_RULES}
+		// refreshes it: the Q rule's time in the trail sets how long it runs. {@see SINGED_HIT_RULES}
 		id: "singed-q",
 		source: { kind: "ability", championKey: "Singed", slot: "Q" },
 		trigger: { kind: "after-use" },
@@ -38,13 +38,15 @@ export const SINGED_HIT_RULES = [
 		// The wiki's extra tick on a first contact is left out (PR 377).
 		championKey: "Singed",
 		slot: "Q",
+		// A toggle has no full duration: 4 s, the longest preset before issue 427, is the top.
 		damage: null,
-		variants: [
-			{ id: "0s", label: "0 s", duration: 2 },
-			{ id: "2s", label: "2 s", duration: 4 },
-			{ id: "4s", label: "4 s", duration: 6 },
-		],
-		variantsLabel: { text: "In trail", name: "Time in the trail" },
+		timeInArea: {
+			min: 0,
+			max: 4,
+			step: 0.25,
+			after: 2,
+			label: { text: "In trail", name: "Time in the trail" },
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Singed/Poison_Trail`,
 	},

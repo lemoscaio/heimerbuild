@@ -37,12 +37,12 @@ export const MORGANA_HIT_RULES = [
 		championKey: "Morgana",
 		slot: "W",
 		damage: null,
-		variants: [
-			{ id: "1s", label: "1 s", duration: 1 },
-			{ id: "3s", label: "3 s", duration: 3 },
-			{ id: "5s", label: "5 s", duration: 5 },
-		],
-		variantsLabel: { text: "In pool", name: "Time in the pool" },
+		timeInArea: {
+			min: 0.5,
+			max: 5,
+			step: 0.5,
+			label: { text: "In pool", name: "Time in the pool" },
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Morgana/Tormented_Shadow`,
 	},

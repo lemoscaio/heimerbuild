@@ -5,11 +5,12 @@ import type { Resists } from "./mitigation"
 
 /**
  * One step of a combo: a basic attack, an ability of the current form, a summoner spell, or a wait.
- * An ability may name the `variant` the player picked (Decimate's outer blade or inner handle).
+ * An ability may name the `variant` the player picked (Decimate's outer blade or inner handle), and
+ * the seconds the target stays in its area (`inArea`, its rule's `timeInArea`; the full time without).
  */
 export type CombatAction =
 	| { kind: "attack" }
-	| { kind: "ability"; slot: AbilitySlot; variant?: string }
+	| { kind: "ability"; slot: AbilitySlot; variant?: string; inArea?: number }
 	| { kind: "summoner"; slot: SummonerSlot }
 	| { kind: "wait"; seconds: number }
 
@@ -212,6 +213,11 @@ export type CombatStep = {
 	resists?: Resists
 	/** The target's health once the step's events are done, before the next action. */
 	targetHealth: number
+	/**
+	 * A cast hitting again and again (`attackSpeedHits`): the hits that landed of those its full
+	 * duration deals at its attack speed (Judgment 1.5 s: 3 of 7 spins).
+	 */
+	hits?: { count: number; of: number }
 }
 
 export type DamageTotals = { raw: number; final: number }

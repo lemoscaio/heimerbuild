@@ -43,6 +43,20 @@ describe("groupRuns (issue 331)", () => {
 		])
 	})
 
+	test("steps with different times in the area are not identical (issue 427)", () => {
+		const short = { kind: "ability", slot: "E", inArea: 1.5 } as const
+		const full = { kind: "ability", slot: "E" } as const
+
+		expect(shape([short, short, full])).toEqual([
+			"ability",
+			"ability",
+			"ability",
+		])
+		expect(shape([short, short, short])).toEqual([
+			["ability", "ability", "ability"],
+		])
+	})
+
 	test("steps with different inputs are not identical: a variant, a wait's length, a summoner slot", () => {
 		const outer = { kind: "ability", slot: "Q", variant: "outer" } as const
 		const inner = { kind: "ability", slot: "Q", variant: "inner" } as const

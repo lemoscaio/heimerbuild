@@ -2,12 +2,9 @@ import type { AbilitySlot } from "@schemas/champion"
 import type { BuildEffect, DamageOverTimeGrant } from "../effects/effect"
 import { type EffectContext, effectDuration } from "../effects/evaluate"
 import { ticksInArea } from "./damage-over-time"
-import type { AbilityVariant } from "./registries/ability-hits"
+import type { TimeInArea } from "./registries/ability-hits"
 
-/** A variant with the ticks its time in the area deals, when it sets one on a damage over time. */
-export type AreaVariant = AbilityVariant & { ticks?: number }
-
-/** An effect a cast of `slot` starts itself (`after-use`), which a variant's `duration` sets. */
+/** An effect a cast of `slot` starts itself (`after-use`), which its time in the area sets. */
 export function isCastOwnEffect({ effect }: BuildEffect, slot: AbilitySlot) {
 	return (
 		effect.trigger.kind === "after-use" &&
@@ -22,33 +19,27 @@ function firstDamageOverTime({ effect }: BuildEffect) {
 	)
 }
 
-type AreaVariantsQuery = {
+type AreaTicksQuery = {
 	slot: AbilitySlot
 	/** The build's effects (`combatEffects`), where the cast's own damage over time is. */
 	effects: readonly BuildEffect[]
 	context: EffectContext
 }
 
-/** Each variant with its ticks (`ticksInArea`) on the cast's own damage over time: "1 s · 3 ticks". */
-export function areaVariants(
-	variants: readonly AbilityVariant[],
-	{ slot, effects, context }: AreaVariantsQuery,
-): AreaVariant[] {
+/**
+ * The ticks the cast's own damage over time deals for `seconds` in its area (`ticksInArea`), what
+ * lingers after (`after`) included: "1 s · 3 ticks". None when the cast has no damage over time.
+ */
+export function areaTicks(
+	seconds: number,
+	{ after = 0 }: Pick<TimeInArea, "after">,
+	{ slot, effects, context }: AreaTicksQuery,
+): number | undefined {
 	const own = effects.find(
 		(effect) => isCastOwnEffect(effect, slot) && !!firstDamageOverTime(effect),
 	)
 	const timing = own && firstDamageOverTime(own)
-	if (!own || !timing) return [...variants]
-	return variants.map((variant) =>
-		variant.duration === undefined
-			? variant
-			: {
-					...variant,
-					ticks: ticksInArea(
-						variant.duration,
-						effectDuration(own, context) ?? variant.duration,
-						timing,
-					),
-				},
-	)
+	if (!own || !timing) return undefined
+	const runs = seconds + after
+	return ticksInArea(runs, effectDuration(own, context) ?? runs, timing)
 }

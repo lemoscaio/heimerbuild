@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
 	actionLabel,
+	formatAreaResult,
 	formatDamage,
 	formatPartPercent,
 	formatSeconds,
@@ -29,5 +30,15 @@ describe("combat formats", () => {
 		expect(actionLabel({ kind: "ability", slot: "E" }, NAMES)).toBe("E · Vault")
 		expect(actionLabel({ kind: "summoner", slot: 1 }, NAMES)).toBe("Ignite")
 		expect(actionLabel({ kind: "wait", seconds: 1 }, NAMES)).toBe("Wait")
+	})
+
+	test("says what a time in an area deals: the hits of a spin, else its ticks", () => {
+		const hits = { count: 3, of: 7 }
+
+		expect(formatAreaResult({ hits, hitsName: "spins" })).toBe("3 of 7 spins")
+		expect(formatAreaResult({ hits })).toBe("3 of 7 hits")
+		expect(formatAreaResult({ ticks: 1 })).toBe("1 tick")
+		expect(formatAreaResult({ ticks: 24 })).toBe("24 ticks")
+		expect(formatAreaResult({})).toBeUndefined()
 	})
 })

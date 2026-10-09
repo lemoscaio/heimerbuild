@@ -404,8 +404,17 @@ describe("Conqueror", async () => {
 	test("each of Judgment's spins adds 2 stacks (wiki special case), 0.43 s apart at level 9", () => {
 		const spins = simulate(garen, [cast("E"), wait(1), wait(2)])
 
-		// 7 spins over 3 s: 3 by 1 s, all 7 by 3 s, capped at 12.
-		expect(stacksOf(spins, "conqueror")).toEqual([2, 6, 12])
+		// 7 spins over 3 s, each as it completes: none at the cast, 2 by 1 s, all 7 by 3 s, capped at 12.
+		expect(stacksOf(spins, "conqueror")).toEqual([0, 4, 12])
+	})
+
+	test("a Judgment ended early stacks only the spins that landed (issue 427): 3 by 1.5 s", () => {
+		const short = simulate(garen, [
+			{ kind: "ability", slot: "E", inArea: 1.5 },
+			wait(3),
+		])
+
+		expect(stacksOf(short, "conqueror")).toEqual([0, 6])
 	})
 
 	test("another cast hitting several times still adds one action's stacks (Brand's Pyroclasm, 3 hits)", async () => {

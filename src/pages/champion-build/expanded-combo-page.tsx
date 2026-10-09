@@ -200,6 +200,7 @@ export function ExpandedComboPage({
 								onRemoveMarker={markers.remove}
 								onWaitChange={combat.setWait}
 								onVariantChange={combat.setVariant}
+								onInAreaChange={combat.setInArea}
 							/>
 						)}
 						{hasSteps && viewMode === "timeline" && timeline && (
