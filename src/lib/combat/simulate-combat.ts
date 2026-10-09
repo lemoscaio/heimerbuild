@@ -9,15 +9,16 @@ import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
 	Amount,
 	BuildEffect,
-	DamageGrant,
 	DamageOverTimeGrant,
 	DamageRatios,
+	EffectDamage,
 	EndsOn,
 	Grant,
 	MarkApplication,
 	MarkConsumer,
 	PauseOn,
 	SlotCast,
+	StackGain,
 	StackReset,
 	Trigger,
 } from "../effects/effect"
@@ -521,7 +522,7 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	})
 	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
-	triggerOnActionDamage(sim)
+	triggerOnActionDamage(sim, source)
 }
 
 /** What the attacker's running effects multiply its damage by, after mitigation (Press the Attack's 8%). */
@@ -539,9 +540,10 @@ function damageAmplification(sim: Simulation): number {
 
 /**
  * An action's damage landing triggers the `on-action-damage` effects, once per action: its later
- * hits, ticks and delayed hits count as it (one stack per cast instance, wiki Electrocute).
+ * hits, ticks and delayed hits count as it (one stack per cast instance, wiki Electrocute). Its first
+ * damage says whether a basic attack dealt it (`stacks.gain`).
  */
-function triggerOnActionDamage(sim: Simulation) {
+function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	if (sim.onActionDamage) return
 	sim.onActionDamage = true
 	const action = sim.owner ?? sim.step
@@ -551,7 +553,8 @@ function triggerOnActionDamage(sim: Simulation) {
 		const key = `${effect.id}@${action}`
 		if (sim.actionDamageTriggered.has(key)) continue
 		sim.actionDamageTriggered.add(key)
-		trigger(sim, effect, pending)
+		const by = source.kind === "attack" ? "attack" : "other"
+		trigger(sim, effect, pending, { by })
 	}
 	applyMarks(sim, pending)
 	sim.onActionDamage = false
@@ -573,7 +576,7 @@ function notModeledHit(
 		...delayedOf(sim, tick),
 	})
 	triggerOnAbilityDamage(sim, source)
-	triggerOnActionDamage(sim)
+	triggerOnActionDamage(sim, source)
 }
 
 /** An ability's damage: its cast's, or an effect's whose source is an ability (Toxic Shot's poison). */
@@ -659,10 +662,10 @@ function dealAbilityDamage(
 	deal(sim, { source, type: formula.type, raw })
 }
 
-/** A `damage` grant's hit now: its base plus ratios of the attacker's stats, its type read at the hit. */
+/** An effect's damage now: its base plus ratios of the attacker's stats, its type read at the hit. */
 function grantDamage(
 	sim: Simulation,
-	grant: Pick<DamageGrant, "damageType" | "base" | "ratios">,
+	grant: EffectDamage,
 	effect: BuildEffect,
 ): { type: DamageType; raw: number } | undefined {
 	const base =
@@ -670,18 +673,23 @@ function grantDamage(
 			? 0
 			: resolveAmount(grant.base, effect, sim.context)
 	if (base === undefined) return undefined
+	const { champion } = sim.input.build
 	const stats = statsNow(sim)
 	const type = effectDamageType(grant.damageType, {
 		stats,
 		ratios: grant.ratios,
-		adaptiveType: sim.input.build.champion.adaptiveType,
+		adaptiveType: champion.adaptiveType,
 	})
-	return { type, raw: base + ratioDamage(grant.ratios, stats) }
+	// Bonus attack speed as a share: the stat's bonus over the champion's ratio (wiki "Attack speed").
+	const bonusAttackSpeed =
+		stats.attackSpeed.bonus / champion.stats.attackSpeed.ratio
+	const scale = 1 + (grant.perBonusAttackSpeed ?? 0) * bonusAttackSpeed
+	return { type, raw: (base + ratioDamage(grant.ratios, stats)) * scale }
 }
 
 function dealGrantDamage(
 	sim: Simulation,
-	grant: Pick<DamageGrant, "damageType" | "base" | "ratios">,
+	grant: EffectDamage,
 	effect: BuildEffect,
 	source: DamageSource,
 ) {
@@ -848,6 +856,8 @@ type TriggerOptions = {
 	released?: boolean
 	/** How long it runs instead of its own duration: the time in its cast's area (a variant's). */
 	duration?: number
+	/** What dealt the damage that triggers it, which its `stacks.gain` reads. */
+	by?: keyof StackGain
 }
 
 /** The last tick a time in an area allows, from now (`ticksInArea`); none without one or a tick. */
@@ -931,7 +941,10 @@ function trigger(
 		running.triggeredAt = sim.time
 		if (!stacks?.keepsDuration) running.endsAt = sim.time + duration
 		running.lastTickAt = areaLastTickAt(sim, effect, options.duration)
-		running.stacks = Math.min(stackLimit(sim, effect), running.stacks + 1)
+		running.stacks = Math.min(
+			stackLimit(sim, effect),
+			running.stacks + stackGain(sim, effect, options.by),
+		)
 		if (running.charges) running.charges.used = 0
 		if (dot) {
 			const kind = running.stacks > before ? "stacked" : "refreshed"
@@ -943,12 +956,27 @@ function trigger(
 		return
 	}
 	const instance = newInstance(sim, effect, duration)
+	instance.stacks = Math.min(
+		stackLimit(sim, effect),
+		stackGain(sim, effect, options.by),
+	)
 	const lastTickAt = areaLastTickAt(sim, effect, options.duration)
 	if (lastTickAt !== undefined) instance.lastTickAt = lastTickAt
 	sim.active.push(instance)
 	if (!dot) return
 	recordApplication(sim, instance, { owner, kind: "applied" }, { landing })
 	if (nextTickAt(instance) === sim.time) tick(sim, instance)
+}
+
+/** The stacks a trigger adds: its `stacks.gain` by what dealt the damage, else one. */
+function stackGain(
+	sim: Simulation,
+	effect: BuildEffect,
+	by: keyof StackGain | undefined,
+): number {
+	const gain = effect.effect.stacks?.gain
+	if (!gain || !by) return 1
+	return resolveAmount(gain[by], effect, sim.context) ?? 1
 }
 
 function isOnCooldown(sim: Simulation, effectId: string): boolean {
@@ -1224,22 +1252,11 @@ function onHit(sim: Simulation, pending: PendingMarks, by: MarkConsumer) {
 function dealOnAttackDamage(sim: Simulation) {
 	for (const instance of sim.active) {
 		if (instance.holder !== "attacker") continue
+		const atMax = instance.stacks >= (instance.effect.effect.stacks?.max ?? 1)
 		for (const grant of instance.effect.effect.grants) {
 			if (grant.kind !== "onAttackDamage") continue
-			const base =
-				grant.base === undefined
-					? 0
-					: resolveAmount(grant.base, instance.effect, sim.context)
-			const source = effectSource(instance)
-			if (base === undefined) {
-				notModeledHit(sim, source, ["a value it lacks"])
-				continue
-			}
-			deal(sim, {
-				source,
-				type: grant.damageType,
-				raw: base + ratioDamage(grant.ratios, statsNow(sim)),
-			})
+			if (grant.atMaxStacks && !atMax) continue
+			dealGrantDamage(sim, grant, instance.effect, effectSource(instance))
 		}
 	}
 }
@@ -1281,13 +1298,29 @@ function empowerAttack(sim: Simulation, pending: PendingMarks): Instance[] {
 		if (instance && duration !== undefined) {
 			instance.endsAt = sim.time + duration
 		}
+		if (running) addStack(sim, running, pending)
 		if (instance?.charges) instance.charges.used++
+		const max = effect.effect.stacks?.max ?? 1
 		sim.empowered.set(effect.id, {
 			happened: !!instance,
 			...(instance?.charges && { charge: { ...instance.charges } }),
+			...(instance && max > 1 && { stacks: { count: instance.stacks, max } }),
 		})
 	}
 	return held
+}
+
+/** A running `on-attack` effect gains a stack as the attack starts (Lethal Tempo); its last one triggers what waits on it. */
+function addStack(sim: Simulation, instance: Instance, pending: PendingMarks) {
+	const before = instance.stacks
+	const { effect } = instance
+	instance.stacks = Math.min(stackLimit(sim, effect), before + 1)
+	if (
+		instance.stacks > before &&
+		instance.stacks === effect.effect.stacks?.max
+	) {
+		triggerOnMaxStacks(sim, effect, pending)
+	}
 }
 
 /** The attack uses a charge of each running effect an `on-attack` trigger doesn't count (Bladework, Monk Training). */
@@ -2124,6 +2157,14 @@ function pausedView(
 	return { paused: { until: pausedUntil, grants: pauses.grants } }
 }
 
+/** An effect's most stacks, when it has several. */
+function maxStacksView({
+	effect,
+}: BuildEffect): Pick<ActiveEffect, "maxStacks"> {
+	const max = effect.stacks?.max ?? 1
+	return max > 1 ? { maxStacks: max } : {}
+}
+
 /** The effects in their `startsAfter` state now, and those whose `delay` leads into one. */
 function waitingView(sim: Simulation): WaitingEffect[] {
 	const delayed = sim.delayed.flatMap(({ at, effect }): WaitingEffect[] => {
@@ -2162,6 +2203,7 @@ function snapshot(
 					startedAt,
 					endsAt,
 					stacks,
+					...maxStacksView(effect),
 					...pausedView(sim, { effect, pausedUntil }),
 				}),
 			),

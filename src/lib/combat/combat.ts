@@ -54,6 +54,8 @@ export type OutcomeKey =
 export type StepOutcome = OutcomeKey & {
 	happened: boolean
 	charge?: { used: number; max: number }
+	/** An empowering effect's stacks after the attack (Lethal Tempo 3/6). */
+	stacks?: { count: number; max: number }
 	readyAt?: number
 }
 
@@ -140,6 +142,8 @@ export type ActiveEffect = {
 	/** Infinity for one that lasts until its `endsOn` event (Teemo's W passive). */
 	endsAt: number
 	stacks: number
+	/** Its most stacks, for an effect that has several (Conqueror's 12). */
+	maxStacks?: number
 	/** While its pause holds: the stat grants switched off, and until when (Viego's E movement speed). */
 	paused?: { until: number; grants: readonly StatKey[] }
 }
