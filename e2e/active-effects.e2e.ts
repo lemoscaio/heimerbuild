@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { statsPanel, test } from "./fixtures"
+import { settledText, statsPanel, test } from "./fixtures"
 
 function effectSwitch(page: Page, name: RegExp) {
 	return statsPanel(page)
@@ -12,7 +12,7 @@ async function statTotal(page: Page, label: string) {
 	const row = statsPanel(page)
 		.getByRole("listitem")
 		.filter({ has: page.getByText(label, { exact: true }) })
-	const text = (await row.textContent()) ?? ""
+	const text = (await settledText(row)) ?? ""
 	return Number(/(?<![+\-−\d.])\d+(?:\.\d+)?/.exec(text)?.[0])
 }
 

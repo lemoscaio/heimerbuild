@@ -97,7 +97,38 @@ export function useBuildPage({
 		if (items.add(itemId)) setSelectedItemId(undefined)
 	}
 
-	/** The stats now and with one more rank in `slot`, when that ability's rank grants stats. */
+	/**
+	 * The Stats panel's numbers on the open tab, each total split by source. The Runes tab shows the
+	 * build without its stat shards, previewing them; the others preview the shop item picked.
+	 */
+	function statsPanel() {
+		const { attackSpeedRatio } = build
+		if (!stats || !build.statsWithoutRunes || attackSpeedRatio === undefined) {
+			return undefined
+		}
+		const onRunes = tab === "runes"
+		const composition = build.compositionIf(onRunes ? { shards: [] } : {})
+		const previewComposition = onRunes
+			? runesPreview && build.compositionIf({}, { previewShards: true })
+			: selectedItem &&
+				build.compositionIf(
+					{ items: [...items.list, selectedItem] },
+					{ previewItemsFrom: items.list.length },
+				)
+		const shown = onRunes ? runesPreview : preview
+		return composition
+			? {
+					stats: onRunes ? build.statsWithoutRunes : stats,
+					composition,
+					attackSpeedRatio,
+					...(shown &&
+						previewComposition && {
+							preview: { ...shown, composition: previewComposition },
+						}),
+				}
+			: undefined
+	}
+
 	/** What the Skills tab reads each ability's damage at: the stats, the level and each ability's counters. */
 	function abilityDamageBuild(): AbilityDamageBuild | undefined {
 		if (!stats) return undefined
@@ -107,6 +138,7 @@ export function useBuildPage({
 		return { stats, level: championState.level, counters }
 	}
 
+	/** The stats now and with one more rank in `slot`, when that ability's rank grants stats. */
 	function rankUpStats(slot: AbilitySlot) {
 		if (!champion?.rankStats?.some((rankStat) => rankStat.slot === slot)) {
 			return undefined
@@ -152,6 +184,8 @@ export function useBuildPage({
 		statsWithoutRunes: build.statsWithoutRunes,
 		/** `stats` labelled as the shards' effect, while at least one shard is chosen. */
 		runesPreview,
+		/** The Stats panel's totals with their sources and preview, for the open tab. */
+		statsPanel: statsPanel(),
 		/** The overview workbench, the expanded shop or the expanded combo, kept in the URL. */
 		view,
 		setView,

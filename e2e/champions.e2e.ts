@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { levelSlider, statsPanel, test } from "./fixtures"
+import { levelSlider, settledText, statsPanel, test } from "./fixtures"
 
 function championLinks(page: Page) {
 	return page.getByRole("region", { name: "Champions" }).getByRole("link")
@@ -85,7 +85,7 @@ test("opening a champion and changing its level changes its stats", async ({
 	const stats = statsPanel(page)
 	await expect(stats).toBeVisible()
 	await expect(levelSlider(page)).toHaveValue("1")
-	const levelOneStats = await stats.textContent()
+	const levelOneStats = await settledText(stats)
 
 	await levelSlider(page).fill("18")
 

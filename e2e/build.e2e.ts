@@ -3,6 +3,7 @@ import {
 	chosenItems,
 	itemNames,
 	levelSlider,
+	settledText,
 	statsPanel,
 	test,
 } from "./fixtures"
@@ -20,12 +21,12 @@ test("a clicked item is previewed first and added with Add to build", async ({
 	const stats = statsPanel(page)
 	await expect(chosenItems(page)).toHaveCount(3)
 	await expect(stats).toBeVisible()
-	const current = await stats.textContent()
+	const current = await settledText(stats)
 
 	await shopItem(page, "Void Staff").click()
 	await expect(page.getByRole("region", { name: "Void Staff" })).toBeVisible()
 	await expect(stats).not.toHaveText(current ?? "")
-	const preview = await stats.textContent()
+	const preview = await settledText(stats)
 	await expect(chosenItems(page)).toHaveCount(3)
 
 	await page.getByRole("button", { name: "Add to build" }).click()
@@ -58,18 +59,18 @@ test("adding and removing items changes the totals, and a build the game forbids
 	await expect(
 		shopItem(page, "Long Sword").getByText("Long Sword"),
 	).toBeVisible()
-	const noItems = await stats.textContent()
+	const noItems = await settledText(stats)
 
 	await shopItem(page, "Long Sword").dblclick()
 	await expect(chosenItems(page)).toHaveCount(1)
 	await expect(chosenItems(page).getByText("Long Sword")).toBeVisible()
 	await expect(stats).not.toHaveText(noItems ?? "")
-	const withSword = await stats.textContent()
+	const withSword = await settledText(stats)
 
 	await shopItem(page, "Rabadon's Deathcap").dblclick()
 	await expect(chosenItems(page)).toHaveCount(2)
 	await expect(stats).not.toHaveText(withSword ?? "")
-	const withBoth = await stats.textContent()
+	const withBoth = await settledText(stats)
 
 	// The game allows one Rabadon's Deathcap: the copy is added anyway and a warning names it.
 	const warning = page.getByRole("status").filter({ hasText: /\S/ })
@@ -106,7 +107,7 @@ test("a copied build link restores the same build in a new page", async ({
 	await shopItem(page, "Long Sword").dblclick()
 	await shopItem(page, "Rabadon's Deathcap").dblclick()
 	await expect(chosenItems(page)).toHaveCount(2)
-	const stats = await statsPanel(page).textContent()
+	const stats = await settledText(statsPanel(page))
 	const items = await itemNames(chosenItems(page))
 
 	await page.getByRole("button", { name: "Copy link" }).click()

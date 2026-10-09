@@ -27,6 +27,7 @@ import {
 import { abilitiesInForm } from "@/lib/form-abilities"
 import { selectedRunes } from "@/lib/rune-selection"
 import { itemsAdaptiveType } from "@/lib/stats/adaptive-force"
+import { formStats } from "@/lib/stats/champion-forms"
 import {
 	type BuildStatsInput,
 	buildAbilityCounters,
@@ -35,6 +36,11 @@ import {
 	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
+import {
+	type CompositionInput,
+	type CompositionOptions,
+	statComposition,
+} from "@/lib/stats/stat-composition"
 import { dropUnusedConditionValues } from "../lib/condition-values"
 
 type UseChampionBuildOptions = {
@@ -250,6 +256,18 @@ export function useChampionBuild({
 		return input && computeBuildStats(input)
 	}
 
+	/** `whatIf(change)`'s totals split by source, which add up to them. */
+	function compositionIf(
+		change: Partial<CompositionInput> = {},
+		options: CompositionOptions = {},
+	) {
+		const input = statsInput(change)
+		return (
+			input &&
+			statComposition({ ...input, items: change.items ?? items.list }, options)
+		)
+	}
+
 	return {
 		champion,
 		championState,
@@ -267,6 +285,14 @@ export function useChampionBuild({
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes: whatIf({ shards: [] }),
 		whatIf,
+		compositionIf,
+		/** Bonus attack speed reads as a percent of this, the selected form's ratio. */
+		attackSpeedRatio:
+			champion &&
+			formStats(champion, {
+				form: championState.formValue,
+				ranks: skills.ranks,
+			}).stats.attackSpeed.ratio,
 		/** The counts each ability's damage formulas read (Siphoning Strike's stacks), with the effects turned on. */
 		abilityCounters: (ability: AbilitySlot | "passive") => {
 			const input = statsInput()

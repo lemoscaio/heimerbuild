@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { levelSlider, statsPanel, test } from "./fixtures"
+import { levelSlider, settledText, statsPanel, test } from "./fixtures"
 
 function skills(page: Page) {
 	return page.getByRole("region", { name: "Skills" })
@@ -125,7 +125,7 @@ test("a rank that grants stats changes the stats panel", async ({ page }) => {
 	await page.goto("/champions/TwistedFate?lvl=3&skills=QWQ")
 	const stats = statsPanel(page)
 	await expect(stats).toBeVisible()
-	const before = await stats.textContent()
+	const before = await settledText(stats)
 
 	await orderLevel(page, 3).click()
 	await page.getByRole("button", { name: /^E / }).click()
@@ -157,7 +157,7 @@ test("removing a spent point leaves its level unspent, in the stats and the link
 	await page.goto("/champions/TwistedFate?lvl=3&skills=QEW")
 	const stats = statsPanel(page)
 	await expect(stats).toBeVisible()
-	const before = await stats.textContent()
+	const before = await settledText(stats)
 
 	await orderLevel(page, 2).click()
 	await page.getByRole("button", { name: "Remove point" }).click()

@@ -2,6 +2,7 @@ import { expect } from "@playwright/test"
 import {
 	chosenItems,
 	currentItems,
+	settledText,
 	shopItems,
 	statsPanel,
 	test,
@@ -15,7 +16,7 @@ test("on a phone, an item added from the Shop tab changes the Stats tab", async 
 	await page.goto("/champions/Heimerdinger")
 	const stats = statsPanel(page)
 	await expect(stats).toBeVisible()
-	const before = await stats.textContent()
+	const before = await settledText(stats)
 
 	await page.getByRole("tab", { name: "Shop" }).click()
 	await expect(stats).toBeHidden()
