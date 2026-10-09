@@ -168,8 +168,9 @@ test("a situation marker sets Harrier's mark from where it is, and only the buil
 test("Hail of Blades' marker moves and is removed like a step, with Undo", async ({
 	page,
 }) => {
+	// Hail of Blades starts on its cooldown (its "Combo start" chip removed), so a marker readies it.
 	await page.goto(
-		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&start=-hail-of-blades&tab=combo",
 	)
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	await attack.click()
@@ -203,8 +204,9 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 test("a marker goes at the start of a built combo from its chip's menu, or to the start from its own button, and stays first in the link", async ({
 	page,
 }) => {
+	// Hail of Blades starts on its cooldown (its "Combo start" chip removed), so a marker readies it.
 	await page.goto(
-		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&start=-hail-of-blades&tab=combo",
 	)
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	await attack.click()
@@ -597,6 +599,10 @@ test("a combo with a marker, a variant, a wait, free mode's answers and a target
 	await firstAttack.getByRole("button", { name: "Hail of Blades: No" }).click()
 	await expect(page).toHaveURL(/[?&]choices=/)
 	await expect(page).toHaveURL(/[?&]target=2500-60-45\b/)
+	await combo(page)
+		.getByRole("button", { name: "Start on cooldown: Hail of Blades ready" })
+		.click()
+	await expect(page).toHaveURL(/[?&]start=-hail-of-blades\b/)
 	await expect(damageTotal(page)).not.toHaveText("0")
 	const built = await comboSnapshot(page)
 
