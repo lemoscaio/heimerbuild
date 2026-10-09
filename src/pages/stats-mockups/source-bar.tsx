@@ -1,7 +1,11 @@
+import { Fragment } from "react"
 import { cn } from "@/lib/cn"
 import type { MockupRow } from "./lib/mockup-rows"
-import { rowBar, sourceLine, sourceTotals } from "./lib/source-summary"
+import { rowBar, SOURCE_LABELS, sourceTotals } from "./lib/source-summary"
+import { useMockupMotion } from "./mockup-motion"
+import { AnimatedBarSpan } from "./option-sources.motion"
 import { sourceColor } from "./source-colors"
+import { StatNumber } from "./stat-number"
 
 type SourceBarProps = {
 	row: MockupRow
@@ -27,34 +31,61 @@ export function SourceBar({ row, comparedName }: SourceBarProps) {
 					className="relative block h-1.5 overflow-hidden rounded-full bg-surface-sunken"
 				>
 					{segments.map(({ kind, start, width }) => (
-						<span
+						<BarSpan
 							key={kind}
 							className={cn("absolute inset-y-0", sourceColor({ kind }))}
-							style={{ left: `${start * 100}%`, width: `${width * 100}%` }}
+							left={start}
+							width={width}
 						/>
 					))}
 					{lost && (
-						<span
+						<BarSpan
 							className="absolute inset-y-0 bg-[repeating-linear-gradient(135deg,var(--color-error)_0_2px,var(--color-surface-sunken)_2px_4px)]"
-							style={{
-								left: `${lost.start * 100}%`,
-								width: `${lost.width * 100}%`,
-							}}
+							left={lost.start}
+							width={lost.width}
 						/>
 					)}
 					{markerAt !== undefined && (
-						<span
-							className="absolute inset-y-0 w-0.5 bg-white"
-							style={{ left: `calc(${markerAt * 100}% - 1px)` }}
+						<BarSpan
+							className="absolute inset-y-0 -ml-px w-0.5 bg-white"
+							left={markerAt}
 						/>
 					)}
 				</span>
 			)}
 			{!!totals.length && (
 				<span className="block text-[0.625rem] text-subtle tabular-nums leading-3">
-					{sourceLine(totals, valueFormat)}
+					{totals.map(({ kind, value }, index) => (
+						<Fragment key={kind}>
+							{!!index && " · "}
+							<StatNumber
+								value={value}
+								valueFormat={valueFormat}
+								kind={kind === "base" ? "total" : "bonus"}
+							/>{" "}
+							{SOURCE_LABELS[kind]}
+						</Fragment>
+					))}
 				</span>
 			)}
 		</>
+	)
+}
+
+type BarSpanProps = React.ComponentProps<typeof AnimatedBarSpan>
+
+/** A segment or marker at its place on the bar; in Option 4 it glides there. */
+function BarSpan({ left, width, className }: BarSpanProps) {
+	if (useMockupMotion() === "animated") {
+		return <AnimatedBarSpan left={left} width={width} className={className} />
+	}
+	return (
+		<span
+			className={className}
+			style={{
+				left: `${left * 100}%`,
+				...(width !== undefined && { width: `${width * 100}%` }),
+			}}
+		/>
 	)
 }

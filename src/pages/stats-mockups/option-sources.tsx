@@ -5,6 +5,7 @@ import { ExpandRow } from "./expand-row"
 import type { MockupRowGroup } from "./lib/mockup-rows"
 import type { MockupStats } from "./lib/mockup-stats"
 import { MockupStatsHeader } from "./mockup-stats-header"
+import { SourcesReveal } from "./option-sources.motion"
 import { SourceBar } from "./source-bar"
 import { SourceLegend } from "./source-legend"
 
@@ -16,7 +17,8 @@ type OptionSourcesProps = {
 
 /**
  * Option 4: Option 1's rows (the total, tap for each source's part) and a "Show sources" switch,
- * off by default, that adds Option 3's bar and line by kind of source under every row.
+ * off by default, that adds Option 3's bar and line by kind of source under every row. Its values,
+ * bars and breakdowns animate (owner's feedback); Options 1 to 3 do not.
  */
 export function OptionSources({
 	groups,
@@ -46,7 +48,9 @@ export function OptionSources({
 					Show sources
 				</label>
 			</div>
-			{showSources && <SourceLegend compared={comparedName} />}
+			<SourcesReveal open={showSources}>
+				<SourceLegend compared={comparedName} />
+			</SourcesReveal>
 			{comparedName && <CompareColumnsHeader comparedName={comparedName} />}
 			{groups.map(({ group, label, rows }) => (
 				<div key={group}>
@@ -60,9 +64,11 @@ export function OptionSources({
 								row={row}
 								comparedName={comparedName}
 							>
-								{showSources && (
-									<SourceBar row={row} comparedName={comparedName} />
-								)}
+								<SourcesReveal open={showSources} render={<span />}>
+									<span className="flex flex-col gap-1 pt-1">
+										<SourceBar row={row} comparedName={comparedName} />
+									</span>
+								</SourcesReveal>
 							</ExpandRow>
 						))}
 					</ul>

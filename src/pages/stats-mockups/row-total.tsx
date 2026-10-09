@@ -1,6 +1,6 @@
 import { cn } from "@/lib/cn"
-import { formatTotal } from "./lib/format-values"
 import type { MockupRow } from "./lib/mockup-rows"
+import { StatNumber } from "./stat-number"
 
 type RowTotalProps = Pick<MockupRow, "breakdown" | "next" | "valueFormat">
 
@@ -10,7 +10,7 @@ export function RowTotal({ breakdown, next, valueFormat }: RowTotalProps) {
 
 	return (
 		<span className="shrink-0 font-medium tabular-nums">
-			{formatTotal(total, valueFormat)}
+			<StatNumber value={total} valueFormat={valueFormat} kind="total" />
 			{next !== undefined && (
 				<>
 					<span aria-hidden="true"> → </span>
@@ -20,7 +20,7 @@ export function RowTotal({ breakdown, next, valueFormat }: RowTotalProps) {
 							"text-error": next < total,
 						})}
 					>
-						{formatTotal(next, valueFormat)}
+						<StatNumber value={next} valueFormat={valueFormat} kind="total" />
 					</span>
 				</>
 			)}

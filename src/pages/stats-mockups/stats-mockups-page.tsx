@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn"
 import { useStatsMockupsPage } from "./hooks/use-stats-mockups-page"
 import { MOCKUP_OPTIONS, type MockupOption } from "./lib/mockup-search"
 import { MockupControls } from "./mockup-controls"
+import { MockupMotionProvider } from "./mockup-motion"
 import { OptionBars } from "./option-bars"
 import { OptionColumns } from "./option-columns"
 import { OptionExpand } from "./option-expand"
@@ -67,28 +68,32 @@ export function StatsMockupsPage() {
 				{status === "pending" && <Skeleton className="h-96 w-full" />}
 				{optionProps && (
 					<div className="grid gap-5 lg:grid-cols-[repeat(auto-fill,21.25rem)] lg:justify-center lg:gap-3">
-						<MockupPanel
-							title={OPTION_TITLES.expand}
-							shown={option === "expand"}
-						>
-							<OptionExpand {...optionProps} />
-						</MockupPanel>
-						<MockupPanel
-							title={OPTION_TITLES.columns}
-							shown={option === "columns"}
-						>
-							<OptionColumns {...optionProps} />
-						</MockupPanel>
-						<MockupPanel title={OPTION_TITLES.bars} shown={option === "bars"}>
-							<OptionBars {...optionProps} />
-						</MockupPanel>
-						<MockupPanel
-							id="option-4"
-							title={OPTION_TITLES.sources}
-							shown={option === "sources"}
-						>
-							<OptionSources {...optionProps} />
-						</MockupPanel>
+						<MockupMotionProvider value="static">
+							<MockupPanel
+								title={OPTION_TITLES.expand}
+								shown={option === "expand"}
+							>
+								<OptionExpand {...optionProps} />
+							</MockupPanel>
+							<MockupPanel
+								title={OPTION_TITLES.columns}
+								shown={option === "columns"}
+							>
+								<OptionColumns {...optionProps} />
+							</MockupPanel>
+							<MockupPanel title={OPTION_TITLES.bars} shown={option === "bars"}>
+								<OptionBars {...optionProps} />
+							</MockupPanel>
+						</MockupMotionProvider>
+						<MockupMotionProvider value="animated">
+							<MockupPanel
+								id="option-4"
+								title={OPTION_TITLES.sources}
+								shown={option === "sources"}
+							>
+								<OptionSources {...optionProps} />
+							</MockupPanel>
+						</MockupMotionProvider>
 					</div>
 				)}
 			</div>

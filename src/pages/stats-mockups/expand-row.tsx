@@ -5,9 +5,10 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/cn"
-import { formatBonus, formatDelta, formatTotal } from "./lib/format-values"
 import type { MockupRow } from "./lib/mockup-rows"
+import { useMockupMotion } from "./mockup-motion"
 import { RowTotal } from "./row-total"
+import { StatNumber } from "./stat-number"
 
 type ExpandRowProps = {
 	row: MockupRow
@@ -26,7 +27,7 @@ export function ExpandRow({ row, comparedName, children }: ExpandRowProps) {
 			<Collapsible>
 				<CollapsibleTrigger
 					className={cn(
-						"group flex min-h-7 w-full flex-col justify-center gap-1 rounded-md bg-line/40 px-2 py-0.75 text-left text-xs leading-4 outline-none hover:bg-line focus-visible:outline-2 focus-visible:outline-ring data-panel-open:rounded-b-none data-panel-open:bg-line max-lg:min-h-10",
+						"group flex min-h-7 w-full flex-col justify-center rounded-md bg-line/40 px-2 py-0.75 text-left text-xs leading-4 outline-none hover:bg-line focus-visible:outline-2 focus-visible:outline-ring data-panel-open:rounded-b-none data-panel-open:bg-line max-lg:min-h-10",
 						{ "bg-lilac/25": next !== undefined },
 					)}
 				>
@@ -42,7 +43,11 @@ export function ExpandRow({ row, comparedName, children }: ExpandRowProps) {
 										<span className="sr-only">same</span>
 									</>
 								) : (
-									formatDelta(formDelta, valueFormat)
+									<StatNumber
+										value={formDelta}
+										valueFormat={valueFormat}
+										kind="delta"
+									/>
 								)}
 								<span className="sr-only">, total: </span>
 							</span>
@@ -55,7 +60,13 @@ export function ExpandRow({ row, comparedName, children }: ExpandRowProps) {
 					</span>
 					{children}
 				</CollapsibleTrigger>
-				<CollapsibleContent className="rounded-b-md bg-surface-sunken/60">
+				<CollapsibleContent
+					className={cn("rounded-b-md bg-surface-sunken/60", {
+						// Base UI's own open/close states; it unmounts the panel once the transition ends.
+						"h-(--collapsible-panel-height) overflow-hidden transition-[height,opacity] duration-200 ease-out data-ending-style:h-0 data-starting-style:h-0 data-ending-style:opacity-0 data-starting-style:opacity-0 motion-reduce:transition-none":
+							useMockupMotion() === "animated",
+					})}
+				>
 					<Composition row={row} />
 				</CollapsibleContent>
 			</Collapsible>
@@ -80,16 +91,18 @@ function Composition({ row }: { row: MockupRow }) {
 						{part.preview && " · preview"}
 					</dt>
 					<dd className="shrink-0 tabular-nums">
-						{part.kind === "base"
-							? formatTotal(part.value, valueFormat)
-							: formatBonus(part.value, valueFormat)}
+						<StatNumber
+							value={part.value}
+							valueFormat={valueFormat}
+							kind={part.kind === "base" ? "total" : "bonus"}
+						/>
 					</dd>
 				</div>
 			))}
 			<div className="mt-0.5 flex justify-between gap-3 border-line border-t pt-1 font-semibold">
 				<dt>{next === undefined ? "Total" : "Total with the preview"}</dt>
 				<dd className="shrink-0 tabular-nums">
-					{formatTotal(total, valueFormat)}
+					<StatNumber value={total} valueFormat={valueFormat} kind="total" />
 				</dd>
 			</div>
 		</dl>

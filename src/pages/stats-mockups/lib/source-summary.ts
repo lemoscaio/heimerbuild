@@ -1,4 +1,3 @@
-import { formatBonus, formatTotal, type ValueFormat } from "./format-values"
 import type { StatPart, StatPartKind } from "./stat-composition"
 
 /** A row's parts summed by kind of source; the previewed item is a kind of its own. */
@@ -84,18 +83,4 @@ export function rowBar(
 		}),
 		...(marker !== undefined && { markerAt: marker / scale }),
 	}
-}
-
-/** Each source's part in words: "0.625 base · +110% items · +80% effects". */
-export function sourceLine(
-	totals: readonly SourceTotal[],
-	valueFormat: ValueFormat,
-): string {
-	return totals
-		.map(({ kind, value }) =>
-			kind === "base"
-				? `${formatTotal(value, valueFormat)} base`
-				: `${formatBonus(value, valueFormat)} ${SOURCE_LABELS[kind]}`,
-		)
-		.join(" · ")
 }
