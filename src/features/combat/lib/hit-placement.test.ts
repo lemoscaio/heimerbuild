@@ -368,6 +368,24 @@ describe("the List's cards (stepView on placed steps)", () => {
 	})
 })
 
+describe("a Judgment ended early (issue 427)", () => {
+	test("its card shows Conqueror as its last spin left it: Q's 2 stacks and 3 spins' 6, 8/12", () => {
+		const short = combo({ ...GAREN, runes: [rune("Conqueror")] }, [
+			cast("Q"),
+			{ kind: "ability", slot: "E", inArea: 1.5 },
+			{ kind: "wait", seconds: 3 },
+		])
+		const judgment = listViews(short)[1]
+
+		expect(judgment?.effects).toContainEqual(
+			expect.objectContaining({
+				name: "Conqueror",
+				stacks: { count: 8, max: 12 },
+			}),
+		)
+	})
+})
+
 describe("List, expanded combo and Timeline agree (issue 429)", () => {
 	const COMBOS = { "Annie with Arcane Comet": ANNIE_COMET, Vayne: VAYNE }
 

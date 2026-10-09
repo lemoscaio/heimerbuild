@@ -433,12 +433,18 @@ describe("Conqueror", async () => {
 	})
 
 	test("Judgment's step keeps the state its last spin left, past its cast's (issue 429)", () => {
-		const [judgment] = simulate(garen, [cast("E"), wait(3)]).steps
 		const stacks = (active: ActiveEffect[] | undefined) =>
 			active?.find(({ effectId }) => effectId === "conqueror")?.stacks
+		const [full] = simulate(garen, [cast("E"), wait(3)]).steps
+		const [short] = simulate(garen, [
+			{ kind: "ability", slot: "E", inArea: 1.5 },
+			wait(3),
+		]).steps
 
-		expect(stacks(judgment?.active)).toBe(2)
-		expect(stacks(judgment?.afterLaterHits?.active)).toBe(12)
+		expect(stacks(full?.active)).toBeUndefined()
+		expect(stacks(full?.afterLaterHits?.active)).toBe(12)
+		// Ended early (issue 427): the state its third and last spin left.
+		expect(stacks(short?.afterLaterHits?.active)).toBe(6)
 	})
 
 	test("another cast hitting several times still adds one action's stacks (Brand's Pyroclasm, 3 hits)", async () => {
