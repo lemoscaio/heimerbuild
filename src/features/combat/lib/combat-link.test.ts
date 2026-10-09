@@ -4,7 +4,7 @@ import { type CombatState, EMPTY_COMBAT } from "./combat-state"
 
 const COMBO: CombatState = {
 	entries: [
-		{ id: 4, action: { kind: "situation", effectId: "hail-of-blades" } },
+		{ id: 4, action: { kind: "situation", effectId: "quinn-harrier-valor" } },
 		{ id: 2, action: { kind: "attack" } },
 		{ id: 7, action: { kind: "ability", slot: "Q", variant: "handle" } },
 		{ id: 3, action: { kind: "wait", seconds: 1.5 } },
@@ -18,7 +18,7 @@ const COMBO: CombatState = {
 describe("the combo's link values", () => {
 	test("hold its entries in order, free mode and the choices by position", () => {
 		expect(toCombatLink(COMBO)).toEqual({
-			combo: "m-hail-of-blades.aa.q-handle.t1_5.e-1_5s",
+			combo: "m-quinn-harrier-valor.aa.q-handle.t1_5.e-1_5s",
 			free: true,
 			choices: "2e-hail-of-blades-n",
 		})
@@ -53,7 +53,7 @@ describe("the combo's link values", () => {
 
 	test("bring a wait into its range and drop a choice at a marker", () => {
 		const read = readCombatLink({
-			combo: "m-hail-of-blades.t45",
+			combo: "m-quinn-harrier-valor.t45",
 			choices: "1e-hail-of-blades-y",
 		})
 		expect(read.entries[1]?.action).toEqual({ kind: "wait", seconds: 30 })

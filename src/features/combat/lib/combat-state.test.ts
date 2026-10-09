@@ -29,7 +29,8 @@ function bound(fields: Partial<Effect> & Pick<Effect, "id">): BuildEffect {
 	}
 }
 
-const HAIL = bound({ id: "hail", start: { kind: "ready" } })
+// An attack-empowering effect a marker runs (Short Fuse ready, by its outcome).
+const HAIL = bound({ id: "hail", start: { kind: "running" } })
 const HARRIER = bound({
 	id: "valor",
 	trigger: { kind: "periodic" },

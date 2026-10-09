@@ -134,7 +134,7 @@ function StepRowEntry({
 	)
 }
 
-/** An entry's name in a move's announcement: "Marker Hail of Blades ready", "Attack". */
+/** An entry's name in a move's announcement: "Marker Target marked by Harrier", "Attack". */
 function entryLabel(item: CombatRowItem | undefined, names: ActionNames) {
 	if (!item) return "The step"
 	if (item.kind === "marker") return `Marker ${item.view.label}`

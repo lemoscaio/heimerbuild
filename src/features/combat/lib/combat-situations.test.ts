@@ -20,15 +20,12 @@ function bound(name: string, start: Effect["start"]): BuildEffect {
 }
 
 describe("situationLabel", () => {
-	test("names a mark on the target, or an effect ready", () => {
+	test("names a mark on the target, or an effect running", () => {
 		expect(situationLabel(bound("Harrier", { kind: "marked" }))).toBe(
 			"Target marked by Harrier",
 		)
 		expect(situationLabel(bound("Short Fuse", { kind: "running" }))).toBe(
 			"Short Fuse ready",
-		)
-		expect(situationLabel(bound("Hail of Blades", { kind: "ready" }))).toBe(
-			"Hail of Blades ready",
 		)
 	})
 })
@@ -38,12 +35,12 @@ describe("combatSituations", () => {
 		const effects = [
 			bound("Harrier", { kind: "marked" }),
 			bound("Ignite", undefined),
-			bound("Hail of Blades", { kind: "ready" }),
+			bound("Short Fuse", { kind: "running" }),
 		]
 
 		expect(combatSituations(effects)).toEqual([
 			{ id: "harrier", label: "Target marked by Harrier", kind: "marked" },
-			{ id: "hail-of-blades", label: "Hail of Blades ready", kind: "ready" },
+			{ id: "short-fuse", label: "Short Fuse ready", kind: "running" },
 		])
 	})
 })
