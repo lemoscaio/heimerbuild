@@ -1,6 +1,5 @@
 import { cva } from "class-variance-authority"
 import { CircleAlert, X } from "lucide-react"
-import { GameIcon } from "@/components/common/game-icon"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 import {
@@ -10,15 +9,10 @@ import {
 } from "../lib/combat-format"
 import type { CombatRow, ProcRow } from "../lib/combat-rows"
 import { damageParts } from "../lib/combat-rows"
-import {
-	FROM_MARKER,
-	loneProcHit,
-	type ProcView,
-	type StepView,
-} from "../lib/combat-view"
+import { FROM_MARKER, type ProcView, type StepView } from "../lib/combat-view"
 import { CombatDamageOverTimeLine } from "./combat-damage-over-time-line"
-import { CombatHitDamage } from "./combat-hit-damage"
 import { CombatHitLine } from "./combat-hit-line"
+import { CombatProcRow } from "./combat-proc-row"
 import { CombatRunningEffects } from "./combat-running-effects"
 import { CombatTargetResists } from "./combat-target-resists"
 import { damageTypeText } from "./damage-type-styles"
@@ -119,71 +113,6 @@ function RowHits({
 			<CombatRunningEffects effects={view.effects} />
 			<CombatTargetResists resists={view.resists} />
 		</div>
-	)
-}
-
-/** A separate instance's mini row under its step's (issue 429): when it lands, its effect, hits and damage, the running total. */
-function ProcMiniRow({ proc, timing }: { proc: ProcView; timing?: ProcRow }) {
-	const late = timing?.late ? "late" : "onTime"
-	const lone = loneProcHit(proc)
-	return (
-		<li className={cn(row({ timing: late }), "py-1.5")}>
-			<span className="font-bold text-white tabular-nums [grid-area:lands]">
-				<CellLabel>Lands</CellLabel>
-				{formatSeconds(proc.time)}
-			</span>
-			<p className="flex min-w-0 items-center gap-2 pl-2 text-prose [grid-area:step]">
-				<span aria-hidden="true" className="text-subtle">
-					↳
-				</span>
-				<GameIcon
-					name={proc.name}
-					src={proc.icon}
-					className="size-5 shrink-0 rounded-sm"
-				/>
-				<span className="min-w-0">{proc.name}</span>
-			</p>
-			{lone ? (
-				<p className="min-w-0 text-prose [grid-area:hits]">
-					<CombatHitDamage hit={lone} />
-				</p>
-			) : (
-				<ul
-					aria-label={`${proc.name} hits`}
-					className="flex min-w-0 flex-col text-prose [grid-area:hits]"
-				>
-					{proc.hits.map((hit, index) => (
-						// biome-ignore lint/suspicious/noArrayIndexKey: a proc's hits never reorder
-						<CombatHitLine key={index} hit={hit} />
-					))}
-				</ul>
-			)}
-			{proc.total.final > 0 && (
-				<p className="text-right [grid-area:damage]">
-					<CellLabel>Damage</CellLabel>
-					<span
-						className={cn(
-							"font-bold font-display text-sm tabular-nums",
-							proc.mainType && damageTypeText(proc.mainType),
-						)}
-					>
-						{formatDamage(proc.total.final)}
-					</span>
-				</p>
-			)}
-			{timing && (
-				<>
-					<span className="text-right text-prose tabular-nums [grid-area:dealt]">
-						<CellLabel>So far</CellLabel>
-						{formatDamage(timing.dealt)}
-					</span>
-					<span className="text-health tabular-nums [grid-area:health]">
-						<CellLabel>Target health</CellLabel>
-						{formatDamage(timing.targetHealth)}
-					</span>
-				</>
-			)}
-		</li>
 	)
 }
 
@@ -316,7 +245,7 @@ export function CombatStepRow({
 			{!!procs.length && !refused && (
 				<ul aria-label="Procs">
 					{procs.map(({ view: proc, row: procTiming }) => (
-						<ProcMiniRow
+						<CombatProcRow
 							key={`${proc.effectId}@${proc.time}`}
 							proc={proc}
 							timing={procTiming}

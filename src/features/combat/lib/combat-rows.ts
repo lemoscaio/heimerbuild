@@ -5,6 +5,7 @@ import type {
 	DamageSource,
 	DealtDamage,
 } from "@/lib/combat/combat"
+import { type OutsideEntry, procsOutside } from "./combat-procs-outside"
 import type { ProcView, StepView } from "./combat-view"
 import {
 	type EffectsById,
@@ -240,16 +241,65 @@ export function damageParts({
 	return parts.length > 1 ? parts : []
 }
 
-/** A step's separate instances as its view shows them, each with its mini row's timing and running total. */
+/** A step row's mini rows, each with the proc as its view shows it. */
 export function procRows(
-	{ procs }: Pick<StepView, "procs">,
+	view: Pick<StepView, "procs">,
 	row: Pick<CombatRow, "procs">,
-): { view: ProcView; row?: ProcRow }[] {
-	return procs.map((view) => {
-		const timing = row.procs.find(
-			({ effectId, time }) =>
-				effectId === view.effectId && sameMoment(time, view.time),
-		)
-		return timing ? { view, row: timing } : { view }
+): { view: ProcView; row: ProcRow }[] {
+	return row.procs.flatMap((timing) => {
+		const proc = procViewOf(view, timing)
+		return proc ? [{ view: proc, row: timing }] : []
+	})
+}
+
+/** The view of a proc's mini row: the one its step's view shows at the same moment. */
+export function procViewOf(
+	{ procs }: Pick<StepView, "procs">,
+	row: Pick<ProcRow, "effectId" | "time">,
+): ProcView | undefined {
+	return procs.find(
+		({ effectId, time }) =>
+			effectId === row.effectId && sameMoment(time, row.time),
+	)
+}
+
+// PROTOTYPE (PR 434, remove before merge): the outside layout of the expanded combo.
+
+type OutsideRowsOptions = {
+	target: Pick<CombatTarget, "health">
+	order: CombatRowOrder
+}
+
+/**
+ * PROTOTYPE (PR 434): the rows with each proc as a row of its own among them at its land time
+ * (`procsOutside`), the running total going down them as shown; the steps' rows keep no procs.
+ */
+export function outsideRows(
+	rows: readonly CombatRow[],
+	{ target, order }: OutsideRowsOptions,
+): OutsideEntry<CombatRow, ProcRow>[] {
+	let dealt = 0
+	const entries = procsOutside(rows, {
+		timeOf: (row) =>
+			order === "hit" ? (row.lands?.first ?? row.startsAt) : row.startsAt,
+		procsOf: (row) => row.procs,
+	})
+	return entries.map((entry) => {
+		dealt += entry.kind === "item" ? entry.item.damage : entry.proc.damage
+		const targetHealth = Math.max(0, target.health - dealt)
+		if (entry.kind === "proc") {
+			return { ...entry, proc: { ...entry.proc, dealt, targetHealth } }
+		}
+		const { item } = entry
+		return {
+			kind: "item",
+			item: {
+				...item,
+				step: { ...item.step, targetHealth },
+				dealt,
+				targetHealth,
+				procs: [],
+			},
+		}
 	})
 }
