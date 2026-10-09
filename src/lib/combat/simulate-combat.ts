@@ -211,6 +211,10 @@ type Simulation = {
 	laterHits: LaterHit[]
 	/** The step whose cast's later hit is landing now, which shows its hits. */
 	laterHitOf?: number
+	/** The effect whose own hit applies on-hit now (a phantom hit), which the on-hit damage names. */
+	onHitOf?: string
+	/** Each step's state once its cast's last later hit landed (Judgment's last spin), by item index. */
+	afterLaterHits: Map<number, StepState>
 	/** The recasts each ability has left (`Recasts`), until when, and when the next may start. */
 	recasts: Map<AbilitySlot, RecastWindow>
 	/** A cast that stops basic attacks while it runs (`BlocksAttacks`: Judgment), and its step. */
@@ -418,6 +422,7 @@ function createSimulation(
 		delayed: [],
 		waiting: [],
 		laterHits: [],
+		afterLaterHits: new Map(),
 		recasts: new Map(),
 		castHits: new Map(),
 	}
@@ -513,6 +518,13 @@ function laterHitOf(
 	return owner === undefined || tick ? {} : { laterHit: { owner } }
 }
 
+/** On-hit damage an effect's own hit applied (a phantom hit), named on the hit. */
+function onHitOf(sim: Simulation, tick: TickOwner | undefined) {
+	return sim.onHitOf === undefined || tick
+		? {}
+		: { onHitOf: { effectId: sim.onHitOf } }
+}
+
 /** {@link DelayedHit}: dealt for an earlier step than the one running, other than as a tick or a later hit. */
 function delayedOf(sim: Simulation, tick: TickOwner | undefined): DelayedHit {
 	const { owner } = sim
@@ -542,6 +554,7 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 		...(tick && { tick }),
 		...laterHitOf(sim, tick),
 		...delayedOf(sim, tick),
+		...onHitOf(sim, tick),
 	})
 	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
@@ -658,6 +671,7 @@ function notModeledHit(
 		...(tick && { tick }),
 		...laterHitOf(sim, tick),
 		...delayedOf(sim, tick),
+		...onHitOf(sim, tick),
 	})
 	triggerOnAbilityDamage(sim, source)
 	triggerOnActionDamage(sim, source)
@@ -815,7 +829,12 @@ function dealGrantNow(
 		dealAbilityDamage(sim, grant.ability, grant.name, source)
 	}
 	if (grant.kind === "damage") dealGrantDamage(sim, grant, effect, source)
-	if (grant.kind === "applyOnHit") onHit(sim, pending, "effect")
+	if (grant.kind === "applyOnHit") {
+		const previous = sim.onHitOf
+		sim.onHitOf = effect.id
+		onHit(sim, pending, "effect")
+		sim.onHitOf = previous
+	}
 }
 
 /** An amount of the effect now, reading the attacker's stats when it needs them (Harrier's cooldown). */
@@ -2021,6 +2040,7 @@ function landLaterHit(sim: Simulation, hit: LaterHit) {
 	sim.owner = previous
 	sim.laterHitOf = undefined
 	sim.forced = forced
+	sim.afterLaterHits.set(owner, snapshot(sim))
 }
 
 /** Why an ability can't be cast now; undefined when it can. Free mode ignores its cooldown. */
@@ -2395,9 +2415,9 @@ function waitingView(sim: Simulation): WaitingEffect[] {
 	return [...delayed, ...waiting]
 }
 
-function snapshot(
-	sim: Simulation,
-): Pick<CombatStep, "active" | "waiting" | "marks" | "resists"> {
+type StepState = Pick<CombatStep, "active" | "waiting" | "marks" | "resists">
+
+function snapshot(sim: Simulation): StepState {
 	const waiting = waitingView(sim)
 	const reductions = targetReductions(sim)
 	return {
@@ -2517,6 +2537,10 @@ export function simulateCombat(
 	// After the last action, only what runs plays out: a periodic effect would come back forever.
 	advance(sim, Number.POSITIVE_INFINITY, { periodic: false })
 	closeStep()
+	for (const [owner, state] of sim.afterLaterHits) {
+		const step = steps[owner]
+		if (step) step.afterLaterHits = state
+	}
 	settleDamageOverTime(sim, steps)
 	for (const [index, hits] of sim.castHits) {
 		const step = steps[index]
