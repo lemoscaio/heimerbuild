@@ -194,6 +194,10 @@ type Simulation = {
 	onActionDamage: boolean
 	/** The `on-action-damage` effects each action already triggered, as "effect id@step". */
 	actionDamageTriggered: Set<string>
+	/** While a hit's on-hit effects run: the target's health as the hit began, which they read (wiki BotRK). */
+	hitHealth?: number
+	/** While a hit's on-hit effects run: the effects at their most stacks before any triggered (`requiresMaxStacks`). */
+	maxedAtHit?: ReadonlySet<string>
 	/** Effects with a `delay` waiting to take effect, and the step that triggered each. */
 	delayed: Delayed[]
 	/** Effects in their `startsAfter` state, until an event breaks it or `until`. */
@@ -506,7 +510,7 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 		attacker: statsNow(sim),
 		reductions: targetReductions(sim),
 	})
-	const final = mitigated * damageAmplification(sim)
+	const final = mitigated * damageAmplification(sim, source)
 	sim.health = Math.max(0, sim.health - final)
 	if (sim.health === 0 && !sim.kill) {
 		sim.kill = { time: sim.time, step: sim.step }
@@ -551,33 +555,53 @@ function dealBonusTrueDamage(
 	}
 }
 
-/** What the attacker's running effects multiply its damage by, after mitigation (Press the Attack's 8%). */
-function damageAmplification(sim: Simulation): number {
+/**
+ * What the attacker's running effects multiply its damage by, after mitigation, each at its stacks
+ * (Press the Attack's 8%; Spear of Shojin: 3% per stack on ability damage, not on the hit adding it).
+ */
+function damageAmplification(sim: Simulation, source: DamageSource): number {
 	let amplification = 1
-	for (const { effect, holder } of sim.active) {
+	for (const { effect, holder, stacks } of sim.active) {
 		if (holder !== "attacker") continue
+		const max = effect.effect.stacks?.max ?? 1
 		for (const grant of effect.effect.grants) {
 			if (grant.kind !== "damageAmplification") continue
-			amplification += resolveAmount(grant.amount, effect, sim.context) ?? 0
+			if (grant.abilitiesOnly && !isAbilityDamage(sim, source)) continue
+			const amount = resolveAmount(grant.amount, effect, sim.context) ?? 0
+			amplification += (amount * Math.min(stacks, max)) / max
 		}
 	}
 	return amplification
+}
+
+/** The ability whose damage this is: its cast's, or that of an effect whose source is an ability. */
+function damageAbility(
+	sim: Simulation,
+	source: DamageSource,
+): AbilitySlot | "passive" | undefined {
+	if (source.kind === "ability") return source.slot
+	if (source.kind !== "effect") return undefined
+	const effect = sim.input.effects.find(({ id }) => id === source.effectId)
+	const origin = effect?.effect.source
+	return origin?.kind === "ability" ? origin.slot : undefined
 }
 
 /**
  * An action's damage landing triggers the `on-action-damage` effects, once per action: its later
  * hits, ticks and delayed hits count as it (one stack per cast instance, wiki Electrocute), unless
  * its hit rule's `actionPerHit` names the effect. Its first damage says whether a basic attack
- * dealt it (`stacks.gain`).
+ * dealt it (`stacks.gain`). `abilitiesOnly`: a Q, W, E or R's damage, not the passive's.
  */
 function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	if (sim.onActionDamage) return
 	sim.onActionDamage = true
 	const action = sim.owner ?? sim.step
+	const ability = damageAbility(sim, source)
 	const pending: PendingMarks = []
 	for (const effect of sim.input.effects) {
 		const { trigger: on } = effect.effect
 		if (on.kind !== "on-action-damage") continue
+		if (on.abilitiesOnly && (!ability || ability === "passive")) continue
 		const hit = isActionPerHit(sim, source, effect.id) ? `@${sim.time}` : ""
 		const key = `${effect.id}@${action}${hit}`
 		if (sim.actionDamageTriggered.has(key)) continue
@@ -703,7 +727,11 @@ function dealAbilityDamage(
 	deal(sim, { source, type: formula.type, raw })
 }
 
-/** An effect's damage now: its base plus ratios of the attacker's stats, its type read at the hit. */
+/**
+ * An effect's damage now: its base plus ratios of the attacker's stats and its share of the target's
+ * health, which reads the health as the hit began (`hitHealth`), as does its missing health bonus;
+ * its type read at the hit.
+ */
 function grantDamage(
 	sim: Simulation,
 	grant: EffectDamage,
@@ -727,7 +755,19 @@ function grantDamage(
 	const bonusAttackSpeed =
 		stats.attackSpeed.bonus / champion.stats.attackSpeed.ratio
 	const scale = 1 + (grant.perBonusAttackSpeed ?? 0) * bonusAttackSpeed
-	return { type, raw: (base + ratioDamage(grant.ratios, stats)) * scale }
+	const share = grant.targetHealth
+		? resolveAmount(grant.targetHealth.ratio, effect, sim.context)
+		: 0
+	if (share === undefined) return undefined
+	const maximum = sim.input.target.health
+	const current = sim.hitHealth ?? sim.health
+	const ofHealth = grant.targetHealth
+		? share * targetHealth(grant.targetHealth.health, { maximum, current })
+		: 0
+	const missing = 1 - current / maximum
+	const bonus = 1 + (grant.missingHealthBonus ?? 0) * missing
+	const raw = (base + ratioDamage(grant.ratios, stats)) * scale + ofHealth
+	return { type, raw: raw * bonus }
 }
 
 function dealGrantDamage(
@@ -744,12 +784,19 @@ function dealGrantDamage(
 	deal(sim, { source, ...damage })
 }
 
-function dealGrantNow(sim: Simulation, grant: Grant, effect: BuildEffect) {
+/** What a grant does as its effect takes effect: its damage, or on-hit applied once more (a phantom hit). */
+function dealGrantNow(
+	sim: Simulation,
+	grant: Grant,
+	effect: BuildEffect,
+	pending: PendingMarks,
+) {
 	const source = { kind: "effect", effectId: effect.id } as const
 	if (grant.kind === "abilityDamage") {
 		dealAbilityDamage(sim, grant.ability, grant.name, source)
 	}
 	if (grant.kind === "damage") dealGrantDamage(sim, grant, effect, source)
+	if (grant.kind === "applyOnHit") onHit(sim, pending, "effect")
 }
 
 /** An amount of the effect now, reading the attacker's stats when it needs them (Harrier's cooldown). */
@@ -947,8 +994,10 @@ function trigger(
 		resets,
 		consumes,
 		requiresReady,
+		requiresMaxStacks,
 	} = effect.effect
 	if (requiresReady && isOnCooldown(sim, requiresReady)) return
+	if (requiresMaxStacks && !isAtMaxStacks(sim, requiresMaxStacks)) return
 	const cooldownAtTrigger = !endsOn && !cooldownFrom
 	if (delay && !landing) {
 		// Its cooldown runs from the trigger, so it can't trigger again while it waits to land.
@@ -970,7 +1019,9 @@ function trigger(
 	if (consumes) consume(sim, consumes)
 	if (applies) pending.push({ ...applies, by: effect })
 	if (!isEndedBy(effect, "on-hit")) {
-		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
+		for (const grant of effect.effect.grants) {
+			dealGrantNow(sim, grant, effect, pending)
+		}
 	}
 	if (cooldownAtTrigger && !(delay && landing)) startCooldown(sim, effect)
 
@@ -1027,6 +1078,23 @@ function stackGain(
 
 function isOnCooldown(sim: Simulation, effectId: string): boolean {
 	return (sim.effectsReadyAt.get(effectId) ?? 0) > sim.time
+}
+
+/** Whether the effect is at its most stacks: as the hit began, while its on-hit effects run (`maxedAtHit`). */
+function isAtMaxStacks(sim: Simulation, effectId: string): boolean {
+	return (sim.maxedAtHit ?? maxedEffects(sim)).has(effectId)
+}
+
+/** The running effects at their most stacks. */
+function maxedEffects(sim: Simulation): Set<string> {
+	return new Set(
+		sim.active
+			.filter(({ effect, stacks }) => {
+				const max = effect.effect.stacks?.max
+				return max !== undefined && stacks >= max
+			})
+			.map(({ effect }) => effect.id),
+	)
 }
 
 /** Ends the running effect `effectId`, used up (Electrocute's stacks as it strikes). */
@@ -1263,11 +1331,28 @@ function ratioDamage(
 	)
 }
 
+/** What applies on-hit: an attack, an ability's hit, or an effect's (a phantom hit). */
+type OnHitBy = MarkConsumer | "effect"
+
+type OnHitOptions = {
+	/** The target's health as the hit began, which on-hit damage reads; the current one by default. */
+	targetHealth?: number
+}
+
 /**
- * On-hit, by an attack or an ability's hit: the on-hit effects trigger (an `attacksOnly` one on an
- * attack's), then each primed effect spent by an on-hit (a spellblade) deals its damage.
+ * On-hit, by an attack, an ability's hit or an effect's: the on-hit effects trigger (an
+ * `attacksOnly` one on an attack's), gated by the stacks as the hit began, then each primed effect
+ * spent by an on-hit (a spellblade) deals its damage.
  */
-function onHit(sim: Simulation, pending: PendingMarks, by: MarkConsumer) {
+function onHit(
+	sim: Simulation,
+	pending: PendingMarks,
+	by: OnHitBy,
+	{ targetHealth = sim.health }: OnHitOptions = {},
+) {
+	const previous = { hitHealth: sim.hitHealth, maxedAtHit: sim.maxedAtHit }
+	sim.hitHealth = targetHealth
+	sim.maxedAtHit = maxedEffects(sim)
 	sim.log.push({ kind: "on-hit", time: sim.time })
 	triggerWhere(
 		sim,
@@ -1275,6 +1360,7 @@ function onHit(sim: Simulation, pending: PendingMarks, by: MarkConsumer) {
 			trigger.kind === "on-hit" && (by === "attack" || !trigger.attacksOnly),
 		pending,
 	)
+	sim.maxedAtHit = previous.maxedAtHit
 	const spent = sim.active.filter(
 		({ effect, holder }) =>
 			holder === "attacker" && isEndedBy(effect, "on-hit"),
@@ -1292,6 +1378,7 @@ function onHit(sim: Simulation, pending: PendingMarks, by: MarkConsumer) {
 		expire(sim, instance)
 		startCooldown(sim, instance.effect)
 	}
+	sim.hitHealth = previous.hitHealth
 }
 
 /** Each running effect's `onAttackDamage`, dealt by a basic attack (Hail of Blades' true damage). */
@@ -1603,6 +1690,8 @@ function strike(
 	const held = empowerAttack(sim, pending)
 	spendCharges(sim)
 	advance(sim, sim.time + windupNow(sim))
+	// The attack and its on-hit are one damage event: on-hit reads the health before it (wiki BotRK).
+	const targetHealth = sim.health
 	deal(sim, {
 		source: { kind: "attack" },
 		type: "physical",
@@ -1610,7 +1699,7 @@ function strike(
 	})
 	bonus?.()
 	dealOnAttackDamage(sim)
-	onHit(sim, pending, "attack")
+	onHit(sim, pending, "attack", { targetHealth })
 	consumeMarks(sim, "attack", pending)
 	applyMarks(sim, chooseMarks(sim, pending, item))
 	for (const waiting of onTarget) release(sim, waiting)
@@ -1715,6 +1804,8 @@ function abilityHit(
 ) {
 	const rule = hitRule(sim, spell.slot)
 	const names = castDamages(spell, rule, variant, options)
+	// The cast's damages are one hit: a share of health reads it before any of them lands, as does on-hit.
+	const targetHealth = sim.health
 	if (rule?.notModeled) {
 		notModeledHit(
 			sim,
@@ -1726,15 +1817,13 @@ function abilityHit(
 			[rule.notModeled],
 		)
 	} else {
-		// The cast's damages are one hit: a share of health reads it before any of them lands.
-		const targetHealth = sim.health
 		const scale = targetStackScale(sim, rule)
 		for (const name of names) {
 			const source = { kind: "ability", slot: spell.slot, name } as const
 			dealAbilityDamage(sim, spell.slot, name, source, { targetHealth, scale })
 		}
 	}
-	if (rule?.onHit) onHit(sim, pending, "ability")
+	if (rule?.onHit) onHit(sim, pending, "ability", { targetHealth })
 	consumeMarks(sim, "ability", pending)
 	triggerAfterHit(sim, rule, variant, pending)
 }

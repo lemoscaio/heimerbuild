@@ -354,6 +354,7 @@ function resolveFullGrant(
 		case "attackMultiplier":
 		case "damageAmplification":
 		case "bonusTrueDamage":
+		case "applyOnHit":
 			return []
 	}
 }
