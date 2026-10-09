@@ -4,21 +4,20 @@ import { cn } from "@/lib/cn"
 import { formatDamage, formatSeconds } from "../lib/combat-format"
 import type { ProcRow } from "../lib/combat-rows"
 import { loneProcHit, type ProcView } from "../lib/combat-view"
+import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatHitDamage } from "./combat-hit-damage"
 import { CombatHitLine } from "./combat-hit-line"
 import { STEP_ROW_GRID } from "./combat-step-row"
-import { damageTypeText } from "./damage-type-styles"
 
 /** Highlighted when it lands after the next step started, like a step's row. */
 const procRow = cva(
-	cn(STEP_ROW_GRID, "items-start border-line border-b px-4 py-1.5 text-xs"),
+	cn(
+		STEP_ROW_GRID,
+		"ml-10 items-start rounded-md border border-lilac/60 border-dashed px-4 py-1.5 text-xs",
+	),
 	{
 		variants: {
 			timing: { late: "bg-surface-raised", onTime: "" },
-			place: {
-				inside: "",
-				outside: "ml-10 rounded-md border border-lilac/60 border-dashed",
-			},
 		},
 	},
 )
@@ -32,13 +31,13 @@ type CombatProcRowProps = {
 	proc: ProcView
 	/** Its timing and the running total down to it; absent while the rows load. */
 	timing?: ProcRow
-	/** PROTOTYPE (PR 434): the step that triggered it, for a proc listed among the steps ("1. Q · Disintegrate"). */
-	from?: string
+	/** The step that triggered it: "1. Q · Disintegrate". */
+	from: string
 } & React.ComponentProps<"li">
 
 /**
- * A separate instance's mini row (issue 429): when it lands, its effect, hits and damage, the
- * running total; under its step's row, or among the rows with the step it came from.
+ * A separate instance as a row of its own among the steps (issue 429), at its land time: when it
+ * lands, its effect and the step it came from, its hits and damage, the running total.
  */
 export function CombatProcRow({
 	proc,
@@ -51,10 +50,7 @@ export function CombatProcRow({
 	return (
 		<li
 			className={cn(
-				procRow({
-					timing: timing?.late ? "late" : "onTime",
-					place: from ? "outside" : "inside",
-				}),
+				procRow({ timing: timing?.late ? "late" : "onTime" }),
 				className,
 			)}
 			{...props}
@@ -75,7 +71,7 @@ export function CombatProcRow({
 					/>
 					<span className="min-w-0">{proc.name}</span>
 				</p>
-				{from && <p className="pl-5 text-subtle">from {from}</p>}
+				<p className="pl-5 text-subtle">from {from}</p>
 			</div>
 			{lone ? (
 				<p className="min-w-0 text-prose [grid-area:hits]">
@@ -93,17 +89,14 @@ export function CombatProcRow({
 				</ul>
 			)}
 			{proc.total.final > 0 && (
-				<p className="text-right [grid-area:damage]">
+				<div className="flex flex-col items-end [grid-area:damage]">
 					<CellLabel>Damage</CellLabel>
-					<span
-						className={cn(
-							"font-bold font-display text-sm tabular-nums",
-							proc.mainType && damageTypeText(proc.mainType),
-						)}
-					>
-						{formatDamage(proc.total.final)}
-					</span>
-				</p>
+					<CombatDamageAmount
+						final={proc.total.final}
+						parts={proc.byType}
+						size="sm"
+					/>
+				</div>
 			)}
 			{timing && (
 				<>

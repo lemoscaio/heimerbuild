@@ -5,7 +5,6 @@ import type {
 	DamageSource,
 	DealtDamage,
 } from "@/lib/combat/combat"
-import { type OutsideEntry, procsOutside } from "./combat-procs-outside"
 import type { ProcView, StepView } from "./combat-view"
 import {
 	type EffectsById,
@@ -15,6 +14,7 @@ import {
 	placeHit,
 	sameMoment,
 } from "./hit-placement"
+import { procsInOrder } from "./procs-in-order"
 
 /** A hit of the combo at its moment, with its step and the damage dealt once it landed. */
 export type TimedHit = {
@@ -128,29 +128,33 @@ export function stepTimings(
 /** The rows' order: by when each step's hits land, or as the combo runs. */
 export type CombatRowOrder = "hit" | "step"
 
-/** A separate instance's mini row under its step's row: its damage, and the running total down to it. */
+/** A step as a row of the expanded combo, with the running total of the rows down to it. */
+export type CombatRow = StepTiming & {
+	kind: "step"
+	/** The step with the hits that belong to it (`placedSteps`), its health the row's. */
+	step: CombatStep
+	/** Its own damage: its hits' and its ticks', its procs left out. */
+	damage: number
+	/** The damage of the rows up to this one, in the order shown, and the target's health after it. */
+	dealt: number
+	targetHealth: number
+}
+
+/** A separate instance as a row of its own among the steps, at its land time (issue 429). */
 export type ProcRow = {
+	kind: "proc"
+	/** The item index of the step that triggered it. */
+	index: number
 	effectId: string
 	time: number
 	damage: number
-	/** It lands after the next action started (Arcane Comet, 0.8 s after its cast). */
+	/** It lands after the action after its step started (Arcane Comet, 0.8 s after its cast). */
 	late: boolean
 	dealt: number
 	targetHealth: number
 }
 
-/** A step as a row of the expanded combo, with the running total of the rows down to it. */
-export type CombatRow = StepTiming & {
-	/** The step with the hits that belong to it (`placedSteps`), its health the row's. */
-	step: CombatStep
-	/** Its own damage: its hits' and its ticks', its separate instances left out. */
-	damage: number
-	/** The damage of the rows up to this one, in the order shown, and the target's health after it. */
-	dealt: number
-	targetHealth: number
-	/** Its separate instances (`groupProcs`), each a mini row under it, in time order. */
-	procs: ProcRow[]
-}
+export type CombatRowEntry = CombatRow | ProcRow
 
 type CombatRowsOptions = {
 	target: Pick<CombatTarget, "health">
@@ -175,14 +179,15 @@ export function stepProcs(
 }
 
 /**
- * The combo's steps as rows (markers included): in hit order by their first own landing (a step that
- * deals nothing at its start), ties in the combo's order; or in the combo's order. Each row counts its
- * own hits; its separate instances follow it as mini rows, and the running total goes down them all.
+ * The expanded combo's rows (markers included): the steps in hit order by their first own landing (a
+ * step that deals nothing at its start), ties in the combo's order, or in the combo's order; each
+ * separate instance a row of its own after its step, before the first later row that happens after
+ * it lands (`procsInOrder`). The running total goes down the rows as shown.
  */
 export function combatRows(
 	result: Pick<CombatResult, "steps">,
 	{ target, effects, order }: CombatRowsOptions,
-): CombatRow[] {
+): CombatRowEntry[] {
 	const hits = timedHits(result, { target, effects })
 	const timings = stepTimings(result, hits)
 	const steps = placedSteps(result.steps, effects)
@@ -194,37 +199,45 @@ export function combatRows(
 						(a.lands?.first ?? a.startsAt) - (b.lands?.first ?? b.startsAt) ||
 						a.index - b.index,
 				)
+	const entries = procsInOrder(sorted, {
+		timeOf: (timing) =>
+			order === "hit"
+				? (timing.lands?.first ?? timing.startsAt)
+				: timing.startsAt,
+		procsOf: ({ index }) => stepProcs(hits, index),
+	})
 	let dealt = 0
-	const healthAfter = () => Math.max(0, target.health - dealt)
-	return sorted.map((timing) => {
+	return entries.map((entry): CombatRowEntry => {
+		if (entry.kind === "proc") {
+			const { effectId, time, hits: own } = entry.proc
+			const { index } = entry.owner
+			const damage = damageOf(own)
+			dealt += damage
+			const next = nextActionAt(result.steps, index)
+			return {
+				kind: "proc",
+				index,
+				effectId,
+				time,
+				damage,
+				late: next !== undefined && time > next,
+				dealt,
+				targetHealth: Math.max(0, target.health - dealt),
+			}
+		}
+		const timing = entry.item
 		const step = steps[timing.index]
 		if (!step) throw new Error("A timing always has its step")
 		const damage = damageOf(ownHits(hits, timing.index))
 		dealt += damage
-		const rowDealt = dealt
-		const targetHealth = healthAfter()
-		const next = nextActionAt(result.steps, timing.index)
-		const procs = stepProcs(hits, timing.index).map(
-			({ effectId, time, hits: own }): ProcRow => {
-				const procDamage = damageOf(own)
-				dealt += procDamage
-				return {
-					effectId,
-					time,
-					damage: procDamage,
-					late: next !== undefined && time > next,
-					dealt,
-					targetHealth: healthAfter(),
-				}
-			},
-		)
+		const targetHealth = Math.max(0, target.health - dealt)
 		return {
+			kind: "step",
 			...timing,
 			step: { ...step, targetHealth },
 			damage,
-			dealt: rowDealt,
+			dealt,
 			targetHealth,
-			procs,
 		}
 	})
 }
@@ -241,18 +254,7 @@ export function damageParts({
 	return parts.length > 1 ? parts : []
 }
 
-/** A step row's mini rows, each with the proc as its view shows it. */
-export function procRows(
-	view: Pick<StepView, "procs">,
-	row: Pick<CombatRow, "procs">,
-): { view: ProcView; row: ProcRow }[] {
-	return row.procs.flatMap((timing) => {
-		const proc = procViewOf(view, timing)
-		return proc ? [{ view: proc, row: timing }] : []
-	})
-}
-
-/** The view of a proc's mini row: the one its step's view shows at the same moment. */
+/** The view of a proc's row: the one its step's view shows at the same moment. */
 export function procViewOf(
 	{ procs }: Pick<StepView, "procs">,
 	row: Pick<ProcRow, "effectId" | "time">,
@@ -261,45 +263,4 @@ export function procViewOf(
 		({ effectId, time }) =>
 			effectId === row.effectId && sameMoment(time, row.time),
 	)
-}
-
-// PROTOTYPE (PR 434, remove before merge): the outside layout of the expanded combo.
-
-type OutsideRowsOptions = {
-	target: Pick<CombatTarget, "health">
-	order: CombatRowOrder
-}
-
-/**
- * PROTOTYPE (PR 434): the rows with each proc as a row of its own among them at its land time
- * (`procsOutside`), the running total going down them as shown; the steps' rows keep no procs.
- */
-export function outsideRows(
-	rows: readonly CombatRow[],
-	{ target, order }: OutsideRowsOptions,
-): OutsideEntry<CombatRow, ProcRow>[] {
-	let dealt = 0
-	const entries = procsOutside(rows, {
-		timeOf: (row) =>
-			order === "hit" ? (row.lands?.first ?? row.startsAt) : row.startsAt,
-		procsOf: (row) => row.procs,
-	})
-	return entries.map((entry) => {
-		dealt += entry.kind === "item" ? entry.item.damage : entry.proc.damage
-		const targetHealth = Math.max(0, target.health - dealt)
-		if (entry.kind === "proc") {
-			return { ...entry, proc: { ...entry.proc, dealt, targetHealth } }
-		}
-		const { item } = entry
-		return {
-			kind: "item",
-			item: {
-				...item,
-				step: { ...item.step, targetHealth },
-				dealt,
-				targetHealth,
-				procs: [],
-			},
-		}
-	})
 }

@@ -3,7 +3,6 @@ import {
 	type CombatRow,
 	type CombatRowOrder,
 	combatRows,
-	outsideRows,
 	type ProcRow,
 	procViewOf,
 } from "../lib/combat-rows"
@@ -21,20 +20,18 @@ import {
 	type UseCombatViewOptions,
 	useCombatView,
 } from "./use-combat-view"
-import { useProcLayout } from "./use-proc-layout"
 
 /** A step's row: its card's item with its own hits (`view`), when it starts and lands, the running total. */
 export type CombatStepRowItem = CombatStepItem & { row?: CombatRow }
 
 export type CombatMarkerRowItem = CombatMarkerItem & { row?: CombatRow }
 
-/** PROTOTYPE (PR 434): a proc as a row of its own among the steps (`?procs=outside`). */
+/** A proc as a row of its own among the steps (issue 429), with the step that triggered it. */
 export type CombatProcRowItem = {
 	kind: "proc"
 	key: string
 	proc: ProcView
 	row: ProcRow
-	/** The step that triggered it. */
 	from: CombatStepItem
 }
 
@@ -61,55 +58,43 @@ function rowItem(
 	return { ...item, view: stepView(row.step, { names, target, effects }), row }
 }
 
-/** PROTOTYPE (PR 434): the rows with each proc a row of its own at its land time (`outsideRows`). */
-function outsideItems(
-	rows: readonly CombatRow[],
-	input: RowItemsInput & { order: CombatRowOrder },
+/** The rows as items: steps and markers with their rows, each proc with its view and its step. */
+function rowItems(
+	rows: ReturnType<typeof combatRows>,
+	input: RowItemsInput,
 ): CombatRowItem[] {
-	return outsideRows(rows, input).flatMap((entry): CombatRowItem[] => {
-		if (entry.kind === "item") {
-			const item = rowItem(entry.item, input)
+	const steps = new Map<number, CombatStepRowItem>()
+	return rows.flatMap((row): CombatRowItem[] => {
+		if (row.kind === "step") {
+			const item = rowItem(row, input)
+			if (item?.kind === "step") steps.set(row.index, item)
 			return item ? [item] : []
 		}
-		const owner = rowItem(entry.owner, input)
-		if (owner?.kind !== "step" || !owner.view) return []
-		const proc = procViewOf(owner.view, entry.proc)
-		if (!proc) return []
-		return [
-			{
-				kind: "proc",
-				key: `${owner.id}:${proc.effectId}@${proc.time}`,
-				proc,
-				row: entry.proc,
-				from: owner,
-			},
-		]
+		const from = steps.get(row.index)
+		const proc = from?.view && procViewOf(from.view, row)
+		if (!from || !proc) return []
+		const key = `${from.id}:${proc.effectId}@${proc.time}`
+		return [{ kind: "proc", key, proc, row, from }]
 	})
 }
 
 /**
  * The combo as the expanded screen lists it: one row per step and marker, in hit order or the
- * combo's order (in memory), each with its own hits and the running total down the rows.
+ * combo's order (in memory), each proc a row of its own at its land time, and the running total
+ * down the rows.
  */
 export function useCombatRows(options: UseCombatViewOptions) {
 	const { combat, target, effects, passiveName } = options
 	const { list, totals } = useCombatView(options)
 	const [order, setOrder] = useState<CombatRowOrder>("hit")
-	const layout = useProcLayout()
 	const names = combatNames({ passiveName, spells: combat.spells, effects })
 	const input = { list, names, target, effects: effectsById(effects) }
 	const rows =
 		combat.result &&
 		combatRows(combat.result, { target, effects: input.effects, order })
 
-	const items: CombatRowItem[] = !rows
-		? [...list]
-		: layout === "outside"
-			? outsideItems(rows, { ...input, order })
-			: rows.flatMap((row) => rowItem(row, input) ?? [])
-
 	return {
-		items,
+		items: rows ? rowItems(rows, input) : [...list],
 		/** The entries in the combo's order, ungrouped (`useCombatView`'s list). */
 		list,
 		/** The entries' ids in the combo's order, which the moves follow whatever the order shown. */

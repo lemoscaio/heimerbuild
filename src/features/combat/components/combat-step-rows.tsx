@@ -9,7 +9,6 @@ import {
 	actionNames,
 } from "../lib/combat-action-names"
 import { actionLabel } from "../lib/combat-format"
-import { procRows } from "../lib/combat-rows"
 import { CombatActionIcon } from "./combat-action-icon"
 import { CombatAreaTimeInput } from "./combat-area-time-input"
 import { CombatMarkerLine } from "./combat-marker-line"
@@ -132,7 +131,6 @@ function StepRowEntry({
 				</>
 			}
 			outcomes={<CombatStepOutcomes step={step} mode={mode} />}
-			procs={step.view && step.row ? procRows(step.view, step.row) : []}
 		/>
 	)
 }

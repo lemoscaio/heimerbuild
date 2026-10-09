@@ -101,9 +101,12 @@ export type HitView = { name: string; icon?: string } & (
 	| { notModeled: readonly string[] }
 )
 
+/** A number's damage of one type, after mitigation: its split by type when it mixes several. */
+export type DamageTypeShare = { type: DamageType; final: number }
+
 /**
- * A separate damage instance the step triggered (issue 429), as a mini card under it: the effect
- * that dealt it, when it landed and its hits (a phantom hit's on-hit parts).
+ * A separate damage instance a step triggered (issue 429), as its own row among the steps at its
+ * land time: the effect that dealt it, when it landed and its hits (a phantom hit's on-hit parts).
  */
 export type ProcView = {
 	effectId: string
@@ -112,7 +115,8 @@ export type ProcView = {
 	time: number
 	hits: HitView[]
 	total: { raw: number; final: number }
-	mainType?: DamageType
+	/** The types that dealt its damage, physical, magic then true. */
+	byType: DamageTypeShare[]
 }
 
 /** One tick in a damage over time's list: when it landed and what it dealt. */
@@ -157,15 +161,15 @@ export type ResistChangeView = { resist: Resist; from: number; to: number }
 
 /** What a step's card shows: its hits and total, the marks it moved and the effects running after it. */
 export type StepView = {
-	/** Its own hits; its separate instances are `procs`. */
+	/** Its own hits; its separate instances are `procs`, each listed among the steps. */
 	hits: HitView[]
 	procs: ProcView[]
 	/** The damage over time it applied, with the ticks that belong to it. */
 	damageOverTime: DamageOverTimeView[]
-	/** Its hits', procs' and damage over time's. */
+	/** Its own damage: its hits' and its damage over time's, its procs left out. */
 	total: { raw: number; final: number }
-	/** The type of most of its damage, which colors the total. */
-	mainType?: DamageType
+	/** The types that dealt it, physical, magic then true: one colors the total, several split it. */
+	byType: DamageTypeShare[]
 	/** The marks it moved that no outcome reports (Valor marking during a wait); `fromMarker`: a marker put it there. */
 	marks: { mark: string; change: "applied" | "consumed"; fromMarker: boolean }[]
 	/**
@@ -212,21 +216,29 @@ function hitViews(hits: readonly HitEvent[], names: CombatNames) {
 
 type DamagePart = { type?: DamageType; raw: number; final: number }
 
-/** Parts' damage in all, and the type of most of it. */
+/** Damage by type, in the fixed order, only the types that dealt some. */
+export function typeShares(
+	parts: readonly { type?: DamageType; final: number }[],
+): DamageTypeShare[] {
+	return DAMAGE_TYPES.flatMap((type) => {
+		const final = parts
+			.filter((part) => part.type === type)
+			.reduce((sum, part) => sum + part.final, 0)
+		return final > 0 ? [{ type, final }] : []
+	})
+}
+
+/** Parts' damage in all, and by type. */
 function damageTotal(parts: readonly (DamagePart | object)[]) {
+	const typed = parts.flatMap((part) =>
+		"type" in part && part.type ? [part] : [],
+	)
 	const total = { raw: 0, final: 0 }
-	const byType = new Map<DamageType, number>()
-	for (const part of parts) {
-		if (!("type" in part) || !part.type) continue
-		total.raw += part.raw
-		total.final += part.final
-		byType.set(part.type, (byType.get(part.type) ?? 0) + part.final)
+	for (const { raw, final } of typed) {
+		total.raw += raw
+		total.final += final
 	}
-	let mainType: DamageType | undefined
-	for (const [type, final] of byType) {
-		if (!mainType || final > (byType.get(mainType) ?? 0)) mainType = type
-	}
-	return { total, ...(mainType && { mainType }) }
+	return { total, byType: typeShares(typed) }
 }
 
 /** The step's hits split into its own (`hits`) and its separate instances (`procs`); ticks show with their application. */
@@ -300,15 +312,6 @@ export function damageOverTimeView(
 				views.flatMap((tick) => ("notModeled" in tick ? tick.notModeled : [])),
 			),
 		],
-	}
-}
-
-/** PROTOTYPE (PR 434): a card without its procs, which the outside layout lists among the steps. */
-export function withoutProcs(view: StepView): StepView {
-	return {
-		...view,
-		procs: [],
-		...damageTotal([...view.hits, ...view.damageOverTime]),
 	}
 }
 
@@ -450,11 +453,7 @@ export function stepView(
 		hits,
 		procs,
 		damageOverTime,
-		...damageTotal([
-			...hits,
-			...damageOverTime,
-			...procs.flatMap((proc) => proc.hits),
-		]),
+		...damageTotal([...hits, ...damageOverTime]),
 		marks: step.events.flatMap((event) =>
 			(event.kind === "mark-applied" || event.kind === "mark-consumed") &&
 			!reported.has(outcomeId({ kind: event.kind, mark: event.mark }))

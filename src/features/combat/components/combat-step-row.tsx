@@ -7,15 +7,14 @@ import {
 	formatSeconds,
 	formatSecondsRange,
 } from "../lib/combat-format"
-import type { CombatRow, ProcRow } from "../lib/combat-rows"
+import type { CombatRow } from "../lib/combat-rows"
 import { damageParts } from "../lib/combat-rows"
-import { FROM_MARKER, type ProcView, type StepView } from "../lib/combat-view"
+import { FROM_MARKER, type StepView } from "../lib/combat-view"
+import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatDamageOverTimeLine } from "./combat-damage-over-time-line"
 import { CombatHitLine } from "./combat-hit-line"
-import { CombatProcRow } from "./combat-proc-row"
 import { CombatRunningEffects } from "./combat-running-effects"
 import { CombatTargetResists } from "./combat-target-resists"
-import { damageTypeText } from "./damage-type-styles"
 
 /**
  * The rows' columns, shared with the header: in a narrow panel the start sits under the landing, the
@@ -132,14 +131,12 @@ type CombatStepRowProps = {
 	inputs?: React.ReactNode
 	/** Its outcomes, with its hits. */
 	outcomes?: React.ReactNode
-	/** The separate instances it triggered, each a mini row under it with its timing. */
-	procs?: readonly { view: ProcView; row?: ProcRow }[]
 } & React.ComponentProps<"li">
 
 /**
  * A step of the expanded combo as one row: when it lands, the step and its inputs, when it starts,
- * its own hits and effects, its damage with its parts, the running total and the target's health;
- * then a mini row per separate instance it triggered.
+ * its own hits and effects (its procs are rows of their own), its damage with its parts, the
+ * running total and the target's health.
  */
 export function CombatStepRow({
 	title,
@@ -151,108 +148,86 @@ export function CombatStepRow({
 	onRemove,
 	inputs,
 	outcomes,
-	procs = [],
 	className,
 	...props
 }: CombatStepRowProps) {
 	const late = timing?.late ? "late" : "onTime"
 	const parts = view ? damageParts(view) : []
-	// Its own damage: its procs have their mini rows (the card's total counts them).
-	const damage = timing?.damage ?? view?.total.final ?? 0
 	return (
-		<li className={className} {...props}>
-			<div className={row({ timing: late })}>
-				<div className="[grid-area:moves]">{moves}</div>
-				{timing && (
-					<>
-						<span className="pt-0.5 font-bold font-display text-sm text-white tabular-nums [grid-area:lands]">
-							<CellLabel>Lands</CellLabel>
-							<Lands lands={timing.lands} />
+		<li className={cn(row({ timing: late }), className)} {...props}>
+			<div className="[grid-area:moves]">{moves}</div>
+			{timing && (
+				<>
+					<span className="pt-0.5 font-bold font-display text-sm text-white tabular-nums [grid-area:lands]">
+						<CellLabel>Lands</CellLabel>
+						<Lands lands={timing.lands} />
+					</span>
+					<span className={starts({ timing: late })}>
+						<CellLabel>Starts</CellLabel>
+						<span aria-hidden="true" className="@4xl:hidden text-subtle">
+							starts{" "}
 						</span>
-						<span className={starts({ timing: late })}>
-							<CellLabel>Starts</CellLabel>
-							<span aria-hidden="true" className="@4xl:hidden text-subtle">
-								starts{" "}
-							</span>
-							{formatSeconds(timing.startsAt)}
-						</span>
-					</>
-				)}
-				<div className="flex min-w-0 flex-col gap-1.5 [grid-area:step]">
-					<p
-						className={cn("flex items-center gap-2 font-semibold text-white", {
-							"opacity-50": !!refused,
-						})}
-					>
-						{icon}
-						<span className="min-w-0">{title}</span>
+						{formatSeconds(timing.startsAt)}
+					</span>
+				</>
+			)}
+			<div className="flex min-w-0 flex-col gap-1.5 [grid-area:step]">
+				<p
+					className={cn("flex items-center gap-2 font-semibold text-white", {
+						"opacity-50": !!refused,
+					})}
+				>
+					{icon}
+					<span className="min-w-0">{title}</span>
+				</p>
+				{inputs}
+				{refused && (
+					<p className="flex items-start gap-1 text-error">
+						<CircleAlert
+							aria-hidden="true"
+							className="mt-0.5 size-3 shrink-0"
+						/>
+						{refused} (left out)
 					</p>
-					{inputs}
-					{refused && (
-						<p className="flex items-start gap-1 text-error">
-							<CircleAlert
-								aria-hidden="true"
-								className="mt-0.5 size-3 shrink-0"
-							/>
-							{refused} (left out)
-						</p>
-					)}
-				</div>
-				{view && !refused && <RowHits view={view} outcomes={outcomes} />}
-				{view && damage > 0 && (
-					<p className="flex flex-col items-end text-right [grid-area:damage]">
-						<CellLabel>Damage</CellLabel>
-						<span
-							className={cn(
-								"font-bold font-display text-base tabular-nums",
-								view.mainType && damageTypeText(view.mainType),
-							)}
-						>
-							{formatDamage(damage)}
-						</span>
+				)}
+			</div>
+			{view && !refused && <RowHits view={view} outcomes={outcomes} />}
+			{view && view.total.final > 0 && (
+				<div className="flex flex-col items-end [grid-area:damage]">
+					<CellLabel>Damage</CellLabel>
+					<CombatDamageAmount final={view.total.final} parts={view.byType}>
 						{!!parts.length && (
 							<span className="text-[0.625rem] text-subtle tabular-nums">
 								({parts.map(formatDamage).join(" + ")})
 							</span>
 						)}
-					</p>
-				)}
-				{timing && !refused && (
-					<>
-						<span className="text-right text-prose tabular-nums [grid-area:dealt]">
-							<CellLabel>So far</CellLabel>
-							<span aria-hidden="true" className="@4xl:hidden text-subtle">
-								so far{" "}
-							</span>
-							{formatDamage(timing.dealt)}
-						</span>
-						<HealthLeft
-							health={timing.targetHealth}
-							share={view?.healthShare ?? 0}
-						/>
-					</>
-				)}
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					aria-label={`Remove step ${title}`}
-					onClick={onRemove}
-					className="[grid-area:remove]"
-				>
-					<X aria-hidden="true" />
-				</Button>
-			</div>
-			{!!procs.length && !refused && (
-				<ul aria-label="Procs">
-					{procs.map(({ view: proc, row: procTiming }) => (
-						<CombatProcRow
-							key={`${proc.effectId}@${proc.time}`}
-							proc={proc}
-							timing={procTiming}
-						/>
-					))}
-				</ul>
+					</CombatDamageAmount>
+				</div>
 			)}
+			{timing && !refused && (
+				<>
+					<span className="text-right text-prose tabular-nums [grid-area:dealt]">
+						<CellLabel>So far</CellLabel>
+						<span aria-hidden="true" className="@4xl:hidden text-subtle">
+							so far{" "}
+						</span>
+						{formatDamage(timing.dealt)}
+					</span>
+					<HealthLeft
+						health={timing.targetHealth}
+						share={view?.healthShare ?? 0}
+					/>
+				</>
+			)}
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				aria-label={`Remove step ${title}`}
+				onClick={onRemove}
+				className="[grid-area:remove]"
+			>
+				<X aria-hidden="true" />
+			</Button>
 		</li>
 	)
 }

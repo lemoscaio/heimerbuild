@@ -120,9 +120,19 @@ function DamageParts({ parts }: { parts: readonly TimelinePart[] }) {
 	)
 }
 
-function Damage({ damage, type }: { damage: number; type?: DamageType }) {
+/** A card's damage: its type's color when one type dealt it, else neutral with its parts as a tooltip. */
+function Damage({
+	damage,
+	type,
+	title,
+}: {
+	damage: number
+	type?: DamageType
+	title?: string
+}) {
 	return (
 		<b
+			title={title}
 			className={cn(
 				"font-bold font-display text-[0.8125rem] text-white tabular-nums",
 				type && damageTypeText(type),
@@ -142,7 +152,12 @@ function StepResult({ entry }: { entry: TimelineStep }) {
 	if (entry.damage > 0) {
 		return (
 			<span className="flex items-baseline gap-1">
-				<Damage damage={entry.damage} type={entry.mainType} />
+				<Damage
+					damage={entry.damage}
+					{...(entry.mixed
+						? { title: partsText(entry.parts) }
+						: entry.mainType && { type: entry.mainType })}
+				/>
 				{!!entry.parts.length && (
 					<span className="@lg:inline hidden text-subtle tabular-nums">
 						<DamageParts parts={entry.parts} />
@@ -233,7 +248,12 @@ function ProcCard({
 				<span className="@md:inline hidden text-subtle">{entry.verb}</span>
 			</span>
 			<span className="flex items-baseline gap-1">
-				<Damage damage={entry.damage} type={entry.mainType} />
+				<Damage
+					damage={entry.damage}
+					{...(entry.mixed
+						? { title: partsText(entry.parts) }
+						: entry.mainType && { type: entry.mainType })}
+				/>
 				<span className="@md:inline hidden text-subtle tabular-nums">
 					· {formatSeconds(entry.time)}
 				</span>

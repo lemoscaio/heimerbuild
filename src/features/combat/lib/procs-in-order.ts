@@ -1,25 +1,24 @@
-// PROTOTYPE (PR 434, remove before merge): the "outside" layout, each proc among the steps at its land time.
-
 /** An item of a list, or a proc of one of them placed among them at its land time. */
-export type OutsideEntry<Item, Proc> =
+export type OrderedEntry<Item, Proc> =
 	| { kind: "item"; item: Item }
 	| { kind: "proc"; proc: Proc; owner: Item }
 
-type ProcsOutsideOptions<Item, Proc> = {
+type ProcsInOrderOptions<Item, Proc> = {
 	/** When the item happens; none (a marker) never moves a proc past it. */
 	timeOf: (item: Item) => number | undefined
 	procsOf: (item: Item) => readonly Proc[]
 }
 
 /**
- * The items in their order with each item's procs after it, each placed before the first later
- * item that happens after it lands: Arcane Comet at 0.80 s after the attack that started at 0.50 s.
+ * The items in their order with each item's procs as entries of their own (issue 429): each after
+ * its item, before the first later item that happens after it lands (Arcane Comet at 0.80 s after
+ * the attack that started at 0.50 s, though Q triggered it).
  */
-export function procsOutside<Item, Proc extends { time: number }>(
+export function procsInOrder<Item, Proc extends { time: number }>(
 	items: readonly Item[],
-	{ timeOf, procsOf }: ProcsOutsideOptions<Item, Proc>,
-): OutsideEntry<Item, Proc>[] {
-	const entries: OutsideEntry<Item, Proc>[] = []
+	{ timeOf, procsOf }: ProcsInOrderOptions<Item, Proc>,
+): OrderedEntry<Item, Proc>[] {
+	const entries: OrderedEntry<Item, Proc>[] = []
 	let pending: { proc: Proc; owner: Item }[] = []
 	const flush = (before: number) => {
 		const due = pending.filter(({ proc }) => proc.time < before)

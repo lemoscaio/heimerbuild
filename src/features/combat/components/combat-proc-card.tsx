@@ -1,32 +1,22 @@
-import { cva } from "class-variance-authority"
 import { GameIcon } from "@/components/common/game-icon"
 import { cn } from "@/lib/cn"
-import { formatDamage, formatSeconds } from "../lib/combat-format"
+import { formatSeconds } from "../lib/combat-format"
 import { loneProcHit, type ProcView } from "../lib/combat-view"
+import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatHitDamage } from "./combat-hit-damage"
 import { CombatHitLine } from "./combat-hit-line"
-import { damageTypeText } from "./damage-type-styles"
-
-/** Dashed, so it never reads as a step: inside its step's card, or indented among the steps. */
-const procCard = cva(
-	"flex items-start gap-1.5 rounded-md border border-lilac/60 border-dashed px-1.5 py-1",
-	{
-		variants: {
-			place: {
-				inside: "",
-				outside: "ml-10 bg-surface-sunken/60 text-[0.6875rem] text-prose",
-			},
-		},
-	},
-)
 
 type CombatProcCardProps = {
 	proc: ProcView
-	/** PROTOTYPE (PR 434): the step that triggered it, for a proc listed among the steps ("1. Q · Disintegrate"). */
-	from?: string
+	/** The step that triggered it: "1. Q · Disintegrate". */
+	from: string
 } & React.ComponentProps<"li">
 
-/** A separate instance (issue 429): "↳ 0.80 s [icon] Arcane Comet · 40 magic (raw 56)   40". */
+/**
+ * A separate instance as a row of its own among the steps, at its land time (issue 429): indented,
+ * dashed and unnumbered, with no move or remove of its own. "↳ 0.80 s [icon] Arcane Comet · 40
+ * magic (raw 56), from 1. Q · Disintegrate".
+ */
 export function CombatProcCard({
 	proc,
 	from,
@@ -37,7 +27,7 @@ export function CombatProcCard({
 	return (
 		<li
 			className={cn(
-				procCard({ place: from ? "outside" : "inside" }),
+				"ml-10 flex items-start gap-1.5 rounded-md border border-lilac/60 border-dashed bg-surface-sunken/60 px-1.5 py-1 text-[0.6875rem] text-prose",
 				className,
 			)}
 			{...props}
@@ -63,7 +53,7 @@ export function CombatProcCard({
 						</>
 					)}
 				</p>
-				{from && <p className="text-subtle">from {from}</p>}
+				<p className="text-subtle">from {from}</p>
 				{!lone && (
 					<ul aria-label={`${proc.name} hits`} className="flex flex-col">
 						{proc.hits.map((hit, index) => (
@@ -74,14 +64,11 @@ export function CombatProcCard({
 				)}
 			</div>
 			{proc.total.final > 0 && (
-				<span
-					className={cn(
-						"font-bold font-display text-sm tabular-nums",
-						proc.mainType && damageTypeText(proc.mainType),
-					)}
-				>
-					{formatDamage(proc.total.final)}
-				</span>
+				<CombatDamageAmount
+					final={proc.total.final}
+					parts={proc.byType}
+					size="sm"
+				/>
 			)}
 		</li>
 	)

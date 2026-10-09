@@ -32,6 +32,8 @@ type TimelineDamage = {
 	/** Its parts when it has several (60 + 131), else none. */
 	parts: TimelinePart[]
 	mainType?: DamageType
+	/** Several types dealt it: its number shows neutral, its parts in their colors. */
+	mixed: boolean
 }
 
 /** A step at its start: its windup to its first landing, its own hits, and its first separate instance's moment. */
@@ -129,6 +131,7 @@ function damageOf(
 		damage,
 		parts: parts.size > 1 ? [...parts.values()] : [],
 		...(mainType && { mainType }),
+		mixed: byType.size > 1,
 	}
 }
 

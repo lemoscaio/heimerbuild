@@ -1,10 +1,12 @@
-import { DAMAGE_TYPES, type DamageType } from "@schemas/champion"
+import type { DamageType } from "@schemas/champion"
 import type { CombatItem } from "@/lib/combat/combat"
-import type {
-	DamageOverTimeView,
-	OutcomeView,
-	ResistChangeView,
-	StepView,
+import {
+	type DamageOverTimeView,
+	type DamageTypeShare,
+	type OutcomeView,
+	type ResistChangeView,
+	type StepView,
+	typeShares,
 } from "./combat-view"
 
 /** Identical steps in a row group from this many on (issue 331, option A). */
@@ -82,9 +84,9 @@ export type GroupView = {
 	size: number
 	/** The first and last steps' times; absent while the build loads. */
 	time?: { from: number; to: number }
-	byType: { type: DamageType; final: number }[]
+	/** Its steps' damage and their procs', by type: one colors the total, several split it. */
+	byType: DamageTypeShare[]
 	total: { raw: number; final: number }
-	mainType?: DamageType
 	outcomes: (GroupCount & { id: string })[]
 	marks: GroupCount[]
 	effects: GroupCount[]
@@ -168,25 +170,20 @@ function damageOverTimeCounts(
 /** A group's steps summed up: totals plus counts (issue 331, option A). The steps' own numbers, never recomputed. */
 export function groupView(steps: readonly GroupStep[]): GroupView {
 	const views = steps.flatMap(({ view }) => (view ? [view] : []))
+	// Its steps' own damage and their procs', which a collapsed group lists nowhere else.
 	const total = { raw: 0, final: 0 }
-	const byType = new Map<DamageType, number>()
 	for (const view of views) {
-		total.raw += view.total.raw
-		total.final += view.total.final
-		const procHits = view.procs.flatMap(({ hits }) => hits)
-		for (const part of [...view.hits, ...procHits, ...view.damageOverTime]) {
-			if (!("type" in part) || !part.type) continue
-			byType.set(part.type, (byType.get(part.type) ?? 0) + part.final)
+		for (const part of [view.total, ...view.procs.map(({ total }) => total)]) {
+			total.raw += part.raw
+			total.final += part.final
 		}
 	}
-	const types = DAMAGE_TYPES.flatMap((type) => {
-		const final = byType.get(type) ?? 0
-		return final > 0 ? [{ type, final }] : []
-	})
-	const mainType = types.reduce<(typeof types)[number] | undefined>(
-		(main, part) => (!main || part.final > main.final ? part : main),
-		undefined,
-	)?.type
+	const types = typeShares(
+		views.flatMap((view) => [
+			...view.byType,
+			...view.procs.flatMap(({ byType }) => byType),
+		]),
+	)
 	const times = steps.flatMap(({ time }) => (time === undefined ? [] : [time]))
 	const first = times[0]
 	const last = times.at(-1)
@@ -197,7 +194,6 @@ export function groupView(steps: readonly GroupStep[]): GroupView {
 			last !== undefined && { time: { from: first, to: last } }),
 		byType: types,
 		total,
-		...(mainType && { mainType }),
 		outcomes: outcomeCounts(steps),
 		marks: countLabels(
 			views.map(({ marks }) =>
