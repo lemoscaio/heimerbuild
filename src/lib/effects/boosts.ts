@@ -7,6 +7,7 @@ function tableAmounts(amount: Amount): TableAmount[] {
 	if (typeof amount === "number") return [amount]
 	switch (amount.by) {
 		case "stat":
+		case "percentOfTotal":
 			return tableAmounts(amount.ratio)
 		case "missingHealth":
 			return [amount.max]

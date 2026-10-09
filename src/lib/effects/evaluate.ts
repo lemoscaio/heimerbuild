@@ -43,6 +43,8 @@ export type EffectContext = {
 	adaptiveType?: AdaptiveType
 	/** The totals `stat` amounts read: the build's before the stat-dependent bonuses. */
 	totals?: ComputedStats
+	/** The totals `percentOfTotal` amounts read: the build's with every flat bonus, before them. */
+	percentBasis?: ComputedStats
 	/** The champion's form id (its default's when it has forms); a form-bound effect holds only in its own. */
 	form?: string
 	/** Stacks an effect has by its id (the combat simulator's); absent means its full value, all stacks. */
@@ -150,6 +152,13 @@ export function resolveAmount(
 				? undefined
 				: read * ratio
 		}
+		case "percentOfTotal": {
+			const ratio = resolveTableAmount(amount.ratio, effect, context)
+			const read = context.percentBasis?.[amount.stat].total
+			return ratio === undefined || read === undefined
+				? undefined
+				: read * ratio
+		}
 		case "missingHealth": {
 			const max = resolveTableAmount(amount.max, effect, context)
 			const missing = FULL_HEALTH - (context.currentHealth ?? FULL_HEALTH)
@@ -186,13 +195,18 @@ export function resolveAmount(
 	}
 }
 
-/** What a `stat` amount reads, at the build's ranks. */
+/** What a `stat` or `percentOfTotal` amount reads, at the build's ranks. */
 function statBasis(
 	amount: Amount,
 	effect: BuildEffect,
 	context: EffectContext,
 ): StatBasis | undefined {
-	if (typeof amount === "number" || amount.by !== "stat") return undefined
+	if (typeof amount === "number") return undefined
+	if (amount.by === "percentOfTotal") {
+		const ratio = resolveTableAmount(amount.ratio, effect, context)
+		return ratio === undefined ? undefined : { stat: amount.stat, ratio }
+	}
+	if (amount.by !== "stat") return undefined
 	const ratio = resolveAmount(amount.ratio, effect, context)
 	if (ratio === undefined) return undefined
 	const { stat, part } = amount
@@ -452,25 +466,30 @@ export function effectDuration(
 		: resolveAmount(duration, effect, context)
 }
 
-/** When a grant's stats apply (evaluation order): with the other effects, or after them, reading the totals. */
-export type EvaluationStep = "effects" | "stat-dependent"
+/**
+ * When a grant's stats apply (evaluation order): with the other effects; after them, reading the
+ * totals (`stat`); or last, reading the totals with every flat bonus (`percentOfTotal`).
+ */
+export type EvaluationStep = "effects" | "stat-dependent" | "percent-of-total"
 
 function stepOf(grant: Grant): EvaluationStep {
-	return grant.kind === "stat" &&
-		typeof grant.amount === "object" &&
-		grant.amount.by === "stat"
-		? "stat-dependent"
-		: "effects"
+	if (grant.kind !== "stat" || typeof grant.amount !== "object") {
+		return "effects"
+	}
+	if (grant.amount.by === "stat") return "stat-dependent"
+	if (grant.amount.by === "percentOfTotal") return "percent-of-total"
+	return "effects"
 }
 
 export type EffectStatsOptions = {
-	/** Which grants to sum: the ones of the active effects step (default) or the stat-dependent ones. */
+	/** Which grants to sum: the ones of the active effects step (default), the stat-dependent or the percent-of-total ones. */
 	step?: EvaluationStep
 }
 
 /**
  * The active effects' stats of one evaluation step, as one more stat source for `computeStats`,
- * next to the items. The `stat-dependent` step needs `context.totals`.
+ * next to the items. The `stat-dependent` step needs `context.totals`, `percent-of-total` needs
+ * `context.percentBasis`.
  */
 export function effectStatsInput(
 	active: readonly BuildEffect[],
@@ -493,7 +512,8 @@ export function effectStatsInput(
 
 /**
  * The active effects' attack speed multipliers, summed by what they scale. They apply after the
- * stat-dependent bonuses (evaluation step 5), so no bonus reads a multiplied attack speed.
+ * stat-dependent and percent-of-total bonuses (evaluation step 6), so no bonus reads a multiplied
+ * attack speed.
  */
 export function attackSpeedMultipliers(
 	active: readonly BuildEffect[],

@@ -4,6 +4,7 @@ import type { BuildEffect, Effect } from "../effects/effect"
 import {
 	type BuildStatsInput,
 	computeBuildStats,
+	percentBonusBasis,
 	statBonusBasis,
 } from "./compute-build-stats"
 import { computeStats } from "./compute-stats"
@@ -320,6 +321,118 @@ describe("computeBuildStats with stat-dependent bonuses", () => {
 		expect(atHealth()).toBe(0)
 		expect(atHealth(55)).toBeCloseTo(40)
 		expect(atHealth(5)).toBeCloseTo(80)
+	})
+})
+
+// Rabadon's Magical Opus: 30% of ability power.
+const apFromAp = alwaysOn("ap-from-ap", [
+	{
+		kind: "stat",
+		stat: "abilityPower",
+		amount: { by: "percentOfTotal", stat: "abilityPower", ratio: 0.3 },
+	},
+])
+
+describe("computeBuildStats with percent-of-total bonuses", () => {
+	const plain = { ...build, shards: [] }
+	const DEATHCAP = { stats: { abilityPower: 130 } }
+	const withEffects = (
+		available: BuildEffect[],
+		change: Partial<BuildStatsInput> = {},
+	) =>
+		computeBuildStats({
+			...plain,
+			items: [DEATHCAP],
+			effects: { available, overrides: {} },
+			...change,
+		})
+
+	test("a bonus is its ratio of the stat's total: 130 ability power becomes 169", () => {
+		expect(withEffects([apFromAp]).abilityPower.total).toBeCloseTo(169)
+	})
+
+	test("it applies after every flat source: items, shards, effects and stat-dependent bonuses", () => {
+		const flatAp = alwaysOn("flat-ap", [
+			{ kind: "stat", stat: "abilityPower", amount: 40 },
+		])
+		const apFromHealth = alwaysOn("ap-from-health", [
+			{
+				kind: "stat",
+				stat: "abilityPower",
+				amount: { by: "stat", stat: "health", ratio: 0.01 },
+			},
+		])
+		const effects = [apFromAp, flatAp, apFromHealth]
+		const before = withEffects([flatAp, apFromHealth], { shards: [ADAPTIVE] })
+
+		expect(before.abilityPower.total).toBeCloseTo(
+			130 + 9 + 40 + before.health.total * 0.01,
+		)
+		expect(
+			withEffects(effects, { shards: [ADAPTIVE] }).abilityPower.total,
+		).toBeCloseTo(before.abilityPower.total * 1.3)
+	})
+
+	test("it includes the effects turned on and the match stacks", () => {
+		const burstAp: BuildEffect = alwaysOn("burst-ap", [
+			{ kind: "stat", stat: "abilityPower", amount: 50 },
+		])
+		const switched: BuildEffect = {
+			...burstAp,
+			effect: { ...burstAp.effect, trigger: { kind: "after-use" } },
+		}
+		const stacked = alwaysOn("stacked-ap", [
+			{
+				kind: "stat",
+				stat: "abilityPower",
+				amount: {
+					by: "matchStacks",
+					source: { id: "ap-stacks", name: "AP stacks", sliderMax: 500 },
+				},
+			},
+		])
+		const stats = computeBuildStats({
+			...plain,
+			items: [DEATHCAP],
+			effects: {
+				available: [apFromAp, switched, stacked],
+				overrides: { "burst-ap": true },
+			},
+			matchStacks: { "ap-stacks": 100 },
+		})
+
+		expect(stats.abilityPower.total).toBeCloseTo((130 + 50 + 100) * 1.3)
+	})
+
+	test("it never feeds itself, and the stat-dependent bonuses read the total before it", () => {
+		const speedFromAp = alwaysOn("speed-from-ap", [
+			{
+				kind: "stat",
+				stat: "movementSpeedPercent",
+				amount: { by: "stat", stat: "abilityPower", ratio: 0.001 },
+			},
+		])
+		const without = withEffects([speedFromAp])
+		const stats = withEffects([apFromAp, speedFromAp])
+
+		expect(stats.abilityPower.total).toBeCloseTo(130 * 1.3)
+		expect(stats.movementSpeed.total).toBe(without.movementSpeed.total)
+	})
+
+	test("the basis is the totals it reads: the build with its stat-dependent bonuses", () => {
+		const input = {
+			...plain,
+			items: [DEATHCAP, CLOTH_ARMOR],
+			effects: { available: [apFromAp, armorFromArmor], overrides: {} },
+		}
+
+		expect(percentBonusBasis(input)).toEqual(
+			computeBuildStats({
+				...input,
+				effects: { available: [armorFromArmor], overrides: {} },
+			}),
+		)
+		expect(statBonusBasis(input).abilityPower.total).toBe(130)
 	})
 })
 

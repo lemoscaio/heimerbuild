@@ -190,4 +190,20 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Heartsteel`,
 	},
+	{
+		// Wiki, checked 2026-10-08: "Magical Opus: Increase your ability power by 30%."
+		id: "rabadons-deathcap-magical-opus",
+		source: { kind: "item", itemId: "3089" },
+		trigger: { kind: "always" },
+		label: "Magical Opus",
+		grants: [
+			{
+				kind: "stat",
+				stat: "abilityPower",
+				amount: { by: "percentOfTotal", stat: "abilityPower", ratio: 0.3 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Rabadon%27s_Deathcap`,
+	},
 ]
