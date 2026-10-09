@@ -385,6 +385,10 @@ export function combatTimeline(
 	const timings = stepTimings(result, hits)
 	const columns = startColumns(result.steps)
 	const events = allEvents(result.steps)
+	// The health once every hit of a moment landed: a step and a proc landing together show the same.
+	const healthAt = (time: number) =>
+		hits.findLast((hit) => sameMoment(hit.time, time))?.targetHealth ??
+		target.health
 
 	const entries = result.steps.flatMap((step, index): TimelineEntry[] => {
 		if (step.action.kind === "situation") {
@@ -415,7 +419,7 @@ export function combatTimeline(
 				},
 			}),
 			late: timings[index]?.late ?? false,
-			...(healthAfter && { targetHealth: healthAfter.targetHealth }),
+			...(healthAfter && { targetHealth: healthAt(healthAfter.time) }),
 			...(step.refused && { refused: step.refused }),
 			...(step.action.kind === "wait" && { wait: step.action.seconds }),
 		}
@@ -433,7 +437,7 @@ export function combatTimeline(
 					...(icon && { icon }),
 					verb: procVerb(effectId, effects),
 					...damageOf(landed, names),
-					targetHealth: landed.at(-1)?.targetHealth ?? target.health,
+					targetHealth: healthAt(time),
 				}
 			},
 		)
