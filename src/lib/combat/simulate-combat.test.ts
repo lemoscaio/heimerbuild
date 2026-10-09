@@ -23,6 +23,7 @@ import type {
 import { outcomeChoices } from "./outcomes"
 import {
 	type CombatBuild,
+	type CombatInput,
 	simulateCombat,
 	simulateFreeCombat,
 } from "./simulate-combat"
@@ -1205,11 +1206,16 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 		ranks: { Q: 4, W: 1, E: 3, R: 1 },
 		items: [item("Long Sword"), item("Long Sword"), item("Long Sword")],
 	}
-	const run = (items: readonly CombatItem[]) =>
+	const run = (
+		items: readonly CombatItem[],
+		{ startOnCooldown }: Pick<CombatInput, "startOnCooldown"> = {},
+	) =>
 		simulateCombat({
 			...inputOf(setup, items),
 			effects: [...effectsOf(setup), RUSH],
+			startOnCooldown,
 		})
+	const onCooldown = { startOnCooldown: ["rush"] }
 	const rushed = (result: CombatResult) =>
 		result.steps.map((step) =>
 			outcomeOf(result, result.steps.indexOf(step), "rush"),
@@ -1221,8 +1227,25 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 	const atRest = computeBuildStats(buildOf(setup)).attackSpeed.total
 	const hastened = atRest + setup.champion.stats.attackSpeed.ratio * 0.6
 
-	test("without a marker, a situational effect starts on its cooldown, as if just used", () => {
+	test("without a marker, a cooldown starts ready (issue 317): the first attack is 1/3", () => {
 		const result = run([attack])
+
+		expect(outcomeOf(result, 0, "rush")).toMatchObject({
+			happened: true,
+			charge: { used: 1, max: 3 },
+		})
+	})
+
+	test("a marker before the first action, on a cooldown already ready, reads as the default", () => {
+		const marked = run([rush, attack, attack])
+		const plain = run([attack, attack])
+
+		expect(marked.steps[0]?.situation).toEqual({ status: "applied" })
+		expect(marked.total).toEqual(plain.total)
+	})
+
+	test("started on its cooldown, as if just used, its first attack isn't empowered", () => {
+		const result = run([attack], onCooldown)
 
 		expect(outcomeOf(result, 0, "rush")).toEqual({
 			kind: "empowered",
@@ -1303,15 +1326,15 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 	})
 
 	test("the cooldown assumed at the start blocks no marker: the rune ready after the first attack applies", () => {
-		const result = run([attack, rush, attack])
+		const result = run([attack, rush, attack], onCooldown)
 
 		expect(result.steps[1]?.situation).toEqual({ status: "applied" })
 		expect(outcomeOf(result, 2, "rush")?.charge).toEqual({ used: 1, max: 3 })
 	})
 
 	test("reordering across a marker moves the effect to the steps after it", () => {
-		const before = run([rush, attack, attack])
-		const after = run([attack, rush, attack])
+		const before = run([rush, attack, attack], onCooldown)
+		const after = run([attack, rush, attack], onCooldown)
 
 		expect(rushed(before).map((outcome) => outcome?.happened)).toEqual([
 			undefined,
@@ -1327,7 +1350,7 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 	})
 
 	test("a mark marker mid-sequence marks the target from there, and the next attack consumes it", () => {
-		const result = run([attack, harrier, attack])
+		const result = run([attack, harrier, attack], onCooldown)
 
 		expect(hits(result, 0)).toHaveLength(1)
 		expect(result.steps[2]?.events).toContainEqual(

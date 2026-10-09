@@ -10,12 +10,14 @@ import { outcomeId, readOutcomeId } from "./outcomes"
 
 /**
  * The combo as the link carries it (docs, "Link format"): its steps and markers (`combo`), free
- * mode (`free`) and free mode's choices (`choices`). Absent values are the defaults.
+ * mode (`free`), free mode's choices (`choices`) and the cooldowns it starts on (`start`). Absent
+ * values are the defaults.
  */
 export type ComboLink = {
 	combo?: string
 	free?: boolean
 	choices?: string
+	start?: string
 }
 
 const ID = "[a-z0-9]+(?:-[a-z0-9]+)*"
@@ -29,6 +31,9 @@ const ABILITY_TOKEN = new RegExp(`^([qwer])(?:-(?:(${SECONDS})s|(${ID})))?$`)
 const WAIT_TOKEN = new RegExp(`^t(${SECONDS})$`)
 const MARKER_TOKEN = new RegExp(`^${MARKER_PREFIX}(${ID})$`)
 const CHOICE_TOKEN = new RegExp(`^(\\d{1,2})([eacd])-(${ID})-([yn])$`)
+const ON_COOLDOWN_TOKEN = new RegExp(`^-(${ID})$`)
+/** More ids than any build has effects with a cooldown; past it, the rest are dropped. */
+const MAX_START_TOKENS = 20
 
 const OUTCOME_CODES = {
 	empowered: "e",
@@ -167,4 +172,20 @@ export function normalizeComboChoices(value: string): string | undefined {
 	return serializeComboChoices(
 		Array.from({ length: last + 1 }, (_, index) => byItem[index]),
 	)
+}
+
+/** Reads `-electrocute.-hail-of-blades` into the effect ids that start on cooldown; unreadable tokens are dropped. */
+export function readComboStart(value: string | undefined): string[] {
+	const ids = (value?.split(SEPARATOR) ?? []).flatMap((token) => {
+		const id = ON_COOLDOWN_TOKEN.exec(token)?.[1]
+		return id ? [id] : []
+	})
+	return [...new Set(ids)].slice(0, MAX_START_TOKENS)
+}
+
+/** The `start` value from the ids that start on cooldown; `undefined` when every cooldown starts ready. */
+export function serializeComboStart(
+	ids: readonly string[],
+): string | undefined {
+	return ids.length ? ids.map((id) => `-${id}`).join(SEPARATOR) : undefined
 }

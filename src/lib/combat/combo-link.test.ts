@@ -8,8 +8,10 @@ import {
 	normalizeComboChoices,
 	readComboChoices,
 	readComboItems,
+	readComboStart,
 	serializeComboChoices,
 	serializeComboItems,
+	serializeComboStart,
 	TARGET_PARAM_PATTERN,
 } from "./combo-link"
 
@@ -124,5 +126,25 @@ describe("the target value", () => {
 		expect(TARGET_PARAM_PATTERN.test("1800-60")).toBe(false)
 		expect(TARGET_PARAM_PATTERN.test("1800.5-60-45")).toBe(false)
 		expect(TARGET_PARAM_PATTERN.test("Tank")).toBe(false)
+	})
+})
+
+describe("the start value (issue 317)", () => {
+	test("names each effect that starts on cooldown, and reads back what it writes", () => {
+		const ids = ["electrocute", "hail-of-blades"]
+
+		expect(serializeComboStart(ids)).toBe("-electrocute.-hail-of-blades")
+		expect(readComboStart(serializeComboStart(ids))).toEqual(ids)
+	})
+
+	test("every cooldown ready writes no value", () => {
+		expect(serializeComboStart([])).toBeUndefined()
+		expect(readComboStart(undefined)).toEqual([])
+	})
+
+	test("drops unreadable tokens and repeats", () => {
+		expect(
+			readComboStart("-electrocute.ready.-Electrocute.-electrocute"),
+		).toEqual(["electrocute"])
 	})
 })
