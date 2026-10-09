@@ -8,6 +8,7 @@ import type {
 	CombatStepItem,
 } from "../hooks/use-combat-view"
 import { useGroupExpansion } from "../hooks/use-group-expansion"
+import { useProcLayout } from "../hooks/use-proc-layout"
 import { type MoveAction, useStepReorder } from "../hooks/use-step-reorder"
 import {
 	type ActionNames,
@@ -15,10 +16,13 @@ import {
 	actionNames,
 } from "../lib/combat-action-names"
 import { actionLabel } from "../lib/combat-format"
+import { procsOutside } from "../lib/combat-procs-outside"
+import { withoutProcs } from "../lib/combat-view"
 import { CombatActionIcon } from "./combat-action-icon"
 import { CombatAreaTimeInput } from "./combat-area-time-input"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
+import { CombatProcCard } from "./combat-proc-card"
 import { CombatStepCard } from "./combat-step-card"
 import { CombatStepGroup } from "./combat-step-group"
 import { type CombatListMode, CombatStepOutcomes } from "./combat-step-outcomes"
@@ -50,6 +54,8 @@ type StepEntryProps = {
 	mode: CombatListMode
 	names: ActionNames
 	moves: { up: MoveAction; down: MoveAction }
+	/** PROTOTYPE (PR 434): its procs listed among the steps instead of inside its card. */
+	procsOutside: boolean
 } & Pick<
 	CombatStepListProps,
 	| "spells"
@@ -66,6 +72,7 @@ function StepEntry({
 	mode,
 	names,
 	moves,
+	procsOutside: outside,
 	spells,
 	summoners,
 	onRemove,
@@ -75,6 +82,7 @@ function StepEntry({
 }: StepEntryProps) {
 	const { id, action } = step
 	const label = actionLabel(action, names)
+	const view = outside && step.view ? withoutProcs(step.view) : step.view
 	return (
 		<CombatStepCard
 			number={step.number}
@@ -87,7 +95,7 @@ function StepEntry({
 			}
 			time={step.time}
 			refused={step.refused}
-			view={step.view}
+			view={view}
 			moves={
 				<CombatMoveButtons
 					label={`step ${step.number}, ${label}`}
@@ -120,6 +128,17 @@ function StepEntry({
 			<CombatStepOutcomes step={step} mode={mode} />
 		</CombatStepCard>
 	)
+}
+
+/** PROTOTYPE (PR 434): where a step or group happens, which an outside proc landing later follows. */
+function shownTime(item: CombatShownItem) {
+	if (item.kind === "step") return item.time
+	return item.kind === "group" ? item.view.time?.from : undefined
+}
+
+/** PROTOTYPE (PR 434): the procs a shown item lists among the steps; a group's show once it opens. */
+function shownProcs(item: CombatShownItem) {
+	return item.kind === "step" ? (item.view?.procs ?? []) : []
 }
 
 /** "1–8. Attack ×8" */
@@ -195,7 +214,14 @@ export function CombatStepList({
 		describeMove: moveDescriber(items, names),
 	})
 	const expansion = useGroupExpansion()
+	const outside = useProcLayout() === "outside"
+	const shown = outside
+		? procsOutside(items, { timeOf: shownTime, procsOf: shownProcs })
+		: items.map((item) => ({ kind: "item" as const, item }))
+	const fromLabel = (step: CombatStepItem) =>
+		`${step.number}. ${actionLabel(step.action, names)}`
 	const stepProps = {
+		procsOutside: outside,
 		mode,
 		names,
 		spells,
@@ -212,7 +238,19 @@ export function CombatStepList({
 				Steps
 			</h3>
 			<ol className="flex flex-col gap-1.5">
-				{items.map((item, position) => {
+				{shown.map((entry) => {
+					if (entry.kind === "proc") {
+						const { proc, owner } = entry
+						return (
+							<CombatProcCard
+								key={`proc-${owner.id}-${proc.effectId}@${proc.time}`}
+								proc={proc}
+								from={owner.kind === "step" ? fromLabel(owner) : ""}
+							/>
+						)
+					}
+					const { item } = entry
+					const position = items.indexOf(item)
 					const moves =
 						item.kind === "group"
 							? reorder.moves(blocks, position)
@@ -270,14 +308,34 @@ export function CombatStepList({
 							onOpenChange={(open) => expansion.setOpen(ids, open)}
 							onRemove={() => onRemoveAll(ids)}
 						>
-							{item.steps.map((step, index) => (
-								<StepEntry
-									key={step.id}
-									step={step}
-									moves={reorder.moves(inside, index)}
-									{...stepProps}
-								/>
-							))}
+							{(outside
+								? procsOutside(item.steps, {
+										timeOf: ({ time }) => time,
+										procsOf: ({ view }) => view?.procs ?? [],
+									})
+								: item.steps.map((step) => ({
+										kind: "item" as const,
+										item: step,
+									}))
+							).map((inner) =>
+								inner.kind === "proc" ? (
+									<CombatProcCard
+										key={`proc-${inner.owner.id}-${inner.proc.effectId}@${inner.proc.time}`}
+										proc={inner.proc}
+										from={fromLabel(inner.owner)}
+									/>
+								) : (
+									<StepEntry
+										key={inner.item.id}
+										step={inner.item}
+										moves={reorder.moves(
+											inside,
+											item.steps.indexOf(inner.item),
+										)}
+										{...stepProps}
+									/>
+								),
+							)}
 						</CombatStepGroup>
 					)
 				})}

@@ -303,6 +303,15 @@ export function damageOverTimeView(
 	}
 }
 
+/** PROTOTYPE (PR 434): a card without its procs, which the outside layout lists among the steps. */
+export function withoutProcs(view: StepView): StepView {
+	return {
+		...view,
+		procs: [],
+		...damageTotal([...view.hits, ...view.damageOverTime]),
+	}
+}
+
 /** A proc's lone hit of its own effect, which its title can carry ("Arcane Comet · 40 magic"); none with several. */
 export function loneProcHit({ hits, name }: ProcView): HitView | undefined {
 	const [hit] = hits

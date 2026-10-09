@@ -14,6 +14,7 @@ import { CombatActionIcon } from "./combat-action-icon"
 import { CombatAreaTimeInput } from "./combat-area-time-input"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
+import { CombatProcRow } from "./combat-proc-row"
 import { type CombatListMode, CombatStepOutcomes } from "./combat-step-outcomes"
 import { CombatStepRow, STEP_ROW_GRID } from "./combat-step-row"
 import { CombatVariantInput } from "./combat-variant-input"
@@ -140,13 +141,16 @@ function StepRowEntry({
 function entryLabel(item: CombatRowItem | undefined, names: ActionNames) {
 	if (!item) return "The step"
 	if (item.kind === "marker") return `Marker ${item.view.label}`
+	if (item.kind === "proc") return item.proc.name
 	return actionLabel(item.action, names)
 }
 
 /** What a screen reader hears after a move: the entry, and its new place in the combo. */
 function moveDescriber(items: readonly CombatRowItem[], names: ActionNames) {
 	return (ids: readonly number[], { at, of }: { at: number; of: number }) => {
-		const item = items.find((entry) => entry.id === ids[0])
+		const item = items.find(
+			(entry) => entry.kind !== "proc" && entry.id === ids[0],
+		)
 		return `${entryLabel(item, names)} is now item ${at + 1} of ${of}`
 	}
 }
@@ -196,6 +200,16 @@ export function CombatStepRows({
 			<RowsHeader />
 			<ol className="flex flex-col">
 				{items.map((item) => {
+					if (item.kind === "proc") {
+						return (
+							<CombatProcRow
+								key={item.key}
+								proc={item.proc}
+								timing={item.row}
+								from={`${item.from.number}. ${actionLabel(item.from.action, names)}`}
+							/>
+						)
+					}
 					const position = entryIds.indexOf(item.id)
 					const moves = reorder.moves(blocks, position)
 					if (item.kind === "marker") {
