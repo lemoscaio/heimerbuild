@@ -53,6 +53,7 @@ export type RankValueAmount = {
 /**
  * A table amount, or one that reads the build beyond it: `stat` is `ratio` of another stat's total
  * (its bonus part with `part: "bonus"`) before the stat-dependent bonuses (evaluation step 4);
+ * `percentOfTotal` is `ratio` of a stat's total after every flat bonus (see `PercentOfTotalAmount`);
  * `missingHealth` grows from 0 at full health to `max` at `fullAt` percent missing health, read from
  * the current health condition;
  * `gameTime` grows every `every` minutes of the game time condition (see `GameTimeAmount`);
@@ -68,11 +69,22 @@ export type Amount =
 			part?: "bonus"
 			ratio: TableAmount | MissingHealthAmount
 	  }
+	| PercentOfTotalAmount
 	| MissingHealthAmount
 	| GameTimeAmount
 	| MatchStacksAmount
 	| StatDecayAmount
 	| AttackTypeAmount
+
+/**
+ * `ratio` of `stat`'s total once every flat bonus is in (evaluation step 5): items, shards, effects,
+ * match stacks and the stat-dependent bonuses. Rabadon's Magical Opus is 30% of ability power.
+ */
+export type PercentOfTotalAmount = {
+	by: "percentOfTotal"
+	stat: StatName
+	ratio: TableAmount
+}
 
 /** One value for melee and another for ranged, at the champion's attack type (Hail of Blades). */
 export type AttackTypeAmount = {

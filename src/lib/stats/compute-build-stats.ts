@@ -131,18 +131,30 @@ function evaluateBuild(input: BuildStatsInput) {
 		{ ...context, totals: beforeStatBonuses },
 		{ step: "stat-dependent" },
 	)
-	const hasStatBonuses = Object.keys(statBonuses.stats).length > 0
-	const withStatBonuses = hasStatBonuses
+	const withStatBonuses = hasStats(statBonuses)
 		? totalsWith([statBonuses])
 		: beforeStatBonuses
+	const percentBonuses = effectStatsInput(
+		active,
+		{ ...context, percentBasis: withStatBonuses },
+		{ step: "percent-of-total" },
+	)
+	const withPercentBonuses = hasStats(percentBonuses)
+		? totalsWith([statBonuses, percentBonuses])
+		: withStatBonuses
 	const attackSpeed = multiplyAttackSpeed(
-		withStatBonuses.attackSpeed,
+		withPercentBonuses.attackSpeed,
 		attackSpeedMultipliers(active, context),
 	)
 	return {
 		beforeStatBonuses,
-		totals: capMovementSpeed({ ...withStatBonuses, attackSpeed }, patch),
+		withStatBonuses,
+		totals: capMovementSpeed({ ...withPercentBonuses, attackSpeed }, patch),
 	}
+}
+
+function hasStats({ stats }: ItemInput) {
+	return Object.keys(stats).length > 0
 }
 
 /** The totals the stat-dependent bonuses read (`stat` amounts): the build up to the active effects. */
@@ -150,10 +162,16 @@ export function statBonusBasis(input: BuildStatsInput): ComputedStats {
 	return evaluateBuild(input).beforeStatBonuses
 }
 
+/** The totals the percent-of-total bonuses read (`percentOfTotal` amounts): the build up to the stat-dependent bonuses. */
+export function percentBonusBasis(input: BuildStatsInput): ComputedStats {
+	return evaluateBuild(input).withStatBonuses
+}
+
 /**
  * A build's totals, in order: the champion at `level` in `form`; its items, stat shards and
  * ability ranks; the active effects (those bound to a form only in it); the stat-dependent bonuses,
- * reading the totals so far; the attack speed multipliers; then the movement speed soft caps.
+ * reading the totals so far; the percent-of-total bonuses, reading the totals with them; the attack
+ * speed multipliers; then the movement speed soft caps.
  * Every "what if" is this call with one input changed.
  */
 export function computeBuildStats(input: BuildStatsInput): ComputedStats {

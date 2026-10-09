@@ -30,6 +30,7 @@ import {
 	type BuildStatsInput,
 	buildAbilityCounters,
 	computeBuildStats,
+	percentBonusBasis,
 	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
@@ -142,6 +143,7 @@ export function useChampionBuild({
 			adaptiveType:
 				champion && itemsAdaptiveType(champion.adaptiveType, items.list),
 			totals: basisInput && statBonusBasis(basisInput),
+			percentBasis: basisInput && percentBonusBasis(basisInput),
 			form: championState.form?.id,
 			attackType:
 				champion &&
