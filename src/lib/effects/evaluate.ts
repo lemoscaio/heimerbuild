@@ -224,13 +224,14 @@ function grantStat(
 	return adaptiveType && adaptiveForceStat(value, adaptiveType)
 }
 
-/** The share of its full value an effect holds at its stacks (Rev'd up at 2 of 3 stacks: 2/3; Vi's W: none until 3). */
+/** The share of its full value an effect holds at its stacks (Relentless Assault at 2 of 8: 2/8; Rev'd up by its `shares`; Vi's W: none until 3). */
 function stackShare({ id, effect }: BuildEffect, { stacks }: EffectContext) {
 	const count = stacks?.[id]
 	if (!effect.stacks || count === undefined) return 1
-	const { max, onlyAtMax } = effect.stacks
+	const { max, onlyAtMax, shares } = effect.stacks
 	if (onlyAtMax) return count >= max ? 1 : 0
-	return Math.min(count, max) / max
+	const capped = Math.min(count, max)
+	return shares?.[capped - 1] ?? capped / max
 }
 
 /** A stat grant its effect's pause switches off now (Viego's E movement speed after an attack). */
@@ -349,6 +350,7 @@ function resolveFullGrant(
 		case "damageOverTime":
 		case "onAttackDamage":
 		case "cooldownMultiplier":
+		case "attackMultiplier":
 			return []
 	}
 }

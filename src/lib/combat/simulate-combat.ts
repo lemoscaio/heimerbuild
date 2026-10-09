@@ -195,7 +195,11 @@ type Simulation = {
 	laterHits: LaterHit[]
 	/** The step whose cast's later hit is landing now, which shows its hits. */
 	laterHitOf?: number
+	/** The recasts each ability has left (`Recasts`), until when, and when the next may start. */
+	recasts: Map<AbilitySlot, RecastWindow>
 }
+
+type RecastWindow = { left: number; until: number; nextAt: number }
 
 type Delayed = {
 	at: number
@@ -211,6 +215,8 @@ type LaterHit = {
 	spell: ChampionSpell
 	variant: string | undefined
 	owner: number
+	/** The cast's own hit, landing at its cast time's end (`landsAtCastEnd`): its `on-cast` effects already triggered. */
+	first?: true
 }
 
 /** Marks to put on the target once the action's hit is done (Vault deals its damage, then marks). */
@@ -381,6 +387,7 @@ function createSimulation(
 		delayed: [],
 		waiting: [],
 		laterHits: [],
+		recasts: new Map(),
 	}
 	startCooldowns(sim)
 	return sim
@@ -548,6 +555,8 @@ type AbilityDamageOptions = {
 	targetHealth?: number
 	/** The formula counts the attack's total attack damage, which an empowered attack's own hit deals. */
 	withoutAttack?: boolean
+	/** Times the damage (`perTargetStack`); 1 by default. */
+	scale?: number
 }
 
 /** The counts the ability's formulas read from the attacker's running effects (Siphoning Strike's stacks). */
@@ -580,6 +589,7 @@ function dealAbilityDamage(
 	{
 		targetHealth = sim.health,
 		withoutAttack = false,
+		scale = 1,
 	}: AbilityDamageOptions = {},
 ) {
 	const { ranks, level } = sim.input.build
@@ -601,7 +611,8 @@ function dealAbilityDamage(
 		return
 	}
 	const attack = withoutAttack ? stats.attackDamage.total : 0
-	deal(sim, { source, type: formula.type, raw: Math.max(0, total - attack) })
+	const raw = Math.max(0, total - attack) * scale
+	deal(sim, { source, type: formula.type, raw })
 }
 
 function dealGrantNow(sim: Simulation, grant: Grant, effect: BuildEffect) {
@@ -1410,7 +1421,7 @@ function strike(
 	deal(sim, {
 		source: { kind: "attack" },
 		type: "physical",
-		raw: statsNow(sim).attackDamage.total,
+		raw: statsNow(sim).attackDamage.total * attackMultiplier(sim),
 	})
 	bonus?.()
 	dealOnAttackDamage(sim)
@@ -1424,6 +1435,19 @@ function strike(
 	sim.busyUntil = sim.time
 	sim.active.push(...held)
 	endSpentCharges(sim)
+}
+
+/** What the attacker's running effects multiply a basic attack's damage by (Fishbones' 110% AD). */
+function attackMultiplier(sim: Simulation): number {
+	let multiplier = 1
+	for (const { effect, holder } of sim.active) {
+		if (holder !== "attacker" || !isInForm(effect, sim.formId)) continue
+		for (const grant of effect.effect.grants) {
+			if (grant.kind !== "attackMultiplier") continue
+			multiplier *= amountNow(sim, grant.amount, effect) ?? 1
+		}
+	}
+	return multiplier
 }
 
 /** A basic attack: waits for the attack timer, then starts (`strike`). */
@@ -1519,13 +1543,37 @@ function abilityHit(
 	} else {
 		// The cast's damages are one hit: a share of health reads it before any of them lands.
 		const targetHealth = sim.health
+		const scale = targetStackScale(sim, rule)
 		for (const name of names) {
 			const source = { kind: "ability", slot: spell.slot, name } as const
-			dealAbilityDamage(sim, spell.slot, name, source, { targetHealth })
+			dealAbilityDamage(sim, spell.slot, name, source, { targetHealth, scale })
 		}
 	}
 	if (rule?.onHit) onHit(sim, pending)
 	consumeMarks(sim, "ability", pending)
+	triggerAfterHit(sim, rule, variant, pending)
+}
+
+/** 1 plus the rule's `perTargetStack` bonus per stack of its effect on the target now (Noxian Guillotine). */
+function targetStackScale(sim: Simulation, rule: AbilityHitRule | undefined) {
+	const bonus = rule?.perTargetStack
+	if (!bonus) return 1
+	const held = sim.active.find(
+		({ effect, holder }) => holder === "target" && effect.id === bonus.effect,
+	)
+	return 1 + bonus.bonus * (held?.stacks ?? 0)
+}
+
+/** The effect a hit triggers once it lands (`triggers`, its variant's first): Condemn's Silver Bolts stack. */
+function triggerAfterHit(
+	sim: Simulation,
+	rule: AbilityHitRule | undefined,
+	variant: string | undefined,
+	pending: PendingMarks,
+) {
+	const id = chosenVariant(rule, variant)?.triggers ?? rule?.triggers
+	const effect = id && sim.input.effects.find((entry) => entry.id === id)
+	if (effect) trigger(sim, effect, pending)
 }
 
 /**
@@ -1594,6 +1642,7 @@ function scheduleLaterHits(
 	sim: Simulation,
 	spell: ChampionSpell,
 	variant: string | undefined,
+	firstAt: number,
 ) {
 	const rule = hitRule(sim, spell.slot)
 	const scaled = rule?.attackSpeedHits
@@ -1603,7 +1652,7 @@ function scheduleLaterHits(
 	if (!hits) return
 	for (let index = 1; index < hits.count; index++) {
 		sim.laterHits.push({
-			at: sim.time + index * hits.every,
+			at: firstAt + index * hits.every,
 			spell,
 			variant,
 			owner: sim.step,
@@ -1617,7 +1666,7 @@ function scheduleLaterHits(
  */
 function landLaterHit(sim: Simulation, hit: LaterHit) {
 	sim.laterHits = sim.laterHits.filter((entry) => entry !== hit)
-	const { spell, variant, owner } = hit
+	const { spell, variant, owner, first } = hit
 	const held = targetEffectIds(sim)
 	const pending: PendingMarks = []
 	const { owner: previous, forced } = sim
@@ -1627,6 +1676,7 @@ function landLaterHit(sim: Simulation, hit: LaterHit) {
 	triggerWhere(
 		sim,
 		(trigger) =>
+			!first &&
 			trigger.kind === "on-cast" &&
 			!!trigger.perHit &&
 			(trigger.slots?.includes(spell.slot) ?? true),
@@ -1649,11 +1699,72 @@ function abilityRefusal(
 	if (spell.unavailable) return spell.unavailable.reason
 	const noCast = hitRule(sim, spell.slot)?.noCast
 	if (noCast) return noCast
+	// A recast waits for the gap between casts instead (`recastAt`), like an attack for its timer.
+	if (openRecast(sim, spell.slot)) return undefined
 	const readyAt = sim.cooldowns.get(spell.slot) ?? 0
 	if (readyAt > sim.time && !sim.free) {
 		return `${spell.name} is on cooldown until ${round(readyAt)} s`
 	}
 	return undefined
+}
+
+/** The ability's recast window, while it has a recast left and time to use it (`Recasts`). */
+function openRecast(
+	sim: Simulation,
+	slot: AbilitySlot,
+): RecastWindow | undefined {
+	const window = sim.recasts.get(slot)
+	return window && window.left > 0 && sim.time < window.until
+		? window
+		: undefined
+}
+
+/** When a cast of the ability may start: after the gap since its last recast, else now. Free mode doesn't wait. */
+function recastAt(sim: Simulation, slot: AbilitySlot): number {
+	const window = openRecast(sim, slot)
+	return window && !sim.free ? Math.max(sim.time, window.nextAt) : sim.time
+}
+
+/**
+ * Uses a recast, or opens the window a first cast of a rule with `recasts` starts; returns whether
+ * this cast was a recast, which leaves the first cast's cooldown as it is.
+ */
+function spendRecast(
+	sim: Simulation,
+	slot: AbilitySlot,
+	rule: AbilityHitRule | undefined,
+): boolean {
+	const window = openRecast(sim, slot)
+	const every = rule?.recasts?.every ?? 0
+	if (window) {
+		window.left--
+		window.nextAt = sim.time + every
+		return true
+	}
+	if (rule?.recasts) {
+		const { count, within } = rule.recasts
+		sim.recasts.set(slot, {
+			left: count,
+			until: sim.time + within,
+			nextAt: sim.time + every,
+		})
+	}
+	return false
+}
+
+/** The cast time now: the synced one, shorter with bonus attack speed when its rule says so (Zap!). */
+function castTimeNow(
+	sim: Simulation,
+	spell: ChampionSpell,
+	rule: AbilityHitRule | undefined,
+): number {
+	const synced = spell.castTime ?? 0
+	const scaled = rule?.attackSpeedCastTime
+	if (!scaled) return synced
+	const { ratio } = sim.input.build.champion.stats.attackSpeed
+	const bonus = statsNow(sim).attackSpeed.bonus / ratio
+	const progress = Math.min(1, bonus / scaled.fullAt)
+	return synced + (scaled.min - synced) * progress
 }
 
 /** Every effect with `reducedOnCast` gets that much closer to ready (Short Fuse, at the cast's start). */
@@ -1676,7 +1787,9 @@ function cooldownMultiplier(sim: Simulation, slot: AbilitySlot): number {
 			if (grant.kind !== "cooldownMultiplier" || !grant.slots.includes(slot)) {
 				continue
 			}
-			multiplier *= amountNow(sim, grant.amount, effect) ?? 1
+			const amount = amountNow(sim, grant.amount, effect)
+			if (amount === undefined) continue
+			multiplier *= grant.reduction ? 1 - amount : amount
 		}
 	}
 	return multiplier
@@ -1692,6 +1805,7 @@ function castAbility(
 	if (!spell) return `No ability in ${slot}`
 	const refusal = abilityRefusal(sim, spell, rank)
 	if (refusal) return refusal
+	advance(sim, recastAt(sim, slot))
 
 	const pending: PendingMarks = []
 	const castAt = sim.time
@@ -1702,6 +1816,8 @@ function castAbility(
 	})
 	reduceCooldownsOnCast(sim)
 	const rule = hitRule(sim, slot)
+	const recast = spendRecast(sim, slot, rule)
+	const castTime = castTimeNow(sim, spell, rule)
 	// An empowering cast counts as its attack for endsOn, pauses and startsAfter, never as a cast.
 	const empowering = rule?.empowersAttack ? rule : undefined
 	const cast = { kind: "cast", slot } as const
@@ -1727,19 +1843,33 @@ function castAbility(
 	if (empowering) {
 		empoweredAttack(sim, action, { spell, rule: empowering, pending })
 	} else {
-		abilityHit(sim, spell, pending, action.variant, { held })
-		scheduleLaterHits(sim, spell, action.variant)
+		const hitAt = rule?.landsAtCastEnd ? sim.time + castTime : sim.time
+		if (hitAt > sim.time) {
+			const { variant } = action
+			sim.laterHits.push({
+				at: hitAt,
+				spell,
+				variant,
+				owner: sim.step,
+				first: true,
+			})
+		} else {
+			abilityHit(sim, spell, pending, action.variant, { held })
+		}
+		scheduleLaterHits(sim, spell, action.variant, hitAt)
 		applyMarks(sim, chooseMarks(sim, pending, action))
 		for (const waiting of onTarget) release(sim, waiting)
 	}
-	const cooldown = spell.cooldown[rank - 1] ?? 0
-	const haste = statsNow(sim).abilityHaste.total
-	sim.cooldowns.set(
-		slot,
-		castAt + abilityCooldown(cooldown, haste) * cooldownMultiplier(sim, slot),
-	)
+	if (!recast) {
+		const cooldown = spell.cooldown[rank - 1] ?? 0
+		const haste = statsNow(sim).abilityHaste.total
+		sim.cooldowns.set(
+			slot,
+			castAt + abilityCooldown(cooldown, haste) * cooldownMultiplier(sim, slot),
+		)
+	}
 	// An empowered attack keeps the champion busy for its windup (`strike`), not its cast time.
-	if (!empowering) sim.busyUntil = sim.time + (spell.castTime ?? 0)
+	if (!empowering) sim.busyUntil = sim.time + castTime
 	return undefined
 }
 
@@ -1956,6 +2086,12 @@ function totals(events: readonly CombatEvent[]) {
 	return { total, byType }
 }
 
+/** When the action starts: an attack after the attack timer, a recast after its gap, the rest now. */
+function actionStartsAt(sim: Simulation, item: CombatAction): number {
+	if (item.kind === "attack") return Math.max(sim.time, sim.nextAttackAt)
+	return item.kind === "ability" ? recastAt(sim, item.slot) : sim.time
+}
+
 /**
  * Simulates a combo against a target that doesn't react: each action in order, with the stats of
  * the moment (`computeBuildStats` with the effects running then), the events it causes and the
@@ -2000,10 +2136,7 @@ export function simulateCombat(
 		closeStep()
 		sim.step = index
 		sim.forced = input.free?.outcomes?.[index]
-		const startedAt = Math.max(
-			sim.time,
-			item.kind === "attack" ? sim.nextAttackAt : sim.time,
-		)
+		const startedAt = actionStartsAt(sim, item)
 		const refused = run(sim, item)
 		if (!refused) forceChosenDamageOverTime(sim, item, index)
 		steps.push({

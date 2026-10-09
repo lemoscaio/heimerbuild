@@ -1,5 +1,6 @@
 import type { AbilitySlot } from "@schemas/champion"
 import { isInPatchRange, type PatchRange } from "@schemas/patch-range"
+import { AHRI_HIT_RULES } from "../../champions/ahri"
 import { ANNIE_HIT_RULES } from "../../champions/annie"
 import { BLITZCRANK_HIT_RULES } from "../../champions/blitzcrank"
 import { BRAND_HIT_RULES } from "../../champions/brand"
@@ -19,6 +20,7 @@ import { QUINN_HIT_RULES } from "../../champions/quinn"
 import { RENGAR_HIT_RULES } from "../../champions/rengar"
 import { SINGED_HIT_RULES } from "../../champions/singed"
 import { TEEMO_HIT_RULES } from "../../champions/teemo"
+import { VAYNE_HIT_RULES } from "../../champions/vayne"
 import { VEIGAR_HIT_RULES } from "../../champions/veigar"
 import { YORICK_HIT_RULES } from "../../champions/yorick"
 import { ZAC_HIT_RULES } from "../../champions/zac"
@@ -37,6 +39,8 @@ export type AbilityVariant = {
 	hits?: LaterHits
 	/** The one a step without a pick gets, instead of the first (Pyroclasm's 3 hits). */
 	default?: true
+	/** Replaces the rule's `triggers` (Decimate's blade adds a Hemorrhage stack, its handle doesn't). */
+	triggers?: string
 }
 
 /**
@@ -54,6 +58,19 @@ export type AttackSpeedHits = {
 	perBonusAttackSpeed: number
 	over: number
 }
+
+/**
+ * The cast can be cast `count` more times within `within` seconds of the first, `every` seconds
+ * apart, before its cooldown (which starts at the first cast) holds it (Spirit Rush: 2 more in 15 s,
+ * 1 s apart).
+ */
+export type Recasts = { count: number; within: number; every: number }
+
+/**
+ * The cast time shrinks in a straight line from the synced one, at no bonus attack speed, to `min`
+ * at `fullAt` bonus attack speed and beyond (Zap!: 0.6 s to 0.4 s at 250%).
+ */
+export type AttackSpeedCastTime = { min: number; fullAt: number }
 
 /** What a rule's variants pick, as the step's input says it: `text` beside them, `name` for assistive tech. */
 export type VariantsLabel = { text: string; name: string }
@@ -108,6 +125,19 @@ export type AbilityHitRule = PatchRange & {
 	attackSpeedHits?: AttackSpeedHits
 	/** Why the ability can't be cast at all (a passive only one): a cast is refused with it. */
 	noCast?: string
+	/** Its recasts, which its cooldown doesn't refuse (Spirit Rush). */
+	recasts?: Recasts
+	/** The hit lands when the cast time ends, not as it starts (Decimate swings after its 0.75 s windup). */
+	landsAtCastEnd?: true
+	/** Its cast time by bonus attack speed (Zap!). */
+	attackSpeedCastTime?: AttackSpeedCastTime
+	/** An effect, by id, that each of its hits triggers once it lands (Condemn adds a Silver Bolts stack). */
+	triggers?: string
+	/**
+	 * Each stack of the effect `effect` the target holds as the hit lands adds `bonus` of its damage
+	 * (Noxian Guillotine: 20% per Hemorrhage stack, double at 5).
+	 */
+	perTargetStack?: { effect: string; bonus: number }
 	sourceUrl: string
 }
 
@@ -116,6 +146,7 @@ export type AbilityHitRule = PatchRange & {
  * champion's variants and empowered attacks; one file per champion in `lib/champions/`.
  */
 export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
+	...AHRI_HIT_RULES,
 	...ANNIE_HIT_RULES,
 	...BLITZCRANK_HIT_RULES,
 	...BRAND_HIT_RULES,
@@ -135,6 +166,7 @@ export const ABILITY_HIT_RULES: readonly AbilityHitRule[] = [
 	...RENGAR_HIT_RULES,
 	...SINGED_HIT_RULES,
 	...TEEMO_HIT_RULES,
+	...VAYNE_HIT_RULES,
 	...VEIGAR_HIT_RULES,
 	...YORICK_HIT_RULES,
 	...ZAC_HIT_RULES,
