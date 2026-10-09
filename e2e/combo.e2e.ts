@@ -323,27 +323,33 @@ test("Decimate's inner handle deals less than its outer blade, in either mode", 
 	await expect.poll(total).toBeLessThan(blade)
 })
 
-test("Poison Trail deals more and lasts longer the longer Singed's target stays in the trail, and the link keeps the time", async ({
+test("Poison Trail deals less and ends sooner the shorter Singed's target stays in the trail, and the link keeps the time", async ({
 	page,
 }) => {
 	await page.goto("/champions/Singed?lvl=9&skills=QWEQQRQEQ&tab=combo&combo=q")
-	const inTrail = combo(page).getByRole("group", { name: "Time in the trail" })
-	// A link from before the time input opens as one pass: the first time.
-	// Each time says its ticks: one pass is 8.
-	await expect(
-		inTrail.getByRole("button", { name: /^0 s\W+8 ticks$/ }),
-	).toHaveAttribute("aria-pressed", "true")
+	const inTrail = combo(page).getByRole("textbox", {
+		name: "Time in the trail in seconds",
+	})
+	// A link without a time is the full one (issue 427).
+	await expect(inTrail).toHaveValue("4")
 	await expect(damageTotal(page)).not.toHaveText("0")
 	const total = async () =>
 		Number((await damageTotal(page).textContent())?.replace(/\D/g, ""))
 	const time = comboTotal(page, "Time")
-	const onePass = await total()
-	const onePassTime = await time.textContent()
+	const full = await total()
+	const fullTime = await time.textContent()
 
-	await inTrail.getByRole("button", { name: /^4 s\W+24 ticks$/ }).click()
-	await expect.poll(total).toBeGreaterThan(onePass)
-	await expect(time).not.toHaveText(onePassTime ?? "")
-	await expect(page).toHaveURL(/[?&]combo=q-4s(&|$)/)
+	await inTrail.fill("2")
+	await inTrail.press("Enter")
+	await expect.poll(total).toBeLessThan(full)
+	await expect(time).not.toHaveText(fullTime ?? "")
+	await expect(page).toHaveURL(/[?&]combo=q-2s(&|$)/)
+
+	await combo(page)
+		.getByRole("button", { name: "Increase Time in the trail in seconds" })
+		.click()
+	await expect(inTrail).toHaveValue("2.25")
+	await expect(page).toHaveURL(/[?&]combo=q-2_25s(&|$)/)
 })
 
 test("Hail of Blades again right after its 3 attacks is ignored in strict mode and forced in free mode", async ({

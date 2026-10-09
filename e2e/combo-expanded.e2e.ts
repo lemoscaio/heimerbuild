@@ -120,28 +120,27 @@ test("edits in the expanded combo show in the Combo tab, and switching back and 
 	await expect(comboTotal(page, "Damage")).toHaveText(damage ?? "")
 })
 
-test("an ability's preset picked in the expanded combo stays in the Combo tab", async ({
+test("an ability's time in the area set in the expanded combo stays in the Combo tab", async ({
 	page,
 }) => {
 	await page.goto(
 		"/champions/Nasus?lvl=9&skills=QEWQQRQEQ&tab=combo&view=combo&combo=e",
 	)
-	const inFire = page.getByRole("group", { name: "Time in the fire" })
+	const inFire = page.getByRole("textbox", {
+		name: "Time in the fire in seconds",
+	})
 	const damage = await comboTotal(page, "Damage").textContent()
 
-	await inFire.getByRole("button", { name: /^5 s/ }).click()
-	await expect(inFire.getByRole("button", { name: /^5 s/ })).toHaveAttribute(
-		"aria-pressed",
-		"true",
-	)
+	await page
+		.getByRole("button", { name: "Decrease Time in the fire in seconds" })
+		.click()
+	await expect(inFire).toHaveValue("4")
 	await expect(comboTotal(page, "Damage")).not.toHaveText(damage ?? "")
-	const longer = await comboTotal(page, "Damage").textContent()
+	const shorter = await comboTotal(page, "Damage").textContent()
 
 	await page.getByRole("button", { name: "Collapse combo" }).click()
 	await expect(
-		page
-			.getByRole("group", { name: "Time in the fire" })
-			.getByRole("button", { name: /^5 s/ }),
-	).toHaveAttribute("aria-pressed", "true")
-	await expect(comboTotal(page, "Damage")).toHaveText(longer ?? "")
+		page.getByRole("textbox", { name: "Time in the fire in seconds" }),
+	).toHaveValue("4")
+	await expect(comboTotal(page, "Damage")).toHaveText(shorter ?? "")
 })
