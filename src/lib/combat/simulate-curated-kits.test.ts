@@ -39,9 +39,16 @@ type Setup = {
 	ranks: AbilityRanks
 	target?: CombatTarget
 	matchStacks?: MatchStacks
+	form?: string
 }
 
-function buildOf({ champion, level, ranks, matchStacks }: Setup): CombatBuild {
+function buildOf({
+	champion,
+	level,
+	ranks,
+	matchStacks,
+	form,
+}: Setup): CombatBuild {
 	return {
 		champion,
 		patch: PATCH,
@@ -50,6 +57,7 @@ function buildOf({ champion, level, ranks, matchStacks }: Setup): CombatBuild {
 		shards: [],
 		ranks,
 		matchStacks,
+		form,
 	}
 }
 
@@ -344,5 +352,254 @@ describe("Jax (issue 397)", async () => {
 		])
 		expect(passive[0]?.damage).toMatchObject({ type: "magic", raw: 75 })
 		expect(hitsFrom(result, "SwingDamageTotal")[0]?.damage.raw).toBe(100)
+	})
+})
+
+function stats(setup: Setup) {
+	return computeBuildStats(buildOf(setup))
+}
+
+describe("Ahri (issue 419)", async () => {
+	const ahri: Setup = {
+		champion: await champion("Ahri"),
+		level: 9,
+		ranks: { Q: 5, W: 2, E: 1, R: 1 },
+	}
+
+	test("Orb of Deception deals 135 magic damage out and the same as true damage back at rank 5 (wiki)", () => {
+		const hits = allHits(simulate(ahri, [cast("Q")]))
+
+		expect(hits.map(({ damage }) => [damage.type, damage.raw])).toEqual([
+			["magic", 135],
+			["true", 135],
+		])
+		expect(hits[1]?.damage.final).toBe(135)
+	})
+
+	test("Fox-Fire is instant, and its three flames hit a lone target, the second and third for 40% (wiki)", () => {
+		const result = simulate(ahri, [cast("W"), cast("E")])
+
+		expect(result.steps[1]?.time).toBe(0)
+		expect(
+			hitsFrom(result, "SingleFireDamage")
+				.concat(hitsFrom(result, "MultiFireDamage"))
+				.map(({ damage }) => damage.raw),
+		).toEqual([60, 24, 24])
+	})
+
+	test("Spirit Rush recasts twice, 1 s apart, each a 75 bolt at rank 1; then its cooldown holds from the first cast (wiki)", () => {
+		const result = simulate(ahri, [cast("R"), cast("R"), cast("R"), cast("R")])
+
+		expect(result.steps.slice(0, 3).map(({ time }) => time)).toEqual([0, 1, 2])
+		expect(
+			hitsFrom(result, "RCalculatedDamage").map(({ damage }) => damage.raw),
+		).toEqual([75, 75, 75])
+		expect(result.steps[3]?.refused).toBe(
+			"Spirit Rush is on cooldown until 140 s",
+		)
+	})
+
+	test("a recast waits for the 1 s gap, not more: Spirit Rush after a 0.4 s wait recasts at 1 s", () => {
+		const result = simulate(ahri, [cast("R"), wait(0.4), cast("R")])
+
+		expect(result.steps[2]?.time).toBe(1)
+	})
+})
+
+describe("Darius (issue 419)", async () => {
+	const darius: Setup = {
+		champion: await champion("Darius"),
+		level: 9,
+		ranks: { Q: 5, W: 1, E: 2, R: 1 },
+	}
+	const bleedTick = 21 / 4
+
+	test("Decimate swings 0.75 s after the cast, and Darius can't attack before (wiki)", () => {
+		const result = simulate(darius, [cast("Q"), ATTACK])
+
+		expect(hitsFrom(result, "BladeDamage")[0]?.time).toBe(0.75)
+		expect(result.steps[1]?.time).toBe(0.75)
+	})
+
+	test("an attack's Hemorrhage stack bleeds a quarter of 21 every 1.25 s for 5 s at level 9 (wiki)", () => {
+		const result = simulate(darius, [ATTACK])
+		const landed = allHits(result)[0]?.time ?? 0
+		const bleed = hitsFrom(result, "darius-hemorrhage")
+
+		expect(bleed.map(({ time }) => time - landed)).toEqual([
+			expect.closeTo(1.25),
+			expect.closeTo(2.5),
+			expect.closeTo(3.75),
+			expect.closeTo(5),
+		])
+		expect(bleed[0]?.damage.raw).toBeCloseTo(bleedTick)
+	})
+
+	test("Decimate's blade adds a stack; its handle deals 35% and doesn't (wiki)", () => {
+		const blade = simulate(darius, [cast("Q", "blade")])
+		const handle = simulate(darius, [cast("Q", "handle")])
+		const bladeRaw = hitsFrom(blade, "BladeDamage")[0]?.damage.raw ?? 0
+
+		expect(hitsFrom(blade, "darius-hemorrhage")).toHaveLength(4)
+		expect(hitsFrom(handle, "darius-hemorrhage")).toHaveLength(0)
+		expect(hitsFrom(handle, "HandleDamage")[0]?.damage.raw).toBeCloseTo(
+			bladeRaw * 0.35,
+		)
+	})
+
+	test("Noxian Guillotine deals 20% more per stack, then adds its own: 125 alone, 175 on 2 stacks at rank 1 (wiki)", () => {
+		const alone = simulate(darius, [cast("R")])
+		const stacked = simulate(darius, [ATTACK, ATTACK, cast("R")])
+
+		expect(hitsFrom(alone, "Damage")[0]?.damage).toMatchObject({
+			type: "true",
+			raw: 125,
+		})
+		expect(hitsFrom(alone, "darius-hemorrhage")).toHaveLength(4)
+		expect(hitsFrom(stacked, "Damage")[0]?.damage.raw).toBeCloseTo(175)
+	})
+
+	test("5 stacks: Noxian Might adds 70 AD at level 9 for 5 s, and Noxian Guillotine deals double (wiki)", () => {
+		const result = simulate(darius, [...Array(5).fill(ATTACK), cast("R")])
+		const might = result.steps[4]?.active.find(
+			({ effectId }) => effectId === "darius-noxian-might",
+		)
+
+		const fifth = allHits(result).filter(
+			({ source }) => source.kind === "attack",
+		)[4]
+
+		expect(might?.endsAt).toBeCloseTo((fifth?.time ?? 0) + 5)
+		expect(hitsFrom(result, "Damage")[0]?.damage.raw).toBeCloseTo(
+			(125 + 0.75 * 70) * 2,
+		)
+	})
+})
+
+describe("Jinx (issue 419)", async () => {
+	const jinx: Setup = {
+		champion: await champion("Jinx"),
+		level: 9,
+		ranks: { Q: 5, W: 2, E: 1, R: 1 },
+	}
+
+	test("Zap! takes 0.6 s at no bonus attack speed (wiki; the game files give 0.25 s)", () => {
+		const level1 = { ...jinx, level: 1, ranks: { Q: 0, W: 1, E: 0, R: 0 } }
+		const result = simulate(level1, [cast("W"), ATTACK])
+
+		expect(result.steps[1]?.time).toBeCloseTo(0.6)
+	})
+
+	test("Zap!'s cast time shrinks toward 0.4 s at 250% bonus attack speed (wiki)", () => {
+		const level18 = { ...jinx, level: 18, ranks: { Q: 0, W: 5, E: 0, R: 0 } }
+		const { attackSpeed } = stats(level18)
+		const bonus = attackSpeed.bonus / 0.625
+		const result = simulate(level18, [cast("W"), ATTACK])
+
+		expect(bonus).toBeGreaterThan(0)
+		expect(result.steps[1]?.time).toBeCloseTo(0.6 - (0.2 * bonus) / 2.5)
+	})
+
+	test("Switcheroo! is the form switch, never a cast in the combo", () => {
+		const result = simulate(jinx, [cast("Q")])
+
+		expect(result.steps[0]?.refused).toContain("Switcheroo!")
+	})
+
+	test("Flame Chompers! explode under the target 0.9 s after the cast: 90 magic at rank 1 (wiki)", () => {
+		const [explosion] = hitsFrom(simulate(jinx, [cast("E")]), "jinx-e")
+
+		expect(explosion?.time).toBeCloseTo(0.9)
+		expect(explosion?.damage).toMatchObject({ type: "magic", raw: 90 })
+	})
+
+	test("Rev'd up: the first stack gives half of 130% at rank 5, the second three quarters (wiki)", () => {
+		const base = stats(jinx).attackSpeed.total
+		const result = simulate(jinx, [ATTACK, ATTACK, ATTACK])
+		const [first, second, third] = result.steps.map(({ time }) => time)
+
+		expect(second ?? 0).toBeCloseTo(1 / (base + 0.625 * 1.3 * 0.5))
+		expect((third ?? 0) - (second ?? 0)).toBeCloseTo(
+			1 / (base + 0.625 * 1.3 * 0.75),
+		)
+		expect(first).toBe(0)
+	})
+
+	test("Fishbones' attacks deal 110% AD (wiki)", () => {
+		const rockets = { ...jinx, form: "rockets" }
+		const [attack] = allHits(simulate(rockets, [ATTACK]))
+
+		expect(attack?.damage.raw).toBeCloseTo(attackDamage(rockets) * 1.1)
+	})
+
+	test("Pow-Pow's attacks deal their AD", () => {
+		const [attack] = allHits(simulate(jinx, [ATTACK]))
+
+		expect(attack?.damage.raw).toBeCloseTo(attackDamage(jinx))
+	})
+})
+
+describe("Vayne (issue 419)", async () => {
+	const vayne: Setup = {
+		champion: await champion("Vayne"),
+		level: 9,
+		ranks: { Q: 5, W: 2, E: 1, R: 1 },
+	}
+
+	test("Tumble resets the attack timer and adds 115% AD at rank 5 (wiki)", () => {
+		const result = simulate(vayne, [ATTACK, cast("Q")])
+		const [first] = allHits(result)
+		const [bonus] = hitsFrom(result, "ADRatioBonus")
+
+		expect(result.steps[1]?.time).toBe(first?.time ?? -1)
+		expect(bonus?.damage.raw).toBeCloseTo(attackDamage(vayne) * 1.15)
+	})
+
+	test("Silver Bolts: every third hit deals 5.5% of maximum health as true damage at rank 2 (wiki)", () => {
+		const result = simulate(vayne, Array(6).fill(ATTACK))
+		const bolts = hitsFrom(result, "vayne-w-bolt")
+
+		expect(bolts.map(({ damage }) => [damage.type, damage.raw])).toEqual([
+			["true", 1100],
+			["true", 1100],
+		])
+	})
+
+	test("Condemn adds a Silver Bolts stack: attack, attack, Condemn procs it (wiki)", () => {
+		const result = simulate(vayne, [ATTACK, ATTACK, cast("E")])
+
+		expect(
+			result.steps[2]?.events.some(
+				(event) =>
+					event.kind === "hit" &&
+					event.source.kind === "effect" &&
+					event.source.effectId === "vayne-w-bolt",
+			),
+		).toBe(true)
+	})
+
+	test("Silver Bolts can't be cast", () => {
+		expect(simulate(vayne, [cast("W")]).steps[0]?.refused).toContain(
+			"Silver Bolts",
+		)
+	})
+
+	test("Condemn into a wall deals 250%: 50 + 75 at rank 1 with no bonus AD (wiki)", () => {
+		const open = hitsFrom(simulate(vayne, [cast("E")]), "TotalDamage")
+		const wall = allHits(simulate(vayne, [cast("E", "wall")]))
+
+		expect(open.map(({ damage }) => damage.raw)).toEqual([50])
+		expect(wall.map(({ damage }) => damage.raw)).toEqual([50, 75])
+	})
+
+	test("Final Hour is instant, grants 35 AD at rank 1 and shortens Tumble's 2 s cooldown by 30% (wiki)", () => {
+		const result = simulate(vayne, [cast("R"), cast("Q"), wait(1.5), cast("Q")])
+		const without = simulate(vayne, [cast("Q"), wait(1.5), cast("Q")])
+		const [attack] = allHits(result)
+
+		expect(result.steps[1]?.time).toBe(0)
+		expect(attack?.damage.raw).toBeCloseTo(attackDamage(vayne) + 35)
+		expect(result.steps[3]?.refused).toBeUndefined()
+		expect(without.steps[2]?.refused).toContain("on cooldown")
 	})
 })

@@ -46,6 +46,8 @@ type Setup = {
 	level: number
 	ranks: AbilityRanks
 	items?: readonly Item[]
+	/** Leaves out the champion's own ability effects (Darius's Hemorrhage would add its bleed). */
+	withoutKit?: true
 }
 
 function simulate(setup: Setup, actions: readonly CombatAction[]) {
@@ -66,7 +68,9 @@ function simulate(setup: Setup, actions: readonly CombatAction[]) {
 			spells: [],
 			runes: [],
 			items,
-		}),
+		}).filter(
+			({ effect }) => !setup.withoutKit || effect.source.kind !== "ability",
+		),
 		summoners: [],
 		target: TARGET,
 		actions,
@@ -104,6 +108,7 @@ describe("Black Cleaver's Carve (wiki: 6% armor per stack, up to 5, for 6 s)", a
 		// No E: its passive armor penetration would hide the numbers.
 		ranks: { Q: 1, W: 1, E: 0, R: 0 },
 		items: [item("Black Cleaver")],
+		withoutKit: true,
 	}
 
 	test("each attack lands on the armor the earlier ones left, then adds its stack", () => {

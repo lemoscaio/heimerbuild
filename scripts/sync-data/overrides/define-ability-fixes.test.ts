@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test"
+import { AHRI_ABILITIES } from "../champions/ahri"
 import { GAREN_ABILITIES } from "../champions/garen"
 import { NASUS_ABILITIES } from "../champions/nasus"
 import { RENGAR_ABILITIES } from "../champions/rengar"
+import { VAYNE_ABILITIES } from "../champions/vayne"
 import {
 	type AbilityDamage,
 	type ChampionAbilities,
@@ -34,7 +36,7 @@ const ABILITIES: ChampionAbilities = {
 
 /** Abilities whose `slot` shows `damage`, as the sync reads it. */
 function withDamage(
-	slot: "Q" | "E",
+	slot: "Q" | "E" | "R",
 	damage: AbilityDamage[],
 ): ChampionAbilities {
 	return {
@@ -96,9 +98,13 @@ describe("defineAbilityFixes", () => {
 	})
 
 	test.each(
-		[RENGAR_ABILITIES, NASUS_ABILITIES, GAREN_ABILITIES].map(
-			(override) => [override.id, override] as const,
-		),
+		[
+			RENGAR_ABILITIES,
+			NASUS_ABILITIES,
+			GAREN_ABILITIES,
+			AHRI_ABILITIES,
+			VAYNE_ABILITIES,
+		].map((override) => [override.id, override] as const),
 	)("%s keeps the abilities valid", (_, override) => {
 		expect(
 			championAbilitiesSchema.safeParse(
@@ -165,6 +171,60 @@ describe("defineAbilityFixes", () => {
 		expect(damage).toEqual([
 			spin,
 			{ ...spin, name: "NearestEnemyBonus", multiplier: 1.25 },
+		])
+	})
+
+	test("a fix that leaves no damage removes it: the ability deals none", () => {
+		const override = defineAbilityFixes({
+			id: "test-no-damage",
+			championKey: "Vayne",
+			since: "16.19",
+			reason: "test",
+			damage: { R: () => [] },
+		})
+		const buff: AbilityDamage = {
+			name: "BonusAttackDamage",
+			type: "physical",
+			parts: [{ value: 35 }],
+		}
+
+		const abilities = override.apply(withDamage("R", [buff]))
+
+		expect(abilities.spells[3]).not.toHaveProperty("damage")
+		expect(championAbilitiesSchema.safeParse(abilities).success).toBe(true)
+	})
+
+	test("Ahri: Orb of Deception's return deals the same damage as true damage (wiki)", () => {
+		const out: AbilityDamage = {
+			name: "TotalDamage",
+			type: "magic",
+			parts: [
+				{ value: { byRank: [35, 60, 85, 110, 135] } },
+				{ stat: "abilityPower", ratio: 0.5 },
+			],
+		}
+
+		const damage = AHRI_ABILITIES.apply(withDamage("Q", [out])).spells[0]
+			?.damage
+
+		expect(damage).toEqual([
+			out,
+			{ ...out, name: "ReturnDamage", type: "true" },
+		])
+	})
+
+	test("Vayne: Final Hour's bonus AD is not a damage", () => {
+		const buff: AbilityDamage = {
+			name: "BonusAttackDamage",
+			type: "physical",
+			parts: [{ value: { byRank: [35, 50, 65] } }],
+		}
+
+		const abilities = VAYNE_ABILITIES.apply(withDamage("R", [buff]))
+
+		expect(abilities.spells[3]).not.toHaveProperty("damage")
+		expect(abilities.spells.map(({ castTime }) => castTime)).toEqual([
+			0, 0.25, 0.25, 0,
 		])
 	})
 })
