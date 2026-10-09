@@ -49,7 +49,9 @@ export function CombatAreaTimeInput({
 					aria-live="polite"
 					className="text-[0.6875rem] text-subtle tabular-nums"
 				>
-					<span aria-hidden="true">· </span>
+					<span aria-hidden="true" className="max-lg:hidden">
+						·{" "}
+					</span>
 					{result}
 				</span>
 			)}
