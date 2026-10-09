@@ -10,7 +10,7 @@ import {
 import type { DamageOverTimeView, OutcomeView, StepView } from "./combat-view"
 
 const ATTACK = { kind: "attack" } as const
-const MARKER = { kind: "situation", effectId: "hail-of-blades" } as const
+const MARKER = { kind: "situation", effectId: "quinn-harrier-valor" } as const
 
 /** The runs as their actions' kinds: a group as a list. */
 function shape(actions: readonly CombatItem[]) {

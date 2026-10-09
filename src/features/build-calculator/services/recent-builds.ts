@@ -69,6 +69,7 @@ const recentBuildSchema = z.pipe(
 			combo,
 			free,
 			choices,
+			start,
 			target,
 		} = readBuildSearch(search)
 		return {
@@ -87,6 +88,7 @@ const recentBuildSchema = z.pipe(
 			combo,
 			free: free === 1 || undefined,
 			choices,
+			start,
 			target,
 		}
 	}),

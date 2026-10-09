@@ -14,6 +14,7 @@ import {
 	simulateCombat,
 	simulateFreeCombat,
 } from "@/lib/combat/simulate-combat"
+import { startCooldownEffects } from "@/lib/combat/start-cooldowns"
 import { combatStartOptions } from "@/lib/combat/start-options"
 import { abilitiesInForm } from "@/lib/form-abilities"
 import { combatFormId } from "../lib/combat-form"
@@ -27,17 +28,23 @@ import {
 	setWaitSeconds,
 } from "../lib/combat-sequence"
 import { combatSituations } from "../lib/combat-situations"
+import { combatStartChips } from "../lib/combat-start"
 import {
 	type CombatState,
 	changedChoices,
 	choicesByItem,
+	dropUnusedOnCooldown,
 	EMPTY_COMBAT,
 	removeEntry,
 	setFreeChoice,
+	setStartReady,
 } from "../lib/combat-state"
 
 /** What the combo runs on, injected: the build, its effects (`combatEffects`), its summoner slots and the target. */
-export type CombatInput = Omit<SimulationInput, "actions" | "free">
+export type CombatInput = Omit<
+	SimulationInput,
+	"actions" | "free" | "startOnCooldown"
+>
 
 type UseCombatOptions = {
 	/** Undefined while the build's data loads. */
@@ -56,13 +63,17 @@ function isCurated({ key }: Champion) {
 }
 
 /** The combo's result: strict, or free mode's with the outcomes it computed (`seed`, by item). */
-function simulate(input: CombatInput, { entries, free, choices }: CombatState) {
-	const actions = entries.map(({ action }) => action)
-	if (!free) return { result: simulateCombat({ ...input, actions }) }
-	return simulateFreeCombat(
-		{ ...input, actions },
-		choicesByItem(entries, choices),
-	)
+function simulate(
+	input: CombatInput,
+	{ entries, free, choices, onCooldown }: CombatState,
+) {
+	const run = {
+		...input,
+		actions: entries.map(({ action }) => action),
+		startOnCooldown: onCooldown,
+	}
+	if (!free) return { result: simulateCombat(run) }
+	return simulateFreeCombat(run, choicesByItem(entries, choices))
 }
 
 /**
@@ -81,8 +92,9 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 	const effects = input?.effects ?? []
 
 	function save(next: CombatState) {
-		onChange(next)
-		return next
+		const kept = dropUnusedOnCooldown(next, input?.effects)
+		onChange(kept)
+		return kept
 	}
 	const saveEntries = (next: CombatState["entries"]) =>
 		save({ ...value, entries: next })
@@ -122,6 +134,14 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 					summoners: input.summoners,
 				})
 			: [],
+		/** The build's cooldowns the combo starts with, each ready unless removed ("Combo start"). */
+		startChips: combatStartChips(
+			startCooldownEffects(effects, formId),
+			value.onCooldown,
+		),
+		/** Starts the effect's cooldown ready, or on cooldown. */
+		setStartReady: (effectId: string, ready: boolean) =>
+			save(setStartReady(value, effectId, ready)),
 		/** The situations the build supports, which a marker can set. */
 		situations: combatSituations(combatStartOptions(effects, formId)),
 		/** The outcomes an attack can have, which ability steps say they lack. */
@@ -194,7 +214,8 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 			}),
 		/** Free mode back to the computed outcomes. */
 		restore: () => save({ ...value, choices: {} }),
-		clear: () => save({ ...EMPTY_COMBAT, free: value.free }),
+		clear: () =>
+			save({ ...EMPTY_COMBAT, free: value.free, onCooldown: value.onCooldown }),
 		/** Puts back a value saved before (undo). */
 		replace: (next: CombatState) => save(next),
 	}

@@ -20,7 +20,7 @@ function bound(fields: Partial<Effect> & Pick<Effect, "id">): BuildEffect {
 
 describe("combatStartOptions", () => {
 	const mark = bound({ id: "mark", start: { kind: "marked" } })
-	const ready = bound({ id: "ready", start: { kind: "running" } })
+	const running = bound({ id: "running", start: { kind: "running" } })
 	const plain = bound({ id: "plain" })
 	const dragonOnly = bound({
 		id: "dragon-only",
@@ -30,8 +30,8 @@ describe("combatStartOptions", () => {
 
 	test("offers only the build's effects that declare a starting situation", () => {
 		expect(
-			combatStartOptions([mark, plain, ready], undefined).map(({ id }) => id),
-		).toEqual(["mark", "ready"])
+			combatStartOptions([mark, plain, running], undefined).map(({ id }) => id),
+		).toEqual(["mark", "running"])
 	})
 
 	test("leaves out one bound to another form", () => {

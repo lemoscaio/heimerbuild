@@ -46,7 +46,7 @@ describe("addStep", () => {
 })
 
 describe("insertStep (issue 344)", () => {
-	const MARKER = { kind: "situation", effectId: "hail-of-blades" } as const
+	const MARKER = { kind: "situation", effectId: "quinn-harrier-valor" } as const
 
 	test("puts a marker at the start or between steps, with a new id", () => {
 		const steps = combo(ATTACK, Q, ATTACK)

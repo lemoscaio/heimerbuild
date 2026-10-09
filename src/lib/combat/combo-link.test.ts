@@ -5,16 +5,19 @@ import {
 	type OutcomeChoices,
 } from "./combat"
 import {
+	dropRetiredMarkers,
 	normalizeComboChoices,
 	readComboChoices,
 	readComboItems,
+	readComboStart,
 	serializeComboChoices,
 	serializeComboItems,
+	serializeComboStart,
 	TARGET_PARAM_PATTERN,
 } from "./combo-link"
 
 const EVERY_KIND: CombatItem[] = [
-	{ kind: "situation", effectId: "hail-of-blades" },
+	{ kind: "situation", effectId: "quinn-harrier-valor" },
 	{ kind: "attack" },
 	{ kind: "ability", slot: "Q", variant: "handle" },
 	{ kind: "ability", slot: "W" },
@@ -28,7 +31,7 @@ const EVERY_KIND: CombatItem[] = [
 describe("the combo value", () => {
 	test("writes each step and marker as a short token, in order", () => {
 		expect(serializeComboItems(EVERY_KIND)).toBe(
-			"m-hail-of-blades.aa.q-handle.w.d.f.t0_25.t1_5.t30",
+			"m-quinn-harrier-valor.aa.q-handle.w.d.f.t0_25.t1_5.t30",
 		)
 	})
 
@@ -124,5 +127,54 @@ describe("the target value", () => {
 		expect(TARGET_PARAM_PATTERN.test("1800-60")).toBe(false)
 		expect(TARGET_PARAM_PATTERN.test("1800.5-60-45")).toBe(false)
 		expect(TARGET_PARAM_PATTERN.test("Tank")).toBe(false)
+	})
+})
+
+describe("the start value (issue 317)", () => {
+	test("names each effect that starts on cooldown, and reads back what it writes", () => {
+		const ids = ["electrocute", "hail-of-blades"]
+
+		expect(serializeComboStart(ids)).toBe("-electrocute.-hail-of-blades")
+		expect(readComboStart(serializeComboStart(ids))).toEqual(ids)
+	})
+
+	test("every cooldown ready writes no value", () => {
+		expect(serializeComboStart([])).toBeUndefined()
+		expect(readComboStart(undefined)).toEqual([])
+	})
+
+	test("drops unreadable tokens and repeats", () => {
+		expect(
+			readComboStart("-electrocute.ready.-Electrocute.-electrocute"),
+		).toEqual(["electrocute"])
+	})
+})
+
+describe("dropRetiredMarkers (issue 317)", () => {
+	test("drops Hail of Blades' and Grasp's ready markers, and moves the answers after them", () => {
+		expect(
+			dropRetiredMarkers(
+				"m-hail-of-blades.aa.m-grasp-of-the-undying-proc.aa.m-quinn-harrier-valor",
+				"2e-hail-of-blades-n.4e-hail-of-blades-y",
+			),
+		).toEqual({
+			combo: "aa.aa.m-quinn-harrier-valor",
+			choices: "1e-hail-of-blades-n.2e-hail-of-blades-y",
+		})
+	})
+
+	test("leaves a combo without them as given, and an emptied one as no value", () => {
+		expect(dropRetiredMarkers("aa.q", "1e-x-y")).toEqual({
+			combo: "aa.q",
+			choices: "1e-x-y",
+		})
+		expect(dropRetiredMarkers("m-hail-of-blades", undefined)).toEqual({
+			combo: undefined,
+			choices: undefined,
+		})
+		expect(dropRetiredMarkers(undefined, "1e-x-y")).toEqual({
+			combo: undefined,
+			choices: "1e-x-y",
+		})
 	})
 })

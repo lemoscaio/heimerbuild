@@ -10,12 +10,14 @@ import { outcomeId, readOutcomeId } from "./outcomes"
 
 /**
  * The combo as the link carries it (docs, "Link format"): its steps and markers (`combo`), free
- * mode (`free`) and free mode's choices (`choices`). Absent values are the defaults.
+ * mode (`free`), free mode's choices (`choices`) and the cooldowns it starts on (`start`). Absent
+ * values are the defaults.
  */
 export type ComboLink = {
 	combo?: string
 	free?: boolean
 	choices?: string
+	start?: string
 }
 
 const ID = "[a-z0-9]+(?:-[a-z0-9]+)*"
@@ -29,6 +31,9 @@ const ABILITY_TOKEN = new RegExp(`^([qwer])(?:-(?:(${SECONDS})s|(${ID})))?$`)
 const WAIT_TOKEN = new RegExp(`^t(${SECONDS})$`)
 const MARKER_TOKEN = new RegExp(`^${MARKER_PREFIX}(${ID})$`)
 const CHOICE_TOKEN = new RegExp(`^(\\d{1,2})([eacd])-(${ID})-([yn])$`)
+const ON_COOLDOWN_TOKEN = new RegExp(`^-(${ID})$`)
+/** More ids than any build has effects with a cooldown; past it, the rest are dropped. */
+const MAX_START_TOKENS = 20
 
 const OUTCOME_CODES = {
 	empowered: "e",
@@ -92,7 +97,7 @@ function itemToken(item: CombatItem): string {
 	}
 }
 
-/** Reads `aa.q-handle.m-hail-of-blades.t1_5.d` into the combo's items; unreadable tokens are dropped, the rest capped at `MAX_COMBAT_STEPS`. */
+/** Reads `aa.q-handle.m-quinn-harrier-valor.t1_5.d` into the combo's items; unreadable tokens are dropped, the rest capped at `MAX_COMBAT_STEPS`. */
 export function readComboItems(value: string | undefined): CombatItem[] {
 	if (!value) return []
 	return value
@@ -167,4 +172,61 @@ export function normalizeComboChoices(value: string): string | undefined {
 	return serializeComboChoices(
 		Array.from({ length: last + 1 }, (_, index) => byItem[index]),
 	)
+}
+
+/** Reads `-electrocute.-hail-of-blades` into the effect ids that start on cooldown; unreadable tokens are dropped. */
+export function readComboStart(value: string | undefined): string[] {
+	const ids = (value?.split(SEPARATOR) ?? []).flatMap((token) => {
+		const id = ON_COOLDOWN_TOKEN.exec(token)?.[1]
+		return id ? [id] : []
+	})
+	return [...new Set(ids)].slice(0, MAX_START_TOKENS)
+}
+
+/** The `start` value from the ids that start on cooldown; `undefined` when every cooldown starts ready. */
+export function serializeComboStart(
+	ids: readonly string[],
+): string | undefined {
+	return ids.length ? ids.map((id) => `-${id}`).join(SEPARATOR) : undefined
+}
+
+/** Markers whose situation became the combo's start (issue 317): Hail of Blades and Grasp ready. */
+const RETIRED_MARKERS: ReadonlySet<string> = new Set(
+	["hail-of-blades", "grasp-of-the-undying-proc"].map(
+		(id) => `${MARKER_PREFIX}${id}`,
+	),
+)
+
+/**
+ * An older link's combo without its retired markers, its choices moved to the positions left
+ * (`m-hail-of-blades.aa` with `2e-…` becomes `aa` with `1e-…`). Other values pass as given.
+ */
+export function dropRetiredMarkers(
+	combo: unknown,
+	choices: unknown,
+): { combo: unknown; choices: unknown } {
+	if (typeof combo !== "string") return { combo, choices }
+	const tokens = combo.split(SEPARATOR)
+	const kept = tokens.flatMap((token, index) =>
+		RETIRED_MARKERS.has(token) ? [] : [{ token, position: index + 1 }],
+	)
+	if (kept.length === tokens.length) return { combo, choices }
+	const moved = new Map(
+		kept.map(({ position }, index) => [position, index + 1]),
+	)
+	const nextChoices =
+		typeof choices === "string"
+			? choices
+					.split(SEPARATOR)
+					.flatMap((token) => {
+						const [, position = "", rest = ""] = /^(\d+)(.*)$/.exec(token) ?? []
+						const to = moved.get(Number(position))
+						return to === undefined ? [] : [`${to}${rest}`]
+					})
+					.join(SEPARATOR) || undefined
+			: choices
+	return {
+		combo: kept.map(({ token }) => token).join(SEPARATOR) || undefined,
+		choices: nextChoices,
+	}
 }

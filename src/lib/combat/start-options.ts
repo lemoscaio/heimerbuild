@@ -3,7 +3,7 @@ import { isInForm } from "../effects/evaluate"
 
 /**
  * The situations the build supports: its effects that declare a `start` (Harrier's mark, Short Fuse
- * ready, Hail of Blades ready) and hold in the champion's form. A combo marker names one by its id.
+ * ready) and hold in the champion's form. A combo marker names one by its id.
  */
 export function combatStartOptions(
 	effects: readonly BuildEffect[],

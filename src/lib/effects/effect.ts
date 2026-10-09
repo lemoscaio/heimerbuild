@@ -449,13 +449,10 @@ export type EffectPause = {
 
 /**
  * A situation a combo marker can set, which the effect supports (combat simulator): its mark on
- * the target (`marked`: Harrier), the effect running (`running`: Short Fuse ready), or its cooldown
- * over so its trigger fires next (`ready`: Hail of Blades ready).
+ * the target (`marked`: Harrier), or the effect running (`running`: Short Fuse ready). Cooldowns
+ * are the combo's start, not a situation (issue 317).
  */
-export type StartOption =
-	| { kind: "marked" }
-	| { kind: "running" }
-	| { kind: "ready" }
+export type StartOption = { kind: "marked" } | { kind: "running" }
 
 /**
  * When its cooldown starts: when it triggers (absent), when its `endsOn` ends it, when its mark

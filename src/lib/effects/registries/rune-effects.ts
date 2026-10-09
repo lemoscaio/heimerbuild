@@ -119,7 +119,6 @@ export const RUNE_EFFECTS: readonly Effect[] = [
 		duration: 3,
 		cooldown: 10,
 		cooldownFrom: "end",
-		start: { kind: "ready" },
 		grants: [
 			{
 				kind: "stat",
@@ -359,7 +358,6 @@ export const RUNE_EFFECTS: readonly Effect[] = [
 		source: { kind: "rune", runeKey: "GraspOfTheUndying" },
 		trigger: { kind: "on-hit", attacksOnly: true },
 		cooldown: 4,
-		start: { kind: "ready" },
 		grants: [
 			{
 				kind: "damage",

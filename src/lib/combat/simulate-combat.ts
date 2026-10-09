@@ -90,6 +90,7 @@ import {
 	findHitRule,
 	type LaterHits,
 } from "./registries/ability-hits"
+import { hasStartCooldown } from "./start-cooldowns"
 
 /** The build as the stats engine reads it, with the whole champion (its abilities and their damage). */
 export type CombatBuild = Omit<BuildStatsInput, "champion" | "effects"> & {
@@ -105,6 +106,8 @@ export type CombatInput = {
 	target: CombatTarget
 	/** The actions and situation markers, in order (a marker's effect declares a `start`). */
 	actions: readonly CombatItem[]
+	/** The effects with a start cooldown (`hasStartCooldown`) that start on it; the others start ready. */
+	startOnCooldown?: readonly string[]
 	/**
 	 * Free mode: cooldowns don't refuse an action, and `outcomes` (by item, `outcomeId`) set what
 	 * happens; an outcome without a choice follows the rules.
@@ -249,8 +252,8 @@ type LaterHit = {
 type PendingMarks = PendingMark[]
 
 /**
- * A periodic or situational effect (Valor, Hail of Blades) starts the combo on its cooldown, as if
- * just used, unless a marker before the first action sets its situation.
+ * A periodic effect (Valor) starts the combo on its cooldown, as if just used, unless a marker before
+ * the first action sets its situation. Any other cooldown starts ready unless `startOnCooldown` names it.
  */
 function startCooldowns(sim: Simulation) {
 	const firstAction = sim.input.actions.findIndex(
@@ -261,10 +264,14 @@ function startCooldowns(sim: Simulation) {
 			.slice(0, firstAction === -1 ? undefined : firstAction)
 			.flatMap((item) => (item.kind === "situation" ? [item.effectId] : [])),
 	)
+	const onCooldown = new Set(sim.input.startOnCooldown)
 	for (const effect of sim.input.effects) {
-		const { trigger, start } = effect.effect
-		if (!isInForm(effect, sim.formId) || leading.has(effect.id)) continue
-		if (trigger.kind === "periodic" || start) {
+		if (!isInForm(effect, sim.formId)) continue
+		const periodic = effect.effect.trigger.kind === "periodic"
+		const starts = periodic
+			? !leading.has(effect.id)
+			: hasStartCooldown(effect.effect) && onCooldown.has(effect.id)
+		if (starts) {
 			startCooldown(sim, effect)
 			sim.assumedCooldowns.add(effect.id)
 		}
@@ -344,10 +351,6 @@ function applySituation(sim: Simulation, effectId: string): SituationStatus {
 				),
 				fromSituation: true,
 			})
-			break
-		case "ready":
-			sim.effectsReadyAt.delete(effect.id)
-			sim.assumedCooldowns.delete(effect.id)
 			break
 	}
 	if (blocked) return { status: "forced", readyAt }

@@ -73,6 +73,7 @@ const v1Links: LinkFixture[] = [
 		},
 	},
 	{
+		// Issue 317, no bump: Hail of Blades ready is the combo's start, so its marker drops and the answer moves up.
 		name: "a combo with a marker, a variant, a wait, free mode's answer and a target, on the Combo tab",
 		link: "?lvl=9&patch=16.19.1&tab=combo&runes=8100-9923-0-0-0_0-0-0_0-0-0&skills=QWEQQRQEQ&combo=m-hail-of-blades.aa.aa.q-handle.t1_5&free=1&choices=2e-hail-of-blades-n&target=2500-60-45",
 		build: {
@@ -82,9 +83,9 @@ const v1Links: LinkFixture[] = [
 			tab: "combo",
 			runes: "8100-9923-0-0-0_0-0-0_0-0-0",
 			skills: "QWEQQRQEQ",
-			combo: "m-hail-of-blades.aa.aa.q-handle.t1_5",
+			combo: "aa.aa.q-handle.t1_5",
 			free: 1,
-			choices: "2e-hail-of-blades-n",
+			choices: "1e-hail-of-blades-n",
 			target: "2500-60-45",
 		},
 	},

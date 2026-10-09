@@ -80,7 +80,11 @@ function buildOf(setup: Setup): CombatBuild {
 	}
 }
 
-function simulate(setup: Setup, actions: readonly CombatItem[]) {
+function simulate(
+	setup: Setup,
+	actions: readonly CombatItem[],
+	{ startOnCooldown }: Pick<CombatInput, "startOnCooldown"> = {},
+) {
 	const input: CombatInput = {
 		build: buildOf(setup),
 		effects: combatEffects({
@@ -94,6 +98,7 @@ function simulate(setup: Setup, actions: readonly CombatItem[]) {
 		summoners: [],
 		target: setup.target ?? TARGET,
 		actions,
+		startOnCooldown,
 	}
 	return simulateCombat(input)
 }
@@ -165,6 +170,15 @@ describe("Electrocute", async () => {
 		expect(hit?.type).toBe("magic")
 		expect(hit?.final).toBeCloseTo(magic(strike(9, ap)))
 		expect(hit?.time).toBeCloseTo((third?.time ?? Number.NaN) + 0.25)
+	})
+
+	test("started on its cooldown (issue 317), it gains no stacks and doesn't strike", () => {
+		const result = simulate(annie, [cast("Q"), cast("W"), attack], {
+			startOnCooldown: ["electrocute"],
+		})
+
+		expect(effectHits(result, "electrocute")).toHaveLength(0)
+		expect(stacksOf(result, "electrocute-stacks")).toEqual([0, 0, 0])
 	})
 
 	test("two hits don't strike; attacks count as hits too", () => {
@@ -646,8 +660,21 @@ describe("Grasp of the Undying", async () => {
 	const health = computeBuildStats(buildOf(garen)).health.total
 	const five = [attack, attack, attack, attack, attack]
 
-	test("after 4 s in combat the next attack deals 3.5% of maximum health as magic damage", () => {
-		const result = simulate(garen, five)
+	test("ready at the start: the first attack deals 3.5% of maximum health as magic damage, then every 4 s", () => {
+		const procs = effectHits(simulate(garen, five), "grasp-of-the-undying-proc")
+
+		expect(procs[0]).toMatchObject({ step: 0, type: "magic" })
+		expect(procs[0]?.final).toBeCloseTo(magic(0.035 * health))
+		expect(procs).toHaveLength(2)
+		expect(
+			(procs[1]?.time ?? 0) - (procs[0]?.time ?? 0),
+		).toBeGreaterThanOrEqual(4)
+	})
+
+	test("started on its cooldown: after 4 s in combat the next attack deals it", () => {
+		const result = simulate(garen, five, {
+			startOnCooldown: ["grasp-of-the-undying-proc"],
+		})
 		const [hit, ...more] = effectHits(result, "grasp-of-the-undying-proc")
 		const firstAfter4 = result.steps.findIndex(({ time }) => time >= 4 - 0.3)
 
@@ -658,20 +685,6 @@ describe("Grasp of the Undying", async () => {
 		expect(hit?.step).toBe(firstAfter4)
 	})
 
-	test("a marker makes it ready for the first attack; then every 4 s", () => {
-		const result = simulate(garen, [
-			{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
-			...five,
-		])
-		const procs = effectHits(result, "grasp-of-the-undying-proc")
-
-		expect(procs[0]?.step).toBe(1)
-		expect(procs).toHaveLength(2)
-		expect(
-			(procs[1]?.time ?? 0) - (procs[0]?.time ?? 0),
-		).toBeGreaterThanOrEqual(4)
-	})
-
 	test("a ranged champion's deals 1.4%", async () => {
 		const quinn: Setup = {
 			champion: await champion("Quinn"),
@@ -679,10 +692,7 @@ describe("Grasp of the Undying", async () => {
 			ranks: { Q: 0, W: 0, E: 0, R: 0 },
 			runes: [rune("GraspOfTheUndying")],
 		}
-		const result = simulate(quinn, [
-			{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
-			attack,
-		])
+		const result = simulate(quinn, [attack])
 		const quinnHealth = computeBuildStats(buildOf(quinn)).health.total
 
 		expect(

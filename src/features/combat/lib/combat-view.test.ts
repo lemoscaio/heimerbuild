@@ -373,7 +373,7 @@ describe("combatTotals", () => {
 	test("caps the share at the whole target, and counts the kill's step among the actions", () => {
 		const marker: CombatStep = {
 			...STEP,
-			action: { kind: "situation", effectId: "hail-of-blades" },
+			action: { kind: "situation", effectId: "quinn-harrier-valor" },
 			situation: { status: "forced", readyAt: 10 },
 		}
 
@@ -557,9 +557,13 @@ describe("outcomeChoice", () => {
 })
 
 describe("markerView", () => {
-	const options = { label: "Hail of Blades ready", atStart: false, free: false }
+	const options = {
+		label: "Target marked by Harrier",
+		atStart: false,
+		free: false,
+	}
 
-	test("says where it applies, or that the rune came back", () => {
+	test("says where it applies", () => {
 		expect(
 			markerView(
 				{ situation: { status: "applied" } },
@@ -570,18 +574,16 @@ describe("markerView", () => {
 			).detail,
 		).toBe("at the start")
 		expect(
-			markerView(
-				{ situation: { status: "applied", readyAt: 10.4 } },
-				{ ...options, kind: "ready" },
-			).detail,
-		).toBe("ready again here (since 10.40 s)")
+			markerView({ situation: { status: "applied", readyAt: 10.4 } }, options)
+				.detail,
+		).toBe("from here")
 	})
 
 	test("a marker on cooldown is ignored in strict mode and forced in free mode, and a useless one has no effect", () => {
 		expect(
 			markerView({ situation: { status: "ignored", readyAt: 7.6 } }, options),
 		).toEqual({
-			label: "Hail of Blades ready",
+			label: "Target marked by Harrier",
 			detail: "on cooldown until 7.60 s · ignored (use Free mode to force it)",
 			tone: "ignored",
 		})
@@ -591,7 +593,7 @@ describe("markerView", () => {
 				{ ...options, free: true },
 			),
 		).toEqual({
-			label: "Hail of Blades ready",
+			label: "Target marked by Harrier",
 			detail: "on cooldown until 10.40 s · forced",
 			tone: "forced",
 		})

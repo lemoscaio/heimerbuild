@@ -219,9 +219,9 @@ describe("recent builds", () => {
 	test("keep the combo, its free mode and choices, and its target", () => {
 		const storage = memoryStorage()
 		const combo = {
-			combo: "m-hail-of-blades.aa.q-handle.t1_5",
+			combo: "aa.q-handle.t1_5",
 			free: true,
-			choices: "2e-hail-of-blades-n",
+			choices: "1e-hail-of-blades-n",
 			target: "tank",
 		}
 		recordRecentBuild({ ...build("Darius"), ...combo }, { storage })

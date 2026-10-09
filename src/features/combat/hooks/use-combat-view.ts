@@ -174,7 +174,6 @@ export function useCombatView({
 					label: effect ? situationLabel(effect) : action.effectId,
 					atStart: firstAction === -1 || index < firstAction,
 					free,
-					...(effect?.effect.start && { kind: effect.effect.start.kind }),
 				}),
 			}
 		}

@@ -48,14 +48,23 @@ function sharedStacks(stacks: MatchStacks | undefined) {
 /**
  * The build's values on another champion: items, runes, summoner spells, level, current health and
  * the game time stay; the form, skill points, ability effect choices, the champion's match stacks
- * and the combo (its free mode, choices and target included) go. `resets` lists only what the build had.
+ * and the combo (its free mode, choices, start cooldowns and target included) go. `resets` lists only what the build had.
  */
 export function switchChampionValues(values: BuildValues): {
 	values: BuildValues
 	summary: ChampionSwitchSummary
 } {
-	const { form, skills, effects, combo, free, choices, target, ...kept } =
-		values
+	const {
+		form,
+		skills,
+		effects,
+		combo,
+		free,
+		choices,
+		start,
+		target,
+		...kept
+	} = values
 	const keptEffects = sharedEffects(effects)
 	const keptStacks = sharedStacks(kept.matchStacks)
 	const resets: ChampionSwitchReset[] = []
@@ -68,7 +77,7 @@ export function switchChampionValues(values: BuildValues): {
 		Object.keys(keptStacks ?? {}).length
 	)
 		resets.push("stacks")
-	if (combo || free || choices || target) resets.push("combo")
+	if (combo || free || choices || start || target) resets.push("combo")
 
 	const keptParts: ChampionSwitchKept[] = []
 	if (kept.itemIds.length) keptParts.push("items")

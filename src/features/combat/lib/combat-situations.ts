@@ -10,10 +10,9 @@ export type CombatSituation = {
 const SITUATION_LABELS = {
 	marked: (name) => `Target marked by ${name}`,
 	running: (name) => `${name} ready`,
-	ready: (name) => `${name} ready`,
 } as const satisfies Record<StartOption["kind"], (name: string) => string>
 
-/** "Target marked by Harrier", "Short Fuse ready", "Hail of Blades ready". */
+/** "Target marked by Harrier", "Short Fuse ready". */
 export function situationLabel({ name, effect }: BuildEffect): string {
 	return effect.start ? SITUATION_LABELS[effect.start.kind](name) : name
 }

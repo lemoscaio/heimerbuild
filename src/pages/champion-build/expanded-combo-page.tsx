@@ -10,6 +10,7 @@ import { CombatNotes } from "@/features/combat/components/combat-notes"
 import { CombatRowOrderSwitch } from "@/features/combat/components/combat-row-order-switch"
 import { CombatRowsToolbar } from "@/features/combat/components/combat-rows-toolbar"
 import { CombatSituationChips } from "@/features/combat/components/combat-situation-chips"
+import { CombatStartStrip } from "@/features/combat/components/combat-start-strip"
 import type { CombatListMode } from "@/features/combat/components/combat-step-outcomes"
 import { CombatStepRows } from "@/features/combat/components/combat-step-rows"
 import { CombatTimeline } from "@/features/combat/components/combat-timeline"
@@ -174,6 +175,11 @@ export function ExpandedComboPage({
 			}
 			shop={
 				<div className="@container flex min-h-0 flex-1 flex-col text-white">
+					<CombatStartStrip
+						chips={combat.startChips}
+						onReadyChange={combat.setStartReady}
+						className="border-line border-b px-4 py-2.5"
+					/>
 					<CombatRowsToolbar count={stepCount}>
 						<CombatViewSwitch value={viewMode} onValueChange={setViewMode} />
 						{viewMode === "list" && (

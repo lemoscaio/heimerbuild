@@ -6,8 +6,11 @@ import {
 	type CombatState,
 	changedChoices,
 	choicesByItem,
+	dropUnusedOnCooldown,
+	EMPTY_COMBAT,
 	removeEntry,
 	setFreeChoice,
+	setStartReady,
 } from "./combat-state"
 
 function bound(fields: Partial<Effect> & Pick<Effect, "id">): BuildEffect {
@@ -26,7 +29,8 @@ function bound(fields: Partial<Effect> & Pick<Effect, "id">): BuildEffect {
 	}
 }
 
-const HAIL = bound({ id: "hail", start: { kind: "ready" } })
+// An attack-empowering effect a marker runs (Short Fuse ready, by its outcome).
+const HAIL = bound({ id: "hail", start: { kind: "running" } })
 const HARRIER = bound({
 	id: "valor",
 	trigger: { kind: "periodic" },
@@ -90,6 +94,7 @@ describe("removeEntry", () => {
 			3: { "empowered:hail": false },
 			5: { "empowered:hail": false },
 		},
+		onCooldown: [],
 	}
 
 	test("a marker's choices go back to computed up to the next marker of its effect; others stay", () => {
@@ -108,5 +113,57 @@ describe("removeEntry", () => {
 			2: state.choices[2],
 			5: state.choices[5],
 		})
+	})
+})
+
+describe("setStartReady", () => {
+	test("× starts the effect on its cooldown, + brings it back ready; the steps stay", () => {
+		const removed = setStartReady(EMPTY_COMBAT, "electrocute", false)
+
+		expect(removed.onCooldown).toEqual(["electrocute"])
+		expect(setStartReady(removed, "electrocute", true)).toEqual(EMPTY_COMBAT)
+	})
+
+	test("names an effect once however often it is removed", () => {
+		const twice = setStartReady(
+			setStartReady(EMPTY_COMBAT, "electrocute", false),
+			"electrocute",
+			false,
+		)
+
+		expect(twice.onCooldown).toEqual(["electrocute"])
+	})
+})
+
+describe("dropUnusedOnCooldown", () => {
+	const sheen: BuildEffect = {
+		id: "sheen-spellblade",
+		name: "Sheen",
+		icon: "sheen.png",
+		effect: {
+			id: "sheen-spellblade",
+			source: { kind: "item", itemId: "3057" },
+			trigger: { kind: "after-ability" },
+			cooldown: 1.5,
+			grants: [],
+			since: "16.19",
+			sourceUrl: "https://wiki.leagueoflegends.com/en-us/",
+		},
+	}
+	const state = {
+		...EMPTY_COMBAT,
+		onCooldown: ["sheen-spellblade", "electrocute"],
+	}
+
+	test("drops the cooldowns of effects the build no longer has", () => {
+		expect(dropUnusedOnCooldown(state, [sheen]).onCooldown).toEqual([
+			"sheen-spellblade",
+		])
+	})
+
+	test("keeps them as given while the effects load, and the same state when nothing goes", () => {
+		expect(dropUnusedOnCooldown(state, undefined)).toBe(state)
+		const kept = { ...EMPTY_COMBAT, onCooldown: ["sheen-spellblade"] }
+		expect(dropUnusedOnCooldown(kept, [sheen])).toBe(kept)
 	})
 })

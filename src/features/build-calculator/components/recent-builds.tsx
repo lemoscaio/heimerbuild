@@ -83,6 +83,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				combo: build.combo,
 				free: build.free,
 				choices: build.choices,
+				start: build.start,
 				target: build.target,
 			})}
 			className="flex items-center gap-2.5 rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 transition-colors hover:bg-line"

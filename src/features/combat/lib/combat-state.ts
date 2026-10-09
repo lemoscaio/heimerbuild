@@ -1,5 +1,6 @@
 import type { OutcomeChoices } from "@/lib/combat/combat"
 import { outcomeId } from "@/lib/combat/outcomes"
+import { hasStartCooldown } from "@/lib/combat/start-cooldowns"
 import type { BuildEffect } from "@/lib/effects/effect"
 import { type CombatEntry, removeStep } from "./combat-sequence"
 
@@ -7,19 +8,51 @@ import { type CombatEntry, removeStep } from "./combat-sequence"
 export type FreeChoices = Readonly<Record<number, OutcomeChoices>>
 
 /**
- * The combo the user builds: its entries (actions and markers), whether free mode is on, and the
- * free mode choices, kept while it is off so toggling back and forth loses nothing.
+ * The combo the user builds: its entries (actions and markers), whether free mode is on, the
+ * free mode choices, kept while it is off so toggling back and forth loses nothing, and the
+ * effects whose cooldown it starts on (every other one starts ready).
  */
 export type CombatState = {
 	entries: readonly CombatEntry[]
 	free: boolean
 	choices: FreeChoices
+	onCooldown: readonly string[]
 }
 
 export const EMPTY_COMBAT: CombatState = {
 	entries: [],
 	free: false,
 	choices: {},
+	onCooldown: [],
+}
+
+/**
+ * The combo without the start cooldowns of effects the build no longer has (Sheen sold); as given
+ * while the effects load. Every combo edit saves through it, so its link matches what it keeps.
+ */
+export function dropUnusedOnCooldown(
+	state: CombatState,
+	effects: readonly BuildEffect[] | undefined,
+): CombatState {
+	if (!effects) return state
+	const kept = state.onCooldown.filter((id) =>
+		effects.some(
+			(effect) => effect.id === id && hasStartCooldown(effect.effect),
+		),
+	)
+	return kept.length === state.onCooldown.length
+		? state
+		: { ...state, onCooldown: kept }
+}
+
+/** The combo with the effect starting on its cooldown (`onCooldown`), or ready. */
+export function setStartReady(
+	state: CombatState,
+	effectId: string,
+	ready: boolean,
+): CombatState {
+	const others = state.onCooldown.filter((id) => id !== effectId)
+	return { ...state, onCooldown: ready ? others : [...others, effectId] }
 }
 
 /** The choices with one outcome set at an entry, or back to the computed one (`undefined`). */

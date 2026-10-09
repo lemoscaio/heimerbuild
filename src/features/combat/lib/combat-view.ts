@@ -16,7 +16,7 @@ import type {
 	StepOutcome,
 } from "@/lib/combat/combat"
 import { outcomeId } from "@/lib/combat/outcomes"
-import type { BuildEffect, Resist, StartOption } from "@/lib/effects/effect"
+import type { BuildEffect, Resist } from "@/lib/effects/effect"
 import { statDisplay } from "@/lib/stat-display"
 import { formatResist, formatSeconds } from "./combat-format"
 
@@ -592,13 +592,11 @@ type MarkerViewOptions = {
 	atStart: boolean
 	/** Free mode: a marker only applies its result. */
 	free: boolean
-	/** Its situation's kind: a "ready" one says when its effect came back. */
-	kind?: StartOption["kind"]
 }
 
 export function markerView(
 	step: Pick<CombatStep, "situation">,
-	{ label, atStart, free, kind }: MarkerViewOptions,
+	{ label, atStart, free }: MarkerViewOptions,
 ): MarkerView {
 	const where = atStart ? "at the start" : "from here"
 	const { situation } = step
@@ -624,13 +622,5 @@ export function markerView(
 		}
 	}
 	if (free) return { label, detail: `applies: ${where}`, tone: "applied" }
-	const readyAt = situation?.readyAt
-	return {
-		label,
-		detail:
-			readyAt === undefined || atStart || kind !== "ready"
-				? where
-				: `ready again here (since ${formatSeconds(readyAt)})`,
-		tone: "applied",
-	}
+	return { label, detail: where, tone: "applied" }
 }

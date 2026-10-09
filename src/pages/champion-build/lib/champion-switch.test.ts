@@ -15,6 +15,7 @@ const FULL_BUILD: BuildValues = {
 	combo: "aa.q",
 	free: true,
 	choices: "1e-hail-of-blades-n",
+	start: "-electrocute",
 	target: "tank",
 }
 
@@ -32,7 +33,7 @@ describe("switchChampionValues", () => {
 		})
 	})
 
-	test("drops the form, skill points and the combo with its free mode, choices and target", () => {
+	test("drops the form, skill points and the combo with its free mode, choices, start and target", () => {
 		const { values } = switchChampionValues(FULL_BUILD)
 
 		expect(values.form).toBeUndefined()
@@ -40,6 +41,7 @@ describe("switchChampionValues", () => {
 		expect(values.combo).toBeUndefined()
 		expect(values.free).toBeUndefined()
 		expect(values.choices).toBeUndefined()
+		expect(values.start).toBeUndefined()
 		expect(values.target).toBeUndefined()
 	})
 
@@ -99,6 +101,10 @@ describe("switchChampionValues", () => {
 		expect(
 			switchChampionValues({ level: 1, itemIds: [], free: true }).summary
 				.resets,
+		).toEqual(["combo"])
+		expect(
+			switchChampionValues({ level: 1, itemIds: [], start: "-electrocute" })
+				.summary.resets,
 		).toEqual(["combo"])
 	})
 })
