@@ -190,9 +190,13 @@ export function useChampionBuild({
 		)
 	}
 
+	// The combo's own edit carries its start cooldowns too, so they are checked like `values`.
 	function saveCombo(change: ComboLink) {
 		const emptied = !!state.combo && !change.combo
-		save(change, emptied ? EDIT_HISTORY.comboEmptied : EDIT_HISTORY.combo)
+		save(
+			{ ...change, start: dropUnusedComboStart(change.start, fightEffects) },
+			emptied ? EDIT_HISTORY.comboEmptied : EDIT_HISTORY.combo,
+		)
 	}
 
 	// Level → skills: a new level also saves the points it keeps, or brings back the ones it kept.
