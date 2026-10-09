@@ -6,6 +6,7 @@ import {
 	type CombatState,
 	changedChoices,
 	choicesByItem,
+	dropUnusedOnCooldown,
 	EMPTY_COMBAT,
 	removeEntry,
 	setFreeChoice,
@@ -130,5 +131,38 @@ describe("setStartReady", () => {
 		)
 
 		expect(twice.onCooldown).toEqual(["electrocute"])
+	})
+})
+
+describe("dropUnusedOnCooldown", () => {
+	const sheen: BuildEffect = {
+		id: "sheen-spellblade",
+		name: "Sheen",
+		icon: "sheen.png",
+		effect: {
+			id: "sheen-spellblade",
+			source: { kind: "item", itemId: "3057" },
+			trigger: { kind: "after-ability" },
+			cooldown: 1.5,
+			grants: [],
+			since: "16.19",
+			sourceUrl: "https://wiki.leagueoflegends.com/en-us/",
+		},
+	}
+	const state = {
+		...EMPTY_COMBAT,
+		onCooldown: ["sheen-spellblade", "electrocute"],
+	}
+
+	test("drops the cooldowns of effects the build no longer has", () => {
+		expect(dropUnusedOnCooldown(state, [sheen]).onCooldown).toEqual([
+			"sheen-spellblade",
+		])
+	})
+
+	test("keeps them as given while the effects load, and the same state when nothing goes", () => {
+		expect(dropUnusedOnCooldown(state, undefined)).toBe(state)
+		const kept = { ...EMPTY_COMBAT, onCooldown: ["sheen-spellblade"] }
+		expect(dropUnusedOnCooldown(kept, [sheen])).toBe(kept)
 	})
 })

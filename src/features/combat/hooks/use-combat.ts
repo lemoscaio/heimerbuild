@@ -33,6 +33,7 @@ import {
 	type CombatState,
 	changedChoices,
 	choicesByItem,
+	dropUnusedOnCooldown,
 	EMPTY_COMBAT,
 	removeEntry,
 	setFreeChoice,
@@ -91,8 +92,9 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 	const effects = input?.effects ?? []
 
 	function save(next: CombatState) {
-		onChange(next)
-		return next
+		const kept = dropUnusedOnCooldown(next, input?.effects)
+		onChange(kept)
+		return kept
 	}
 	const saveEntries = (next: CombatState["entries"]) =>
 		save({ ...value, entries: next })

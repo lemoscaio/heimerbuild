@@ -1,5 +1,6 @@
 import type { OutcomeChoices } from "@/lib/combat/combat"
 import { outcomeId } from "@/lib/combat/outcomes"
+import { hasStartCooldown } from "@/lib/combat/start-cooldowns"
 import type { BuildEffect } from "@/lib/effects/effect"
 import { type CombatEntry, removeStep } from "./combat-sequence"
 
@@ -23,6 +24,25 @@ export const EMPTY_COMBAT: CombatState = {
 	free: false,
 	choices: {},
 	onCooldown: [],
+}
+
+/**
+ * The combo without the start cooldowns of effects the build no longer has (Sheen sold); as given
+ * while the effects load. Every combo edit saves through it, so its link matches what it keeps.
+ */
+export function dropUnusedOnCooldown(
+	state: CombatState,
+	effects: readonly BuildEffect[] | undefined,
+): CombatState {
+	if (!effects) return state
+	const kept = state.onCooldown.filter((id) =>
+		effects.some(
+			(effect) => effect.id === id && hasStartCooldown(effect.effect),
+		),
+	)
+	return kept.length === state.onCooldown.length
+		? state
+		: { ...state, onCooldown: kept }
 }
 
 /** The combo with the effect starting on its cooldown (`onCooldown`), or ready. */
