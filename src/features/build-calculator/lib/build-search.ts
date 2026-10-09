@@ -2,6 +2,7 @@ import { FORM_ID_PATTERN } from "@schemas/champion"
 import * as z from "zod/mini"
 import {
 	type ComboLink,
+	dropRetiredMarkers,
 	normalizeComboChoices,
 	readComboItems,
 	readComboStart,
@@ -156,9 +157,11 @@ export type BuildSearch = z.infer<typeof buildSearchSchema>
 
 /** Reads a build link of any version: migrates it to the latest format, then checks it. */
 export function readBuildSearch(search: RawBuildSearch): BuildSearch {
-	return buildSearchSchema.parse(
-		migrateBuildLink(search, BUILD_LINK_MIGRATIONS),
-	)
+	const migrated = migrateBuildLink(search, BUILD_LINK_MIGRATIONS)
+	return buildSearchSchema.parse({
+		...migrated,
+		...dropRetiredMarkers(migrated.combo, migrated.choices),
+	})
 }
 
 export type BuildView = "overview" | "shop" | "combo"

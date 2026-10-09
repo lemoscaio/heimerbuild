@@ -97,7 +97,7 @@ function itemToken(item: CombatItem): string {
 	}
 }
 
-/** Reads `aa.q-handle.m-hail-of-blades.t1_5.d` into the combo's items; unreadable tokens are dropped, the rest capped at `MAX_COMBAT_STEPS`. */
+/** Reads `aa.q-handle.m-quinn-harrier-valor.t1_5.d` into the combo's items; unreadable tokens are dropped, the rest capped at `MAX_COMBAT_STEPS`. */
 export function readComboItems(value: string | undefined): CombatItem[] {
 	if (!value) return []
 	return value
@@ -188,4 +188,45 @@ export function serializeComboStart(
 	ids: readonly string[],
 ): string | undefined {
 	return ids.length ? ids.map((id) => `-${id}`).join(SEPARATOR) : undefined
+}
+
+/** Markers whose situation became the combo's start (issue 317): Hail of Blades and Grasp ready. */
+const RETIRED_MARKERS: ReadonlySet<string> = new Set(
+	["hail-of-blades", "grasp-of-the-undying-proc"].map(
+		(id) => `${MARKER_PREFIX}${id}`,
+	),
+)
+
+/**
+ * An older link's combo without its retired markers, its choices moved to the positions left
+ * (`m-hail-of-blades.aa` with `2e-…` becomes `aa` with `1e-…`). Other values pass as given.
+ */
+export function dropRetiredMarkers(
+	combo: unknown,
+	choices: unknown,
+): { combo: unknown; choices: unknown } {
+	if (typeof combo !== "string") return { combo, choices }
+	const tokens = combo.split(SEPARATOR)
+	const kept = tokens.flatMap((token, index) =>
+		RETIRED_MARKERS.has(token) ? [] : [{ token, position: index + 1 }],
+	)
+	if (kept.length === tokens.length) return { combo, choices }
+	const moved = new Map(
+		kept.map(({ position }, index) => [position, index + 1]),
+	)
+	const nextChoices =
+		typeof choices === "string"
+			? choices
+					.split(SEPARATOR)
+					.flatMap((token) => {
+						const [, position = "", rest = ""] = /^(\d+)(.*)$/.exec(token) ?? []
+						const to = moved.get(Number(position))
+						return to === undefined ? [] : [`${to}${rest}`]
+					})
+					.join(SEPARATOR) || undefined
+			: choices
+	return {
+		combo: kept.map(({ token }) => token).join(SEPARATOR) || undefined,
+		choices: nextChoices,
+	}
 }

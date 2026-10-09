@@ -128,8 +128,8 @@ describe("buildSearchSchema", () => {
 	})
 
 	test("keeps the combo's readable tokens and drops the others", () => {
-		expect(parse({ combo: "aa.zz.q-handle.m-hail-of-blades" }).combo).toBe(
-			"aa.q-handle.m-hail-of-blades",
+		expect(parse({ combo: "aa.zz.q-handle.m-quinn-harrier-valor" }).combo).toBe(
+			"aa.q-handle.m-quinn-harrier-valor",
 		)
 		expect(parse({ combo: "zz.yy" }).combo).toBeUndefined()
 		expect(parse({ combo: 12 }).combo).toBeUndefined()
@@ -173,6 +173,16 @@ describe("buildSearchSchema", () => {
 })
 
 describe("readBuildSearch", () => {
+	test("drops an older link's Hail of Blades ready marker, which the combo's start replaced (issue 317)", () => {
+		const read = readBuildSearch({
+			combo: "m-hail-of-blades.aa.aa",
+			choices: "2e-hail-of-blades-n",
+		})
+
+		expect(read.combo).toBe("aa.aa")
+		expect(read.choices).toBe("1e-hail-of-blades-n")
+	})
+
 	test("reads a link without a version and marks it with the current one", () => {
 		expect(readBuildSearch({ lvl: 9, items: "3089,3020" })).toEqual({
 			v: BUILD_LINK_VERSION,
@@ -269,7 +279,7 @@ describe("toBuildSearch", () => {
 			tab: "runes",
 			form: "mega",
 			summoners: ",4",
-			combo: "m-hail-of-blades.aa.q-handle.t1_5",
+			combo: "m-quinn-harrier-valor.aa.q-handle.t1_5",
 			free: true,
 			choices: "2e-hail-of-blades-n",
 			target: "1800-60-45",

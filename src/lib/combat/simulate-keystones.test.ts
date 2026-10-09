@@ -685,20 +685,6 @@ describe("Grasp of the Undying", async () => {
 		expect(hit?.step).toBe(firstAfter4)
 	})
 
-	test("a marker makes it ready for the first attack; then every 4 s", () => {
-		const result = simulate(garen, [
-			{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
-			...five,
-		])
-		const procs = effectHits(result, "grasp-of-the-undying-proc")
-
-		expect(procs[0]?.step).toBe(1)
-		expect(procs).toHaveLength(2)
-		expect(
-			(procs[1]?.time ?? 0) - (procs[0]?.time ?? 0),
-		).toBeGreaterThanOrEqual(4)
-	})
-
 	test("a ranged champion's deals 1.4%", async () => {
 		const quinn: Setup = {
 			champion: await champion("Quinn"),
@@ -706,10 +692,7 @@ describe("Grasp of the Undying", async () => {
 			ranks: { Q: 0, W: 0, E: 0, R: 0 },
 			runes: [rune("GraspOfTheUndying")],
 		}
-		const result = simulate(quinn, [
-			{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
-			attack,
-		])
+		const result = simulate(quinn, [attack])
 		const quinnHealth = computeBuildStats(buildOf(quinn)).health.total
 
 		expect(

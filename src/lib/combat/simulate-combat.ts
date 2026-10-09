@@ -352,10 +352,6 @@ function applySituation(sim: Simulation, effectId: string): SituationStatus {
 				fromSituation: true,
 			})
 			break
-		case "ready":
-			sim.effectsReadyAt.delete(effect.id)
-			sim.assumedCooldowns.delete(effect.id)
-			break
 	}
 	if (blocked) return { status: "forced", readyAt }
 	return readyAt === undefined || assumed

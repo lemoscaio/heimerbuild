@@ -217,17 +217,14 @@ describe("empowered attacks: a cast that is its champion's next attack (issue 38
 	})
 
 	test("Hail of Blades empowers it as its first attack", () => {
-		const result = simulate({ ...rengar, runes: [rune("HailOfBlades")] }, [
-			{ kind: "situation", effectId: "hail-of-blades" },
-			Q,
-		])
-		const hail = result.steps[1]?.outcomes.find(
+		const result = simulate({ ...rengar, runes: [rune("HailOfBlades")] }, [Q])
+		const hail = result.steps[0]?.outcomes.find(
 			(outcome) =>
 				outcome.kind === "empowered" && outcome.effectId === "hail-of-blades",
 		)
 
 		expect(hail).toMatchObject({ happened: true, charge: { used: 1, max: 3 } })
-		expect(hits(result, 1).map(sourceName)).toContain("hail-of-blades")
+		expect(hits(result, 0).map(sourceName)).toContain("hail-of-blades")
 	})
 
 	test("Nasus's Q: his attack plus Siphoning Strike's base bonus, with 0 stacks by default", async () => {

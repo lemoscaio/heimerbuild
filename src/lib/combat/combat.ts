@@ -14,7 +14,7 @@ export type CombatAction =
 	| { kind: "summoner"; slot: SummonerSlot }
 	| { kind: "wait"; seconds: number }
 
-/** A point of the combo from which an effect's situation holds (Hail of Blades ready), by effect id. */
+/** A point of the combo from which an effect's situation holds (Target marked by Harrier), by effect id. */
 export type SituationMarker = { kind: "situation"; effectId: string }
 
 /** What a combo is made of, in order: its actions and its situation markers. */

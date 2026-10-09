@@ -1173,7 +1173,6 @@ const RUSH: BuildEffect = {
 		duration: 3,
 		cooldown: 10,
 		cooldownFrom: "end",
-		start: { kind: "ready" },
 		grants: [
 			{
 				kind: "stat",
@@ -1216,10 +1215,6 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 			startOnCooldown,
 		})
 	const onCooldown = { startOnCooldown: ["rush"] }
-	const rushed = (result: CombatResult) =>
-		result.steps.map((step) =>
-			outcomeOf(result, result.steps.indexOf(step), "rush"),
-		)
 	const attack: CombatItem = { kind: "attack" }
 	const rush = marker("rush")
 	const harrier = marker("quinn-harrier-valor")
@@ -1227,21 +1222,21 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 	const atRest = computeBuildStats(buildOf(setup)).attackSpeed.total
 	const hastened = atRest + setup.champion.stats.attackSpeed.ratio * 0.6
 
-	test("without a marker, a cooldown starts ready (issue 317): the first attack is 1/3", () => {
-		const result = run([attack])
+	test("a cooldown starts ready (issue 317): the first 3 attacks are 1/3 to 3/3, faster and with its damage", () => {
+		const result = run([attack, attack, attack, attack])
 
-		expect(outcomeOf(result, 0, "rush")).toMatchObject({
-			happened: true,
-			charge: { used: 1, max: 3 },
-		})
-	})
-
-	test("a marker before the first action, on a cooldown already ready, reads as the default", () => {
-		const marked = run([rush, attack, attack])
-		const plain = run([attack, attack])
-
-		expect(marked.steps[0]?.situation).toEqual({ status: "applied" })
-		expect(marked.total).toEqual(plain.total)
+		expect(
+			[0, 1, 2, 3].map((step) => outcomeOf(result, step, "rush")?.charge),
+		).toEqual([
+			{ used: 1, max: 3 },
+			{ used: 2, max: 3 },
+			{ used: 3, max: 3 },
+			undefined,
+		])
+		expect(result.steps[1]?.time).toBeCloseTo(1 / hastened)
+		// 10 + 50% of the 30 bonus AD, true damage.
+		expect(hits(result, 0)[1]).toEqual({ type: "true", raw: 25, final: 25 })
+		expect(hits(result, 3)).toHaveLength(1)
 	})
 
 	test("started on its cooldown, as if just used, its first attack isn't empowered", () => {
@@ -1255,98 +1250,45 @@ describe("situation markers anywhere in the combo (issue 338)", async () => {
 		})
 	})
 
-	test("a marker at the top empowers the next 3 attacks, 1/3 to 3/3, faster and with its damage", () => {
-		const result = run([rush, attack, attack, attack, attack])
-
-		expect(result.steps[0]?.situation).toEqual({ status: "applied" })
-		expect(
-			[1, 2, 3, 4].map((step) => outcomeOf(result, step, "rush")?.charge),
-		).toEqual([
-			{ used: 1, max: 3 },
-			{ used: 2, max: 3 },
-			{ used: 3, max: 3 },
-			undefined,
-		])
-		expect(result.steps[2]?.time).toBeCloseTo(1 / hastened)
-		// 10 + 50% of the 30 bonus AD, true damage.
-		expect(hits(result, 1)[1]).toEqual({ type: "true", raw: 25, final: 25 })
-		expect(hits(result, 4)).toHaveLength(1)
-	})
-
 	test("once its charges are used, its cooldown starts from the last one's hit", () => {
-		const result = run([rush, attack, attack, attack, attack])
-		const third = landedAt(result, 3)
+		const result = run([attack, attack, attack, attack])
+		const third = landedAt(result, 2)
 
-		expect(outcomeOf(result, 4, "rush")).toMatchObject({
+		expect(outcomeOf(result, 3, "rush")).toMatchObject({
 			happened: false,
 			readyAt: expect.closeTo(third + 10),
 		})
 	})
 
 	test("unused for 3 s, it ends and its cooldown starts then", () => {
-		const result = run([rush, attack, { kind: "wait", seconds: 5 }, attack])
+		const result = run([attack, { kind: "wait", seconds: 5 }, attack])
 
-		expect(outcomeOf(result, 3, "rush")).toMatchObject({
+		expect(outcomeOf(result, 2, "rush")).toMatchObject({
 			happened: false,
 			readyAt: 13,
 		})
 	})
 
-	test("a second marker after its cooldown is the rune coming back: the next attack is 1/3 again", () => {
+	test("mid-combo, it comes back only through time: after its cooldown, the next attack is 1/3 again", () => {
 		const result = run([
-			rush,
 			attack,
 			attack,
 			attack,
 			{ kind: "wait", seconds: 11 },
-			rush,
 			attack,
 		])
-		const readyAt = landedAt(result, 3) + 10
 
-		expect(result.steps[5]?.situation).toEqual({
-			status: "applied",
-			readyAt: expect.closeTo(readyAt),
-		})
-		expect(outcomeOf(result, 6, "rush")?.charge).toEqual({ used: 1, max: 3 })
+		expect(outcomeOf(result, 4, "rush")?.charge).toEqual({ used: 1, max: 3 })
 	})
 
-	test("a marker while a use in the combo still has its effect on cooldown is ignored, and says until when", () => {
-		const result = run([rush, attack, attack, attack, rush, attack])
-		const readyAt = landedAt(result, 3) + 10
+	test("a cooldown is no situation: its marker (an older link's ready marker) has no effect", () => {
+		const result = run([attack, attack, attack, rush, attack])
 
-		expect(result.steps[4]?.situation).toEqual({
-			status: "ignored",
-			readyAt: expect.closeTo(readyAt),
+		expect(result.steps[3]?.situation).toEqual({
+			status: "no-effect",
+			reason: "unavailable",
 		})
-		expect(outcomeOf(result, 5, "rush")).toMatchObject({
-			happened: false,
-			readyAt: expect.closeTo(readyAt),
-		})
-	})
-
-	test("the cooldown assumed at the start blocks no marker: the rune ready after the first attack applies", () => {
-		const result = run([attack, rush, attack], onCooldown)
-
-		expect(result.steps[1]?.situation).toEqual({ status: "applied" })
-		expect(outcomeOf(result, 2, "rush")?.charge).toEqual({ used: 1, max: 3 })
-	})
-
-	test("reordering across a marker moves the effect to the steps after it", () => {
-		const before = run([rush, attack, attack], onCooldown)
-		const after = run([attack, rush, attack], onCooldown)
-
-		expect(rushed(before).map((outcome) => outcome?.happened)).toEqual([
-			undefined,
-			true,
-			true,
-		])
-		expect(rushed(after).map((outcome) => outcome?.happened)).toEqual([
-			false,
-			undefined,
-			true,
-		])
-		expect(outcomeOf(after, 2, "rush")?.charge).toEqual({ used: 1, max: 3 })
+		expect(outcomeOf(result, 4, "rush")?.happened).toBe(false)
 	})
 
 	test("a mark marker mid-sequence marks the target from there, and the next attack consumes it", () => {
@@ -1502,18 +1444,12 @@ describe("free mode (issue 338)", async () => {
 	})
 
 	test("a marker strict mode ignores is forced, and applies", () => {
-		const items = [
-			marker("rush"),
-			attack,
-			attack,
-			attack,
-			marker("rush"),
-			attack,
-		]
+		const harrier = marker("quinn-harrier-valor")
+		const items = [harrier, attack, harrier, attack]
 		const { result } = simulateFreeCombat(input(items), [])
 
-		expect(result.steps[4]?.situation).toMatchObject({ status: "forced" })
-		expect(outcomeOf(result, 5, "rush")?.charge).toEqual({ used: 1, max: 3 })
+		expect(result.steps[2]?.situation).toMatchObject({ status: "forced" })
+		expect(outcomeOf(result, 3, "quinn-harrier")?.happened).toBe(true)
 	})
 
 	test("times follow the actions as in strict mode, without cooldowns", () => {
@@ -1616,7 +1552,6 @@ describe("Hail of Blades (issue 338)", async () => {
 		items: [item("Long Sword"), item("Long Sword"), item("Long Sword")],
 		runes: [rune("HailOfBlades")],
 	}
-	const ready = marker("hail-of-blades")
 	const attack: CombatItem = { kind: "attack" }
 	const run = (setup: Setup, items: readonly CombatItem[]) =>
 		simulateCombat(inputOf(setup, items))
@@ -1624,38 +1559,35 @@ describe("Hail of Blades (issue 338)", async () => {
 	const trueDamage = (level: number, bonusAD: number) =>
 		2 + (18 / 17) * (level - 1) + 0.12 * bonusAD
 
-	test("ready at the top, Quinn's first 3 attacks are faster and deal its true damage, then it goes on cooldown", () => {
-		const result = run(quinn, [ready, attack, attack, attack, attack])
+	test("ready at the start, Quinn's first 3 attacks are faster and deal its true damage, then it goes on cooldown", () => {
+		const result = run(quinn, [attack, attack, attack, attack])
 		const atRest = computeBuildStats(buildOf(quinn)).attackSpeed.total
 		const ratio = quinn.champion.stats.attackSpeed.ratio
 
-		expect(result.steps[2]?.time).toBeCloseTo(1 / (atRest + ratio * 0.6))
-		expect(hits(result, 1)[1]).toEqual({
+		expect(result.steps[1]?.time).toBeCloseTo(1 / (atRest + ratio * 0.6))
+		expect(hits(result, 0)[1]).toEqual({
 			type: "true",
 			raw: expect.closeTo(trueDamage(9, 30)),
 			final: expect.closeTo(trueDamage(9, 30)),
 		})
-		expect(hits(result, 4)).toHaveLength(1)
+		expect(hits(result, 3)).toHaveLength(1)
 		// Its cooldown starts as its third attack lands.
-		expect(outcomeOf(result, 4, "hail-of-blades")).toMatchObject({
+		expect(outcomeOf(result, 3, "hail-of-blades")).toMatchObject({
 			happened: false,
-			readyAt: expect.closeTo(landedAt(result, 3) + 10),
+			readyAt: expect.closeTo(landedAt(result, 2) + 10),
 		})
 	})
 
-	test("the rune coming back mid-combo: a second marker after the cooldown empowers the next attacks again", () => {
+	test("the rune comes back mid-combo through time: after its cooldown, the next attacks are empowered again", () => {
 		const result = run(quinn, [
-			ready,
 			attack,
 			attack,
 			attack,
 			{ kind: "wait", seconds: 10 },
-			ready,
 			attack,
 		])
 
-		expect(result.steps[5]?.situation?.status).toBe("applied")
-		expect(outcomeOf(result, 6, "hail-of-blades")?.charge).toEqual({
+		expect(outcomeOf(result, 4, "hail-of-blades")?.charge).toEqual({
 			used: 1,
 			max: 3,
 		})
@@ -1668,11 +1600,11 @@ describe("Hail of Blades (issue 338)", async () => {
 			ranks: { Q: 1, W: 1, E: 1, R: 1 },
 			runes: [rune("HailOfBlades")],
 		}
-		const result = run(darius, [ready, attack, attack])
+		const result = run(darius, [attack, attack])
 		const atRest = computeBuildStats(buildOf(darius)).attackSpeed.total
 		const ratio = darius.champion.stats.attackSpeed.ratio
 
-		expect(result.steps[2]?.time).toBeCloseTo(1 / (atRest + ratio * 0.9))
+		expect(result.steps[1]?.time).toBeCloseTo(1 / (atRest + ratio * 0.9))
 	})
 })
 

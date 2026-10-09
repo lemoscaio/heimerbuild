@@ -38,14 +38,14 @@ describe("stringifySearch", () => {
 
 	test("round-trips a combo and its target without quoting or escaping them", () => {
 		const build = {
-			combo: "m-hail-of-blades.aa.aa.q-handle.t1_5",
+			combo: "m-quinn-harrier-valor.aa.aa.q-handle.t1_5",
 			free: 1 as const,
 			choices: "2e-hail-of-blades-n",
 			target: "2500-60-45",
 		}
 		const search = stringifySearch(build)
 		expect(search).toBe(
-			"?combo=m-hail-of-blades.aa.aa.q-handle.t1_5&free=1&choices=2e-hail-of-blades-n&target=2500-60-45",
+			"?combo=m-quinn-harrier-valor.aa.aa.q-handle.t1_5&free=1&choices=2e-hail-of-blades-n&target=2500-60-45",
 		)
 		expect(buildSearchSchema.parse(defaultParseSearch(search))).toEqual(build)
 	})
