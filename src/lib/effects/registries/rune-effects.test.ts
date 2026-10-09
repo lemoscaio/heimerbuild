@@ -256,6 +256,74 @@ describe("Hail of Blades", () => {
 	})
 })
 
+/** A rune's long description as one line of text, single spaced. */
+function runeText(rune: Rune) {
+	return rune.longDescription
+		.flat(2)
+		.map(({ text }) => text)
+		.join(" ")
+		.replace(/\s+/g, " ")
+}
+
+/** A `damage` grant's base by champion level, as values from level 1 to 18. */
+function damageSteps(id: string) {
+	const grant = RUNE_EFFECTS.find((effect) => effect.id === id)?.grants.find(
+		({ kind }) => kind === "damage",
+	)
+	return grant?.kind === "damage" &&
+		typeof grant.base === "object" &&
+		grant.base.by === "championLevel"
+		? grant.base.steps.map(({ value }) => value)
+		: []
+}
+
+// Wiki, checked 2026-10-08 (issue 417).
+describe("Electrocute", () => {
+	test("matches the current patch's rune text: 3 hits within 3 s, its damage and cooldown", async () => {
+		const text = runeText(await currentRune("Electrocute"))
+		const stacks = RUNE_EFFECTS.find(({ id }) => id === "electrocute-stacks")
+
+		expect(text).toContain("3 separate attacks or abilities within 3s")
+		expect(text).toContain("70 - 240 (+0.1 bonus AD, +0.05 AP)")
+		expect(text).toContain("Cooldown: 20s")
+		expect(stacks).toMatchObject({ duration: 3, stacks: { max: 3 } })
+		expect(RUNE_EFFECTS.find(({ id }) => id === "electrocute")).toMatchObject({
+			cooldown: 20,
+			delay: { seconds: 0.25 },
+		})
+	})
+
+	// Wiki: 60 + 10 × level.
+	test("its damage grows by 10 a level, 70 at level 1 to 240 at 18", () => {
+		const steps = damageSteps("electrocute")
+
+		expect(steps).toHaveLength(18)
+		expect(steps[0]).toBe(70)
+		expect(steps[8]).toBeCloseTo(150)
+		expect(steps[17]).toBeCloseTo(240)
+	})
+})
+
+describe("Press the Attack", () => {
+	test("matches the current patch's rune text: 3 attacks, 40 - 160 adaptive damage, 8% more", async () => {
+		const text = runeText(await currentRune("PressTheAttack"))
+
+		expect(text).toContain(
+			"3 consecutive basic attacks deals 40 - 160 bonus adaptive damage",
+		)
+		expect(text).toContain("amplifies your damage dealt by 8%")
+	})
+
+	// Wiki: 40 + (160 − 40) / 17 × (level − 1).
+	test("its damage grows evenly from 40 at level 1 to 160 at 18", () => {
+		const steps = damageSteps("press-the-attack")
+
+		expect(steps[0]).toBe(40)
+		expect(steps[8]).toBeCloseTo(40 + (120 / 17) * 8)
+		expect(steps[17]).toBeCloseTo(160)
+	})
+})
+
 // Wiki, checked 2026-10-08 (issue 409). Each rune's stacks are the build's match stacks.
 describe("runes with match stacks", () => {
 	const teemo = normalizeChampion(teemoDetail, teemoBin, "16.19.1")

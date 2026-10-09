@@ -351,6 +351,7 @@ function resolveFullGrant(
 		case "onAttackDamage":
 		case "cooldownMultiplier":
 		case "attackMultiplier":
+		case "damageAmplification":
 			return []
 	}
 }

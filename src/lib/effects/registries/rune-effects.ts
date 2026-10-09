@@ -50,6 +50,9 @@ export const BISCUIT_STACKS = {
 	capped: true,
 } as const satisfies MatchStackSource
 
+const ELECTROCUTE_STACKS = "electrocute-stacks"
+const PRESS_THE_ATTACK_STACKS = "press-the-attack-stacks"
+
 /** A value growing evenly from level 1 to 18, as one step per level. */
 function perLevel(first: number, last: number): LevelStep[] {
 	return Array.from({ length: 18 }, (_, index) => ({
@@ -124,6 +127,77 @@ export const RUNE_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Hail_of_Blades`,
+	},
+	{
+		// Wiki: "Applying 3 stacks to a target within a 3 second period", one "per cast instance"; "The
+		// 3 second timer is non-refreshing". No stack while Electrocute is on cooldown.
+		id: ELECTROCUTE_STACKS,
+		source: { kind: "rune", runeKey: "Electrocute" },
+		label: "stacks",
+		trigger: { kind: "on-action-damage" },
+		holder: "target",
+		duration: 3,
+		stacks: { max: 3, keepsDuration: true },
+		requiresReady: "electrocute",
+		grants: [],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Electrocute`,
+	},
+	{
+		// Wiki: "struck by lightning after a 0.25-second delay, dealing them 60 + 10 × level (+ 10% bonus
+		// AD) (+ 5% AP)", physical or magic by the larger ratio part; cooldown 20 s.
+		id: "electrocute",
+		source: { kind: "rune", runeKey: "Electrocute" },
+		trigger: { kind: "on-max-stacks", effect: ELECTROCUTE_STACKS },
+		delay: { seconds: 0.25, label: "strikes" },
+		cooldown: 20,
+		consumes: ELECTROCUTE_STACKS,
+		grants: [
+			{
+				kind: "damage",
+				damageType: "variable",
+				base: { by: "championLevel", steps: perLevel(70, 240) },
+				ratios: { bonusAttackDamage: 0.1, abilityPower: 0.05 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Electrocute`,
+	},
+	{
+		// Wiki: basic attacks on-hit "apply a stack for 4 seconds, refreshing on subsequent
+		// applications [...] stacking up to 3 times"; none while its 6 s cooldown runs.
+		id: PRESS_THE_ATTACK_STACKS,
+		source: { kind: "rune", runeKey: "PressTheAttack" },
+		label: "stacks",
+		trigger: { kind: "on-hit", attacksOnly: true },
+		holder: "target",
+		duration: 4,
+		stacks: { max: 3 },
+		requiresReady: "press-the-attack",
+		grants: [],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Press_the_Attack`,
+	},
+	{
+		// Wiki: 40 to 160 "bonus adaptive damage and [...] 8% increased damage against champions until 5
+		// seconds after exiting combat" (the whole combo); cooldown 6 s "after consuming" the stacks.
+		id: "press-the-attack",
+		source: { kind: "rune", runeKey: "PressTheAttack" },
+		trigger: { kind: "on-max-stacks", effect: PRESS_THE_ATTACK_STACKS },
+		cooldown: 6,
+		consumes: PRESS_THE_ATTACK_STACKS,
+		duration: Number.POSITIVE_INFINITY,
+		grants: [
+			{
+				kind: "damage",
+				damageType: "adaptive",
+				base: { by: "championLevel", steps: perLevel(40, 160) },
+				ratios: {},
+			},
+			{ kind: "damageAmplification", amount: 0.08 },
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Press_the_Attack`,
 	},
 	{
 		// Wiki: "Gain 3% (+ 1.5% per Legend stack) bonus attack speed, up to 18% at maximum stacks."

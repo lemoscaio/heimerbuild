@@ -9,6 +9,7 @@ import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
 	Amount,
 	BuildEffect,
+	DamageGrant,
 	DamageOverTimeGrant,
 	DamageRatios,
 	EndsOn,
@@ -69,6 +70,7 @@ import {
 	ticksInArea,
 	tickTime,
 } from "./damage-over-time"
+import { effectDamageType } from "./damage-type"
 import { mitigate, type ResistReduction, reducedResists } from "./mitigation"
 import {
 	dealsDamageOverTime,
@@ -187,6 +189,10 @@ type Simulation = {
 	onDamage: boolean
 	/** When damage last triggered each `on-damage` effect: once per moment. */
 	damageTriggeredAt: Map<string, number>
+	/** An action's damage is triggering its `on-action-damage` effects now, so their own damage doesn't loop. */
+	onActionDamage: boolean
+	/** The `on-action-damage` effects each action already triggered, as "effect id@step". */
+	actionDamageTriggered: Set<string>
 	/** Effects with a `delay` waiting to take effect, and the step that triggered each. */
 	delayed: Delayed[]
 	/** Effects in their `startsAfter` state, until an event breaks it or `until`. */
@@ -384,6 +390,8 @@ function createSimulation(
 		onAbilityDamage: false,
 		onDamage: false,
 		damageTriggeredAt: new Map(),
+		onActionDamage: false,
+		actionDamageTriggered: new Set(),
 		delayed: [],
 		waiting: [],
 		laterHits: [],
@@ -492,11 +500,12 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	// A basic attack doesn't read the reduction it applies; other damage does (wiki Black Cleaver).
 	const ownFirst = source.kind !== "attack"
 	if (ownFirst) triggerOnDamage(sim, type)
-	const final = mitigate(raw, type, {
+	const mitigated = mitigate(raw, type, {
 		target: sim.input.target,
 		attacker: statsNow(sim),
 		reductions: targetReductions(sim),
 	})
+	const final = mitigated * damageAmplification(sim)
 	sim.health = Math.max(0, sim.health - final)
 	if (sim.health === 0 && !sim.kill) {
 		sim.kill = { time: sim.time, step: sim.step }
@@ -512,6 +521,40 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	})
 	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
+	triggerOnActionDamage(sim)
+}
+
+/** What the attacker's running effects multiply its damage by, after mitigation (Press the Attack's 8%). */
+function damageAmplification(sim: Simulation): number {
+	let amplification = 1
+	for (const { effect, holder } of sim.active) {
+		if (holder !== "attacker") continue
+		for (const grant of effect.effect.grants) {
+			if (grant.kind !== "damageAmplification") continue
+			amplification += resolveAmount(grant.amount, effect, sim.context) ?? 0
+		}
+	}
+	return amplification
+}
+
+/**
+ * An action's damage landing triggers the `on-action-damage` effects, once per action: its later
+ * hits, ticks and delayed hits count as it (one stack per cast instance, wiki Electrocute).
+ */
+function triggerOnActionDamage(sim: Simulation) {
+	if (sim.onActionDamage) return
+	sim.onActionDamage = true
+	const action = sim.owner ?? sim.step
+	const pending: PendingMarks = []
+	for (const effect of sim.input.effects) {
+		if (effect.effect.trigger.kind !== "on-action-damage") continue
+		const key = `${effect.id}@${action}`
+		if (sim.actionDamageTriggered.has(key)) continue
+		sim.actionDamageTriggered.add(key)
+		trigger(sim, effect, pending)
+	}
+	applyMarks(sim, pending)
+	sim.onActionDamage = false
 }
 
 function notModeledHit(
@@ -530,6 +573,7 @@ function notModeledHit(
 		...delayedOf(sim, tick),
 	})
 	triggerOnAbilityDamage(sim, source)
+	triggerOnActionDamage(sim)
 }
 
 /** An ability's damage: its cast's, or an effect's whose source is an ability (Toxic Shot's poison). */
@@ -615,12 +659,46 @@ function dealAbilityDamage(
 	deal(sim, { source, type: formula.type, raw })
 }
 
-function dealGrantNow(sim: Simulation, grant: Grant, effect: BuildEffect) {
-	if (grant.kind !== "abilityDamage") return
-	dealAbilityDamage(sim, grant.ability, grant.name, {
-		kind: "effect",
-		effectId: effect.id,
+/** A `damage` grant's hit now: its base plus ratios of the attacker's stats, its type read at the hit. */
+function grantDamage(
+	sim: Simulation,
+	grant: Pick<DamageGrant, "damageType" | "base" | "ratios">,
+	effect: BuildEffect,
+): { type: DamageType; raw: number } | undefined {
+	const base =
+		grant.base === undefined
+			? 0
+			: resolveAmount(grant.base, effect, sim.context)
+	if (base === undefined) return undefined
+	const stats = statsNow(sim)
+	const type = effectDamageType(grant.damageType, {
+		stats,
+		ratios: grant.ratios,
+		adaptiveType: sim.input.build.champion.adaptiveType,
 	})
+	return { type, raw: base + ratioDamage(grant.ratios, stats) }
+}
+
+function dealGrantDamage(
+	sim: Simulation,
+	grant: Pick<DamageGrant, "damageType" | "base" | "ratios">,
+	effect: BuildEffect,
+	source: DamageSource,
+) {
+	const damage = grantDamage(sim, grant, effect)
+	if (!damage) {
+		notModeledHit(sim, source, ["a value it lacks"])
+		return
+	}
+	deal(sim, { source, ...damage })
+}
+
+function dealGrantNow(sim: Simulation, grant: Grant, effect: BuildEffect) {
+	const source = { kind: "effect", effectId: effect.id } as const
+	if (grant.kind === "abilityDamage") {
+		dealAbilityDamage(sim, grant.ability, grant.name, source)
+	}
+	if (grant.kind === "damage") dealGrantDamage(sim, grant, effect, source)
 }
 
 /** An amount of the effect now, reading the attacker's stats when it needs them (Harrier's cooldown). */
@@ -806,8 +884,18 @@ function trigger(
 	if (!isInForm(effect, sim.formId)) return
 	const readyAt = sim.effectsReadyAt.get(effect.id) ?? 0
 	if (readyAt > sim.time && !ignoreCooldown) return
-	const { applies, endsOn, stacks, cooldownFrom, delay, startsAfter, resets } =
-		effect.effect
+	const {
+		applies,
+		endsOn,
+		stacks,
+		cooldownFrom,
+		delay,
+		startsAfter,
+		resets,
+		consumes,
+		requiresReady,
+	} = effect.effect
+	if (requiresReady && isOnCooldown(sim, requiresReady)) return
 	if (delay && !landing) {
 		const owner = sim.owner ?? sim.step
 		sim.delayed.push({
@@ -823,6 +911,7 @@ function trigger(
 		return
 	}
 	if (resets) resetStacks(sim, resets, pending)
+	if (consumes) consume(sim, consumes)
 	if (applies) pending.push({ ...applies, by: effect })
 	if (!isEndedBy(effect, "on-hit")) {
 		for (const grant of effect.effect.grants) dealGrantNow(sim, grant, effect)
@@ -840,7 +929,7 @@ function trigger(
 	if (running) {
 		const before = running.stacks
 		running.triggeredAt = sim.time
-		running.endsAt = sim.time + duration
+		if (!stacks?.keepsDuration) running.endsAt = sim.time + duration
 		running.lastTickAt = areaLastTickAt(sim, effect, options.duration)
 		running.stacks = Math.min(stackLimit(sim, effect), running.stacks + 1)
 		if (running.charges) running.charges.used = 0
@@ -860,6 +949,19 @@ function trigger(
 	if (!dot) return
 	recordApplication(sim, instance, { owner, kind: "applied" }, { landing })
 	if (nextTickAt(instance) === sim.time) tick(sim, instance)
+}
+
+function isOnCooldown(sim: Simulation, effectId: string): boolean {
+	return (sim.effectsReadyAt.get(effectId) ?? 0) > sim.time
+}
+
+/** Ends the running effect `effectId`, used up (Electrocute's stacks as it strikes). */
+function consume(sim: Simulation, effectId: string) {
+	for (const instance of sim.active.filter(
+		({ effect }) => effect.id === effectId,
+	)) {
+		expire(sim, instance)
+	}
 }
 
 /** The most stacks an effect may have now: its `stacks.max`, or less while an effect that `resets` it runs. */
@@ -1087,27 +1189,31 @@ function ratioDamage(
 	)
 }
 
-/** On-hit: the on-hit effects trigger, then each primed effect spent by an on-hit (a spellblade) deals its damage. */
-function onHit(sim: Simulation, pending: PendingMarks) {
+/**
+ * On-hit, by an attack or an ability's hit: the on-hit effects trigger (an `attacksOnly` one on an
+ * attack's), then each primed effect spent by an on-hit (a spellblade) deals its damage.
+ */
+function onHit(sim: Simulation, pending: PendingMarks, by: MarkConsumer) {
 	sim.log.push({ kind: "on-hit", time: sim.time })
-	triggerWhere(sim, ({ kind }) => kind === "on-hit", pending)
+	triggerWhere(
+		sim,
+		(trigger) =>
+			trigger.kind === "on-hit" && (by === "attack" || !trigger.attacksOnly),
+		pending,
+	)
 	const spent = sim.active.filter(
 		({ effect, holder }) =>
 			holder === "attacker" && isEndedBy(effect, "on-hit"),
 	)
 	for (const instance of spent) {
-		const stats = statsNow(sim)
 		const source = effectSource(instance)
 		for (const grant of instance.effect.effect.grants) {
 			if (grant.kind === "abilityDamage") {
 				dealAbilityDamage(sim, grant.ability, grant.name, source)
 			}
-			if (grant.kind !== "damage") continue
-			deal(sim, {
-				source,
-				type: grant.damageType,
-				raw: ratioDamage(grant.ratios, stats),
-			})
+			if (grant.kind === "damage") {
+				dealGrantDamage(sim, grant, instance.effect, source)
+			}
 		}
 		expire(sim, instance)
 		startCooldown(sim, instance.effect)
@@ -1425,7 +1531,7 @@ function strike(
 	})
 	bonus?.()
 	dealOnAttackDamage(sim)
-	onHit(sim, pending)
+	onHit(sim, pending, "attack")
 	consumeMarks(sim, "attack", pending)
 	applyMarks(sim, chooseMarks(sim, pending, item))
 	for (const waiting of onTarget) release(sim, waiting)
@@ -1549,7 +1655,7 @@ function abilityHit(
 			dealAbilityDamage(sim, spell.slot, name, source, { targetHealth, scale })
 		}
 	}
-	if (rule?.onHit) onHit(sim, pending)
+	if (rule?.onHit) onHit(sim, pending, "ability")
 	consumeMarks(sim, "ability", pending)
 	triggerAfterHit(sim, rule, variant, pending)
 }
