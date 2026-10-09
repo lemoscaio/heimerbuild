@@ -27,6 +27,17 @@ export const HEARTSTEEL_HEALTH = {
 	sliderMax: 1500,
 } as const satisfies MatchStackSource
 
+/**
+ * Manaflow's bonus mana, 0 to 360 (wiki): one count for Tear, Manamune and Archangel's, since they share
+ * the Manaflow group and its stacks carry over from one to another.
+ */
+export const MANAFLOW_MANA = {
+	id: "manaflow-mana",
+	name: "Manaflow bonus mana",
+	sliderMax: 360,
+	capped: true,
+} as const satisfies MatchStackSource
+
 const KRAKEN_SLAYER_STACKS = "kraken-slayer-stacks"
 const SEETHING_STRIKE = "guinsoos-rageblade-seething-strike"
 const PHANTOM_STACKS = "guinsoos-rageblade-phantom-stacks"
@@ -208,6 +219,67 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Heartsteel`,
+	},
+	{
+		// Wiki, checked 2026-10-09: Manaflow grants "3 bonus mana, increased to 6 if they are a
+		// champion, up to maximum of 360 bonus mana".
+		id: "tear-of-the-goddess-manaflow",
+		source: { kind: "item", itemId: "3070" },
+		trigger: { kind: "always" },
+		label: "Manaflow",
+		grants: [
+			{
+				kind: "stat",
+				stat: "mana",
+				amount: { by: "matchStacks", source: MANAFLOW_MANA },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Tear_of_the_Goddess`,
+	},
+	{
+		// Wiki, checked 2026-10-09: Manaflow up to 360 bonus mana; Awe "grants bonus attack damage equal
+		// to 2% maximum mana". The transformation into Muramana at 360 is not modeled (issue 414).
+		id: "manamune-awe",
+		source: { kind: "item", itemId: "3004" },
+		trigger: { kind: "always" },
+		label: "Manaflow and Awe",
+		grants: [
+			{
+				kind: "stat",
+				stat: "mana",
+				amount: { by: "matchStacks", source: MANAFLOW_MANA },
+			},
+			{
+				kind: "stat",
+				stat: "attackDamage",
+				amount: { by: "stat", stat: "mana", ratio: 0.02 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Manamune`,
+	},
+	{
+		// Wiki, checked 2026-10-09: Manaflow up to 360 bonus mana, an innate stat of the item since
+		// V25.05; Awe "grants ability power equal to 1% bonus mana". Seraph's Embrace is not modeled.
+		id: "archangels-staff-awe",
+		source: { kind: "item", itemId: "3003" },
+		trigger: { kind: "always" },
+		label: "Manaflow and Awe",
+		grants: [
+			{
+				kind: "stat",
+				stat: "mana",
+				amount: { by: "matchStacks", source: MANAFLOW_MANA },
+			},
+			{
+				kind: "stat",
+				stat: "abilityPower",
+				amount: { by: "stat", stat: "mana", part: "bonus", ratio: 0.01 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Archangel%27s_Staff`,
 	},
 	{
 		// Wiki, checked 2026-10-08: "Magical Opus: Increase your ability power by 30%."

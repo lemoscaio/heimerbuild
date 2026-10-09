@@ -11,6 +11,7 @@ import {
 } from "../../stats/compute-build-stats"
 import { availableEffects } from "../available-effects"
 import { resolveAmount, resolveGrants } from "../evaluate"
+import { usedMatchStacks } from "../match-stacks"
 import { ITEM_EFFECTS } from "./item-effects"
 
 function grantsOf(id: string) {
@@ -246,6 +247,122 @@ describe("Rabadon's Deathcap", async () => {
 				basis: { stat: "abilityPower", ratio: 0.3 },
 			},
 		])
+	})
+})
+
+// Wiki, checked 2026-10-09 (issue 414): Manaflow grants up to 360 bonus mana, one count for the three.
+describe("Manaflow items", async () => {
+	const DATA = new URL("../../../../public/data/", import.meta.url)
+	const { currentPatch: PATCH } = await Bun.file(
+		new URL("manifest.json", DATA),
+	).json()
+	async function championOf(key: string) {
+		return championSchema.parse(
+			await Bun.file(new URL(`${PATCH}/champions/${key}.json`, DATA)).json(),
+		)
+	}
+	const ezreal = await championOf("Ezreal")
+	const lux = await championOf("Lux")
+	const { items } = ItemsFileSchema.parse(
+		await Bun.file(new URL(`${PATCH}/items.json`, DATA)).json(),
+	)
+	function itemOf(itemId: string) {
+		const item = items.find(({ id }) => id === itemId)
+		if (!item) throw new Error(`no item ${itemId} in the patch data`)
+		return item
+	}
+	const TEAR = itemOf("3070")
+	const MANAMUNE = itemOf("3004")
+	const ARCHANGELS = itemOf("3003")
+	const DEATHCAP = itemOf("3089")
+	const ranks = { Q: 0, W: 0, E: 0, R: 0 }
+
+	/** The champion at level 1 holding `held` (their stats and effects), with `mana` Manaflow mana. */
+	function input(
+		champion: typeof lux,
+		held: (typeof items)[number][],
+		mana?: number,
+	): BuildStatsInput {
+		const available = availableEffects({
+			patch: PATCH,
+			champion,
+			ranks,
+			spells: [],
+			runes: [],
+			items: held,
+		})
+		return {
+			champion,
+			patch: PATCH,
+			level: 1,
+			items: held,
+			shards: [],
+			ranks,
+			effects: { available, overrides: {} },
+			matchStacks: mana === undefined ? undefined : { "manaflow-mana": mana },
+		}
+	}
+
+	test("the items keep the wiki's stats: 240, 500 and 600 mana", () => {
+		expect(TEAR.stats).toEqual({ mana: 240 })
+		expect(MANAMUNE.stats).toEqual({
+			attackDamage: 35,
+			mana: 500,
+			abilityHaste: 15,
+		})
+		expect(ARCHANGELS.stats).toEqual({
+			abilityPower: 70,
+			mana: 600,
+			abilityHaste: 25,
+		})
+	})
+
+	test("Tear of the Goddess: the bonus mana is the count, up to 360", () => {
+		const mana = (count?: number) =>
+			computeBuildStats(input(lux, [TEAR], count)).mana.total
+
+		expect(mana()).toBe(440 + 240)
+		expect(mana(180)).toBe(440 + 240 + 180)
+		expect(mana(360)).toBe(440 + 240 + 360)
+		expect(mana(500)).toBe(440 + 240 + 360)
+	})
+
+	test("Manamune: 2% of maximum mana as bonus attack damage, the stacked mana included", () => {
+		const stats = (count?: number) =>
+			computeBuildStats(input(ezreal, [MANAMUNE], count))
+
+		expect(stats().mana.total).toBe(375 + 500)
+		expect(stats().attackDamage.bonus).toBeCloseTo(35 + 0.02 * 875)
+		expect(stats(180).attackDamage.bonus).toBeCloseTo(35 + 0.02 * 1055)
+		expect(stats(360).mana.total).toBe(375 + 500 + 360)
+		expect(stats(360).attackDamage.bonus).toBeCloseTo(35 + 0.02 * 1235)
+	})
+
+	test("Archangel's Staff: 1% of bonus mana as ability power, 6 alone and 9.6 at 360", () => {
+		const stats = (count?: number) =>
+			computeBuildStats(input(lux, [ARCHANGELS], count))
+
+		expect(stats().abilityPower.total).toBeCloseTo(70 + 6)
+		expect(stats(180).abilityPower.total).toBeCloseTo(70 + 7.8)
+		expect(stats(360).mana.total).toBe(440 + 600 + 360)
+		expect(stats(360).abilityPower.total).toBeCloseTo(70 + 9.6)
+	})
+
+	test("with Rabadon's Deathcap, Awe's ability power is in the 30%: (70 + 130 + 9.6) × 1.3", () => {
+		const stats = computeBuildStats(input(lux, [ARCHANGELS, DEATHCAP], 360))
+
+		expect(stats.abilityPower.total).toBeCloseTo((70 + 130 + 9.6) * 1.3)
+	})
+
+	test("the count stays when Tear becomes Manamune or Archangel's", () => {
+		const effectsOf = (held: (typeof items)[number][]) =>
+			input(lux, held).effects?.available.map(({ effect }) => effect)
+		const stacks = { "manaflow-mana": 240 }
+
+		expect(usedMatchStacks(stacks, effectsOf([TEAR]))).toEqual(stacks)
+		expect(usedMatchStacks(stacks, effectsOf([MANAMUNE]))).toEqual(stacks)
+		expect(usedMatchStacks(stacks, effectsOf([ARCHANGELS]))).toEqual(stacks)
+		expect(usedMatchStacks(stacks, effectsOf([DEATHCAP]))).toBeUndefined()
 	})
 })
 

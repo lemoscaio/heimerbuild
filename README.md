@@ -27,7 +27,7 @@ League is a game of numbers. A small change to an AD ratio can reshape the meta,
 
 Heimerbuild answers those questions in seconds, with numbers you can trust. Today it covers:
 
-- **Stats:** champion stats at any level with items, runes, summoner spells, skill points, champion forms and conditional effects (current health, game time, match stacks such as Nasus's or Mejai's).
+- **Stats:** champion stats at any level with items, runes, summoner spells, skill points, champion forms and conditional effects (current health, game time, match stacks such as Nasus's, Mejai's or Tear of the Goddess's).
 - **Abilities:** each ability's values per rank, and its damage with the build.
 - **Combos:** a combo simulator against a target dummy, with attack timing, cooldowns, damage over time, resist reduction and a step list or timeline of every hit.
 
