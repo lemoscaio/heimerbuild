@@ -183,36 +183,20 @@ export function OverviewPage({
 						/>
 					)}
 					<WorkbenchPanel>
-						{build.stats &&
-							build.statsWithoutRunes &&
-							(isRunesTab ? (
-								<StatsPanel
-									stats={build.statsWithoutRunes}
-									resource={champion.resource}
-									preview={build.runesPreview}
-									formComparison={build.formSwitch.comparison}
-								>
-									<RunesStatsNote />
-									<BuildEffectsList
-										conditions={build.conditions}
-										championState={build.championState}
-										matchState={build.matchState}
-									/>
-								</StatsPanel>
-							) : (
-								<StatsPanel
-									stats={build.stats}
-									resource={champion.resource}
-									preview={build.preview}
-									formComparison={build.formSwitch.comparison}
-								>
-									<BuildEffectsList
-										conditions={build.conditions}
-										championState={build.championState}
-										matchState={build.matchState}
-									/>
-								</StatsPanel>
-							))}
+						{build.statsPanel && (
+							<StatsPanel
+								{...build.statsPanel}
+								resource={champion.resource}
+								formComparison={build.formSwitch.comparison}
+							>
+								{isRunesTab && <RunesStatsNote />}
+								<BuildEffectsList
+									conditions={build.conditions}
+									championState={build.championState}
+									matchState={build.matchState}
+								/>
+							</StatsPanel>
+						)}
 					</WorkbenchPanel>
 				</>
 			}

@@ -116,11 +116,10 @@ export function MobileBuildPage({
 			tab={build.tab === "items" ? itemsTab : build.tab}
 			onTabChange={changeTab}
 			stats={
-				build.stats && (
+				build.statsPanel && (
 					<StatsPanel
-						stats={build.stats}
+						{...build.statsPanel}
 						resource={champion.resource}
-						preview={build.preview}
 						formComparison={build.formSwitch.comparison}
 					>
 						<BuildEffectsList
