@@ -42,6 +42,14 @@ export const GRASP_STACKS = {
 	sliderMax: 200,
 } as const satisfies MatchStackSource
 
+/** One per champion Dark Harvest damages, uncapped (wiki). */
+export const DARK_HARVEST_SOULS = {
+	id: "dark-harvest-souls",
+	name: "Dark Harvest souls",
+	// The wiki gives no typical count; a long game passes 30 souls.
+	sliderMax: 50,
+} as const satisfies MatchStackSource
+
 /** One per biscuit eaten or sold; one comes every 2 minutes until 6 (rune text), so 3. */
 export const BISCUIT_STACKS = {
 	id: "biscuit-stacks",
@@ -256,6 +264,116 @@ export const RUNE_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Lethal_Tempo`,
+	},
+	{
+		// Wiki: an attack or ability's damage sends Aery "to pounce at them over 0.45 seconds"; she lingers
+		// 2 s, then flies back. Her return isn't counted (no travel), so she goes again 2.45 s after.
+		id: "summon-aery",
+		source: { kind: "rune", runeKey: "SummonAery" },
+		trigger: { kind: "on-action-damage" },
+		delay: { seconds: 0.45, label: "pounces" },
+		cooldown: 2.45,
+		grants: [
+			{
+				kind: "damage",
+				damageType: "adaptive",
+				base: { by: "championLevel", steps: perLevel(10, 50) },
+				ratios: { bonusAttackDamage: 0.1, abilityPower: 0.05 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Summon_Aery`,
+	},
+	{
+		// Wiki: ability damage hurls a comet that "lands after 0.8" s, 15 to 100 (+ 10% bonus AD) (+ 5%
+		// AP), up to double at 750 range; the combo has no distance, so the least. Cooldown 20 to 8 s.
+		id: "arcane-comet",
+		source: { kind: "rune", runeKey: "ArcaneComet" },
+		trigger: { kind: "on-ability-damage" },
+		delay: { seconds: 0.8, label: "lands" },
+		cooldown: { by: "championLevel", steps: perLevel(20, 8) },
+		grants: [
+			{
+				kind: "damage",
+				damageType: "variable",
+				base: { by: "championLevel", steps: perLevel(15, 100) },
+				ratios: { bonusAttackDamage: 0.1, abilityPower: 0.05 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Arcane_Comet`,
+	},
+	{
+		// Wiki: the first damage of combat grants First Strike "for 3 seconds, causing all of your
+		// post-mitigation damage [...] to deal 7% bonus true damage", that hit's too. Its gold is left out.
+		id: "first-strike",
+		source: { kind: "rune", runeKey: "FirstStrike" },
+		trigger: { kind: "on-action-damage" },
+		duration: 3,
+		cooldown: { by: "championLevel", steps: perLevel(25, 15) },
+		grants: [{ kind: "bonusTrueDamage", amount: 0.07 }],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}First_Strike`,
+	},
+	{
+		// The souls the build sets, which Dark Harvest's damage reads.
+		id: "dark-harvest-soul-count",
+		source: { kind: "rune", runeKey: "DarkHarvest" },
+		trigger: { kind: "always" },
+		label: "Souls",
+		grants: [
+			{
+				kind: "counter",
+				counter: "souls",
+				amount: { by: "matchStacks", source: DARK_HARVEST_SOULS },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Dark_Harvest`,
+	},
+	{
+		// Wiki: damage to a champion "below 50% of their maximum health deals 30 (+ 11 per Soul) (+ 10%
+		// bonus AD) (+ 5% AP) bonus adaptive damage"; cooldown 35 s. Here the hit that takes it below.
+		id: "dark-harvest",
+		source: { kind: "rune", runeKey: "DarkHarvest" },
+		trigger: { kind: "on-action-damage", targetBelow: 0.5 },
+		cooldown: 35,
+		grants: [
+			{
+				kind: "damage",
+				damageType: "adaptive",
+				base: [
+					30,
+					{ by: "matchStacks", source: DARK_HARVEST_SOULS, ratio: 11 },
+				],
+				ratios: { bonusAttackDamage: 0.1, abilityPower: 0.05 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Dark_Harvest`,
+	},
+	{
+		// Wiki: 4 stacks after 4 s in combat; then "your next basic attack on-hit [...] deal[s] bonus magic
+		// damage equal to 3.5% (1.4% ranged) of your maximum health". Its heal is left out.
+		id: "grasp-of-the-undying-proc",
+		source: { kind: "rune", runeKey: "GraspOfTheUndying" },
+		trigger: { kind: "on-hit", attacksOnly: true },
+		cooldown: 4,
+		start: { kind: "ready" },
+		grants: [
+			{
+				kind: "damage",
+				damageType: "magic",
+				base: {
+					by: "stat",
+					stat: "health",
+					ratio: { by: "attackType", melee: 0.035, ranged: 0.014 },
+				},
+				ratios: {},
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Grasp_of_the_Undying`,
 	},
 	{
 		// Wiki: "Gain 3% (+ 1.5% per Legend stack) bonus attack speed, up to 18% at maximum stacks."
