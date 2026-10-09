@@ -15,7 +15,7 @@ import { ITEM_EFFECTS } from "@/lib/effects/registries/item-effects"
 import { RUNE_EFFECTS } from "@/lib/effects/registries/rune-effects"
 import { abilitiesInForm } from "@/lib/form-abilities"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
-import { combatRows, outsideRows, timedHits } from "./combat-rows"
+import { combatRows, timedHits } from "./combat-rows"
 import { combatTimeline } from "./combat-timeline"
 import { type CombatNames, combatNames, stepView } from "./combat-view"
 import {
@@ -236,7 +236,7 @@ describe("placeHit", () => {
 })
 
 describe("the List's cards (stepView on placed steps)", () => {
-	test("Arcane Comet is a mini card under Q with its rune icon and land time; the attack shows only its own hit", () => {
+	test("Arcane Comet is a proc of Q with its rune icon and land time; the attack shows only its own hit", () => {
 		const [q, , attack] = listViews(ANNIE_COMET)
 		const [comet] = q?.procs ?? []
 
@@ -249,19 +249,26 @@ describe("the List's cards (stepView on placed steps)", () => {
 		expect(attack?.procs).toEqual([])
 	})
 
-	test("Q's card total still counts its comet", () => {
+	test("Q's card total is its own damage: the comet has a row of its own", () => {
 		const [q] = listViews(ANNIE_COMET)
 		const own = q?.hits.reduce(
 			(sum, hit) => sum + ("final" in hit ? hit.final : 0),
 			0,
 		)
 
-		expect(q?.total.final).toBeCloseTo(
-			(own ?? 0) + (q?.procs[0]?.total.final ?? 0),
-		)
+		expect(q?.total.final).toBeCloseTo(own ?? 0)
+		expect(q?.byType).toEqual([
+			{ type: "magic", final: expect.closeTo(own ?? 0) },
+		])
 	})
 
-	test("Electrocute strikes as a mini card under the attack that made its third hit", () => {
+	test("an attack with on-hit magic damage is split by type: physical and magic", () => {
+		const [first] = listViews(VAYNE)
+
+		expect(first?.byType.map(({ type }) => type)).toEqual(["physical", "magic"])
+	})
+
+	test("Electrocute strikes as a proc of the attack that made its third hit", () => {
 		const views = listViews(
 			combo({ ...ANNIE, runes: [rune("Electrocute")] }, [
 				cast("Q"),
@@ -291,7 +298,7 @@ describe("the List's cards (stepView on placed steps)", () => {
 		expect(first?.procs).toEqual([])
 	})
 
-	test("Vayne: the phantom hit is one mini card under the 7th attack, its on-hit damage inside", () => {
+	test("Vayne: the phantom hit is one proc of the 7th attack, its on-hit damage inside", () => {
 		const views = listViews(VAYNE)
 		const phantoms = procIds(views).filter(
 			({ effectId }) => effectId === "guinsoos-rageblade-phantom-hit",
@@ -310,7 +317,7 @@ describe("the List's cards (stepView on placed steps)", () => {
 		)
 	})
 
-	test("Vayne: Kraken Slayer's third hit is a line of the attack, with its icon; a phantom hit's is inside its mini card", () => {
+	test("Vayne: Kraken Slayer's third hit is a line of the attack, with its icon; a phantom hit's is part of that proc", () => {
 		const views = listViews(VAYNE)
 		const kraken = "Kraken Slayer (Bring It Down)"
 		const withLine = views.flatMap((view, step) =>
@@ -388,14 +395,16 @@ describe("List, expanded combo and Timeline agree (issue 429)", () => {
 	const COMBOS = { "Annie with Arcane Comet": ANNIE_COMET, Vayne: VAYNE }
 
 	test.each(Object.entries(COMBOS))(
-		"%s: the same procs under the same steps at the same times",
+		"%s: the same procs of the same steps at the same times",
 		(_, combination) => {
 			const list = procIds(listViews(combination))
 			const rows = combatRows(combination.result, {
 				...combination,
 				order: "step",
-			}).flatMap(({ index, procs }) =>
-				procs.map(({ effectId, time }) => ({ effectId, step: index, time })),
+			}).flatMap((row) =>
+				row.kind === "proc"
+					? [{ effectId: row.effectId, step: row.index, time: row.time }]
+					: [],
 			)
 			const timeline = combination.timeline.entries.flatMap((entry) =>
 				entry.kind === "proc"
@@ -416,17 +425,16 @@ describe("List, expanded combo and Timeline agree (issue 429)", () => {
 		(_, combination) => {
 			const total = combination.result.total.final
 			const list = listViews(combination).reduce(
-				(sum, view) => sum + view.total.final,
+				(sum, view) =>
+					sum +
+					view.total.final +
+					view.procs.reduce((all, proc) => all + proc.total.final, 0),
 				0,
 			)
 			const rows = combatRows(combination.result, {
 				...combination,
 				order: "hit",
-			}).reduce(
-				(sum, row) =>
-					sum + row.damage + row.procs.reduce((all, p) => all + p.damage, 0),
-				0,
-			)
+			}).reduce((sum, row) => sum + row.damage, 0)
 			const timeline = combination.timeline.entries.reduce(
 				(sum, entry) => sum + (entry.kind === "marker" ? 0 : entry.damage),
 				0,
@@ -470,23 +478,16 @@ describe("List, expanded combo and Timeline agree (issue 429)", () => {
 	})
 })
 
-// PROTOTYPE (PR 434, remove before merge with the outside layout).
-describe("outsideRows", () => {
+describe("the expanded combo's rows with procs among them", () => {
 	test.each(["hit", "step"] as const)(
 		"in %s order, the running total goes down the rows and procs as shown, to the combo's damage",
 		(order) => {
 			const rows = combatRows(VAYNE.result, { ...VAYNE, order })
-			const entries = outsideRows(rows, { target: VAYNE.target, order })
-			const dealt = entries.map((entry) =>
-				entry.kind === "item" ? entry.item.dealt : entry.proc.dealt,
-			)
+			const dealt = rows.map((row) => row.dealt)
 
-			expect(entries.filter(({ kind }) => kind === "proc")).toHaveLength(2)
+			expect(rows.filter(({ kind }) => kind === "proc")).toHaveLength(2)
 			expect(dealt).toEqual(dealt.toSorted((a, b) => a - b))
 			expect(dealt.at(-1)).toBeCloseTo(VAYNE.result.total.final)
-			for (const entry of entries) {
-				if (entry.kind === "item") expect(entry.item.procs).toEqual([])
-			}
 		},
 	)
 })

@@ -92,7 +92,7 @@ function stepView(overrides: Partial<StepView> = {}): StepView {
 		procs: [],
 		damageOverTime: [],
 		total: { raw: 100, final: 60 },
-		mainType: "physical",
+		byType: [{ type: "physical", final: 60 }],
 		marks: [],
 		effects: [],
 		resists: [],
@@ -155,6 +155,10 @@ describe("groupView (issue 331, option A: totals plus counts)", () => {
 					},
 				],
 				total: { raw: 112, final: 72 },
+				byType: [
+					{ type: "physical", final: 60 },
+					{ type: "true", final: 12 },
+				],
 			}),
 			outcomes: [],
 		}))
@@ -168,7 +172,30 @@ describe("groupView (issue 331, option A: totals plus counts)", () => {
 			{ type: "physical", final: 180 },
 			{ type: "true", final: 36 },
 		])
-		expect(view.mainType).toBe("physical")
+	})
+
+	test("counts its steps' procs, which a collapsed group lists nowhere else", () => {
+		const comet = {
+			effectId: "arcane-comet",
+			name: "Arcane Comet",
+			time: 0.8,
+			hits: [],
+			total: { raw: 56, final: 40 },
+			byType: [{ type: "magic" as const, final: 40 }],
+		}
+		const view = groupView(
+			[0, 1, 2].map((time) => ({
+				time,
+				view: stepView({ procs: time === 0 ? [comet] : [] }),
+				outcomes: [],
+			})),
+		)
+
+		expect(view.total).toEqual({ raw: 356, final: 220 })
+		expect(view.byType).toEqual([
+			{ type: "physical", final: 180 },
+			{ type: "magic", final: 40 },
+		])
 	})
 
 	test("counts each outcome over the steps that have it, and the effects and marks after them", () => {
@@ -261,12 +288,16 @@ describe("groupView (issue 331, option A: totals plus counts)", () => {
 		})
 	})
 
-	test("the ticks count toward the damage by type", () => {
+	test("the steps' damage by type, their ticks' included, adds up", () => {
 		const view = groupView(
 			[1, 2, 3].map(() => ({
 				view: stepView({
 					damageOverTime: [poison("refreshed", { ticks: 1, until: 1 })],
 					total: { raw: 130, final: 80 },
+					byType: [
+						{ type: "physical", final: 60 },
+						{ type: "magic", final: 20 },
+					],
 				}),
 				outcomes: [],
 			})),

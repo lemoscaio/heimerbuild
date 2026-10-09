@@ -115,7 +115,10 @@ describe("stepView", () => {
 			{ name: "Harrier", notModeled: ["a buff counter"] },
 		])
 		expect(view.total).toEqual({ raw: 150, final: 90 })
-		expect(view.mainType).toBe("physical")
+		expect(view.byType).toEqual([
+			{ type: "physical", final: 60 },
+			{ type: "magic", final: 30 },
+		])
 	})
 
 	test("adds up the hits of one source and type into one line", () => {
