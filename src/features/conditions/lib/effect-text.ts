@@ -72,6 +72,11 @@ export function conditionText(condition: Condition): string {
 			return lasting(duration, "at full stacks")
 		case "on-damage":
 			return lasting(duration, `after ${trigger.damageType} damage`)
+		case "on-action-damage":
+			return lasting(
+				duration,
+				stacks ? `after ${stacks.max} hits` : "on damage",
+			)
 	}
 }
 

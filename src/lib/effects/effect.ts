@@ -160,6 +160,13 @@ export type StackStep = { from: number; value: number }
 
 export type DamageType = "physical" | "magic" | "true"
 
+/**
+ * A damage type, or one read at the hit (wiki "Adaptive force"): `adaptive` is physical with more
+ * bonus AD than AP, magic with more AP, else the champion's adaptive type; `variable` is physical
+ * when the AD ratio adds more than the AP ratio, else magic (Electrocute).
+ */
+export type EffectDamageType = DamageType | "adaptive" | "variable"
+
 /** Damage as ratios of the attacker's stats: 2 base AD is 200% of base attack damage. */
 export type DamageRatios = Partial<
 	Record<"baseAttackDamage" | "bonusAttackDamage" | "abilityPower", number>
@@ -254,7 +261,8 @@ export type CounterGrant = {
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
  * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
  * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true
- * damage); so are `resistReduction`, on the target, `cooldownMultiplier` and `attackMultiplier`.
+ * damage), `damageAmplification` on all the attacker's damage while it runs (Press the Attack's 8%);
+ * so are `resistReduction`, on the target, `cooldownMultiplier` and `attackMultiplier`.
  */
 export type Grant = GrantTiming &
 	GrantThreshold &
@@ -263,7 +271,7 @@ export type Grant = GrantTiming &
 		| { kind: "attackSpeedMultiplier"; of: "bonus" | "total"; amount: Amount }
 		| { kind: "shield"; amount: Amount }
 		| { kind: "heal"; amount: Amount }
-		| { kind: "damage"; damageType: DamageType; ratios: DamageRatios }
+		| DamageGrant
 		| { kind: "abilityDamage"; ability: AbilitySlot | "passive"; name: string }
 		| DamageOverTimeGrant
 		| {
@@ -276,7 +284,19 @@ export type Grant = GrantTiming &
 		| CooldownMultiplierGrant
 		| AttackMultiplierGrant
 		| CounterGrant
+		| { kind: "damageAmplification"; amount: Amount }
 	)
+
+/**
+ * Damage as a `base` plus ratios of the attacker's stats: dealt when its effect takes effect
+ * (Electrocute), or when an on-hit spends it (a spellblade, `endsOn: "on-hit"`).
+ */
+export type DamageGrant = {
+	kind: "damage"
+	damageType: EffectDamageType
+	base?: TableAmount
+	ratios: DamageRatios
+}
 
 /**
  * A grant's own clock inside its effect: it ends `duration` seconds after the trigger (Olaf's shield,
@@ -305,15 +325,17 @@ export type EffectCondition = "not-damaged-recently"
  * `mark` on the target; on its own once its cooldown is over, while it isn't running and its mark
  * has been off the target for `idle` seconds (Valor's Harrier, Ziggs's Short Fuse); an ability's
  * damage landing, its ticks included (Liandry's Torment); damage of `damageType` landing, from any
- * source, once per moment (Black Cleaver's Carve); or the `effect` with that id reaching its
- * `stacks.max` (Blaze's detonation at 3 stacks).
+ * source, once per moment (Black Cleaver's Carve); the `effect` with that id reaching its
+ * `stacks.max` (Blaze's detonation at 3 stacks); or an action's damage landing, once per action, its
+ * later hits and ticks not again (`on-action-damage`: Electrocute's stacks). `on-hit` with
+ * `attacksOnly` skips an ability's on-hit (Press the Attack's stacks).
  */
 export type Trigger =
 	| { kind: "always" }
 	| { kind: "while"; condition: EffectCondition }
 	| { kind: "after-use" }
 	| { kind: "after-summoner" }
-	| { kind: "on-hit" }
+	| { kind: "on-hit"; attacksOnly?: true }
 	| { kind: "after-ability" }
 	| { kind: "on-attack" }
 	| { kind: "on-cast"; slots?: readonly AbilitySlot[]; perHit?: true }
@@ -322,6 +344,7 @@ export type Trigger =
 	| { kind: "on-ability-damage" }
 	| { kind: "on-max-stacks"; effect: string }
 	| { kind: "on-damage"; damageType: DamageType }
+	| { kind: "on-action-damage" }
 
 export type TriggerKind = Trigger["kind"]
 
@@ -443,7 +466,13 @@ export type Effect = PatchRange & {
 	 * once per stack. With `onlyAtMax`, its grants hold only at `max` (Vi's attack speed after 3 hits).
 	 * `shares` replaces stacks / max: the share at 1, 2, … stacks (Rev'd up: 50%, 75%, 100%).
 	 */
-	stacks?: { max: number; onlyAtMax?: true; shares?: readonly number[] }
+	stacks?: {
+		max: number
+		onlyAtMax?: true
+		shares?: readonly number[]
+		/** A new stack doesn't refresh its duration: it runs from the first (Electrocute's 3 s). */
+		keepsDuration?: true
+	}
 	/**
 	 * The basic attacks it holds for, then it ends: an `on-attack` one's include the attack that
 	 * triggers it (Hail of Blades); a re-trigger gives them back (Monk Training after each cast).
@@ -459,6 +488,10 @@ export type Effect = PatchRange & {
 	applies?: MarkApplication
 	/** Another effect's stacks it sets when it takes effect, and caps while it runs (combat simulator). */
 	resets?: StackReset
+	/** The effect, by id, it ends when it takes effect: the stacks it uses up (Electrocute's). */
+	consumes?: string
+	/** It triggers only while the effect with this id is off cooldown (Electrocute's stacks). */
+	requiresReady?: string
 	/** Who holds it: the attacker (absent), or the target (Ignite's burn, Toxic Shot's poison). */
 	holder?: "target"
 	/** Replaces the trigger's default (`isOnByDefault`). */
