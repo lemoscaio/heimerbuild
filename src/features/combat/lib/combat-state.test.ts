@@ -6,8 +6,10 @@ import {
 	type CombatState,
 	changedChoices,
 	choicesByItem,
+	EMPTY_COMBAT,
 	removeEntry,
 	setFreeChoice,
+	setStartReady,
 } from "./combat-state"
 
 function bound(fields: Partial<Effect> & Pick<Effect, "id">): BuildEffect {
@@ -90,6 +92,7 @@ describe("removeEntry", () => {
 			3: { "empowered:hail": false },
 			5: { "empowered:hail": false },
 		},
+		onCooldown: [],
 	}
 
 	test("a marker's choices go back to computed up to the next marker of its effect; others stay", () => {
@@ -108,5 +111,24 @@ describe("removeEntry", () => {
 			2: state.choices[2],
 			5: state.choices[5],
 		})
+	})
+})
+
+describe("setStartReady", () => {
+	test("× starts the effect on its cooldown, + brings it back ready; the steps stay", () => {
+		const removed = setStartReady(EMPTY_COMBAT, "electrocute", false)
+
+		expect(removed.onCooldown).toEqual(["electrocute"])
+		expect(setStartReady(removed, "electrocute", true)).toEqual(EMPTY_COMBAT)
+	})
+
+	test("names an effect once however often it is removed", () => {
+		const twice = setStartReady(
+			setStartReady(EMPTY_COMBAT, "electrocute", false),
+			"electrocute",
+			false,
+		)
+
+		expect(twice.onCooldown).toEqual(["electrocute"])
 	})
 })

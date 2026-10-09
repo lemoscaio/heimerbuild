@@ -18,6 +18,7 @@ import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
 import type { ComboLink } from "@/lib/combat/combo-link"
 import type { CombatBuild } from "@/lib/combat/simulate-combat"
+import { dropUnusedComboStart } from "@/lib/combat/start-cooldowns"
 import {
 	availableEffects,
 	combatEffects,
@@ -130,6 +131,7 @@ export function useChampionBuild({
 				}
 			: undefined
 	const effects = effectsBuild && availableEffects(effectsBuild)
+	const fightEffects = effectsBuild && combatEffects(effectsBuild)
 	const basisInput = statsInput()
 	const conditions = useConditions({
 		available: effects,
@@ -156,7 +158,10 @@ export function useChampionBuild({
 		onChange: (value) => save({ effects: value }, EDIT_HISTORY.effects),
 	})
 
-	/** The checked values every edit saves next to its own change (the link's while data loads), without unused condition values. */
+	/**
+	 * The checked values every edit saves next to its own change (the link's while data loads),
+	 * without unused condition values or start cooldowns.
+	 */
 	const values: BuildValues = dropUnusedConditionValues(
 		{
 			level: championState.level,
@@ -172,6 +177,7 @@ export function useChampionBuild({
 			combo: state.combo,
 			free: state.free,
 			choices: state.choices,
+			start: dropUnusedComboStart(state.start, fightEffects),
 			target: state.target,
 		},
 		effects,
@@ -229,11 +235,11 @@ export function useChampionBuild({
 	 */
 	function combatInput() {
 		const input = statsInput()
-		if (!champion || !input || !effectsBuild) return undefined
+		if (!champion || !input || !fightEffects) return undefined
 		const { effects: _switches, ...build } = input
 		return {
 			build: { ...build, champion } satisfies CombatBuild,
-			effects: combatEffects(effectsBuild),
+			effects: fightEffects,
 			summoners: summoners.slots,
 		}
 	}
@@ -268,12 +274,13 @@ export function useChampionBuild({
 		},
 		/** The combo's build, effects and summoner slots; undefined while the data loads. */
 		combat: combatInput(),
-		/** The combo's steps and markers, free mode and its choices, as link values. */
+		/** The combo's steps and markers, free mode, its choices and start cooldowns, as link values. */
 		combo: {
 			value: {
 				combo: state.combo,
 				free: state.free,
 				choices: state.choices,
+				start: state.start,
 			} satisfies ComboLink,
 			onChange: saveCombo,
 		},

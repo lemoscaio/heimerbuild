@@ -12,6 +12,7 @@ const COMBO: CombatState = {
 	],
 	free: true,
 	choices: { 2: { "empowered:hail-of-blades": false } },
+	onCooldown: [],
 }
 
 describe("the combo's link values", () => {
@@ -39,6 +40,7 @@ describe("the combo's link values", () => {
 			combo: undefined,
 			free: undefined,
 			choices: undefined,
+			start: undefined,
 		})
 		expect(readCombatLink({})).toEqual(EMPTY_COMBAT)
 	})
@@ -56,6 +58,26 @@ describe("the combo's link values", () => {
 		})
 		expect(read.entries[1]?.action).toEqual({ kind: "wait", seconds: 30 })
 		expect(read.choices).toEqual({})
+	})
+
+	test("hold only the cooldowns the combo starts on: every one ready writes none", () => {
+		const onCooldown = {
+			...COMBO,
+			onCooldown: ["electrocute", "hail-of-blades"],
+		}
+
+		expect(toCombatLink(onCooldown).start).toBe("-electrocute.-hail-of-blades")
+		expect(toCombatLink(COMBO).start).toBeUndefined()
+		expect(readCombatLink(toCombatLink(onCooldown)).onCooldown).toEqual([
+			"electrocute",
+			"hail-of-blades",
+		])
+	})
+
+	test("are another combo when a cooldown starts otherwise", () => {
+		expect(
+			isSameCombatLink({ combo: "aa" }, { combo: "aa", start: "-electrocute" }),
+		).toBe(false)
 	})
 
 	test("are the same combo whether free mode is off or absent", () => {

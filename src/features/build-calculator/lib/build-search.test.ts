@@ -148,6 +148,14 @@ describe("buildSearchSchema", () => {
 		expect(parse({ choices: "nope" }).choices).toBeUndefined()
 	})
 
+	test("keeps the readable start cooldowns, once each, and drops the others", () => {
+		expect(
+			parse({ start: "-electrocute.hail.-electrocute.-hail-of-blades" }).start,
+		).toBe("-electrocute.-hail-of-blades")
+		expect(parse({ start: "electrocute" }).start).toBeUndefined()
+		expect(parse({ start: 5 }).start).toBeUndefined()
+	})
+
 	test("accepts a target preset or its numbers and drops anything else", () => {
 		expect(parse({ target: "tank" }).target).toBe("tank")
 		expect(parse({ target: "1800-60-45" }).target).toBe("1800-60-45")

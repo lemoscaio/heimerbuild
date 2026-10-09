@@ -56,6 +56,7 @@ export function useUrlBuildSource({
 		combo: search.combo,
 		free: search.free === 1 || undefined,
 		choices: search.choices,
+		start: search.start,
 		target: search.target,
 	}
 	const page: PageValues = { view: search.view, tab: search.tab }
@@ -81,6 +82,7 @@ export function useUrlBuildSource({
 			combo: values.combo,
 			free: values.free,
 			choices: values.choices,
+			start: values.start,
 			target: values.target,
 		})
 	}

@@ -7,19 +7,32 @@ import { type CombatEntry, removeStep } from "./combat-sequence"
 export type FreeChoices = Readonly<Record<number, OutcomeChoices>>
 
 /**
- * The combo the user builds: its entries (actions and markers), whether free mode is on, and the
- * free mode choices, kept while it is off so toggling back and forth loses nothing.
+ * The combo the user builds: its entries (actions and markers), whether free mode is on, the
+ * free mode choices, kept while it is off so toggling back and forth loses nothing, and the
+ * effects whose cooldown it starts on (every other one starts ready).
  */
 export type CombatState = {
 	entries: readonly CombatEntry[]
 	free: boolean
 	choices: FreeChoices
+	onCooldown: readonly string[]
 }
 
 export const EMPTY_COMBAT: CombatState = {
 	entries: [],
 	free: false,
 	choices: {},
+	onCooldown: [],
+}
+
+/** The combo with the effect starting on its cooldown (`onCooldown`), or ready. */
+export function setStartReady(
+	state: CombatState,
+	effectId: string,
+	ready: boolean,
+): CombatState {
+	const others = state.onCooldown.filter((id) => id !== effectId)
+	return { ...state, onCooldown: ready ? others : [...others, effectId] }
 }
 
 /** The choices with one outcome set at an entry, or back to the computed one (`undefined`). */

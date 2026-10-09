@@ -4,7 +4,9 @@ import {
 	type ComboLink,
 	normalizeComboChoices,
 	readComboItems,
+	readComboStart,
 	serializeComboItems,
+	serializeComboStart,
 	TARGET_PARAM_PATTERN,
 } from "@/lib/combat/combo-link"
 import { FULL_HEALTH, MIN_HEALTH } from "@/lib/effects/current-health"
@@ -76,6 +78,11 @@ const comboChoicesSchema = z.pipe(
 	z.transform(normalizeComboChoices),
 )
 
+const comboStartSchema = z.pipe(
+	z.string(),
+	z.transform((value) => serializeComboStart(readComboStart(value))),
+)
+
 /** Shareable build in the champion page URL, in the latest link format. Invalid values are dropped, never an error page. */
 export const buildSearchSchema = z.object({
 	/** The link format version; read links are migrated to it first (`readBuildSearch`). */
@@ -136,6 +143,8 @@ export const buildSearchSchema = z.object({
 	free: z.catch(z.optional(z.literal(1)), undefined),
 	/** Free mode's choices by step (`serializeComboChoices`); absent means the computed outcomes. */
 	choices: z.catch(z.optional(comboChoicesSchema), undefined),
+	/** The cooldowns the combo starts on (`serializeComboStart`); absent means every one starts ready. */
+	start: z.catch(z.optional(comboStartSchema), undefined),
 	/** The combo's target: a preset's id or its numbers; absent means the Dummy. Checked by the target later. */
 	target: z.catch(
 		z.optional(z.string().check(z.regex(TARGET_PARAM_PATTERN))),
@@ -200,6 +209,7 @@ export function toBuildSearch({
 	combo,
 	free,
 	choices,
+	start,
 	target,
 }: BuildState): BuildSearch {
 	return {
@@ -219,6 +229,7 @@ export function toBuildSearch({
 		combo,
 		free: free ? 1 : undefined,
 		choices,
+		start,
 		target,
 		v: BUILD_LINK_VERSION,
 	}
