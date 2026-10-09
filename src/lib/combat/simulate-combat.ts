@@ -540,8 +540,9 @@ function damageAmplification(sim: Simulation): number {
 
 /**
  * An action's damage landing triggers the `on-action-damage` effects, once per action: its later
- * hits, ticks and delayed hits count as it (one stack per cast instance, wiki Electrocute). Its first
- * damage says whether a basic attack dealt it (`stacks.gain`).
+ * hits, ticks and delayed hits count as it (one stack per cast instance, wiki Electrocute), unless
+ * its hit rule's `actionPerHit` names the effect. Its first damage says whether a basic attack
+ * dealt it (`stacks.gain`).
  */
 function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	if (sim.onActionDamage) return
@@ -550,7 +551,8 @@ function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	const pending: PendingMarks = []
 	for (const effect of sim.input.effects) {
 		if (effect.effect.trigger.kind !== "on-action-damage") continue
-		const key = `${effect.id}@${action}`
+		const hit = isActionPerHit(sim, source, effect.id) ? `@${sim.time}` : ""
+		const key = `${effect.id}@${action}${hit}`
 		if (sim.actionDamageTriggered.has(key)) continue
 		sim.actionDamageTriggered.add(key)
 		const by = source.kind === "attack" ? "attack" : "other"
@@ -558,6 +560,16 @@ function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	}
 	applyMarks(sim, pending)
 	sim.onActionDamage = false
+}
+
+/** The cast's hit rule names the effect in `actionPerHit`: each of its hits, at its own time, is an action. */
+function isActionPerHit(
+	sim: Simulation,
+	source: DamageSource,
+	effectId: string,
+): boolean {
+	if (source.kind !== "ability" || source.slot === "passive") return false
+	return !!hitRule(sim, source.slot)?.actionPerHit?.includes(effectId)
 }
 
 function notModeledHit(
