@@ -58,6 +58,8 @@ type Setup = {
 	level: number
 	ranks: AbilityRanks
 	items?: readonly Item[]
+	/** Leaves out the champion's own ability effects (Darius's Hemorrhage would add its bleed). */
+	withoutKit?: true
 	runes?: readonly Rune[]
 }
 
@@ -75,7 +77,9 @@ function simulate(setup: Setup, actions: readonly CombatItem[]) {
 			spells: [],
 			runes: setup.runes ?? [],
 			items: setup.items ?? [],
-		}),
+		}).filter(
+			({ effect }) => !setup.withoutKit || effect.source.kind !== "ability",
+		),
 		summoners: [],
 		target: TARGET,
 		actions,
@@ -275,6 +279,7 @@ describe("attack windup: an attack keeps the champion busy only until it lands (
 		champion: await champion("Darius"),
 		level: 9,
 		ranks: { Q: 5, W: 2, E: 1, R: 1 },
+		withoutKit: true,
 	}
 	const { attackSpeed } = computeBuildStats(buildOf(darius))
 	// Wiki: 20% windup with a 0.5 modifier, so bonus attack speed shortens it half as much.

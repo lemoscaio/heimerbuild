@@ -4,6 +4,7 @@ import { BLITZCRANK_EFFECTS } from "../../champions/blitzcrank"
 import { BRAND_EFFECTS } from "../../champions/brand"
 import { CAMILLE_EFFECTS } from "../../champions/camille"
 import { CHOGATH_EFFECTS } from "../../champions/chogath"
+import { DARIUS_EFFECTS } from "../../champions/darius"
 import { DR_MUNDO_EFFECTS } from "../../champions/dr-mundo"
 import { DRAVEN_EFFECTS } from "../../champions/draven"
 import { EZREAL_EFFECTS } from "../../champions/ezreal"
@@ -42,6 +43,7 @@ import { TRUNDLE_EFFECTS } from "../../champions/trundle"
 import { TRYNDAMERE_EFFECTS } from "../../champions/tryndamere"
 import { TWITCH_EFFECTS } from "../../champions/twitch"
 import { UDYR_EFFECTS } from "../../champions/udyr"
+import { VAYNE_EFFECTS } from "../../champions/vayne"
 import { VEIGAR_EFFECTS } from "../../champions/veigar"
 import { VI_EFFECTS } from "../../champions/vi"
 import { VIEGO_EFFECTS } from "../../champions/viego"
@@ -62,6 +64,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...BRAND_EFFECTS,
 	...CAMILLE_EFFECTS,
 	...CHOGATH_EFFECTS,
+	...DARIUS_EFFECTS,
 	...DR_MUNDO_EFFECTS,
 	...DRAVEN_EFFECTS,
 	...EZREAL_EFFECTS,
@@ -100,6 +103,7 @@ export const ABILITY_EFFECTS: readonly Effect[] = [
 	...TRYNDAMERE_EFFECTS,
 	...TWITCH_EFFECTS,
 	...UDYR_EFFECTS,
+	...VAYNE_EFFECTS,
 	...VEIGAR_EFFECTS,
 	...VI_EFFECTS,
 	...VIEGO_EFFECTS,

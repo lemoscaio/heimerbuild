@@ -100,7 +100,10 @@ export type AbilityFixes = {
 	castTimes?: Partial<Record<AbilitySlot, number>>
 	/** Seconds by rank, rank 1 first. */
 	cooldowns?: Partial<Record<AbilitySlot, readonly number[]>>
-	/** The ability's damage formulas, given the synced ones (a part the sync can't read). */
+	/**
+	 * The ability's damage formulas, given the synced ones (a part the sync can't read); none left
+	 * means the ability deals no damage (a buff's number read as one).
+	 */
 	damage?: Partial<
 		Record<AbilitySlot, (damage: AbilityDamage[]) => AbilityDamage[]>
 	>
@@ -109,12 +112,14 @@ export type AbilityFixes = {
 function fixSpell(spell: ChampionSpell, fixes: AbilityFixes): ChampionSpell {
 	const castTime = fixes.castTimes?.[spell.slot]
 	const cooldown = fixes.cooldowns?.[spell.slot]
-	const damage = fixes.damage?.[spell.slot]
+	const fixDamage = fixes.damage?.[spell.slot]
+	const { damage: synced, ...rest } = spell
+	const damage = fixDamage && synced ? fixDamage(synced) : synced
 	return {
-		...spell,
+		...rest,
 		...(castTime !== undefined && { castTime }),
 		...(cooldown && { cooldown: [...cooldown] }),
-		...(damage && spell.damage && { damage: damage(spell.damage) }),
+		...(damage?.length && { damage }),
 	}
 }
 

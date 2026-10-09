@@ -4,13 +4,16 @@
  * The list grows every patch; other champions show their unmodeled abilities as such.
  */
 export const CURATED_COMBAT_CHAMPIONS: readonly string[] = [
+	"Ahri",
 	"Annie",
 	"Braum",
 	"Brand",
+	"Darius",
 	"Ezreal",
 	"Garen",
 	"Janna",
 	"Jax",
+	"Jinx",
 	"Leona",
 	"Lissandra",
 	"Lux",
@@ -23,6 +26,7 @@ export const CURATED_COMBAT_CHAMPIONS: readonly string[] = [
 	"Singed",
 	"Taric",
 	"Teemo",
+	"Vayne",
 	"Veigar",
 	"Zac",
 	"Ziggs",

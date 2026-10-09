@@ -1,7 +1,11 @@
 // Jinx: Switcheroo! (Q) swaps Pow-Pow for Fishbones once learned; the weapons' bonuses are app
 // effects (src/lib/champions/jinx.ts). Each weapon shows its own icon, game text and rank-up line.
+// Switcheroo! and Flame Chompers! (E) are instant and Zap! (W) takes 0.6 s; the game files give 0.25 s.
 import type { FormAbilityRule } from "../form-abilities"
-import { defineForms } from "../overrides/define-champion-overrides"
+import {
+	defineCastTimes,
+	defineForms,
+} from "../overrides/define-champion-overrides"
 import { WIKI_DATA } from "./rule-helpers"
 
 export const JINX_FORMS = defineForms({
@@ -43,3 +47,13 @@ export const JINX_FORM_ABILITIES = {
 		},
 	},
 } satisfies FormAbilityRule
+
+export const JINX_CAST_TIMES = defineCastTimes({
+	id: "jinx-cast-times",
+	championKey: "Jinx",
+	since: "16.19",
+	reason:
+		"Switcheroo! and Flame Chompers! have no cast time and Zap! takes 0.6 s (less with bonus attack speed, app rule); the game files give 0.25 s, Zap!'s missile spell 0.6 s",
+	source: `${WIKI_DATA}Jinx/Zap!`,
+	castTimes: { Q: 0, W: 0.6, E: 0 },
+})

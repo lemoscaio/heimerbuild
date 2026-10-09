@@ -225,6 +225,17 @@ export type CooldownMultiplierGrant = {
 	kind: "cooldownMultiplier"
 	slots: readonly AbilitySlot[]
 	amount: Amount
+	/** `amount` is the share taken off instead: 1 − amount (Final Hour: Tumble's 30 to 50% less). */
+	reduction?: true
+}
+
+/**
+ * Multiplies each basic attack's damage while its effect runs on the attacker (combat simulator):
+ * Fishbones' rockets deal 110% AD (1.1).
+ */
+export type AttackMultiplierGrant = {
+	kind: "attackMultiplier"
+	amount: Amount
 }
 
 /**
@@ -243,7 +254,7 @@ export type CounterGrant = {
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
  * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
  * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true
- * damage); so are `resistReduction`, on the target, and `cooldownMultiplier`.
+ * damage); so are `resistReduction`, on the target, `cooldownMultiplier` and `attackMultiplier`.
  */
 export type Grant = GrantTiming &
 	GrantThreshold &
@@ -263,6 +274,7 @@ export type Grant = GrantTiming &
 		  }
 		| ResistReductionGrant
 		| CooldownMultiplierGrant
+		| AttackMultiplierGrant
 		| CounterGrant
 	)
 
@@ -429,8 +441,9 @@ export type Effect = PatchRange & {
 	/**
 	 * Each new application adds one up to `max`: stats scale by stacks / max, a damage over time ticks
 	 * once per stack. With `onlyAtMax`, its grants hold only at `max` (Vi's attack speed after 3 hits).
+	 * `shares` replaces stacks / max: the share at 1, 2, … stacks (Rev'd up: 50%, 75%, 100%).
 	 */
-	stacks?: { max: number; onlyAtMax?: true }
+	stacks?: { max: number; onlyAtMax?: true; shares?: readonly number[] }
 	/**
 	 * The basic attacks it holds for, then it ends: an `on-attack` one's include the attack that
 	 * triggers it (Hail of Blades); a re-trigger gives them back (Monk Training after each cast).

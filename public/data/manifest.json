@@ -6,7 +6,7 @@
 	"files": {
 		"16.19.1/champions.json": "5c496bbad5",
 		"16.19.1/champions/Aatrox.json": "26d2ad2fc6",
-		"16.19.1/champions/Ahri.json": "d374d0529e",
+		"16.19.1/champions/Ahri.json": "d1b862d578",
 		"16.19.1/champions/Akali.json": "031aeb625a",
 		"16.19.1/champions/Akshan.json": "37c8dae44d",
 		"16.19.1/champions/Alistar.json": "22d57cfc86",
@@ -30,7 +30,7 @@
 		"16.19.1/champions/Cassiopeia.json": "65b2608db2",
 		"16.19.1/champions/Chogath.json": "af943542e2",
 		"16.19.1/champions/Corki.json": "1c79a8f0e2",
-		"16.19.1/champions/Darius.json": "673432f54b",
+		"16.19.1/champions/Darius.json": "4ffdb22612",
 		"16.19.1/champions/Diana.json": "b0dd00ca39",
 		"16.19.1/champions/DrMundo.json": "f7ecbe0e83",
 		"16.19.1/champions/Draven.json": "9b8bafb55d",
@@ -59,7 +59,7 @@
 		"16.19.1/champions/Jax.json": "ffc281ea93",
 		"16.19.1/champions/Jayce.json": "8017b24407",
 		"16.19.1/champions/Jhin.json": "b1f27663ef",
-		"16.19.1/champions/Jinx.json": "a771fbbf7a",
+		"16.19.1/champions/Jinx.json": "2a72fe0b90",
 		"16.19.1/champions/KSante.json": "a7b6e1e634",
 		"16.19.1/champions/Kaisa.json": "614ac71e27",
 		"16.19.1/champions/Kalista.json": "72dc185a80",
@@ -152,7 +152,7 @@
 		"16.19.1/champions/Udyr.json": "ac52ff5b27",
 		"16.19.1/champions/Urgot.json": "3072b1bb47",
 		"16.19.1/champions/Varus.json": "496d9f1af1",
-		"16.19.1/champions/Vayne.json": "9b82b8a777",
+		"16.19.1/champions/Vayne.json": "c9139b3638",
 		"16.19.1/champions/Veigar.json": "4310f0a9a9",
 		"16.19.1/champions/Velkoz.json": "a4e9b0510b",
 		"16.19.1/champions/Vex.json": "7f1a0ca178",
@@ -182,5 +182,5 @@
 		"16.19.1/runes.json": "51aeb100e8",
 		"16.19.1/summoner-spells.json": "8a4cd741cf"
 	},
-	"generatedAt": "2026-10-08T03:50:45.235Z"
+	"generatedAt": "2026-10-09T00:19:26.350Z"
 }
