@@ -46,6 +46,9 @@ export const GAREN_HIT_RULES = [
 		slot: "E",
 		damage: "NearestEnemyBonus",
 		attackSpeedHits: { base: 7, perBonusAttackSpeed: 0.25, over: 3 },
+		// Wiki Conqueror: Judgment is "special cased to stack Conqueror for every tick of damage", each
+		// spin a spell's 2 stacks (the Judgment page: "Each spin triggers a stack"). Electrocute: no.
+		actionPerHit: ["conqueror"],
 		since: "16.19",
 		sourceUrl: `${WIKI}Garen/Judgment`,
 	},
