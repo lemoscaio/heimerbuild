@@ -67,7 +67,7 @@ export type Amount =
 			by: "stat"
 			stat: StatName
 			part?: "bonus"
-			ratio: TableAmount | MissingHealthAmount
+			ratio: TableAmount | MissingHealthAmount | AttackTypeAmount
 	  }
 	| PercentOfTotalAmount
 	| MissingHealthAmount
@@ -261,7 +261,8 @@ export type CounterGrant = {
  * simulator's (`lib/combat`): `damage` as ratios of the attacker's stats, `abilityDamage` as the
  * source ability's synced formula by name, `damageOverTime` in ticks while it lasts,
  * `onAttackDamage` by each basic attack while it runs (`base` plus `ratios`: Hail of Blades' true
- * damage), `damageAmplification` on all the attacker's damage while it runs (Press the Attack's 8%);
+ * damage), `damageAmplification` on all the attacker's damage while it runs (Press the Attack's 8%),
+ * `bonusTrueDamage` that share of each hit after mitigation, as true damage (First Strike's 7%);
  * so are `resistReduction`, on the target, `cooldownMultiplier` and `attackMultiplier`.
  */
 export type Grant = GrantTiming &
@@ -280,6 +281,7 @@ export type Grant = GrantTiming &
 		| AttackMultiplierGrant
 		| CounterGrant
 		| { kind: "damageAmplification"; amount: Amount }
+		| { kind: "bonusTrueDamage"; amount: Amount }
 	)
 
 /**
@@ -289,12 +291,13 @@ export type Grant = GrantTiming &
 export type DamageGrant = { kind: "damage" } & EffectDamage
 
 /**
- * Damage an effect deals: a `base` (by melee or ranged too: Lethal Tempo's bolt) plus ratios of the
- * attacker's stats, `perBonusAttackSpeed` more per 100% bonus attack speed (Lethal Tempo: 1).
+ * Damage an effect deals: a `base`, its parts added up (Dark Harvest: 30 + 11 per soul; a share of
+ * the attacker's health: Grasp), plus ratios of the attacker's stats, `perBonusAttackSpeed` more
+ * per 100% bonus attack speed (Lethal Tempo: 1).
  */
 export type EffectDamage = {
 	damageType: EffectDamageType
-	base?: TableAmount | AttackTypeAmount
+	base?: Amount | readonly Amount[]
 	ratios: DamageRatios
 	perBonusAttackSpeed?: number
 }
@@ -334,7 +337,8 @@ export type EffectCondition = "not-damaged-recently"
  * damage landing, its ticks included (Liandry's Torment); damage of `damageType` landing, from any
  * source, once per moment (Black Cleaver's Carve); the `effect` with that id reaching its
  * `stacks.max` (Blaze's detonation at 3 stacks); or an action's damage landing, once per action, its
- * later hits and ticks not again (`on-action-damage`: Electrocute's stacks). `on-hit` with
+ * later hits and ticks not again (`on-action-damage`: Electrocute's stacks; with `targetBelow`, only
+ * while the hit leaves the target under that share of its health: Dark Harvest's 50%). `on-hit` with
  * `attacksOnly` skips an ability's on-hit (Press the Attack's stacks).
  */
 export type Trigger =
@@ -351,7 +355,7 @@ export type Trigger =
 	| { kind: "on-ability-damage" }
 	| { kind: "on-max-stacks"; effect: string }
 	| { kind: "on-damage"; damageType: DamageType }
-	| { kind: "on-action-damage" }
+	| { kind: "on-action-damage"; targetBelow?: number }
 
 export type TriggerKind = Trigger["kind"]
 

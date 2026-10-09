@@ -240,6 +240,7 @@ describe("Hail of Blades", () => {
 		const base =
 			grant?.kind === "onAttackDamage" &&
 			typeof grant.base === "object" &&
+			"by" in grant.base &&
 			grant.base.by === "championLevel"
 				? grant.base.steps
 				: []
@@ -270,10 +271,9 @@ function damageSteps(id: string) {
 	const grant = RUNE_EFFECTS.find((effect) => effect.id === id)?.grants.find(
 		({ kind }) => kind === "damage",
 	)
-	return grant?.kind === "damage" &&
-		typeof grant.base === "object" &&
-		grant.base.by === "championLevel"
-		? grant.base.steps.map(({ value }) => value)
+	const [base] = grant?.kind === "damage" ? [grant.base ?? 0].flat() : []
+	return typeof base === "object" && base.by === "championLevel"
+		? base.steps.map(({ value }) => value)
 		: []
 }
 
@@ -363,6 +363,68 @@ describe("Lethal Tempo", () => {
 			duration: 6,
 			stacks: { max: 6 },
 		})
+	})
+})
+
+describe("the proc keystones match the current patch's rune text", () => {
+	test("Summon Aery: 10 - 50 by level (+0.05 AP) (+0.1 bonus AD)", async () => {
+		const text = runeText(await currentRune("SummonAery"))
+
+		expect(text).toContain(
+			"dealing 10 - 50 based on level (+0.05 AP) (+0.1 bonus AD)",
+		)
+		expect(damageSteps("summon-aery").at(-1)).toBeCloseTo(50)
+	})
+
+	test("Arcane Comet: 15 - 100 by level, cooldown 20 - 8 s", async () => {
+		const text = runeText(await currentRune("ArcaneComet"))
+		const comet = RUNE_EFFECTS.find(({ id }) => id === "arcane-comet")
+		const cooldown =
+			typeof comet?.cooldown === "object" &&
+			comet.cooldown.by === "championLevel"
+				? comet.cooldown.steps.map(({ value }) => value)
+				: []
+
+		expect(text).toContain(
+			"15 - 100 based on level (+0.05 AP and +0.1 bonus AD)",
+		)
+		expect(text).toContain("Cooldown: 20 - 8s")
+		expect(damageSteps("arcane-comet")[0]).toBe(15)
+		expect(cooldown[0]).toBe(20)
+		expect(cooldown.at(-1)).toBeCloseTo(8)
+	})
+
+	test("First Strike: 7% extra damage for 3 seconds, cooldown 25 - 15 s", async () => {
+		const text = runeText(await currentRune("FirstStrike"))
+
+		expect(text).toContain(
+			"First Strike for 3 seconds, causing you to deal 7% extra damage",
+		)
+		expect(text).toContain("Cooldown: 25 - 15s")
+	})
+
+	test("Dark Harvest: 30 (+11 per soul) below 50% health, cooldown 35 s", async () => {
+		const text = runeText(await currentRune("DarkHarvest"))
+
+		expect(text).toContain("Damaging a Champion below 50% health")
+		expect(text).toContain(
+			"30 (+11 damage per soul) (+0.1 bonus AD) (+0.05 AP)",
+		)
+		expect(text).toContain("Cooldown: 35s")
+		expect(RUNE_EFFECTS.find(({ id }) => id === "dark-harvest")).toMatchObject({
+			cooldown: 35,
+		})
+	})
+
+	test("Grasp of the Undying: every 4 s, 3.5% of maximum health, 40% for ranged", async () => {
+		const text = runeText(await currentRune("GraspOfTheUndying"))
+
+		expect(text).toContain("Every 4s in combat")
+		expect(text).toContain("magic damage equal to 3.5% of your max health")
+		expect(text).toContain("are 40% effective")
+		expect(
+			RUNE_EFFECTS.find(({ id }) => id === "grasp-of-the-undying-proc"),
+		).toMatchObject({ cooldown: 4 })
 	})
 })
 
@@ -468,6 +530,27 @@ describe("runes with match stacks", () => {
 			(await statsWith("GraspOfTheUndying", { "grasp-stacks": 30 })).health
 				.total,
 		).toBe((await statsWith("GraspOfTheUndying")).health.total + 60)
+	})
+
+	test("Dark Harvest lists its souls, the count its damage reads", async () => {
+		const rune = await currentRune("DarkHarvest")
+		const listed = availableEffects({
+			patch: PATCH,
+			champion: teemo,
+			ranks,
+			spells: [],
+			runes: [rune],
+		})
+		const [souls] = listed
+
+		expect(listed.map(({ id }) => id)).toEqual(["dark-harvest-soul-count"])
+		expect(
+			souls &&
+				resolveGrants(souls, {
+					level: 9,
+					matchStacks: { "dark-harvest-souls": 12 },
+				}),
+		).toEqual([{ kind: "counter", counter: "souls", value: 12 }])
 	})
 
 	test("Biscuit Delivery gives 30 health per biscuit, 3 biscuits at most", async () => {

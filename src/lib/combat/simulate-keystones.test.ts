@@ -7,6 +7,7 @@ import { computeBuildStats } from "../stats/compute-build-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import type {
 	CombatAction,
+	CombatItem,
 	CombatResult,
 	CombatTarget,
 	DealtDamage,
@@ -62,13 +63,24 @@ type Setup = {
 	ranks: AbilityRanks
 	runes: readonly Rune[]
 	items?: readonly Item[]
+	target?: CombatTarget
+	matchStacks?: Record<string, number>
 }
 
-function buildOf({ champion, level, ranks, items = [] }: Setup): CombatBuild {
-	return { champion, patch: PATCH, level, items, shards: [], ranks }
+function buildOf(setup: Setup): CombatBuild {
+	const { champion, level, ranks, items = [], matchStacks } = setup
+	return {
+		champion,
+		patch: PATCH,
+		level,
+		items,
+		shards: [],
+		ranks,
+		matchStacks,
+	}
 }
 
-function simulate(setup: Setup, actions: readonly CombatAction[]) {
+function simulate(setup: Setup, actions: readonly CombatItem[]) {
 	const input: CombatInput = {
 		build: buildOf(setup),
 		effects: combatEffects({
@@ -80,7 +92,7 @@ function simulate(setup: Setup, actions: readonly CombatAction[]) {
 			items: setup.items ?? [],
 		}),
 		summoners: [],
-		target: TARGET,
+		target: setup.target ?? TARGET,
 		actions,
 	}
 	return simulateCombat(input)
@@ -480,5 +492,192 @@ describe("Lethal Tempo", async () => {
 			1 / (attackSpeed.total + ratio * 0.048),
 		)
 		expect(bolt?.raw).toBeCloseTo(base * (1 + bonus))
+	})
+})
+
+describe("Summon Aery", async () => {
+	const annie: Setup = {
+		champion: await champion("Annie"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 1, R: 0 },
+		runes: [rune("SummonAery")],
+		items: [item("Amplifying Tome")],
+	}
+	const ap = computeBuildStats(buildOf(annie)).abilityPower.total
+	// Wiki: 10 + 40 / 17 × (level − 1) (+ 10% bonus AD) (+ 5% AP) adaptive, 0.45 s after the hit.
+	const pounce = (level: number) => 10 + (40 / 17) * (level - 1) + 0.05 * ap
+
+	test("an ability's damage sends her: adaptive damage 0.45 s later", () => {
+		const [hit, ...more] = effectHits(
+			simulate(annie, [cast("Q")]),
+			"summon-aery",
+		)
+
+		expect(more).toHaveLength(0)
+		expect(hit?.time).toBeCloseTo(0.45)
+		expect(hit?.type).toBe("magic")
+		expect(hit?.final).toBeCloseTo(magic(pounce(9)))
+	})
+
+	test("she goes again only 2.45 s after she was sent, back from lingering", () => {
+		const quick = simulate(annie, [cast("Q"), cast("W"), attack])
+		// Q's 0.25 s cast time, then 2.25 s: W at 2.50 s, just after she's back.
+		const later = simulate(annie, [cast("Q"), wait(2.25), cast("W")])
+		const sooner = simulate(annie, [cast("Q"), wait(2.1), cast("W")])
+
+		expect(effectHits(quick, "summon-aery")).toHaveLength(1)
+		expect(effectHits(sooner, "summon-aery")).toHaveLength(1)
+		expect(effectHits(later, "summon-aery").map(({ time }) => time)).toEqual([
+			expect.closeTo(0.45),
+			expect.closeTo(2.95),
+		])
+	})
+})
+
+describe("Arcane Comet", async () => {
+	const annie: Setup = {
+		champion: await champion("Annie"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 1, R: 0 },
+		runes: [rune("ArcaneComet")],
+		items: [item("Amplifying Tome")],
+	}
+	const ap = computeBuildStats(buildOf(annie)).abilityPower.total
+
+	test("ability damage hurls it: it lands 0.8 s later with its least damage, magic for AP", () => {
+		const [hit, ...more] = effectHits(
+			simulate(annie, [cast("Q"), cast("W")]),
+			"arcane-comet",
+		)
+		// Wiki: 15 + (100 − 15) / 17 × (level − 1) (+ 10% bonus AD) (+ 5% AP).
+		const comet = 15 + (85 / 17) * 8 + 0.05 * ap
+
+		expect(more).toHaveLength(0)
+		expect(hit?.time).toBeCloseTo(0.8)
+		expect(hit?.type).toBe("magic")
+		expect(hit?.final).toBeCloseTo(magic(comet))
+	})
+
+	test("attacks don't hurl it, and its cooldown is 20 to 8 s by level", () => {
+		// Wiki: 20 − (20 − 8) / 17 × (level − 1): 14.35 s at level 9.
+		const cooldown = 20 - (12 / 17) * 8
+		const early = simulate(annie, [cast("Q"), wait(cooldown - 0.5), cast("Q")])
+		const late = simulate(annie, [cast("Q"), wait(cooldown + 0.5), cast("Q")])
+
+		expect(
+			effectHits(simulate(annie, [attack, attack]), "arcane-comet"),
+		).toHaveLength(0)
+		expect(effectHits(early, "arcane-comet")).toHaveLength(1)
+		expect(effectHits(late, "arcane-comet")).toHaveLength(2)
+	})
+})
+
+describe("First Strike", async () => {
+	const annie: Setup = {
+		champion: await champion("Annie"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 1, R: 0 },
+		runes: [rune("FirstStrike")],
+	}
+
+	test("the first hit starts it: 7% of each hit after mitigation as true damage for 3 s, that hit's too", () => {
+		const result = simulate(annie, [cast("Q"), cast("W"), wait(3), cast("Q")])
+		const bonus = effectHits(result, "first-strike")
+		const [q, w] = [0, 1].map((step) => effectlessHits(result, step)[0])
+
+		expect(bonus).toHaveLength(2)
+		expect(bonus[0]).toMatchObject({ type: "true", step: 0 })
+		expect(bonus[0]?.final).toBeCloseTo((q?.final ?? 0) * 0.07)
+		expect(bonus[1]?.final).toBeCloseTo((w?.final ?? 0) * 0.07)
+	})
+})
+
+describe("Dark Harvest", async () => {
+	const annie: Setup = {
+		champion: await champion("Annie"),
+		level: 9,
+		ranks: { Q: 3, W: 3, E: 1, R: 0 },
+		runes: [rune("DarkHarvest")],
+		items: [item("Amplifying Tome")],
+		target: { ...TARGET, health: 400 },
+	}
+	const ap = computeBuildStats(buildOf(annie)).abilityPower.total
+	// Wiki: 30 (+ 11 per soul) (+ 10% bonus AD) (+ 5% AP) adaptive.
+	const harvest = (souls: number) => 30 + 11 * souls + 0.05 * ap
+
+	test("the hit that leaves the target under 50% health deals its damage, then 35 s of cooldown", () => {
+		const result = simulate(annie, [cast("Q"), cast("W"), wait(1), cast("Q")])
+		const [hit, ...more] = effectHits(result, "dark-harvest")
+		const afterQ = result.steps[0]?.targetHealth ?? 0
+
+		expect(afterQ).toBeGreaterThan(200)
+		expect(more).toHaveLength(0)
+		expect(hit).toMatchObject({ type: "magic", step: 1 })
+		expect(hit?.final).toBeCloseTo(magic(harvest(0)))
+	})
+
+	test("each soul the build sets adds 11 damage", () => {
+		const souled = simulate(
+			{ ...annie, matchStacks: { "dark-harvest-souls": 10 } },
+			[cast("Q"), cast("W")],
+		)
+		const [hit] = effectHits(souled, "dark-harvest")
+
+		expect(hit?.final).toBeCloseTo(magic(harvest(10)))
+	})
+})
+
+describe("Grasp of the Undying", async () => {
+	const garen: Setup = {
+		champion: await champion("Garen"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+		runes: [rune("GraspOfTheUndying")],
+	}
+	const health = computeBuildStats(buildOf(garen)).health.total
+	const five = [attack, attack, attack, attack, attack]
+
+	test("after 4 s in combat the next attack deals 3.5% of maximum health as magic damage", () => {
+		const result = simulate(garen, five)
+		const [hit, ...more] = effectHits(result, "grasp-of-the-undying-proc")
+		const firstAfter4 = result.steps.findIndex(({ time }) => time >= 4 - 0.3)
+
+		expect(more).toHaveLength(0)
+		expect(hit?.type).toBe("magic")
+		expect(hit?.final).toBeCloseTo(magic(0.035 * health))
+		expect(hit?.time).toBeGreaterThanOrEqual(4)
+		expect(hit?.step).toBe(firstAfter4)
+	})
+
+	test("a marker makes it ready for the first attack; then every 4 s", () => {
+		const result = simulate(garen, [
+			{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
+			...five,
+		])
+		const procs = effectHits(result, "grasp-of-the-undying-proc")
+
+		expect(procs[0]?.step).toBe(1)
+		expect(procs).toHaveLength(2)
+		expect(
+			(procs[1]?.time ?? 0) - (procs[0]?.time ?? 0),
+		).toBeGreaterThanOrEqual(4)
+	})
+
+	test("a ranged champion's deals 1.4%", async () => {
+		const quinn: Setup = {
+			champion: await champion("Quinn"),
+			level: 9,
+			ranks: { Q: 0, W: 0, E: 0, R: 0 },
+			runes: [rune("GraspOfTheUndying")],
+		}
+		const result = simulate(quinn, [
+			{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
+			attack,
+		])
+		const quinnHealth = computeBuildStats(buildOf(quinn)).health.total
+
+		expect(
+			effectHits(result, "grasp-of-the-undying-proc")[0]?.final,
+		).toBeCloseTo(magic(0.014 * quinnHealth))
 	})
 })
