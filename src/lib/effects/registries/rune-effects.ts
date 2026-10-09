@@ -200,6 +200,64 @@ export const RUNE_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Press_the_Attack`,
 	},
 	{
+		// Wiki: damage to champions gives stacks "lasting for 5 seconds, refreshing [...] up to 12": 2 (1
+		// ranged) per attack, 2 per other damage. Its healing at 12 is left out; the combo shows no heals.
+		id: "conqueror",
+		source: { kind: "rune", runeKey: "Conqueror" },
+		trigger: { kind: "on-action-damage" },
+		duration: 5,
+		stacks: {
+			max: 12,
+			gain: { attack: { by: "attackType", melee: 2, ranged: 1 }, other: 2 },
+		},
+		grants: [
+			{
+				kind: "stat",
+				stat: "adaptiveForce",
+				// Wiki: 1.8 + (4 − 1.8) / 17 × (level − 1) per stack, so 21.6 to 48 at 12.
+				amount: { by: "championLevel", steps: perLevel(21.6, 48) },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Conqueror`,
+	},
+	{
+		// Wiki: attacks "grant a stack for 6 seconds, refreshing on subsequent attacks and stacking up to
+		// 6 times"; at its end all stacks go at once here (the wiki: one, then one every 0.3 s).
+		id: "lethal-tempo",
+		source: { kind: "rune", runeKey: "LethalTempo" },
+		trigger: { kind: "on-attack" },
+		duration: 6,
+		stacks: { max: 6 },
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackSpeedPercent",
+				// Wiki: 6% per stack, ranged × 0.8 (4.8%); the rune text's 4% ranged is outdated.
+				amount: { by: "attackType", melee: 0.36, ranged: 0.288 },
+			},
+			{
+				// Wiki: at 6 stacks a bolt deals 9 to 30 (ranged × 0.667) "bonus adaptive damage [...] increased
+				// by 1% per 1% bonus attack speed"; the rune text's ranged 6 to 24 is wrong (wiki notes).
+				kind: "onAttackDamage",
+				atMaxStacks: true,
+				damageType: "adaptive",
+				base: {
+					by: "attackType",
+					melee: { by: "championLevel", steps: perLevel(9, 30) },
+					ranged: {
+						by: "championLevel",
+						steps: perLevel(9 * 0.667, 30 * 0.667),
+					},
+				},
+				ratios: {},
+				perBonusAttackSpeed: 1,
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Lethal_Tempo`,
+	},
+	{
 		// Wiki: "Gain 3% (+ 1.5% per Legend stack) bonus attack speed, up to 18% at maximum stacks."
 		id: "legend-alacrity",
 		source: { kind: "rune", runeKey: "LegendAlacrity" },
