@@ -89,6 +89,7 @@ describe("groupRuns (issue 331)", () => {
 function stepView(overrides: Partial<StepView> = {}): StepView {
 	return {
 		hits: [{ name: "Attack", type: "physical", raw: 100, final: 60, count: 1 }],
+		procs: [],
 		damageOverTime: [],
 		total: { raw: 100, final: 60 },
 		mainType: "physical",

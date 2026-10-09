@@ -6,6 +6,7 @@ import { combatEffects } from "../effects/available-effects"
 import { computeBuildStats } from "../stats/compute-build-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import type {
+	ActiveEffect,
 	CombatAction,
 	CombatItem,
 	CombatResult,
@@ -429,6 +430,15 @@ describe("Conqueror", async () => {
 		])
 
 		expect(stacksOf(short, "conqueror")).toEqual([0, 6])
+	})
+
+	test("Judgment's step keeps the state its last spin left, past its cast's (issue 429)", () => {
+		const [judgment] = simulate(garen, [cast("E"), wait(3)]).steps
+		const stacks = (active: ActiveEffect[] | undefined) =>
+			active?.find(({ effectId }) => effectId === "conqueror")?.stacks
+
+		expect(stacks(judgment?.active)).toBe(2)
+		expect(stacks(judgment?.afterLaterHits?.active)).toBe(12)
 	})
 
 	test("another cast hitting several times still adds one action's stacks (Brand's Pyroclasm, 3 hits)", async () => {
