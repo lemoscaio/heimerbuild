@@ -324,6 +324,48 @@ describe("Press the Attack", () => {
 	})
 })
 
+describe("Conqueror", () => {
+	test("matches the current patch's rune text: 2 stacks for 5 s, 1.8 - 4 adaptive force each, up to 12", async () => {
+		const text = runeText(await currentRune("Conqueror"))
+		const conqueror = RUNE_EFFECTS.find(({ id }) => id === "conqueror")
+		const grant = conqueror?.grants[0]
+		const steps =
+			grant?.kind === "stat" &&
+			typeof grant.amount === "object" &&
+			grant.amount.by === "championLevel"
+				? grant.amount.steps.map(({ value }) => value / 12)
+				: []
+
+		expect(text).toContain("grant 2 stacks of Conqueror for 5s")
+		expect(text).toContain("1.8-4 Adaptive Force per stack. Stacks up to 12")
+		expect(text).toContain(
+			"Ranged champions gain only 1 stack per basic attack",
+		)
+		expect(conqueror).toMatchObject({ duration: 5, stacks: { max: 12 } })
+		expect(steps[0]).toBeCloseTo(1.8)
+		expect(steps[17]).toBeCloseTo(4)
+	})
+})
+
+describe("Lethal Tempo", () => {
+	// The rune text's ranged 4% and 6 - 24 differ from the wiki's 4.8% and 6 to 20 (wiki notes).
+	test("matches the current patch's rune text for melee: 6% a stack for 6 s, up to 6, a 9 - 30 bolt", async () => {
+		const text = runeText(await currentRune("LethalTempo"))
+
+		expect(text).toContain(
+			"[6% Melee || 4% Ranged] Attack Speed for 6 seconds, up to 6",
+		)
+		expect(text).toContain(
+			"[9 - 30 Melee || 6 - 24 Ranged] bonus adaptive damage",
+		)
+		expect(text).toContain("increased by 1% per 1% Bonus Attack Speed")
+		expect(RUNE_EFFECTS.find(({ id }) => id === "lethal-tempo")).toMatchObject({
+			duration: 6,
+			stacks: { max: 6 },
+		})
+	})
+})
+
 // Wiki, checked 2026-10-08 (issue 409). Each rune's stacks are the build's match stacks.
 describe("runes with match stacks", () => {
 	const teemo = normalizeChampion(teemoDetail, teemoBin, "16.19.1")
