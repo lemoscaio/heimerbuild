@@ -8,8 +8,9 @@ type CombatAreaTimeInputProps = {
 } & React.ComponentProps<"div">
 
 /**
- * Blue, like a variant: the seconds the target stays in the ability's area, within its range, and
- * what they deal ("Spinning 1.5 s · 3 of 7 spins"). An emptied field keeps the last time.
+ * The seconds the target stays in the ability's area, within its range, like the target's number
+ * fields, and what they deal in the step lines' muted text ("Spinning 1.5 s · 3 of 7 spins").
+ * An emptied field keeps the last time.
  */
 export function CombatAreaTimeInput({
 	area,
@@ -21,30 +22,34 @@ export function CombatAreaTimeInput({
 	return (
 		<div
 			className={cn(
-				"flex w-fit flex-wrap items-center gap-x-1.5 gap-y-0.5 rounded-xl border border-input-line bg-input-fill py-0.5 pr-2 pl-2 text-[0.625rem] text-input-ink",
+				"flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs",
 				className,
 			)}
 			{...props}
 		>
-			<span aria-hidden="true" className="whitespace-nowrap">
+			<span aria-hidden="true" className="text-subtle">
 				{range.label.text}
 			</span>
-			<span className="flex items-center gap-1">
-				<NumberField
-					label={`${range.label.name} in seconds`}
-					min={range.min}
-					max={range.max}
-					step={range.step}
-					value={seconds}
-					onValueChange={(next) => {
-						if (next !== null) onSecondsChange(next)
-					}}
-					inputClassName="h-6 w-11 text-xs"
-				/>
-				<span aria-hidden="true">s</span>
+			<NumberField
+				label={`${range.label.name} in seconds`}
+				min={range.min}
+				max={range.max}
+				step={range.step}
+				value={seconds}
+				onValueChange={(next) => {
+					if (next !== null) onSecondsChange(next)
+				}}
+				className="[&_input]:w-12"
+			/>
+			<span aria-hidden="true" className="text-subtle">
+				s
 			</span>
 			{result && (
-				<span aria-live="polite" className="font-semibold tabular-nums">
+				<span
+					aria-live="polite"
+					className="text-[0.6875rem] text-subtle tabular-nums"
+				>
+					<span aria-hidden="true">· </span>
 					{result}
 				</span>
 			)}
