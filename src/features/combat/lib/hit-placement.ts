@@ -24,23 +24,27 @@ const OWN_DAMAGE: ReadonlySet<Grant["kind"]> = new Set([
 	"applyOnHit",
 ])
 
-function isSpentByOnHit({ endsOn }: Effect) {
-	return [endsOn ?? []].flat().includes("on-hit")
+/** Its damage rides the attack's own hit: an `on-hit` effect, one an on-hit spends (a spellblade), or `onHitDamage`. */
+function isOnHitDamage({ trigger, endsOn, onHitDamage }: Effect) {
+	return (
+		trigger.kind === "on-hit" ||
+		!!onHitDamage ||
+		[endsOn ?? []].flat().includes("on-hit")
+	)
 }
 
 /**
  * An effect whose damage is a hit of its own, not part of the hit that triggered it (issue 429): one
  * that lands after a `delay` or a state (Arcane Comet, Counter Strike), or a rune's or an item's that
- * deals its damage as it triggers (Kraken Slayer's third hit, Dark Harvest). An `on-hit` one is part
- * of the hit (Wit's End), unless a cooldown makes it a proc (Grasp of the Undying); so is a spellblade.
+ * deals its damage as it triggers (Press the Attack's burst, Dark Harvest). On-hit damage is the
+ * attack's, whatever gates it (owner decision: Kraken Slayer, Grasp of the Undying, spellblades).
  */
 export function isSeparateInstance(effect: Effect): boolean {
 	if (effect.delay || effect.startsAfter) return true
-	const { source, trigger, grants, cooldown } = effect
+	const { source, grants } = effect
 	if (source.kind !== "rune" && source.kind !== "item") return false
 	if (!grants.some(({ kind }) => OWN_DAMAGE.has(kind))) return false
-	if (isSpentByOnHit(effect)) return false
-	return trigger.kind !== "on-hit" || cooldown !== undefined
+	return !isOnHitDamage(effect)
 }
 
 /**

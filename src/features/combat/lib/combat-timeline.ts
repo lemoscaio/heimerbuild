@@ -59,7 +59,7 @@ export type TimelineStep = TimelineDamage & {
 
 /**
  * A separate damage instance's own card at its landing, joined to the step that triggered it (issue
- * 429: Counter Strike's strike at 1.00 s, Kraken Slayer's Bring It Down, Guinsoo's Phantom Hit).
+ * 429: Counter Strike's strike at 1.00 s, Arcane Comet, Guinsoo's Phantom Hit).
  */
 export type TimelineProc = TimelineDamage & {
 	kind: "proc"

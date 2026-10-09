@@ -421,6 +421,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		source: { kind: "item", itemId: "6672" },
 		trigger: { kind: "on-max-stacks", effect: KRAKEN_SLAYER_STACKS },
 		consumes: KRAKEN_SLAYER_STACKS,
+		onHitDamage: true,
 		label: "Bring It Down",
 		grants: [
 			{
