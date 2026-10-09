@@ -319,7 +319,7 @@ function pausedLabel(grants: readonly StatKey[]) {
 
 /** The effects running after a step, each once; `hidden` ones another line reports. */
 function runningEffects(
-	step: CombatStep,
+	step: Pick<CombatStep, "active" | "waiting">,
 	{ names, hidden }: { names: CombatNames; hidden: ReadonlySet<string> },
 ): StepView["effects"] {
 	const seen = new Map<string, RunningEffectView>()
@@ -435,7 +435,8 @@ export function stepView(
 		damageOverTimeView(summary, names),
 	)
 	const ticking = new Set(damageOverTime.map(({ effectId }) => effectId))
-	const state = { ...step, ...step.afterLaterHits }
+	// A whole snapshot: what the later hits cleared (a waiting effect, a reduction) is gone from it.
+	const state = step.afterLaterHits ?? step
 	return {
 		hits,
 		procs,
