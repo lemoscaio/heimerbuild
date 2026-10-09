@@ -183,6 +183,19 @@ describe("Electrocute", async () => {
 		).toHaveLength(1)
 	})
 
+	test("Judgment's spins are one stack: its Conqueror special case doesn't apply", async () => {
+		const garen: Setup = {
+			champion: await champion("Garen"),
+			level: 9,
+			ranks: { Q: 1, W: 1, E: 1, R: 1 },
+			runes: [rune("Electrocute")],
+		}
+
+		expect(
+			effectHits(simulate(garen, [cast("E"), wait(3)]), "electrocute"),
+		).toHaveLength(0)
+	})
+
 	test("the 3 s run from the first stack: a later hit doesn't extend them", () => {
 		const late = simulate(annie, [attack, wait(2.5), attack, wait(0.5), attack])
 		const quick = simulate(annie, [attack, attack, attack])
@@ -374,6 +387,26 @@ describe("Conqueror", async () => {
 		expect(stacksOf(result, "conqueror")).toEqual([2, 4])
 		// Incinerate: 70 (+ 80% AP), with Q's 2 stacks as AP.
 		expect(w?.raw).toBeCloseTo(alone + 0.8 * 2 * perStack(9))
+	})
+
+	test("each of Judgment's spins adds 2 stacks (wiki special case), 0.43 s apart at level 9", () => {
+		const spins = simulate(garen, [cast("E"), wait(1), wait(2)])
+
+		// 7 spins over 3 s: 3 by 1 s, all 7 by 3 s, capped at 12.
+		expect(stacksOf(spins, "conqueror")).toEqual([2, 6, 12])
+	})
+
+	test("another cast hitting several times still adds one action's stacks (Brand's Pyroclasm, 3 hits)", async () => {
+		const brand: Setup = {
+			champion: await champion("Brand"),
+			level: 11,
+			ranks: { Q: 1, W: 1, E: 1, R: 1 },
+			runes: [rune("Conqueror")],
+		}
+
+		expect(
+			stacksOf(simulate(brand, [cast("R"), wait(2)]), "conqueror"),
+		).toEqual([2, 2])
 	})
 })
 
