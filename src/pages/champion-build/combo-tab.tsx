@@ -8,6 +8,7 @@ import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-m
 import { CombatNotes } from "@/features/combat/components/combat-notes"
 import { CombatRowsToolbar } from "@/features/combat/components/combat-rows-toolbar"
 import { CombatSituationChips } from "@/features/combat/components/combat-situation-chips"
+import { CombatStartStrip } from "@/features/combat/components/combat-start-strip"
 import { CombatStepList } from "@/features/combat/components/combat-step-list"
 import type { CombatListMode } from "@/features/combat/components/combat-step-outcomes"
 import { CombatTimeline } from "@/features/combat/components/combat-timeline"
@@ -33,7 +34,8 @@ type ComboTabProps = {
 
 /**
  * The Combo tab (issue 265, option A; markers and free mode, issue 338 option A2): the action keys,
- * the situation chips and the target, free mode, the totals, then the steps and markers.
+ * the situation chips and the target, free mode, the totals, the combo's start (issue 317), then
+ * the steps and markers.
  */
 export function ComboTab({
 	combat: buildCombat,
@@ -122,6 +124,10 @@ export function ComboTab({
 					Free mode: times ignore cooldowns.
 				</p>
 			)}
+			<CombatStartStrip
+				chips={combat.startChips}
+				onReadyChange={combat.setStartReady}
+			/>
 			<CombatRowsToolbar
 				count={view.list.filter(({ kind }) => kind === "step").length}
 				className="border-0 p-0"
