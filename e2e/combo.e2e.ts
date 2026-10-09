@@ -165,12 +165,11 @@ test("a situation marker sets Harrier's mark from where it is, and only the buil
 	).toHaveCount(0)
 })
 
-test("Hail of Blades' marker moves and is removed like a step, with Undo", async ({
+test("Harrier's marker moves and is removed like a step, with Undo", async ({
 	page,
 }) => {
-	// Hail of Blades starts on its cooldown (its "Combo start" chip removed), so a marker readies it.
 	await page.goto(
-		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&start=-hail-of-blades&tab=combo",
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&tab=combo",
 	)
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	await attack.click()
@@ -179,10 +178,10 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 	const plain = await damageTotal(page).textContent()
 
 	await combo(page)
-		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
+		.getByRole("button", { name: "Add marker: Target marked by Harrier" })
 		.click()
 	const up = combo(page).getByRole("button", {
-		name: "Move marker Hail of Blades ready up",
+		name: "Move marker Target marked by Harrier up",
 	})
 	await up.focus()
 	await page.keyboard.press("Enter")
@@ -193,7 +192,7 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 	const empowered = await damageTotal(page).textContent()
 
 	await combo(page)
-		.getByRole("button", { name: "Remove marker Hail of Blades ready" })
+		.getByRole("button", { name: "Remove marker Target marked by Harrier" })
 		.click()
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
 	await combo(page).getByRole("button", { name: "Undo" }).click()
@@ -204,9 +203,8 @@ test("Hail of Blades' marker moves and is removed like a step, with Undo", async
 test("a marker goes at the start of a built combo from its chip's menu, or to the start from its own button, and stays first in the link", async ({
 	page,
 }) => {
-	// Hail of Blades starts on its cooldown (its "Combo start" chip removed), so a marker readies it.
 	await page.goto(
-		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&start=-hail-of-blades&tab=combo",
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&tab=combo",
 	)
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	await attack.click()
@@ -218,7 +216,7 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 
 	// From the keyboard: the chip's arrow opens where the marker can go.
 	const where = combo(page).getByRole("button", {
-		name: "Where to put marker: Hail of Blades ready",
+		name: "Where to put marker: Target marked by Harrier",
 	})
 	const atStart = page.getByRole("menuitem", { name: "Add at the start" })
 	await where.focus()
@@ -226,13 +224,15 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 	await atStart.focus()
 	await page.keyboard.press("Enter")
 	const up = combo(page).getByRole("button", {
-		name: "Move marker Hail of Blades ready up",
+		name: "Move marker Target marked by Harrier up",
 	})
 	await expect(up).toBeDisabled()
 	// It sits before the group, which stays whole, and first in the link.
 	await expect(groups(page)).toHaveCount(1)
 	await expect(damageTotal(page)).not.toHaveText(plain ?? "")
-	await expect(page).toHaveURL(/[?&]combo=m-hail-of-blades\.aa\.aa\.aa(&|$)/)
+	await expect(page).toHaveURL(
+		/[?&]combo=m-quinn-harrier-valor\.aa\.aa\.aa(&|$)/,
+	)
 	const empowered = await damageTotal(page).textContent()
 
 	await combo(page).getByRole("button", { name: "Undo" }).click()
@@ -247,17 +247,17 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 	await expect(up).toBeDisabled()
 	await expect(damageTotal(page)).toHaveText(empowered ?? "")
 	await combo(page)
-		.getByRole("button", { name: "Remove marker Hail of Blades ready" })
+		.getByRole("button", { name: "Remove marker Target marked by Harrier" })
 		.click()
 	await expect(up).toHaveCount(0)
 
 	// Added at the end, it changes nothing until it goes to the start in one move.
 	await combo(page)
-		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
+		.getByRole("button", { name: "Add marker: Target marked by Harrier" })
 		.click()
 	await expect(damageTotal(page)).toHaveText(plain ?? "")
 	const toStart = combo(page).getByRole("button", {
-		name: "Move marker Hail of Blades ready to the start",
+		name: "Move marker Target marked by Harrier to the start",
 	})
 	await toStart.focus()
 	await page.keyboard.press("Enter")
@@ -265,7 +265,9 @@ test("a marker goes at the start of a built combo from its chip's menu, or to th
 	await expect(toStart).toBeDisabled()
 	await expect(up).toBeDisabled()
 	await expect(damageTotal(page)).toHaveText(empowered ?? "")
-	await expect(page).toHaveURL(/[?&]combo=m-hail-of-blades\.aa\.aa\.aa(&|$)/)
+	await expect(page).toHaveURL(
+		/[?&]combo=m-quinn-harrier-valor\.aa\.aa\.aa(&|$)/,
+	)
 	await page.reload()
 	await expect(toStart).toBeDisabled()
 	await expect(damageTotal(page)).toHaveText(empowered ?? "")
@@ -354,26 +356,26 @@ test("Poison Trail deals less and ends sooner the shorter Singed's target stays 
 	await expect(page).toHaveURL(/[?&]combo=q-2_25s(&|$)/)
 })
 
-test("Hail of Blades again right after its 3 attacks is ignored in strict mode and forced in free mode", async ({
+test("Harrier's mark again while Valor is on cooldown is ignored in strict mode and forced in free mode", async ({
 	page,
 }) => {
 	await page.goto(
-		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&runes=8100-9923-0-0-0__&tab=combo",
+		"/champions/Quinn?lvl=9&items=1036,1036,1036&skills=QWEQEQRQE&tab=combo",
 	)
-	const ready = combo(page).getByRole("button", {
-		name: "Add marker: Hail of Blades ready",
+	const marked = combo(page).getByRole("button", {
+		name: "Add marker: Target marked by Harrier",
 	})
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
-	await ready.click()
+	await marked.click()
 	for (let count = 0; count < 4; count++) await attack.click()
 	// Four identical attacks in a row show as one group.
 	await expect(groups(page)).toHaveCount(1)
 	const once = await damageTotal(page).textContent()
 
-	// The second marker goes before the 4th attack, while the rune is on cooldown.
-	await ready.click()
+	// The second marker goes before the 4th attack, while Valor is on cooldown.
+	await marked.click()
 	await combo(page)
-		.getByRole("button", { name: "Move marker Hail of Blades ready up" })
+		.getByRole("button", { name: "Move marker Target marked by Harrier up" })
 		.nth(1)
 		.click()
 	await expect(damageTotal(page)).toHaveText(once ?? "")
@@ -560,7 +562,7 @@ test("in free mode a collapsed group has no answers; open, each of its steps is 
 	await expect(damageTotal(page)).not.toHaveText(strict ?? "")
 })
 
-test("a combo with a marker, a variant, a wait, free mode's answers and a target opens the same after a reload and from its copied link", async ({
+test("a combo with a variant, a wait, free mode's answers, a start cooldown and a target opens the same after a reload and from its copied link", async ({
 	page,
 	context,
 }) => {
@@ -568,9 +570,6 @@ test("a combo with a marker, a variant, a wait, free mode's answers and a target
 	await page.goto(
 		"/champions/Darius?lvl=9&skills=QWEQQRQEQ&runes=8100-9923-0-0-0__&tab=combo",
 	)
-	await combo(page)
-		.getByRole("button", { name: "Add marker: Hail of Blades ready" })
-		.click()
 	const attack = combo(page).getByRole("button", { name: "Add Attack" })
 	await attack.click()
 	await attack.click()
