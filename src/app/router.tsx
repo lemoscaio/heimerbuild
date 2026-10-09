@@ -4,12 +4,13 @@ import { championRoute } from "@/routes/champion-route"
 import { homeRoute } from "@/routes/home-route"
 import { pageWithHeaderRoute } from "@/routes/page-with-header-route"
 import { rootRoute, unknownRoute } from "@/routes/root-route"
+import { statsMockupsRoute } from "@/routes/stats-mockups-route"
 import { queryClient } from "./query-client"
 import { stringifySearch } from "./search-params"
 
 const routeTree = rootRoute.addChildren([
 	homeRoute,
-	pageWithHeaderRoute.addChildren([championRoute]),
+	pageWithHeaderRoute.addChildren([championRoute, statsMockupsRoute]),
 	unknownRoute,
 ])
 
