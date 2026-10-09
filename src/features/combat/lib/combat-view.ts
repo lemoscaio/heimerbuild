@@ -116,6 +116,8 @@ export type DamageOverTimeView = {
 
 export type RunningEffectView = {
 	name: string
+	/** Its stacks, for an effect that has several (Conqueror 6/12). */
+	stacks?: { count: number; max: number }
 	until?: number
 	paused?: { label: string; until: number }
 	/** Not running yet: in its `startsAfter` state, or from when it enters it ("camouflaged" from 1.00 s). */
@@ -231,17 +233,27 @@ function runningEffects(
 	{ names, hidden }: { names: CombatNames; hidden: ReadonlySet<string> },
 ): StepView["effects"] {
 	const seen = new Map<string, RunningEffectView>()
-	for (const { effectId, holder, endsAt, paused } of step.active) {
+	for (const {
+		effectId,
+		holder,
+		endsAt,
+		paused,
+		stacks,
+		maxStacks,
+	} of step.active) {
 		if (hidden.has(effectId)) continue
 		const name =
 			holder === "target"
 				? `${names.effect(effectId)} on the target`
 				: names.effect(effectId)
 		const until = Number.isFinite(endsAt) ? endsAt : undefined
-		const key = `${name}@${until}@${paused?.until}`
+		const key = `${name}@${until}@${paused?.until}@${stacks}`
 		if (!seen.has(key))
 			seen.set(key, {
 				name,
+				...(maxStacks !== undefined && {
+					stacks: { count: stacks, max: maxStacks },
+				}),
 				...(until !== undefined && { until }),
 				...(paused && {
 					paused: { label: pausedLabel(paused.grants), until: paused.until },
@@ -260,10 +272,12 @@ function runningEffects(
 
 /**
  * A running effect's chip: "Heightened Senses · until 3.96 s", "Harrowed Path · until 8.00 s · Move
- * Speed paused until 1.00 s", "Ambush · camouflaged from 1.00 s", "Ambush · camouflaged until 11.00 s".
+ * Speed paused until 1.00 s", "Ambush · camouflaged from 1.00 s", "Ambush · camouflaged until 11.00 s",
+ * "Conqueror · 6/12 stacks · until 5.26 s".
  */
 export function runningEffectText({
 	name,
+	stacks,
 	until,
 	paused,
 	waiting,
@@ -279,7 +293,8 @@ export function runningEffectText({
 			.join(" ")
 	const pause =
 		paused && `${paused.label} paused until ${formatSeconds(paused.until)}`
-	return [name, state || ends, pause].filter(Boolean).join(" · ")
+	const count = stacks && stacksText(stacks)
+	return [name, count, state || ends, pause].filter(Boolean).join(" · ")
 }
 
 const RESIST_NAMES = {
@@ -476,8 +491,14 @@ function outcomeLabel(key: OutcomeKey, names: CombatNames) {
 	}
 }
 
-function outcomeDetail({ happened, charge, readyAt }: StepOutcome) {
+/** "6/12 stacks" */
+function stacksText({ count, max }: { count: number; max: number }) {
+	return `${count}/${max} stacks`
+}
+
+function outcomeDetail({ happened, charge, stacks, readyAt }: StepOutcome) {
 	if (charge) return `${charge.used}/${charge.max}`
+	if (stacks) return stacksText(stacks)
 	if (!happened && readyAt !== undefined) {
 		return `on cooldown · ready at ${formatSeconds(readyAt)}`
 	}
