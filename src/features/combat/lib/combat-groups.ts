@@ -173,7 +173,8 @@ export function groupView(steps: readonly GroupStep[]): GroupView {
 	for (const view of views) {
 		total.raw += view.total.raw
 		total.final += view.total.final
-		for (const part of [...view.hits, ...view.damageOverTime]) {
+		const procHits = view.procs.flatMap(({ hits }) => hits)
+		for (const part of [...view.hits, ...procHits, ...view.damageOverTime]) {
 			if (!("type" in part) || !part.type) continue
 			byType.set(part.type, (byType.get(part.type) ?? 0) + part.final)
 		}

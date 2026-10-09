@@ -5,6 +5,7 @@ import { formatDamage, formatSeconds } from "../lib/combat-format"
 import { FROM_MARKER, type StepView } from "../lib/combat-view"
 import { CombatDamageOverTimeLine } from "./combat-damage-over-time-line"
 import { CombatHitLine } from "./combat-hit-line"
+import { CombatProcs } from "./combat-procs"
 import { CombatRunningEffects } from "./combat-running-effects"
 import { CombatTargetResists } from "./combat-target-resists"
 import { damageTypeText } from "./damage-type-styles"
@@ -44,8 +45,8 @@ function HealthBar({ share }: { share: number }) {
 }
 
 /**
- * A step of the combo: time, action, marks, its hits and damage over time, effects running, the
- * target's reduced resistances and its health.
+ * A step of the combo: time, action, marks, its hits and damage over time, the separate instances it
+ * triggered as mini cards (issue 429), effects running, the target's reduced resistances and its health.
  */
 export function CombatStepCard({
 	number,
@@ -118,6 +119,7 @@ export function CombatStepCard({
 						))}
 					</ul>
 				)}
+				{!!view?.procs.length && <CombatProcs procs={view.procs} />}
 				{!refused && view && <CombatRunningEffects effects={view.effects} />}
 				{view && !refused && <CombatTargetResists resists={view.resists} />}
 				{view && !refused && <HealthBar share={view.healthShare} />}

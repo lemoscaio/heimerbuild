@@ -32,6 +32,7 @@ import {
 	type StepView,
 	stepView,
 } from "../lib/combat-view"
+import { effectsById, placedSteps } from "../lib/hit-placement"
 import type { Combat } from "./use-combat"
 
 export type UseCombatViewOptions = {
@@ -160,10 +161,12 @@ export function useCombatView({
 	const { result, seed, free, entries } = combat
 	const numbers = actionNumbers(entries)
 	const firstAction = numbers.findIndex((number) => number !== undefined)
-	const effectById = new Map(effects.map((effect) => [effect.id, effect]))
+	const effectById = effectsById(effects)
+	// Each hit on the step that triggered it (issue 429), as the expanded combo and the Timeline place it.
+	const steps = result && placedSteps(result.steps, effectById)
 
 	const items = entries.map((entry, index): CombatListItem => {
-		const step = result?.steps[index]
+		const step = steps?.[index]
 		const { action } = entry
 		if (action.kind === "situation") {
 			const effect = effectById.get(action.effectId)
@@ -186,7 +189,7 @@ export function useCombatView({
 			number: numbers[index] ?? 0,
 			time: step?.time,
 			refused: step?.refused,
-			view: step && stepView(step, { names, target }),
+			view: step && stepView(step, { names, target, effects: effectById }),
 			outcomes: outcomeViews(outcomes, { names, seed: seed?.[index] }),
 			...(free &&
 				action.kind === "ability" && {

@@ -5,6 +5,7 @@ import {
 	combatRows,
 } from "../lib/combat-rows"
 import { combatNames, stepView } from "../lib/combat-view"
+import { effectsById } from "../lib/hit-placement"
 import {
 	type CombatMarkerItem,
 	type CombatStepItem,
@@ -28,14 +29,17 @@ export function useCombatRows(options: UseCombatViewOptions) {
 	const { list, totals } = useCombatView(options)
 	const [order, setOrder] = useState<CombatRowOrder>("hit")
 	const names = combatNames({ passiveName, spells: combat.spells, effects })
-	const rows = combat.result && combatRows(combat.result, { target, order })
+	const byId = effectsById(effects)
+	const rows =
+		combat.result && combatRows(combat.result, { target, effects: byId, order })
 
 	const items = rows
 		? rows.flatMap((row): CombatRowItem[] => {
 				const item = list[row.index]
 				if (!item) return []
 				if (item.kind === "marker") return [{ ...item, row }]
-				return [{ ...item, view: stepView(row.step, { names, target }), row }]
+				const view = stepView(row.step, { names, target, effects: byId })
+				return [{ ...item, view, row }]
 			})
 		: list
 

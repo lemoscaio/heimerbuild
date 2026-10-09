@@ -1,6 +1,7 @@
 import type { DamageType } from "@schemas/champion"
 import { cva } from "class-variance-authority"
 import { Fragment, useId } from "react"
+import { GameIcon } from "@/components/common/game-icon"
 import { cn } from "@/lib/cn"
 import type { CombatAction } from "@/lib/combat/combat"
 import type { CombatListItem } from "../hooks/use-combat-view"
@@ -19,10 +20,11 @@ import {
 } from "../lib/combat-format"
 import type {
 	CombatTimeline as CombatTimelineModel,
-	TimelineDelayed,
+	TimelineBonus,
 	TimelineEntry,
 	TimelineLane,
 	TimelinePart,
+	TimelineProc,
 	TimelineStep,
 } from "../lib/combat-timeline"
 import {
@@ -33,6 +35,7 @@ import {
 	timelineLayout,
 	timelineY,
 } from "../lib/combat-timeline-layout"
+import { sameMoment } from "../lib/hit-placement"
 import { CombatActionIcon } from "./combat-action-icon"
 import { damageTypeFill, damageTypeText } from "./damage-type-styles"
 
@@ -43,7 +46,7 @@ const card = cva(
 			tone: {
 				step: "border-line bg-surface",
 				late: "border-lilac bg-lilac/15",
-				delayed: "border-lilac border-dashed",
+				proc: "border-lilac border-dashed",
 				marker: "border-line border-dashed text-subtle",
 			},
 			dimmed: { true: "opacity-50", false: "" },
@@ -84,8 +87,10 @@ function stepTitle(action: CombatAction, names: ActionNames) {
 		: { key: actionLabel(action, names) }
 }
 
-function sameMoment(a: number, b: number) {
-	return Math.abs(a - b) < 1e-6
+/** An entry's identity: a step's or marker's index; a proc's effect and moment too, as several can follow one step. */
+function entryKey(entry: TimelineEntry) {
+	const own = entry.kind === "proc" ? `-${entry.effectId}@${entry.time}` : ""
+	return `${entry.kind}-${entry.index}${own}`
 }
 
 /** "instant", "lands 0.27 s", "lands 0.75–1.35 s" */
@@ -128,7 +133,7 @@ function Damage({ damage, type }: { damage: number; type?: DamageType }) {
 	)
 }
 
-/** A step card's right side: its damage and landing, where its delayed hit lands, or its wait. */
+/** A step card's right side: its damage and landing, where its first separate instance lands, or its wait. */
 function StepResult({ entry }: { entry: TimelineStep }) {
 	if (entry.refused) return <span className="text-error">refused</span>
 	if (entry.wait !== undefined) {
@@ -149,11 +154,11 @@ function StepResult({ entry }: { entry: TimelineStep }) {
 			</span>
 		)
 	}
-	if (entry.delayed) {
+	if (entry.firstProc) {
 		return (
 			<span className="text-subtle tabular-nums">
-				<span className="@md:inline hidden">{entry.delayed.verb} </span>
-				{formatSeconds(entry.delayed.at)} ↓
+				<span className="@md:inline hidden">{entry.firstProc.verb} </span>
+				{formatSeconds(entry.firstProc.at)} ↓
 			</span>
 		)
 	}
@@ -206,16 +211,22 @@ function StepCard({
 	)
 }
 
-function DelayedCard({
+/** A separate instance's card at its landing: "↳ 7. [icon] Phantom Hit phantom hit · 82 · 3.30 s". */
+function ProcCard({
 	entry,
 	layout,
 	items,
-}: Omit<CardProps, "names" | "sources"> & { entry: TimelineDelayed }) {
+}: Omit<CardProps, "names" | "sources"> & { entry: TimelineProc }) {
 	const number = stepItem(items, entry.index)?.number
 	return (
-		<div className={card({ tone: "delayed" })} style={cardPosition(layout)}>
+		<div className={card({ tone: "proc" })} style={cardPosition(layout)}>
 			<span className="flex min-w-0 items-center gap-1.5">
 				<span className="text-subtle">↳</span>
+				<GameIcon
+					name={entry.name}
+					src={entry.icon}
+					className="size-4 rounded-sm"
+				/>
 				<b className="truncate font-semibold text-white">
 					{number}. {entry.name}
 				</b>
@@ -328,8 +339,8 @@ function Connectors({ layout }: { layout: TimelineLayout }) {
 				const center = top + cardHeight / 2
 				const from = entry.kind === "marker" ? ruler : columnX(entry.column) + 6
 				return (
-					<Fragment key={`${entry.kind}-${entry.index}-${anchor}`}>
-						{entry.kind === "delayed" && (
+					<Fragment key={entryKey(entry)}>
+						{entry.kind === "proc" && (
 							<line
 								x1={columnX(entry.column)}
 								x2={columnX(entry.column)}
@@ -446,9 +457,10 @@ function Lanes({
 							}}
 						/>
 					))}
-					{notches.map((time) => (
+					{notches.map((time, notch) => (
 						<span
-							key={time}
+							// biome-ignore lint/suspicious/noArrayIndexKey: two steps can notch a lane at one moment
+							key={notch}
 							className="absolute h-0.5 w-3 bg-white"
 							style={{ left: index * laneWidth + 2, top: timelineY(time) - 1 }}
 						/>
@@ -459,7 +471,39 @@ function Lanes({
 	)
 }
 
-/** Next to each card, from `@xl` up: the effects' hits on it and the target's health after it. */
+/**
+ * An effect's hits on a step: "[icon] +45". Its label only when it is the step's one bonus ("third
+ * hit +52"), so several fit side by side instead of being cut to a letter (issue 429).
+ */
+function BonusChip({
+	bonus,
+	children,
+}: {
+	bonus: TimelineBonus
+	/** Its label, when shown. */
+	children?: React.ReactNode
+}) {
+	return (
+		<span
+			title={`${bonus.label} +${formatDamage(bonus.final)}`}
+			className="flex shrink-0 items-center gap-0.5 rounded-sm bg-outcome-fill px-0.5 text-outcome-ink"
+		>
+			{!!bonus.icon && (
+				<GameIcon
+					name={bonus.label}
+					src={bonus.icon}
+					className="size-3 rounded-xs"
+				/>
+			)}
+			{children} +{formatDamage(bonus.final)}
+		</span>
+	)
+}
+
+/**
+ * Next to each card, from `@xl` up: the effects' hits on it and the target's health after it. Chips
+ * that don't fit on the one line wrap out of sight whole, never cut; the health always shows.
+ */
 function CardAside({ layout }: { layout: TimelineCardLayout }) {
 	const { entry, top } = layout
 	if (entry.kind === "marker") return null
@@ -468,19 +512,18 @@ function CardAside({ layout }: { layout: TimelineCardLayout }) {
 	if (targetHealth === undefined && !bonuses.length) return null
 	return (
 		<div
-			className="absolute right-0 @xl:flex hidden h-6.5 w-(--aside) items-center gap-1.5 overflow-hidden whitespace-nowrap pl-2 text-[0.625rem]"
+			className="absolute right-0 @xl:flex hidden h-6.5 w-(--aside) items-center gap-1 overflow-hidden whitespace-nowrap pl-2 text-[0.625rem]"
 			style={{ top }}
 		>
-			{bonuses.map(({ label, final }) => (
-				<span
-					key={label}
-					className="truncate rounded-sm bg-outcome-fill px-1 text-outcome-ink"
-				>
-					{label} +{formatDamage(final)}
-				</span>
-			))}
+			<span className="flex h-4 min-w-0 flex-wrap items-center gap-1 overflow-hidden">
+				{bonuses.map((bonus) => (
+					<BonusChip key={bonus.effectId} bonus={bonus}>
+						{bonuses.length === 1 && bonus.label}
+					</BonusChip>
+				))}
+			</span>
 			{targetHealth !== undefined && (
-				<span className="ml-auto text-health tabular-nums">
+				<span className="ml-auto shrink-0 text-health tabular-nums">
 					{formatDamage(targetHealth)} HP
 				</span>
 			)}
@@ -530,7 +573,7 @@ function entryText(entry: TimelineEntry, items: Items, names: ActionNames) {
 		`target health ${formatDamage(entry.targetHealth)}`
 	const damage = (parts: readonly TimelinePart[], total: number) =>
 		`${formatDamage(total)} damage${parts.length ? ` (${partsText(parts)})` : ""}`
-	if (entry.kind === "delayed") {
+	if (entry.kind === "proc") {
 		return `${item.number}. ${entry.name} ${entry.verb} at ${formatSeconds(entry.time)}: ${[damage(entry.parts, entry.damage), health].filter(Boolean).join(", ")}.`
 	}
 	const parts = [
@@ -543,8 +586,8 @@ function entryText(entry: TimelineEntry, items: Items, names: ActionNames) {
 			({ label, final }) => `${label} +${formatDamage(final)}`,
 		),
 		entry.damage > 0 && health,
-		entry.delayed &&
-			`${entry.delayed.verb} at ${formatSeconds(entry.delayed.at)}`,
+		entry.firstProc &&
+			`${entry.firstProc.verb} at ${formatSeconds(entry.firstProc.at)}`,
 	]
 	return `${item.number}. ${actionLabel(item.action, names)}: ${parts.filter(Boolean).join(", ")}.`
 }
@@ -564,11 +607,7 @@ function TimelineText({
 		<div className="sr-only">
 			<ol>
 				{entries.map((entry) => (
-					<li
-						key={`${entry.kind}-${entry.index}-${"time" in entry ? entry.time : 0}`}
-					>
-						{entryText(entry, items, names)}
-					</li>
+					<li key={entryKey(entry)}>{entryText(entry, items, names)}</li>
 				))}
 			</ol>
 			{!!lanes.length && (
@@ -602,7 +641,7 @@ type CombatTimelineProps = {
 
 /**
  * The combo as a vertical timeline (issue 402): time flows down a ruler; each step sits at its
- * start with its windup and hits, a delayed hit at its landing, the effects as lanes at the right.
+ * start with its windup and hits, a separate instance at its landing, the effects as lanes at the right.
  * One component for every screen: narrower, it drops the legend, the health and the details.
  */
 export function CombatTimeline({
@@ -629,7 +668,7 @@ export function CombatTimeline({
 			<Legend lanes={timeline.lanes} />
 			<div
 				aria-hidden="true"
-				className="relative min-w-72 @xl:[--aside:8rem] @xl:[--label-right:4px] [--aside:0px] [--label-right:calc(var(--lanes)+12px)]"
+				className="relative min-w-72 @2xl:[--aside:11rem] @xl:[--aside:8rem] @xl:[--label-right:4px] [--aside:0px] [--label-right:calc(var(--lanes)+12px)]"
 				style={
 					{
 						height: layout.height,
@@ -654,7 +693,7 @@ export function CombatTimeline({
 				<Lanes lanes={timeline.lanes} width={layout.lanesWidth} />
 				{layout.cards.map((cardLayout) => {
 					const { entry } = cardLayout
-					const key = `${entry.kind}-${entry.index}-${cardLayout.anchor}`
+					const key = entryKey(entry)
 					return (
 						<Fragment key={key}>
 							{entry.kind === "step" && (
@@ -669,18 +708,14 @@ export function CombatTimeline({
 									/>
 								</>
 							)}
-							{entry.kind === "delayed" && (
+							{entry.kind === "proc" && (
 								<>
 									<HitDot
 										x={columnX(entry.column)}
 										time={entry.time}
 										type={entry.mainType}
 									/>
-									<DelayedCard
-										entry={entry}
-										layout={cardLayout}
-										items={items}
-									/>
+									<ProcCard entry={entry} layout={cardLayout} items={items} />
 								</>
 							)}
 							{entry.kind === "marker" && (
