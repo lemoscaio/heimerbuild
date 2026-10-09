@@ -300,6 +300,7 @@ function resolveGrant(
 	if (grant.from && !reachesThreshold(context.matchStacks, grant.from)) {
 		return []
 	}
+	if (grant.atMaxStacks && stackShare(effect, context) < 1) return []
 	const share = stackShare(effect, context)
 	const timing = grantTiming(grant, effect, context)
 	const elapsed = context.elapsed?.[effect.id]
