@@ -176,7 +176,7 @@ function procIds(views: ReturnType<typeof listViews>) {
 }
 
 describe("isSeparateInstance", () => {
-	test("runes and items: the procs are their own hits, the on-hit and per-hit damage part of the hit", () => {
+	test("runes and items: the procs are their own hits; on-hit and per-hit damage, whatever gates it, part of the hit", () => {
 		const separate = [...RUNE_EFFECTS, ...ITEM_EFFECTS]
 			.filter(dealsDamage)
 			.filter(isSeparateInstance)
@@ -189,8 +189,6 @@ describe("isSeparateInstance", () => {
 				"summon-aery",
 				"arcane-comet",
 				"dark-harvest",
-				"grasp-of-the-undying-proc",
-				"kraken-slayer-bring-it-down",
 				"guinsoos-rageblade-phantom-hit",
 			].toSorted(),
 		)
@@ -312,15 +310,29 @@ describe("the List's cards (stepView on placed steps)", () => {
 		)
 	})
 
-	test("Vayne: Kraken Slayer's third hit is a mini card of its own, even when a phantom hit sets it off", () => {
-		const krakens = procIds(listViews(VAYNE)).filter(
-			({ effectId }) => effectId === "kraken-slayer-bring-it-down",
+	test("Vayne: Kraken Slayer's third hit is a line of the attack, with its icon; a phantom hit's is inside its mini card", () => {
+		const views = listViews(VAYNE)
+		const kraken = "Kraken Slayer (Bring It Down)"
+		const withLine = views.flatMap((view, step) =>
+			view.hits.some(({ name }) => name === kraken) ? [step] : [],
 		)
+		const [, phantom] = views[9]?.procs ?? []
 
-		expect(krakens.map(({ step }) => step)).toEqual([2, 5, 7, 9])
+		expect(withLine).toEqual([2, 5, 7])
+		expect(views[2]?.hits.find(({ name }) => name === kraken)?.icon).toBe(
+			item("6672").icon,
+		)
+		expect(procIds(views).map(({ effectId }) => effectId)).not.toContain(
+			"kraken-slayer-bring-it-down",
+		)
+		expect(views[9]?.procs.map(({ name }) => name)).toEqual([
+			"Guinsoo's Rageblade (Phantom Hit)",
+		])
+		expect(phantom).toBeUndefined()
+		expect(views[9]?.procs[0]?.hits.map(({ name }) => name)).toContain(kraken)
 	})
 
-	test("Grasp of the Undying's proc is a mini card under the attack", () => {
+	test("Grasp of the Undying's proc is a line of the attack (on-hit, though it has a cooldown)", () => {
 		const views = listViews(
 			combo({ ...GAREN, runes: [rune("GraspOfTheUndying")] }, [
 				{ kind: "situation", effectId: "grasp-of-the-undying-proc" },
@@ -328,13 +340,10 @@ describe("the List's cards (stepView on placed steps)", () => {
 			]),
 		)
 
-		expect(procIds(views)).toEqual([
-			{
-				effectId: "grasp-of-the-undying-proc",
-				step: 1,
-				time: expect.any(Number),
-			},
-		])
+		expect(procIds(views)).toEqual([])
+		expect(views[1]?.hits.map(({ name }) => name)).toContain(
+			"Grasp of the Undying",
+		)
 	})
 
 	test("Judgment's card shows Conqueror as its last spin left it, not as its cast did", () => {
