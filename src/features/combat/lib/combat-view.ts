@@ -24,6 +24,7 @@ import {
 	groupProcs,
 	type HitEvent,
 	hitInstance,
+	isShownHit,
 } from "./hit-placement"
 
 /** The names the combo shows for the abilities, effects and marks it reports by id. */
@@ -247,7 +248,7 @@ function hitAndProcViews(
 	{ names, effects }: { names: CombatNames; effects: EffectsById },
 ): Pick<StepView, "hits" | "procs"> {
 	const placed = events.flatMap((event) =>
-		event.kind === "hit" && !event.tick
+		event.kind === "hit" && !event.tick && isShownHit(event)
 			? [{ ...event, instance: hitInstance(event, effects) }]
 			: [],
 	)

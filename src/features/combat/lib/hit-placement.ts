@@ -10,6 +10,15 @@ export function effectsById(effects: readonly BuildEffect[]): EffectsById {
 	return new Map(effects.map((effect) => [effect.id, effect]))
 }
 
+/**
+ * An effect's hit that dealt nothing (an on-hit or a proc at 0), which no view of the combo shows;
+ * the step's own hits stay, as does a hit with no number.
+ */
+export function isShownHit(event: HitEvent): boolean {
+	if (event.source.kind !== "effect" || !("damage" in event)) return true
+	return event.damage.raw > 0 || event.damage.final > 0
+}
+
 /** Two moments closer than this are one (a cast's base and share of health land together). */
 const SAME_MOMENT = 1e-6
 
