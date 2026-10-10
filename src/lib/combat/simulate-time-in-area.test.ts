@@ -153,12 +153,42 @@ describe("no basic attacks while Judgment spins (issue 427)", () => {
 		expect(hits(result, "TotalDamage")[0]?.time).toBeGreaterThanOrEqual(3)
 		expect(result.steps[0]?.hits).toEqual({ count: 7, of: 7 })
 	})
+})
 
-	test("Demacian Justice ends it: the spins left don't land, and the next attack doesn't wait for them", () => {
-		const result = simulate([cast("E"), wait(1), cast("R"), ATTACK])
+describe("Demacian Justice waits for Judgment to end (issue 444)", () => {
+	const justice = (result: CombatResult) => hits(result, "BaseDamage")
 
-		expect(spins(result)).toHaveLength(2)
-		expect(result.steps[0]?.hits).toEqual({ count: 2, of: 7 })
-		expect(result.steps[3]?.time).toBeLessThan(3)
+	test("right after a 3 s Judgment it starts when the spin ends, after all 7 spins", () => {
+		const result = simulate([cast("Q"), cast("E", 3), cast("R")])
+		const judgment = result.steps[1]
+
+		expect(judgment?.hits).toEqual({ count: 7, of: 7 })
+		expect(result.steps[2]?.time).toBeCloseTo((judgment?.time ?? 0) + 3)
+		expect(justice(result)[0]?.time).toBeGreaterThanOrEqual(
+			spins(result).at(-1)?.time ?? Number.POSITIVE_INFINITY,
+		)
+	})
+
+	test("a wait between them still counts: past the spin's end it casts at once", () => {
+		const within = simulate([cast("E"), wait(1), cast("R")])
+		const past = simulate([cast("E", 1.5), wait(2), cast("R")])
+
+		expect(within.steps[2]?.time).toBeCloseTo(3)
+		expect(within.steps[0]?.hits).toEqual({ count: 7, of: 7 })
+		expect(past.steps[2]?.time).toBeCloseTo(2)
+	})
+
+	test("a shorter spin moves it earlier: 1.5 s lands 3 spins, then it casts", () => {
+		const result = simulate([cast("E", 1.5), cast("R")])
+
+		expect(result.steps[1]?.time).toBeCloseTo(1.5)
+		expect(result.steps[0]?.hits).toEqual({ count: 3, of: 7 })
+	})
+
+	test("in free mode it doesn't wait, and the spin goes on", () => {
+		const { result } = simulateFreeCombat(inputOf([cast("E"), cast("R")]), [])
+
+		expect(result.steps[1]?.time).toBe(0)
+		expect(result.steps[0]?.hits).toEqual({ count: 7, of: 7 })
 	})
 })
