@@ -63,6 +63,7 @@ import type {
 	TickOwner,
 	WaitingEffect,
 } from "./combat"
+import type { StartStack } from "./combo-link"
 import { abilityCooldown, evaluateDamage, targetHealth } from "./damage-formula"
 import {
 	coversTick,
@@ -92,6 +93,7 @@ import {
 	type LaterHits,
 } from "./registries/ability-hits"
 import { hasStartCooldown } from "./start-cooldowns"
+import { isStartRunningEffect, isStartStackEffect } from "./start-state"
 
 /** The build as the stats engine reads it, with the whole champion (its abilities and their damage). */
 export type CombatBuild = Omit<BuildStatsInput, "champion" | "effects"> & {
@@ -109,6 +111,10 @@ export type CombatInput = {
 	actions: readonly CombatItem[]
 	/** The effects with a start cooldown (`hasStartCooldown`) that start on it; the others start ready. */
 	startOnCooldown?: readonly string[]
+	/** The stacking effects (`isStartStackEffect`) it starts with, at their count up to their cap (issue 317). */
+	startStacks?: readonly StartStack[]
+	/** The buffs (`isStartRunningEffect`) it starts with running, their abilities on cooldown (issue 317). */
+	startRunning?: readonly string[]
 	/**
 	 * Free mode: cooldowns don't refuse an action, and `outcomes` (by item, `outcomeId`) set what
 	 * happens; an outcome without a choice follows the rules.
@@ -278,12 +284,59 @@ function startCooldowns(sim: Simulation) {
 		const periodic = effect.effect.trigger.kind === "periodic"
 		const starts = periodic
 			? !leading.has(effect.id)
-			: hasStartCooldown(effect.effect) && onCooldown.has(effect.id)
+			: hasStartCooldown(effect, sim.context.level) && onCooldown.has(effect.id)
 		if (starts) {
 			startCooldown(sim, effect)
 			sim.assumedCooldowns.add(effect.id)
 		}
 	}
+}
+
+/**
+ * The stacks and running buffs the combo starts with, each its full duration from 0 s (owner
+ * decision 6a); a running ability buff starts its ability's cooldown as if just cast (5b).
+ */
+function startState(sim: Simulation) {
+	const usable = (id: string) =>
+		sim.input.effects.find(
+			(effect) => effect.id === id && isInForm(effect, sim.formId),
+		)
+	for (const { id, count } of sim.input.startStacks ?? []) {
+		const effect = usable(id)
+		const max = effect?.effect.stacks?.max
+		if (!effect || !max || !isStartStackEffect(effect.effect)) continue
+		sim.active.push({
+			...newInstance(sim, effect, effectDuration(effect, sim.context) ?? 0),
+			stacks: Math.min(count, max),
+		})
+	}
+	for (const id of sim.input.startRunning ?? []) {
+		const effect = usable(id)
+		if (!effect || !isStartRunningEffect(effect.effect)) continue
+		sim.active.push(
+			newInstance(sim, effect, effectDuration(effect, sim.context) ?? 0),
+		)
+	}
+	for (const id of sim.input.startRunning ?? []) {
+		const source = usable(id)?.effect.source
+		if (source?.kind === "ability" && source.slot !== "passive") {
+			startAbilityCooldown(sim, source.slot)
+		}
+	}
+}
+
+/** Puts the ability on its cooldown from now, read at the build's rank and ability haste. */
+function startAbilityCooldown(sim: Simulation, slot: AbilitySlot) {
+	const spell = sim.spells.find((ability) => ability.slot === slot)
+	const rank = sim.input.build.ranks?.[slot] ?? 0
+	if (!spell || rank < 1) return
+	const haste = statsNow(sim).abilityHaste.total
+	sim.cooldowns.set(
+		slot,
+		sim.time +
+			abilityCooldown(spell.cooldown[rank - 1] ?? 0, haste) *
+				cooldownMultiplier(sim, slot),
+	)
 }
 
 function newInstance(
@@ -431,6 +484,7 @@ function createSimulation(
 		castHits: new Map(),
 	}
 	startCooldowns(sim)
+	startState(sim)
 	return sim
 }
 

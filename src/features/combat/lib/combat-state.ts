@@ -1,6 +1,11 @@
 import type { OutcomeChoices } from "@/lib/combat/combat"
+import {
+	type ComboStart,
+	EMPTY_COMBO_START,
+	type StartStack,
+} from "@/lib/combat/combo-link"
 import { outcomeId } from "@/lib/combat/outcomes"
-import { hasStartCooldown } from "@/lib/combat/start-cooldowns"
+import { keepUsableStart } from "@/lib/combat/start-state"
 import type { BuildEffect } from "@/lib/effects/effect"
 import { type CombatEntry, removeStep } from "./combat-sequence"
 
@@ -9,40 +14,43 @@ export type FreeChoices = Readonly<Record<number, OutcomeChoices>>
 
 /**
  * The combo the user builds: its entries (actions and markers), whether free mode is on, the
- * free mode choices, kept while it is off so toggling back and forth loses nothing, and the
- * effects whose cooldown it starts on (every other one starts ready).
+ * free mode choices, kept while it is off so toggling back and forth loses nothing, and its start:
+ * the cooldowns it starts on (every other one starts ready), its starting stacks and running buffs.
  */
 export type CombatState = {
 	entries: readonly CombatEntry[]
 	free: boolean
 	choices: FreeChoices
-	onCooldown: readonly string[]
+	start: ComboStart
 }
 
 export const EMPTY_COMBAT: CombatState = {
 	entries: [],
 	free: false,
 	choices: {},
-	onCooldown: [],
+	start: EMPTY_COMBO_START,
 }
 
 /**
- * The combo without the start cooldowns of effects the build no longer has (Sheen sold); as given
- * while the effects load. Every combo edit saves through it, so its link matches what it keeps.
+ * The combo without the start of effects the build no longer has (Sheen sold, Conqueror swapped);
+ * as given while the effects load. Every combo edit saves through it, so its link matches what it
+ * keeps.
  */
-export function dropUnusedOnCooldown(
+export function dropUnusedStart(
 	state: CombatState,
 	effects: readonly BuildEffect[] | undefined,
+	level: number,
 ): CombatState {
 	if (!effects) return state
-	const kept = state.onCooldown.filter((id) =>
-		effects.some(
-			(effect) => effect.id === id && hasStartCooldown(effect.effect),
-		),
-	)
-	return kept.length === state.onCooldown.length
-		? state
-		: { ...state, onCooldown: kept }
+	const kept = keepUsableStart(state.start, effects, level)
+	const same =
+		kept.onCooldown.length === state.start.onCooldown.length &&
+		kept.running.length === state.start.running.length &&
+		kept.stacks.length === state.start.stacks.length &&
+		kept.stacks.every(
+			({ count }, index) => count === state.start.stacks[index]?.count,
+		)
+	return same ? state : { ...state, start: kept }
 }
 
 /** The combo with the effect starting on its cooldown (`onCooldown`), or ready. */
@@ -51,8 +59,50 @@ export function setStartReady(
 	effectId: string,
 	ready: boolean,
 ): CombatState {
-	const others = state.onCooldown.filter((id) => id !== effectId)
-	return { ...state, onCooldown: ready ? others : [...others, effectId] }
+	const others = state.start.onCooldown.filter((id) => id !== effectId)
+	return {
+		...state,
+		start: {
+			...state.start,
+			onCooldown: ready ? others : [...others, effectId],
+		},
+	}
+}
+
+/**
+ * The combo starting with the effect at `count` stacks (kept in its place, else last), or without
+ * it (`undefined`, or 0).
+ */
+export function setStartStacks(
+	state: CombatState,
+	effectId: string,
+	count: number | undefined,
+): CombatState {
+	const { stacks } = state.start
+	const next: StartStack[] = !count
+		? stacks.filter(({ id }) => id !== effectId)
+		: stacks.some(({ id }) => id === effectId)
+			? stacks.map((stack) =>
+					stack.id === effectId ? { id: effectId, count } : stack,
+				)
+			: [...stacks, { id: effectId, count }]
+	return { ...state, start: { ...state.start, stacks: next } }
+}
+
+/** The combo starting with the buff running, or not. */
+export function setStartRunning(
+	state: CombatState,
+	effectId: string,
+	running: boolean,
+): CombatState {
+	const others = state.start.running.filter((id) => id !== effectId)
+	return {
+		...state,
+		start: {
+			...state.start,
+			running: running ? [...others, effectId] : others,
+		},
+	}
 }
 
 /** The choices with one outcome set at an entry, or back to the computed one (`undefined`). */

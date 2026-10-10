@@ -148,11 +148,14 @@ describe("buildSearchSchema", () => {
 		expect(parse({ choices: "nope" }).choices).toBeUndefined()
 	})
 
-	test("keeps the readable start cooldowns, once each, and drops the others", () => {
+	test("keeps the readable start tokens, once each, and drops the others", () => {
 		expect(
-			parse({ start: "-electrocute.hail.-electrocute.-hail-of-blades" }).start,
-		).toBe("-electrocute.-hail-of-blades")
-		expect(parse({ start: "electrocute" }).start).toBeUndefined()
+			parse({
+				start:
+					"-electrocute.Hail.-electrocute.conqueror-12.master-yi-r-active.conqueror-3.conqueror-0",
+			}).start,
+		).toBe("-electrocute.conqueror-12.master-yi-r-active")
+		expect(parse({ start: "Electrocute.-" }).start).toBeUndefined()
 		expect(parse({ start: 5 }).start).toBeUndefined()
 	})
 

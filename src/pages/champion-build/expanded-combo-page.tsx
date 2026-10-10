@@ -176,8 +176,10 @@ export function ExpandedComboPage({
 			shop={
 				<div className="@container flex min-h-0 flex-1 flex-col text-white">
 					<CombatStartStrip
-						chips={combat.startChips}
+						view={combat.start}
 						onReadyChange={combat.setStartReady}
+						onStacksChange={combat.setStartStacks}
+						onRunningChange={combat.setStartRunning}
 						className="border-line border-b px-4 py-2.5"
 					/>
 					<CombatRowsToolbar count={stepCount}>

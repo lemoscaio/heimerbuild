@@ -16,7 +16,7 @@ import {
 
 /**
  * The combo a link holds: its entries numbered from 1 in order, waits in range, the choices of its
- * steps (a choice at a marker's position is dropped) and the cooldowns it starts on.
+ * steps (a choice at a marker's position is dropped) and its start.
  */
 export function readCombatLink({
 	combo,
@@ -42,22 +42,22 @@ export function readCombatLink({
 		entries,
 		free: free ?? false,
 		choices: chosen,
-		onCooldown: readComboStart(start),
+		start: readComboStart(start),
 	}
 }
 
-/** The link values of a combo; its defaults (no entries, strict mode, no choices, all ready) stay out. */
+/** The link values of a combo; its defaults (no entries, strict mode, no choices, the default start) stay out. */
 export function toCombatLink({
 	entries,
 	free,
 	choices,
-	onCooldown,
+	start,
 }: CombatState): ComboLink {
 	return {
 		combo: serializeComboItems(entries.map(({ action }) => action)),
 		free: free || undefined,
 		choices: serializeComboChoices(choicesByItem(entries, choices)),
-		start: serializeComboStart(onCooldown),
+		start: serializeComboStart(start),
 	}
 }
 

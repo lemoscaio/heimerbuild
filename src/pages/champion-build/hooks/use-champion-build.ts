@@ -19,7 +19,7 @@ import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
 import type { ComboLink } from "@/lib/combat/combo-link"
 import type { CombatBuild } from "@/lib/combat/simulate-combat"
-import { dropUnusedComboStart } from "@/lib/combat/start-cooldowns"
+import { dropUnusedComboStart } from "@/lib/combat/start-state"
 import {
 	availableEffects,
 	combatEffects,
@@ -200,7 +200,11 @@ export function useChampionBuild({
 			combo: state.combo,
 			free: state.free,
 			choices: state.choices,
-			start: dropUnusedComboStart(state.start, fightEffects),
+			start: dropUnusedComboStart(
+				state.start,
+				fightEffects,
+				championState.level,
+			),
 			target: state.target,
 		},
 		effects,

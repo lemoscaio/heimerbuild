@@ -6,6 +6,7 @@ import {
 } from "./combat"
 import {
 	dropRetiredMarkers,
+	EMPTY_COMBO_START,
 	normalizeComboChoices,
 	readComboChoices,
 	readComboItems,
@@ -131,22 +132,34 @@ describe("the target value", () => {
 })
 
 describe("the start value (issue 317)", () => {
-	test("names each effect that starts on cooldown, and reads back what it writes", () => {
-		const ids = ["electrocute", "hail-of-blades"]
+	const start = {
+		onCooldown: ["electrocute", "hail-of-blades"],
+		stacks: [{ id: "conqueror", count: 12 }],
+		running: ["master-yi-r-active"],
+	}
 
-		expect(serializeComboStart(ids)).toBe("-electrocute.-hail-of-blades")
-		expect(readComboStart(serializeComboStart(ids))).toEqual(ids)
+	test("names cooldowns with -, stacks with their count and running buffs by id, and reads back what it writes", () => {
+		expect(serializeComboStart(start)).toBe(
+			"-electrocute.-hail-of-blades.conqueror-12.master-yi-r-active",
+		)
+		expect(readComboStart(serializeComboStart(start))).toEqual(start)
 	})
 
-	test("every cooldown ready writes no value", () => {
-		expect(serializeComboStart([])).toBeUndefined()
-		expect(readComboStart(undefined)).toEqual([])
+	test("the default start writes no value", () => {
+		expect(serializeComboStart(EMPTY_COMBO_START)).toBeUndefined()
+		expect(readComboStart(undefined)).toEqual(EMPTY_COMBO_START)
 	})
 
-	test("drops unreadable tokens and repeats", () => {
+	test("drops unreadable tokens, repeats and a count of 0", () => {
 		expect(
-			readComboStart("-electrocute.ready.-Electrocute.-electrocute"),
-		).toEqual(["electrocute"])
+			readComboStart(
+				"-electrocute.Ready.-Electrocute.-electrocute.conqueror-0.lethal-tempo-6.lethal-tempo-3",
+			),
+		).toEqual({
+			onCooldown: ["electrocute"],
+			stacks: [{ id: "lethal-tempo", count: 6 }],
+			running: [],
+		})
 	})
 })
 

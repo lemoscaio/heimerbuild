@@ -696,20 +696,75 @@ test("Black Cleaver lowers the target's armor for the hits after each attack, an
 	await expect(resists).toHaveCount(1)
 })
 
-test("a cooldown started on cooldown leaves the link with its item: no orphan in the Combo start", async ({
+test("a cooldown started on cooldown leaves the link with its rune: no orphan in the Combo start", async ({
 	page,
 }) => {
 	await page.goto(
-		"/champions/Annie?lvl=9&skills=QWEQQRQEQ&items=3057&tab=combo&combo=q&start=-sheen-spellblade",
+		"/champions/Annie?lvl=9&skills=QWEQQRQEQ&runes=8100-8112-0-0-0__&tab=combo&combo=q&start=-electrocute",
 	)
-	const addBack = combo(page).getByRole("button", {
-		name: "Add back a cooldown ready at the start",
-	})
-	await expect(addBack).toBeVisible()
+	await expect(
+		combo(page).getByRole("button", { name: "Add to the combo start" }),
+	).toBeVisible()
 
-	await page.getByRole("button", { name: "Remove Sheen" }).first().click()
-	await expect(addBack).toHaveCount(0)
-	await combo(page).getByRole("button", { name: "Add Attack" }).click()
-	await expect(page).toHaveURL(/[?&]combo=q\.aa(&|$)/)
+	await page.getByRole("tab", { name: "Runes" }).click()
+	await page
+		.getByRole("radiogroup", { name: "Primary tree", exact: true })
+		.getByRole("radio", { name: "Precision", exact: true })
+		.click()
+	await page
+		.getByRole("radiogroup", { name: "Precision keystone", exact: true })
+		.getByRole("radio", { name: "Conqueror", exact: true })
+		.click()
 	await expect(page).not.toHaveURL(/[?&]start=/)
+	await page.getByRole("tab", { name: "Combo" }).click()
+	await combo(page)
+		.getByRole("button", { name: "Add to the combo start" })
+		.click()
+	await expect(page.getByRole("menuitem", { name: /Electrocute/ })).toHaveCount(
+		0,
+	)
+	await expect(
+		page.getByRole("menuitem", { name: "Conqueror 12/12" }),
+	).toBeVisible()
+})
+
+test("the combo starts with Conqueror stacked from +, kept in the link", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Garen?lvl=9&skills=QWEQQRQEQ&runes=8000-8010-0-0-0__&tab=combo&combo=q.e.r",
+	)
+	await expect(steps(page)).toHaveCount(3)
+	const before = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Add to the combo start" })
+		.click()
+	await page.getByRole("menuitem", { name: "Conqueror 12/12" }).click()
+	await expect(page).toHaveURL(/[?&]start=conqueror-12\b/)
+	await expect(damageTotal(page)).not.toHaveText(before ?? "")
+	const stacked = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Conqueror stacks at the start: 12 of 12" })
+		.click()
+	await page
+		.getByRole("button", { name: "Decrease Conqueror stacks at the start" })
+		.click()
+	await expect(page).toHaveURL(/[?&]start=conqueror-11\b/)
+	await page.keyboard.press("Escape")
+
+	await page.reload()
+	await expect(
+		combo(page).getByRole("button", {
+			name: "Conqueror stacks at the start: 11 of 12",
+		}),
+	).toBeVisible()
+	await expect(damageTotal(page)).not.toHaveText(stacked ?? "")
+
+	await combo(page)
+		.getByRole("button", { name: "Remove from the start: Conqueror stacks" })
+		.click()
+	await expect(page).not.toHaveURL(/[?&]start=/)
+	await expect(damageTotal(page)).toHaveText(before ?? "")
 })

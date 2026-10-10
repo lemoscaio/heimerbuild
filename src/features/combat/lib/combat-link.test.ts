@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { EMPTY_COMBO_START } from "@/lib/combat/combo-link"
 import { isSameCombatLink, readCombatLink, toCombatLink } from "./combat-link"
 import { type CombatState, EMPTY_COMBAT } from "./combat-state"
 
@@ -12,7 +13,7 @@ const COMBO: CombatState = {
 	],
 	free: true,
 	choices: { 2: { "empowered:hail-of-blades": false } },
-	onCooldown: [],
+	start: EMPTY_COMBO_START,
 }
 
 describe("the combo's link values", () => {
@@ -60,18 +61,21 @@ describe("the combo's link values", () => {
 		expect(read.choices).toEqual({})
 	})
 
-	test("hold only the cooldowns the combo starts on: every one ready writes none", () => {
-		const onCooldown = {
+	test("hold only the start that differs from the default: none writes no value", () => {
+		const started = {
 			...COMBO,
-			onCooldown: ["electrocute", "hail-of-blades"],
+			start: {
+				onCooldown: ["electrocute", "hail-of-blades"],
+				stacks: [{ id: "conqueror", count: 12 }],
+				running: ["master-yi-r-active"],
+			},
 		}
 
-		expect(toCombatLink(onCooldown).start).toBe("-electrocute.-hail-of-blades")
+		expect(toCombatLink(started).start).toBe(
+			"-electrocute.-hail-of-blades.conqueror-12.master-yi-r-active",
+		)
 		expect(toCombatLink(COMBO).start).toBeUndefined()
-		expect(readCombatLink(toCombatLink(onCooldown)).onCooldown).toEqual([
-			"electrocute",
-			"hail-of-blades",
-		])
+		expect(readCombatLink(toCombatLink(started)).start).toEqual(started.start)
 	})
 
 	test("are another combo when a cooldown starts otherwise", () => {
