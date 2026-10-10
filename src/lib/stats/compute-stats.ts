@@ -31,6 +31,11 @@ export type ItemInput = Pick<Item, "stats">
 /** Champion `resource` value of mana users; other resources ignore mana stats on items. */
 export const MANA_RESOURCE = "MANA"
 
+/** Whether the champion's resource is mana; the others' `mana` stat is energy, fury or nothing. */
+export function usesMana({ resource }: Pick<Champion, "resource">): boolean {
+	return resource === MANA_RESOURCE
+}
+
 const FLAT_GROWTH_STATS = [
 	"health",
 	"armor",
@@ -81,7 +86,7 @@ export function computeStats(
 		level,
 	)
 	const stats = { ...inForm.stats, attackRange }
-	const usesMana = champion.resource === MANA_RESOURCE
+	const hasMana = usesMana(champion)
 	const {
 		attackSpeedPercent,
 		critChancePercent,
@@ -111,12 +116,12 @@ export function computeStats(
 	)
 
 	const mana = statAtLevel(stats.mana, level)
-	computed.mana = breakdown(mana, usesMana ? mana + itemStats.mana : mana)
+	computed.mana = breakdown(mana, hasMana ? mana + itemStats.mana : mana)
 
 	const manaRegen = statAtLevel(stats.manaRegen, level)
 	computed.manaRegen = breakdown(
 		manaRegen,
-		usesMana
+		hasMana
 			? manaRegen * (1 + baseManaRegenPercent) + itemStats.manaRegen
 			: manaRegen,
 	)

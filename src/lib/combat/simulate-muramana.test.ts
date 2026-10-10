@@ -195,6 +195,10 @@ describe("Shock on empowered attacks, per ability (wiki)", async () => {
 		slot,
 	})
 	const darius = await champion("Darius")
+	// Garen and Rengar have no mana, so no Shock (issue 441); as mana users they still test the ability's rule.
+	async function asManaUser(key: string) {
+		return { ...(await champion(key)), resource: "MANA" }
+	}
 
 	/** Each Shock part the step dealt, by part. */
 	function parts(result: CombatResult, step: number) {
@@ -247,20 +251,20 @@ describe("Shock on empowered attacks, per ability (wiki)", async () => {
 			["Garen", "Q"],
 			["Leona", "Q"],
 		] as const) {
-			const result = simulate(await champion(key), 360, [ability(slot)])
+			const result = simulate(await asManaUser(key), 360, [ability(slot)])
 
 			expect(parts(result, 0)).toEqual({ attack: 1, ability: 1 })
 		}
 	})
 
 	test("Savagery's bonus is proc damage: the attack part only", async () => {
-		const result = simulate(await champion("Rengar"), 360, [ability("Q")])
+		const result = simulate(await asManaUser("Rengar"), 360, [ability("Q")])
 
 		expect(parts(result, 0)).toEqual({ attack: 1, ability: 0 })
 	})
 
 	test("Thrill of the Hunt's leap bonus is proc damage too: the attack part only", async () => {
-		const result = simulate(await champion("Rengar"), 360, [
+		const result = simulate(await asManaUser("Rengar"), 360, [
 			ability("R"),
 			ATTACK,
 		])
@@ -276,5 +280,36 @@ describe("Shock on empowered attacks, per ability (wiki)", async () => {
 		})
 
 		expect(shocks(result, 2, "press-the-attack")).toHaveLength(1)
+	})
+})
+
+// Wiki: Shock and Awe scale with maximum mana; a champion without mana has none (issue 441).
+describe("Muramana on a champion without mana", async () => {
+	const garen = await champion("Garen")
+	const zed = await champion("Zed")
+
+	test("Garen's Decisive Strike deals no Shock and runs no Awe; its damage is the step's own", () => {
+		const { effects } = setup(garen, 360)
+		const result = simulate(garen, 360, [{ kind: "ability", slot: "Q" }])
+		const [step] = result.steps
+
+		expect(effects.map(({ id }) => id)).not.toContain("muramana-awe")
+		expect(shocks(result, 0, SHOCK_ATTACK)).toEqual([])
+		expect(shocks(result, 0, SHOCK_ABILITY)).toEqual([])
+		expect(step?.active.map(({ effectId }) => effectId)).not.toContain(
+			"muramana-awe",
+		)
+	})
+
+	test("Zed's energy is not mana: no Shock on his attack, and Awe adds no attack damage", () => {
+		const result = simulate(zed, 360, [{ kind: "attack" }])
+		const { build, effects } = setup(zed, 360)
+		const stats = computeBuildStats({
+			...build,
+			effects: { available: effects, overrides: {} },
+		})
+
+		expect(shocks(result, 0, SHOCK_ATTACK)).toEqual([])
+		expect(stats.attackDamage.bonus).toBe(35)
 	})
 })
