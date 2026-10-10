@@ -25,6 +25,8 @@ export const ITEM_GROUP_LABELS: Readonly<Record<string, string | null>> = {
 	"{8c259571}": null, // three of the Hydra items
 	"{548f93b0}": "Annul",
 	"{d52cd27b}": null, // Bramble Vest and Thornmail, which builds from it
+	"{a4ceabbc}": null, // Manamune and Muramana, its upgrade
+	"{a6ceaee2}": null, // Archangel's Staff and Seraph's Embrace, its upgrade
 }
 
 type LabelOptions = { labels?: Readonly<Record<string, string | null>> }
