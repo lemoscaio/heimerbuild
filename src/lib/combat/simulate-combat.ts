@@ -475,6 +475,8 @@ type Damage = {
 	raw: number
 	/** A damage over time's tick, and the step it belongs to. */
 	tick?: TickOwner
+	/** Proc damage (wiki), which `notProc` effects ignore. */
+	proc?: boolean
 }
 
 /** The reductions the effects on the target hold now, each at its stacks (Carve: 6% per stack). */
@@ -536,7 +538,7 @@ function delayedOf(sim: Simulation, tick: TickOwner | undefined): DelayedHit {
 	return sim.laterHitOf === undefined ? { delayed: { owner } } : {}
 }
 
-function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
+function deal(sim: Simulation, { source, type, raw, tick, proc }: Damage) {
 	// A basic attack doesn't read the reduction it applies; other damage does (wiki Black Cleaver).
 	const ownFirst = source.kind !== "attack"
 	if (ownFirst) triggerOnDamage(sim, type)
@@ -562,7 +564,7 @@ function deal(sim: Simulation, { source, type, raw, tick }: Damage) {
 	})
 	if (!ownFirst) triggerOnDamage(sim, type)
 	triggerOnAbilityDamage(sim, source)
-	triggerOnActionDamage(sim, source)
+	triggerOnActionDamage(sim, source, { proc })
 	dealBonusTrueDamage(sim, source, final)
 }
 
@@ -628,8 +630,13 @@ function damageAbility(
  * its hit rule's `actionPerHit` names the effect. Its first damage says whether a basic attack
  * dealt it (`stacks.gain`). `abilitiesOnly`: a Q, W, E or R's damage, not the passive's. With
  * `castInstance`, once per action and ability whose damage it is (a detonated mark is its own ability's).
+ * `notProc`: not by proc damage.
  */
-function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
+function triggerOnActionDamage(
+	sim: Simulation,
+	source: DamageSource,
+	{ proc = false }: ActionDamageOptions = {},
+) {
 	if (sim.onActionDamage) return
 	sim.onActionDamage = true
 	const action = sim.owner ?? sim.step
@@ -639,6 +646,7 @@ function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 		const { trigger: on } = effect.effect
 		if (on.kind !== "on-action-damage") continue
 		if (on.abilitiesOnly && (!ability || ability === "passive")) continue
+		if (on.notProc && proc) continue
 		const hit = isActionPerHit(sim, source, effect.id) ? `@${sim.time}` : ""
 		const instance = on.castInstance ? `:${ability ?? source.kind}` : ""
 		const key = `${effect.id}@${action}${hit}${instance}`
@@ -651,6 +659,11 @@ function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	}
 	applyMarks(sim, pending)
 	sim.onActionDamage = false
+}
+
+type ActionDamageOptions = {
+	/** The damage is proc damage (Savagery's bonus). */
+	proc?: boolean
 }
 
 /** Not triggered by this action yet, or by its cast instance `lockout` seconds ago or more (Shock's 6.5 s). */
@@ -721,6 +734,8 @@ type AbilityDamageOptions = {
 	withoutAttack?: boolean
 	/** Times the damage (`perTargetStack`); 1 by default. */
 	scale?: number
+	/** Proc damage (wiki): `procBonus`, or a grant's `proc`. */
+	proc?: boolean
 }
 
 /** The counts the ability's formulas read from the attacker's running effects (Siphoning Strike's stacks). */
@@ -754,6 +769,7 @@ function dealAbilityDamage(
 		targetHealth = sim.health,
 		withoutAttack = false,
 		scale = 1,
+		proc = false,
 	}: AbilityDamageOptions = {},
 ) {
 	const { ranks, level } = sim.input.build
@@ -776,7 +792,7 @@ function dealAbilityDamage(
 	}
 	const attack = withoutAttack ? stats.attackDamage.total : 0
 	const raw = Math.max(0, total - attack) * scale
-	deal(sim, { source, type: formula.type, raw })
+	deal(sim, { source, type: formula.type, raw, proc })
 }
 
 /**
@@ -845,7 +861,8 @@ function dealGrantNow(
 ) {
 	const source = { kind: "effect", effectId: effect.id } as const
 	if (grant.kind === "abilityDamage") {
-		dealAbilityDamage(sim, grant.ability, grant.name, source)
+		const { ability, name, proc } = grant
+		dealAbilityDamage(sim, ability, name, source, { proc })
 	}
 	if (grant.kind === "damage") dealGrantDamage(sim, grant, effect, source)
 	if (grant.kind === "applyOnHit") {
@@ -1394,18 +1411,20 @@ type OnHitBy = MarkConsumer | "effect"
 type OnHitOptions = {
 	/** The target's health as the hit began, which on-hit damage reads; the current one by default. */
 	targetHealth?: number
+	/** The attack is also spell damage (`spellAttack`): `notSpellAttack` effects skip it. */
+	spellAttack?: boolean
 }
 
 /**
  * On-hit, by an attack, an ability's hit or an effect's: the on-hit effects trigger (an
- * `attacksOnly` one on an attack's), gated by the stacks as the hit began, then each primed effect
+ * `attacksOnly` one on an attack's, `notSpellAttack` not on a spell one), gated by the stacks as the hit began, then each primed effect
  * spent by an on-hit (a spellblade) deals its damage.
  */
 function onHit(
 	sim: Simulation,
 	pending: PendingMarks,
 	by: OnHitBy,
-	{ targetHealth = sim.health }: OnHitOptions = {},
+	{ targetHealth = sim.health, spellAttack = false }: OnHitOptions = {},
 ) {
 	const previous = { hitHealth: sim.hitHealth, maxedAtHit: sim.maxedAtHit }
 	sim.hitHealth = targetHealth
@@ -1414,7 +1433,9 @@ function onHit(
 	triggerWhere(
 		sim,
 		(trigger) =>
-			trigger.kind === "on-hit" && (by === "attack" || !trigger.attacksOnly),
+			trigger.kind === "on-hit" &&
+			(by === "attack" || !trigger.attacksOnly) &&
+			!(spellAttack && trigger.notSpellAttack),
 		pending,
 	)
 	sim.maxedAtHit = previous.maxedAtHit
@@ -1426,7 +1447,8 @@ function onHit(
 		const source = effectSource(instance)
 		for (const grant of instance.effect.effect.grants) {
 			if (grant.kind === "abilityDamage") {
-				dealAbilityDamage(sim, grant.ability, grant.name, source)
+				const { ability, name, proc } = grant
+				dealAbilityDamage(sim, ability, name, source, { proc })
 			}
 			if (grant.kind === "damage") {
 				dealGrantDamage(sim, grant, instance.effect, source)
@@ -1722,6 +1744,8 @@ type StrikeOptions = {
 	bonus?: () => void
 	/** The attack doesn't start the attack timer (Shield of Daybreak's). */
 	noAttackCooldown?: boolean
+	/** The attack is also spell damage (Crippling Strike's). */
+	spellAttack?: boolean
 }
 
 /** The attack's windup at the attacker's attack speed now (`attackWindupTime`). */
@@ -1738,7 +1762,12 @@ function windupNow(sim: Simulation): number {
 function strike(
 	sim: Simulation,
 	item: CombatItem,
-	{ pending = [], bonus, noAttackCooldown = false }: StrikeOptions = {},
+	{
+		pending = [],
+		bonus,
+		noAttackCooldown = false,
+		spellAttack = false,
+	}: StrikeOptions = {},
 ) {
 	const startedAt = sim.time
 	endEffects(sim, "attack")
@@ -1756,7 +1785,7 @@ function strike(
 	})
 	bonus?.()
 	dealOnAttackDamage(sim)
-	onHit(sim, pending, "attack", { targetHealth })
+	onHit(sim, pending, "attack", { targetHealth, spellAttack })
 	consumeMarks(sim, "attack", pending)
 	applyMarks(sim, chooseMarks(sim, pending, item))
 	for (const waiting of onTarget) release(sim, waiting)
@@ -1939,9 +1968,13 @@ function empoweredAttack(
 	strike(sim, action, {
 		pending,
 		noAttackCooldown: !!empowersAttack?.noAttackCooldown,
+		spellAttack: !!empowersAttack?.spellAttack,
 		bonus: () => {
 			const names = castDamages(spell, rule, action.variant)
-			const options = { withoutAttack: !!empowersAttack?.includesAttack }
+			const options = {
+				withoutAttack: !!empowersAttack?.includesAttack,
+				proc: !!empowersAttack?.procBonus,
+			}
 			for (const name of names) {
 				const source = { kind: "ability", slot: spell.slot, name } as const
 				dealAbilityDamage(sim, spell.slot, name, source, options)
