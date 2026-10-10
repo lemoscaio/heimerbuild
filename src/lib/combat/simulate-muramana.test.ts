@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { type Champion, championSchema } from "@schemas/champion"
 import { ItemsFileSchema } from "@schemas/item"
+import { type Rune, runesFileSchema } from "@schemas/rune"
 import { combatEffects } from "../effects/available-effects"
 import { effectiveItems } from "../item-upgrades"
 import { computeBuildStats } from "../stats/compute-build-stats"
@@ -29,6 +30,9 @@ const { items } = ItemsFileSchema.parse(
 	await Bun.file(new URL(`${PATCH}/items.json`, DATA)).json(),
 )
 const itemsById = Object.fromEntries(items.map((item) => [item.id, item]))
+const RUNES = runesFileSchema
+	.parse(await Bun.file(new URL(`${PATCH}/runes.json`, DATA)).json())
+	.trees.flatMap((tree) => [tree.keystones, ...tree.rows].flat())
 
 // No resistances: every hit's final damage is its raw damage.
 const TARGET: CombatTarget = {
@@ -42,8 +46,15 @@ const SHOCK_ATTACK = "muramana-shock-attack"
 const SHOCK_ABILITY = "muramana-shock-ability"
 const ONE_EACH: AbilityRanks = { Q: 1, W: 1, E: 1, R: 1 }
 
+type SetupOptions = { runes?: readonly Rune[] }
+
 /** The champion at level 6 with Manamune at `mana` Manaflow, as the build gives it to the combo. */
-function setup(championData: Champion, mana: number, ranks = ONE_EACH) {
+function setup(
+	championData: Champion,
+	mana: number,
+	{ runes = [] }: SetupOptions = {},
+) {
+	const ranks = ONE_EACH
 	const matchStacks = { "manaflow-mana": mana }
 	const held = effectiveItems([itemsById["3004"]], matchStacks, itemsById)
 	const build = {
@@ -60,7 +71,7 @@ function setup(championData: Champion, mana: number, ranks = ONE_EACH) {
 		champion: championData,
 		ranks,
 		spells: [],
-		runes: [],
+		runes,
 		items: held,
 	})
 	return { build, effects }
@@ -70,9 +81,10 @@ function simulate(
 	championData: Champion,
 	mana: number,
 	actions: readonly CombatAction[],
+	options: SetupOptions = {},
 ) {
 	const input: CombatInput = {
-		...setup(championData, mana),
+		...setup(championData, mana, options),
 		summoners: [],
 		target: TARGET,
 		actions,
@@ -171,5 +183,98 @@ describe("Shock's 6.5 s per cast instance (wiki)", async () => {
 		expect(shocks(result, 0, SHOCK_ABILITY)[0]?.damage.raw).toBeCloseTo(
 			0.04 * mana,
 		)
+	})
+})
+
+// Wiki Muramana, checked 2026-10-10: an ability that triggers on-hit and spell effects "in the same
+// damage instance" applies Shock as an ability; "in a separate damage instance", as both.
+describe("Shock on empowered attacks, per ability (wiki)", async () => {
+	const ATTACK: CombatAction = { kind: "attack" }
+	const ability = (slot: "Q" | "W" | "E" | "R"): CombatAction => ({
+		kind: "ability",
+		slot,
+	})
+	const darius = await champion("Darius")
+
+	/** Each Shock part the step dealt, by part. */
+	function parts(result: CombatResult, step: number) {
+		return {
+			attack: shocks(result, step, SHOCK_ATTACK).length,
+			ability: shocks(result, step, SHOCK_ABILITY).length,
+		}
+	}
+
+	test("Crippling Strike is spell damage itself: one Shock, the ability part, and the hand-counted total", () => {
+		const result = simulate(darius, 360, [ability("W")])
+		const mana = maxMana(darius, 360)
+		// Muramana's Awe: 2% of maximum mana as AD; Crippling Strike rank 1 is the attack's 140% AD.
+		const attackDamage =
+			computeBuildStats(setup(darius, 360).build).attackDamage.total +
+			0.02 * mana
+		const dealt = result.steps[0].events.filter(
+			(event): event is DamageHit =>
+				event.kind === "hit" &&
+				"damage" in event &&
+				!(
+					event.source.kind === "effect" &&
+					event.source.effectId === "darius-hemorrhage"
+				),
+		)
+
+		expect(parts(result, 0)).toEqual({ attack: 0, ability: 1 })
+		expect(shocks(result, 0, SHOCK_ABILITY)[0]?.damage.raw).toBeCloseTo(
+			0.04 * mana,
+		)
+		expect(
+			dealt.reduce((sum, { damage }) => sum + damage.final, 0),
+		).toBeCloseTo(1.4 * attackDamage + 0.04 * mana)
+	})
+
+	test("Siphoning Strike and Tumble are spell damage themselves too: the ability part only", async () => {
+		for (const [key, slot] of [
+			["Nasus", "Q"],
+			["Vayne", "Q"],
+		] as const) {
+			const result = simulate(await champion(key), 360, [ability(slot)])
+
+			expect(parts(result, 0)).toEqual({ attack: 0, ability: 1 })
+		}
+	})
+
+	test("Empower, Decisive Strike and Shield of Daybreak are a spell instance apart from the attack: both parts", async () => {
+		for (const [key, slot] of [
+			["Jax", "W"],
+			["Garen", "Q"],
+			["Leona", "Q"],
+		] as const) {
+			const result = simulate(await champion(key), 360, [ability(slot)])
+
+			expect(parts(result, 0)).toEqual({ attack: 1, ability: 1 })
+		}
+	})
+
+	test("Savagery's bonus is proc damage: the attack part only", async () => {
+		const result = simulate(await champion("Rengar"), 360, [ability("Q")])
+
+		expect(parts(result, 0)).toEqual({ attack: 1, ability: 0 })
+	})
+
+	test("Thrill of the Hunt's leap bonus is proc damage too: the attack part only", async () => {
+		const result = simulate(await champion("Rengar"), 360, [
+			ability("R"),
+			ATTACK,
+		])
+
+		expect(parts(result, 1)).toEqual({ attack: 1, ability: 0 })
+	})
+
+	test("Crippling Strike still counts as a basic attack for Press the Attack: W, AA, AA strikes on the third", () => {
+		const pressTheAttack = RUNES.find(({ key }) => key === "PressTheAttack")
+		if (!pressTheAttack) throw new Error("no Press the Attack this patch")
+		const result = simulate(darius, 360, [ability("W"), ATTACK, ATTACK], {
+			runes: [pressTheAttack],
+		})
+
+		expect(shocks(result, 2, "press-the-attack")).toHaveLength(1)
 	})
 })

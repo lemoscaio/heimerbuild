@@ -33,7 +33,8 @@ export const GAREN_EFFECTS = [
 
 export const GAREN_HIT_RULES = [
 	{
-		// `TotalDamage` is the whole attack (wiki: 30 to 150 + 50% AD bonus).
+		// `TotalDamage` is the whole attack (wiki: 30 to 150 + 50% AD bonus). The wiki tags it "spell"
+		// with an attack that crits apart from the bonus: a spell instance of its own, like Phase Dive.
 		championKey: "Garen",
 		slot: "Q",
 		empowersAttack: { includesAttack: true, resetsAttack: true },

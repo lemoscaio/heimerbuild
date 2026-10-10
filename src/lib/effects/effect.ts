@@ -274,7 +274,13 @@ export type Grant = GrantTiming &
 		| { kind: "shield"; amount: Amount }
 		| { kind: "heal"; amount: Amount }
 		| DamageGrant
-		| { kind: "abilityDamage"; ability: AbilitySlot | "passive"; name: string }
+		| {
+				kind: "abilityDamage"
+				ability: AbilitySlot | "passive"
+				name: string
+				/** Proc damage (wiki): effects marked `notProc` ignore it (Thrill of the Hunt's leap). */
+				proc?: true
+		  }
 		| DamageOverTimeGrant
 		| ({ kind: "onAttackDamage" } & EffectDamage)
 		| ResistReductionGrant
@@ -356,15 +362,16 @@ export type EffectCondition = "not-damaged-recently"
  * later hits and ticks not again (`on-action-damage`: Electrocute's stacks; with `targetBelow`, only
  * while the hit leaves the target under that share of its health: Dark Harvest's 50%; with
  * `abilitiesOnly`, only a Q, W, E or R's damage: Spear of Shojin; with `castInstance`, once per cast
- * instance: Muramana's Shock). `on-hit` with `attacksOnly` skips
- * an ability's on-hit and a phantom hit's (Press the Attack's stacks, Seething Strike).
+ * instance: Muramana's Shock; with `notProc`, not by proc damage). `on-hit` with `attacksOnly` skips
+ * an ability's on-hit and a phantom hit's (Press the Attack's stacks, Seething Strike); with
+ * `notSpellAttack`, also an empowered attack that is spell damage itself (Shock on Crippling Strike).
  */
 export type Trigger =
 	| { kind: "always" }
 	| { kind: "while"; condition: EffectCondition }
 	| { kind: "after-use" }
 	| { kind: "after-summoner" }
-	| { kind: "on-hit"; attacksOnly?: true }
+	| { kind: "on-hit"; attacksOnly?: true; notSpellAttack?: true }
 	| { kind: "after-ability" }
 	| { kind: "on-attack" }
 	| { kind: "on-cast"; slots?: readonly AbilitySlot[]; perHit?: true }
@@ -378,6 +385,7 @@ export type Trigger =
 			targetBelow?: number
 			abilitiesOnly?: true
 			castInstance?: CastInstance
+			notProc?: true
 	  }
 
 /**

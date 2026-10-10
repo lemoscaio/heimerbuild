@@ -5,7 +5,8 @@ import { WIKI } from "./rule-helpers"
 
 export const LEONA_HIT_RULES = [
 	{
-		// `TotalDamageTooltip` is the bonus magic damage (wiki: 10 to 110 + 30% AP).
+		// `TotalDamageTooltip` is the bonus magic damage (wiki: 10 to 110 + 30% AP). The wiki tags it
+		// "spell", crits apart from the bonus: a spell instance of its own, like Phase Dive.
 		championKey: "Leona",
 		slot: "Q",
 		empowersAttack: { resetsAttack: true, noAttackCooldown: true },

@@ -117,6 +117,13 @@ export type EmpoweredAttack = {
 	resetsAttack?: true
 	/** The attack doesn't put the basic attack on cooldown (Shield of Daybreak): the next may start after its windup. */
 	noAttackCooldown?: true
+	/**
+	 * The attack's own hit is also spell damage, in one damage instance (wiki Crippling Strike: "This
+	 * includes the basic attack itself"). Without it, the bonus is spell damage of its own instance.
+	 */
+	spellAttack?: true
+	/** The bonus is proc damage (wiki Savagery), which effects marked `notProc` ignore. */
+	procBonus?: true
 }
 
 /**

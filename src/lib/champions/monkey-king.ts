@@ -25,9 +25,11 @@ export const MONKEY_KING_EFFECTS = [
 
 export const MONKEY_KING_HIT_RULES = [
 	{
+		// Wiki: the attack portion is "basic damage and spell damage", the bonus "proc damage"; the
+		// bonus stays unmarked so the cast's one spell instance still reaches its effects.
 		championKey: "MonkeyKing",
 		slot: "Q",
-		empowersAttack: { resetsAttack: true },
+		empowersAttack: { resetsAttack: true, spellAttack: true },
 		since: "16.19",
 		sourceUrl: `${WIKI}Wukong/Crushing_Blow`,
 	},

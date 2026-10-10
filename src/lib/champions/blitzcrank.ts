@@ -32,10 +32,15 @@ export const BLITZCRANK_EFFECTS = [
 
 export const BLITZCRANK_HIT_RULES = [
 	{
-		// `TotalDamage` is the whole attack (wiki: 100% AD + 25% AP bonus).
+		// `TotalDamage` is the whole attack (wiki: 100% AD + 25% AP bonus). Wiki: spell damage too,
+		// "This includes the basic attack itself."
 		championKey: "Blitzcrank",
 		slot: "E",
-		empowersAttack: { includesAttack: true, resetsAttack: true },
+		empowersAttack: {
+			includesAttack: true,
+			resetsAttack: true,
+			spellAttack: true,
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Blitzcrank/Power_Fist`,
 	},
