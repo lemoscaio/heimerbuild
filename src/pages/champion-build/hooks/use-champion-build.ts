@@ -19,7 +19,7 @@ import { useSkills } from "@/features/skills/hooks/use-skills"
 import { useSummoners } from "@/features/summoners/hooks/use-summoners"
 import type { ComboLink } from "@/lib/combat/combo-link"
 import type { CombatBuild } from "@/lib/combat/simulate-combat"
-import { dropUnusedComboStart } from "@/lib/combat/start-cooldowns"
+import { dropUnusedComboStart } from "@/lib/combat/start-state"
 import {
 	availableEffects,
 	combatEffects,

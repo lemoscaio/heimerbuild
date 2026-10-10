@@ -6,11 +6,13 @@ import {
 	type CombatState,
 	changedChoices,
 	choicesByItem,
-	dropUnusedOnCooldown,
+	dropUnusedStart,
 	EMPTY_COMBAT,
 	removeEntry,
 	setFreeChoice,
 	setStartReady,
+	setStartRunning,
+	setStartStacks,
 } from "./combat-state"
 
 function bound(fields: Partial<Effect> & Pick<Effect, "id">): BuildEffect {
@@ -94,7 +96,7 @@ describe("removeEntry", () => {
 			3: { "empowered:hail": false },
 			5: { "empowered:hail": false },
 		},
-		onCooldown: [],
+		start: EMPTY_COMBAT.start,
 	}
 
 	test("a marker's choices go back to computed up to the next marker of its effect; others stay", () => {
@@ -120,7 +122,7 @@ describe("setStartReady", () => {
 	test("× starts the effect on its cooldown, + brings it back ready; the steps stay", () => {
 		const removed = setStartReady(EMPTY_COMBAT, "electrocute", false)
 
-		expect(removed.onCooldown).toEqual(["electrocute"])
+		expect(removed.start.onCooldown).toEqual(["electrocute"])
 		expect(setStartReady(removed, "electrocute", true)).toEqual(EMPTY_COMBAT)
 	})
 
@@ -131,11 +133,51 @@ describe("setStartReady", () => {
 			false,
 		)
 
-		expect(twice.onCooldown).toEqual(["electrocute"])
+		expect(twice.start.onCooldown).toEqual(["electrocute"])
 	})
 })
 
-describe("dropUnusedOnCooldown", () => {
+describe("setStartStacks", () => {
+	test("adds the effect at its count, changes it in place and removes it at none", () => {
+		const two = setStartStacks(
+			setStartStacks(EMPTY_COMBAT, "conqueror", 12),
+			"black-cleaver-carve",
+			5,
+		)
+		expect(two.start.stacks).toEqual([
+			{ id: "conqueror", count: 12 },
+			{ id: "black-cleaver-carve", count: 5 },
+		])
+
+		const changed = setStartStacks(two, "conqueror", 4)
+		expect(changed.start.stacks).toEqual([
+			{ id: "conqueror", count: 4 },
+			{ id: "black-cleaver-carve", count: 5 },
+		])
+
+		expect(
+			setStartStacks(changed, "conqueror", undefined).start.stacks,
+		).toEqual([{ id: "black-cleaver-carve", count: 5 }])
+		expect(setStartStacks(changed, "conqueror", 0).start.stacks).toHaveLength(1)
+	})
+})
+
+describe("setStartRunning", () => {
+	test("starts the buff running once, and takes it out", () => {
+		const running = setStartRunning(
+			setStartRunning(EMPTY_COMBAT, "master-yi-r-active", true),
+			"master-yi-r-active",
+			true,
+		)
+
+		expect(running.start.running).toEqual(["master-yi-r-active"])
+		expect(setStartRunning(running, "master-yi-r-active", false)).toEqual(
+			EMPTY_COMBAT,
+		)
+	})
+})
+
+describe("dropUnusedStart", () => {
 	const sheen: BuildEffect = {
 		id: "sheen-spellblade",
 		name: "Sheen",
@@ -150,20 +192,43 @@ describe("dropUnusedOnCooldown", () => {
 			sourceUrl: "https://wiki.leagueoflegends.com/en-us/",
 		},
 	}
-	const state = {
+	const conqueror = bound({
+		id: "conqueror",
+		trigger: { kind: "on-action-damage" },
+		duration: 5,
+		stacks: { max: 12 },
+		grants: [{ kind: "stat", stat: "adaptiveForce", amount: 2 }],
+	})
+	const state: CombatState = {
 		...EMPTY_COMBAT,
-		onCooldown: ["sheen-spellblade", "electrocute"],
+		start: {
+			onCooldown: ["sheen-spellblade", "electrocute"],
+			stacks: [
+				{ id: "conqueror", count: 20 },
+				{ id: "lethal-tempo", count: 6 },
+			],
+			running: ["master-yi-r-active"],
+		},
 	}
 
-	test("drops the cooldowns of effects the build no longer has", () => {
-		expect(dropUnusedOnCooldown(state, [sheen]).onCooldown).toEqual([
-			"sheen-spellblade",
-		])
+	test("drops the start of effects the build no longer has, and a count past the cap is the cap", () => {
+		expect(dropUnusedStart(state, [sheen, conqueror]).start).toEqual({
+			onCooldown: ["sheen-spellblade"],
+			stacks: [{ id: "conqueror", count: 12 }],
+			running: [],
+		})
 	})
 
-	test("keeps them as given while the effects load, and the same state when nothing goes", () => {
-		expect(dropUnusedOnCooldown(state, undefined)).toBe(state)
-		const kept = { ...EMPTY_COMBAT, onCooldown: ["sheen-spellblade"] }
-		expect(dropUnusedOnCooldown(kept, [sheen])).toBe(kept)
+	test("keeps it as given while the effects load, and the same state when nothing goes", () => {
+		expect(dropUnusedStart(state, undefined)).toBe(state)
+		const kept: CombatState = {
+			...EMPTY_COMBAT,
+			start: {
+				onCooldown: ["sheen-spellblade"],
+				stacks: [{ id: "conqueror", count: 12 }],
+				running: [],
+			},
+		}
+		expect(dropUnusedStart(kept, [sheen, conqueror])).toBe(kept)
 	})
 })

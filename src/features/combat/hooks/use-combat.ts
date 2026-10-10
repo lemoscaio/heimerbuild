@@ -16,6 +16,10 @@ import {
 } from "@/lib/combat/simulate-combat"
 import { startCooldownEffects } from "@/lib/combat/start-cooldowns"
 import { combatStartOptions } from "@/lib/combat/start-options"
+import {
+	startRunningEffects,
+	startStackEffects,
+} from "@/lib/combat/start-state"
 import { abilitiesInForm } from "@/lib/form-abilities"
 import { combatFormId } from "../lib/combat-form"
 import { combatKeys } from "../lib/combat-keys"
@@ -28,22 +32,24 @@ import {
 	setWaitSeconds,
 } from "../lib/combat-sequence"
 import { combatSituations } from "../lib/combat-situations"
-import { combatStartChips } from "../lib/combat-start"
+import { combatStartView } from "../lib/combat-start"
 import {
 	type CombatState,
 	changedChoices,
 	choicesByItem,
-	dropUnusedOnCooldown,
+	dropUnusedStart,
 	EMPTY_COMBAT,
 	removeEntry,
 	setFreeChoice,
 	setStartReady,
+	setStartRunning,
+	setStartStacks,
 } from "../lib/combat-state"
 
 /** What the combo runs on, injected: the build, its effects (`combatEffects`), its summoner slots and the target. */
 export type CombatInput = Omit<
 	SimulationInput,
-	"actions" | "free" | "startOnCooldown"
+	"actions" | "free" | "startOnCooldown" | "startStacks" | "startRunning"
 >
 
 type UseCombatOptions = {
@@ -65,12 +71,14 @@ function isCurated({ key }: Champion) {
 /** The combo's result: strict, or free mode's with the outcomes it computed (`seed`, by item). */
 function simulate(
 	input: CombatInput,
-	{ entries, free, choices, onCooldown }: CombatState,
+	{ entries, free, choices, start }: CombatState,
 ) {
 	const run = {
 		...input,
 		actions: entries.map(({ action }) => action),
-		startOnCooldown: onCooldown,
+		startOnCooldown: start.onCooldown,
+		startStacks: start.stacks,
+		startRunning: start.running,
 	}
 	if (!free) return { result: simulateCombat(run) }
 	return simulateFreeCombat(run, choicesByItem(entries, choices))
@@ -92,7 +100,7 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 	const effects = input?.effects ?? []
 
 	function save(next: CombatState) {
-		const kept = dropUnusedOnCooldown(next, input?.effects)
+		const kept = dropUnusedStart(next, input?.effects)
 		onChange(kept)
 		return kept
 	}
@@ -134,14 +142,27 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 					summoners: input.summoners,
 				})
 			: [],
-		/** The build's cooldowns the combo starts with, each ready unless removed ("Combo start"). */
-		startChips: combatStartChips(
-			startCooldownEffects(effects, formId),
-			value.onCooldown,
+		/**
+		 * "Combo start": the build's cooldowns, each ready unless removed, the stacks and running buffs
+		 * the combo starts with, and what "+" can add.
+		 */
+		start: combatStartView(
+			{
+				cooldowns: startCooldownEffects(effects, formId),
+				stacks: startStackEffects(effects, formId),
+				running: startRunningEffects(effects, formId),
+			},
+			value.start,
 		),
 		/** Starts the effect's cooldown ready, or on cooldown. */
 		setStartReady: (effectId: string, ready: boolean) =>
 			save(setStartReady(value, effectId, ready)),
+		/** Starts the combo with the effect at `count` stacks, or without it (`undefined`). */
+		setStartStacks: (effectId: string, count: number | undefined) =>
+			save(setStartStacks(value, effectId, count)),
+		/** Starts the combo with the buff running, or not. */
+		setStartRunning: (effectId: string, running: boolean) =>
+			save(setStartRunning(value, effectId, running)),
 		/** The situations the build supports, which a marker can set. */
 		situations: combatSituations(combatStartOptions(effects, formId)),
 		/** The outcomes an attack can have, which ability steps say they lack. */
@@ -215,7 +236,7 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		/** Free mode back to the computed outcomes. */
 		restore: () => save({ ...value, choices: {} }),
 		clear: () =>
-			save({ ...EMPTY_COMBAT, free: value.free, onCooldown: value.onCooldown }),
+			save({ ...EMPTY_COMBAT, free: value.free, start: value.start }),
 		/** Puts back a value saved before (undo). */
 		replace: (next: CombatState) => save(next),
 	}

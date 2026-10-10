@@ -3,11 +3,7 @@ import type { BuildEffect, Effect } from "../effects/effect"
 import { ABILITY_EFFECTS } from "../effects/registries/ability-effects"
 import { ITEM_EFFECTS } from "../effects/registries/item-effects"
 import { RUNE_EFFECTS } from "../effects/registries/rune-effects"
-import {
-	dropUnusedComboStart,
-	hasStartCooldown,
-	startCooldownEffects,
-} from "./start-cooldowns"
+import { hasStartCooldown, startCooldownEffects } from "./start-cooldowns"
 
 const EVERY_EFFECT = [...ABILITY_EFFECTS, ...RUNE_EFFECTS, ...ITEM_EFFECTS]
 
@@ -82,22 +78,5 @@ describe("startCooldownEffects", () => {
 			startCooldownEffects(effects, undefined).map(({ id }) => id),
 		).toEqual(["hail-of-blades"])
 		expect(startCooldownEffects(effects, "dragon")).toHaveLength(2)
-	})
-})
-
-describe("dropUnusedComboStart", () => {
-	test("drops the effects the build no longer has; none left means no value", () => {
-		const effects = [bound("electrocute")]
-
-		expect(dropUnusedComboStart("-electrocute.-hail-of-blades", effects)).toBe(
-			"-electrocute",
-		)
-		expect(dropUnusedComboStart("-hail-of-blades", effects)).toBeUndefined()
-	})
-
-	test("keeps the value as given while the effects load", () => {
-		expect(dropUnusedComboStart("-hail-of-blades", undefined)).toBe(
-			"-hail-of-blades",
-		)
 	})
 })

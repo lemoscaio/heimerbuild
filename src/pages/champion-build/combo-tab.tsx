@@ -125,8 +125,10 @@ export function ComboTab({
 				</p>
 			)}
 			<CombatStartStrip
-				chips={combat.startChips}
+				view={combat.start}
 				onReadyChange={combat.setStartReady}
+				onStacksChange={combat.setStartStacks}
+				onRunningChange={combat.setStartRunning}
 			/>
 			<CombatRowsToolbar
 				count={view.list.filter(({ kind }) => kind === "step").length}

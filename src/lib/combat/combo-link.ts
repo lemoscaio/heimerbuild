@@ -10,8 +10,8 @@ import { outcomeId, readOutcomeId } from "./outcomes"
 
 /**
  * The combo as the link carries it (docs, "Link format"): its steps and markers (`combo`), free
- * mode (`free`), free mode's choices (`choices`) and the cooldowns it starts on (`start`). Absent
- * values are the defaults.
+ * mode (`free`), free mode's choices (`choices`) and its start (`start`). Absent values are the
+ * defaults.
  */
 export type ComboLink = {
 	combo?: string
@@ -32,8 +32,30 @@ const WAIT_TOKEN = new RegExp(`^t(${SECONDS})$`)
 const MARKER_TOKEN = new RegExp(`^${MARKER_PREFIX}(${ID})$`)
 const CHOICE_TOKEN = new RegExp(`^(\\d{1,2})([eacd])-(${ID})-([yn])$`)
 const ON_COOLDOWN_TOKEN = new RegExp(`^-(${ID})$`)
-/** More ids than any build has effects with a cooldown; past it, the rest are dropped. */
-const MAX_START_TOKENS = 20
+// Read before a running token, which `conqueror-12` would also match.
+const START_STACKS_TOKEN = new RegExp(`^(${ID})-(\\d{1,3})$`)
+const RUNNING_TOKEN = new RegExp(`^(${ID})$`)
+/** More tokens than any build has effects to start with; past it, the rest are dropped. */
+const MAX_START_TOKENS = 30
+
+/** An in-fight stacking effect the combo starts with, by effect id, at `count` stacks (1 or more). */
+export type StartStack = { id: string; count: number }
+
+/**
+ * The combo's start (issue 317): the effects with a cooldown that start on it (`onCooldown`), the
+ * stacking effects it starts with (`stacks`) and the buffs already running (`running`).
+ */
+export type ComboStart = {
+	onCooldown: readonly string[]
+	stacks: readonly StartStack[]
+	running: readonly string[]
+}
+
+export const EMPTY_COMBO_START: ComboStart = {
+	onCooldown: [],
+	stacks: [],
+	running: [],
+}
 
 const OUTCOME_CODES = {
 	empowered: "e",
@@ -174,20 +196,58 @@ export function normalizeComboChoices(value: string): string | undefined {
 	)
 }
 
-/** Reads `-electrocute.-hail-of-blades` into the effect ids that start on cooldown; unreadable tokens are dropped. */
-export function readComboStart(value: string | undefined): string[] {
-	const ids = (value?.split(SEPARATOR) ?? []).flatMap((token) => {
-		const id = ON_COOLDOWN_TOKEN.exec(token)?.[1]
-		return id ? [id] : []
-	})
-	return [...new Set(ids)].slice(0, MAX_START_TOKENS)
+/**
+ * Reads `-electrocute.conqueror-12.master-yi-r-active` into the combo's start; unreadable tokens,
+ * repeats and a count of 0 are dropped.
+ */
+export function readComboStart(value: string | undefined): ComboStart {
+	const seen = new Set<string>()
+	const start = {
+		onCooldown: [] as string[],
+		stacks: [] as StartStack[],
+		running: [] as string[],
+	}
+	for (const token of value?.split(SEPARATOR) ?? []) {
+		const entry = readStartToken(token)
+		if (!entry || seen.has(entry.id) || seen.size >= MAX_START_TOKENS) continue
+		seen.add(entry.id)
+		if (entry.kind === "cooldown") start.onCooldown.push(entry.id)
+		else if (entry.kind === "stacks")
+			start.stacks.push({ id: entry.id, count: entry.count })
+		else start.running.push(entry.id)
+	}
+	return start
 }
 
-/** The `start` value from the ids that start on cooldown; `undefined` when every cooldown starts ready. */
-export function serializeComboStart(
-	ids: readonly string[],
-): string | undefined {
-	return ids.length ? ids.map((id) => `-${id}`).join(SEPARATOR) : undefined
+type StartToken =
+	| { kind: "cooldown" | "running"; id: string }
+	| { kind: "stacks"; id: string; count: number }
+
+function readStartToken(token: string): StartToken | undefined {
+	const [, cooldownId] = ON_COOLDOWN_TOKEN.exec(token) ?? []
+	if (cooldownId) return { kind: "cooldown", id: cooldownId }
+	const [, stackId, count] = START_STACKS_TOKEN.exec(token) ?? []
+	if (stackId) {
+		return Number(count) > 0
+			? { kind: "stacks", id: stackId, count: Number(count) }
+			: undefined
+	}
+	const [, runningId] = RUNNING_TOKEN.exec(token) ?? []
+	return runningId ? { kind: "running", id: runningId } : undefined
+}
+
+/** The `start` value: `-<id>` on cooldown, `<id>-<count>` stacks, `<id>` running; `undefined` for the default start. */
+export function serializeComboStart({
+	onCooldown,
+	stacks,
+	running,
+}: ComboStart): string | undefined {
+	const tokens = [
+		...onCooldown.map((id) => `-${id}`),
+		...stacks.map(({ id, count }) => `${id}-${count}`),
+		...running,
+	]
+	return tokens.length ? tokens.join(SEPARATOR) : undefined
 }
 
 /** Markers whose situation became the combo's start (issue 317): Hail of Blades and Grasp ready. */
