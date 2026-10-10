@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test"
+import { ItemsFileSchema } from "@schemas/item"
+import { effectiveItems } from "@/lib/item-upgrades"
 import { findBuildViolations } from "./build-violations"
 
 const bootsGroups = [
@@ -173,5 +175,26 @@ describe("findBuildViolations", () => {
 		},
 	])("finds nothing in $case", ({ build }) => {
 		expect(findBuildViolations(build)).toEqual([])
+	})
+})
+
+describe("an upgrade as the build holds it (issue 436)", async () => {
+	const DATA = new URL("../../../../public/data/", import.meta.url)
+	const { currentPatch } = await Bun.file(new URL("manifest.json", DATA)).json()
+	const { items: patchItems } = ItemsFileSchema.parse(
+		await Bun.file(new URL(`${currentPatch}/items.json`, DATA)).json(),
+	)
+	const byId = Object.fromEntries(patchItems.map((item) => [item.id, item]))
+
+	test("Muramana and Seraph's Embrace from one count are still two Manaflow items", () => {
+		const held = effectiveItems(
+			[byId["3004"], byId["3003"]],
+			{ "manaflow-mana": 360 },
+			byId,
+		)
+
+		expect(findBuildViolations(held).map(({ message }) => message)).toEqual([
+			"only 1 Tear item (Muramana, Seraph's Embrace)",
+		])
 	})
 })
