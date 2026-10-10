@@ -133,6 +133,7 @@ export function MobileBuildPage({
 			shop={
 				<ItemShop
 					patch={patch}
+					hiddenItemIds={build.unreachableItemIds}
 					selectedItemId={build.selectedItem?.id}
 					onItemSelect={build.selectItem}
 					onItemAdd={build.addItem}

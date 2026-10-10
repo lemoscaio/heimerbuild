@@ -135,6 +135,7 @@ export function OverviewPage({
 									onViewChange={build.setView}
 								/>
 							}
+							hiddenItemIds={build.unreachableItemIds}
 							selectedItemId={build.selectedItem?.id}
 							onItemSelect={build.selectItem}
 							onItemAdd={build.addItem}

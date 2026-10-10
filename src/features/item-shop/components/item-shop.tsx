@@ -75,12 +75,15 @@ type ItemShopProps = {
 	layout?: ShopLayout
 	/** Icon buttons after the sort and view menus, such as the switch to the expanded shop. */
 	actions?: React.ReactNode
+	/** Items the build can never hold, left out of the shop: Muramana for a champion without mana. */
+	hiddenItemIds?: ReadonlySet<string>
 } & ItemPickProps
 
 export function ItemShop({
 	patch,
 	layout = "compact",
 	actions,
+	hiddenItemIds,
 	...pickProps
 }: ItemShopProps) {
 	const itemsQuery = useItems(patch)
@@ -102,7 +105,7 @@ export function ItemShop({
 	useAnalyticsContext("shop_stat_match", match)
 	const allItems = upgradesAfterBase(
 		itemsQuery.data ? Object.values(itemsQuery.data) : [],
-	)
+	).filter(({ id }) => !hiddenItemIds?.has(id))
 	const notes = upgradeLabels(itemsQuery.data)
 	const catalog = shopCatalog(allItems)
 	const trackSearch = useDebouncedCallback((search: ShopSearchChange) => {
