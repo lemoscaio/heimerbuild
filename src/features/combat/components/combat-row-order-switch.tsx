@@ -11,7 +11,7 @@ type CombatRowOrderSwitchProps = {
 	onValueChange: (order: CombatRowOrder) => void
 }
 
-/** "Order by: Hit time | Step" over the expanded combo's rows. */
+/** "Order by: Hit time | Step" over the combo's steps, in the Combo tab and the expanded combo. */
 export function CombatRowOrderSwitch({
 	value,
 	onValueChange,

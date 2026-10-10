@@ -36,28 +36,104 @@ export type CombatRun<T> =
 	| { kind: "single"; item: T }
 	| { kind: "group"; items: T[] }
 
-/** The items in order, each run of `MIN_GROUP_SIZE` or more with the same key as one group. */
+type GroupRunsOptions<T> = {
+	/** What makes two steps identical; none for an entry that is never grouped and splits a run (a marker). */
+	key: (item: T) => string | undefined
+	/** A step's place in the combo: a run's steps also follow one another there, so it moves as one block. */
+	indexOf?: (item: T) => number | undefined
+	/** A proc's step, by its place in the combo: a proc of the run's steps stays inside the run. */
+	ownerOf?: (item: T) => number | undefined
+}
+
+/**
+ * The items as shown, each run of `MIN_GROUP_SIZE` or more identical steps in a row as one group,
+ * with the procs of its steps that land among them; anything else splits it. The same rule in
+ * either order of the rows (issue 405).
+ */
 export function groupRuns<T>(
 	items: readonly T[],
-	key: (item: T) => string | undefined,
+	{
+		key,
+		indexOf = () => undefined,
+		ownerOf = () => undefined,
+	}: GroupRunsOptions<T>,
 ): CombatRun<T>[] {
 	const runs: CombatRun<T>[] = []
 	let run: T[] = []
 	let runKey: string | undefined
+	let places: (number | undefined)[] = []
 	function close() {
-		if (run.length >= MIN_GROUP_SIZE) runs.push({ kind: "group", items: run })
+		const steps = run.filter((item) => key(item) !== undefined)
+		if (steps.length >= MIN_GROUP_SIZE) runs.push({ kind: "group", items: run })
 		else for (const item of run) runs.push({ kind: "single", item })
 		run = []
+		runKey = undefined
+		places = []
+	}
+	function follows(index: number | undefined) {
+		const last = places.at(-1)
+		return index === undefined || last === undefined || index === last + 1
 	}
 	for (const item of items) {
+		const owner = ownerOf(item)
+		if (owner !== undefined && run.length && places.includes(owner)) {
+			run.push(item)
+			continue
+		}
 		const itemKey = key(item)
-		if (itemKey === undefined || itemKey !== runKey) close()
+		const index = indexOf(item)
+		if (itemKey === undefined || itemKey !== runKey || !follows(index)) close()
+		if (itemKey === undefined) {
+			runs.push({ kind: "single", item })
+			continue
+		}
 		runKey = itemKey
-		if (itemKey === undefined) runs.push({ kind: "single", item })
-		else run.push(item)
+		run.push(item)
+		places.push(index)
 	}
 	close()
 	return runs
+}
+
+/** A group's timing and running total: its steps' starts and landings, and the rows' total after its last entry. */
+export type GroupTiming = {
+	starts: { first: number; last: number }
+	lands?: { first: number; last: number }
+	/** One of its steps lands after the next step started. */
+	late: boolean
+	dealt: number
+	targetHealth: number
+	healthShare: number
+}
+
+type TimedStep = {
+	startsAt: number
+	lands?: { first: number; last: number }
+	late: boolean
+}
+
+/** A group's timing (`GroupTiming`) from its steps' rows and the row of its last entry. */
+export function groupTiming(
+	steps: readonly TimedStep[],
+	last: Pick<GroupTiming, "dealt" | "targetHealth" | "healthShare">,
+): GroupTiming | undefined {
+	const [first] = steps
+	const end = steps.at(-1)
+	if (!first || !end) return undefined
+	const landed = steps.flatMap(({ lands }) => (lands ? [lands] : []))
+	const [firstLanding] = landed
+	const lastLanding = landed.at(-1)
+	return {
+		starts: { first: first.startsAt, last: end.startsAt },
+		...(firstLanding &&
+			lastLanding && {
+				lands: { first: firstLanding.first, last: lastLanding.last },
+			}),
+		late: steps.some(({ late }) => late),
+		dealt: last.dealt,
+		targetHealth: last.targetHealth,
+		healthShare: last.healthShare,
+	}
 }
 
 /** How many of a group's steps had something: "Hail of Blades 3/8". */

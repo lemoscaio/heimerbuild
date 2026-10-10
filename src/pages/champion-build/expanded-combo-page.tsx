@@ -19,8 +19,9 @@ import { CombatTotals } from "@/features/combat/components/combat-totals"
 import { CombatUncuratedNote } from "@/features/combat/components/combat-uncurated-note"
 import { CombatUndoNotice } from "@/features/combat/components/combat-undo-notice"
 import { CombatViewSwitch } from "@/features/combat/components/combat-view-switch"
-import { useCombatRows } from "@/features/combat/hooks/use-combat-rows"
+import { useCombatRowOrder } from "@/features/combat/hooks/use-combat-row-order"
 import { useCombatTimeline } from "@/features/combat/hooks/use-combat-timeline"
+import { useCombatView } from "@/features/combat/hooks/use-combat-view"
 import { useCombatViewMode } from "@/features/combat/hooks/use-combat-view-mode"
 import { useMarkerUndo } from "@/features/combat/hooks/use-marker-undo"
 import { TargetEditor } from "@/features/target/components/target-editor"
@@ -136,7 +137,8 @@ export function ExpandedComboPage({
 		effects,
 		passiveName: champion.abilities.passive.name,
 	}
-	const rows = useCombatRows(viewOptions)
+	const [order, setOrder] = useCombatRowOrder()
+	const rows = useCombatView({ ...viewOptions, order })
 	const timeline = useCombatTimeline(viewOptions)
 	const [viewMode, setViewMode] = useCombatViewMode()
 	const hasSteps = !!combat.entries.length
@@ -145,7 +147,7 @@ export function ExpandedComboPage({
 	const mode: CombatListMode = combat.free
 		? { kind: "free", onChoiceChange: combat.setChoice }
 		: { kind: "strict" }
-	const stepCount = rows.items.filter(({ kind }) => kind === "step").length
+	const stepCount = rows.list.filter(({ kind }) => kind === "step").length
 
 	return (
 		<WorkbenchLayout
@@ -185,10 +187,7 @@ export function ExpandedComboPage({
 					<CombatRowsToolbar count={stepCount}>
 						<CombatViewSwitch value={viewMode} onValueChange={setViewMode} />
 						{viewMode === "list" && (
-							<CombatRowOrderSwitch
-								value={rows.order}
-								onValueChange={rows.setOrder}
-							/>
+							<CombatRowOrderSwitch value={order} onValueChange={setOrder} />
 						)}
 					</CombatRowsToolbar>
 					<div
@@ -199,12 +198,13 @@ export function ExpandedComboPage({
 						{hasSteps && viewMode === "list" && (
 							<CombatStepRows
 								items={rows.items}
-								entryIds={rows.entryIds}
+								list={rows.list}
 								mode={mode}
 								sources={sources}
 								newMarkerId={markers.notice?.markerId}
 								onMove={combat.move}
 								onRemove={combat.remove}
+								onRemoveAll={combat.removeAll}
 								onRemoveMarker={markers.remove}
 								onWaitChange={combat.setWait}
 								onVariantChange={combat.setVariant}

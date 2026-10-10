@@ -15,10 +15,14 @@ import type { BuildEffect } from "@/lib/effects/effect"
 import { formatAreaResult } from "../lib/combat-format"
 import {
 	actionKey,
+	type GroupTiming,
 	type GroupView,
 	groupRuns,
+	groupTiming,
 	groupView,
 } from "../lib/combat-groups"
+import { type CombatRowView, combatRowViews } from "../lib/combat-row-views"
+import type { CombatRow, CombatRowOrder, ProcRow } from "../lib/combat-rows"
 import { situationLabel } from "../lib/combat-situations"
 import {
 	actionNumbers,
@@ -29,10 +33,10 @@ import {
 	markerView,
 	type OutcomeView,
 	outcomeViews,
+	type ProcView,
 	type StepView,
-	stepView,
 } from "../lib/combat-view"
-import { effectsById, placedSteps } from "../lib/hit-placement"
+import { effectsById } from "../lib/hit-placement"
 import type { Combat } from "./use-combat"
 
 export type UseCombatViewOptions = {
@@ -51,6 +55,8 @@ export type CombatStepItem = {
 	time?: number
 	refused?: string
 	view?: StepView
+	/** When it starts and lands, the running total and the target's health (`combatRows`); absent while the build loads. */
+	row?: CombatRow
 	outcomes: OutcomeView[]
 	/** Free mode: the outcomes only attacks have, said on an ability's card. */
 	attacksOnly?: string
@@ -79,24 +85,37 @@ export type CombatMarkerItem = {
 
 export type CombatListItem = CombatStepItem | CombatMarkerItem
 
-/** A run of identical steps shown as one block, its steps listed on demand (issue 331). */
+/** A proc as an entry of its own among the steps, at its land time (issue 429), with the step that triggered it. */
+export type CombatProcItem = {
+	kind: "proc"
+	key: string
+	proc: ProcView
+	row: ProcRow
+	from: CombatStepItem
+}
+
+/** A run of identical steps shown as one block (issue 331), its steps and their procs listed on demand. */
 export type CombatGroupItem = {
 	kind: "group"
 	/** Its smallest entry id: it stays while its steps move inside it. */
 	id: number
 	action: CombatAction
 	steps: CombatStepItem[]
+	/** Its steps and the procs that land among them, as they show once it opens. */
+	entries: (CombatStepItem | CombatProcItem)[]
 	/** Its first and last steps' numbers among the actions. */
 	numbers: { first: number; last: number }
 	view: GroupView
+	/** When it starts and lands, and the running total after it; absent while the build loads. */
+	timing?: GroupTiming
 }
 
-/** An item of the list as it shows: a step, a marker or a group. */
-export type CombatShownItem = CombatListItem | CombatGroupItem
+/** An entry of the combo as both views show it: a step, a marker, a proc or a group. */
+export type CombatShownItem = CombatListItem | CombatProcItem | CombatGroupItem
 
 /** A step's identity for grouping, its ability variant read as the default one when none is picked. */
-function groupKey(item: CombatListItem) {
-	if (item.kind === "marker") return undefined
+function groupKey(item: CombatShownItem) {
+	if (item.kind !== "step") return undefined
 	const { action } = item
 	return actionKey(
 		action.kind === "ability"
@@ -129,44 +148,123 @@ function stepArea(
 	return { range, seconds, ...(result && { result }) }
 }
 
-/** The list with each run of identical steps as one group (`groupRuns`), summed up by `groupView`. */
-function shownItems(items: readonly CombatListItem[]): CombatShownItem[] {
-	return groupRuns(items, groupKey).map((run): CombatShownItem => {
-		if (run.kind === "single") return run.item
-		const steps = run.items.filter(
-			(item): item is CombatStepItem => item.kind === "step",
-		)
-		const [first] = steps
-		const last = steps.at(-1)
-		if (!first || !last) throw new Error("A group always has steps")
-		return {
-			kind: "group",
-			id: Math.min(...steps.map(({ id }) => id)),
-			action: first.action,
-			steps,
-			numbers: { first: first.number, last: last.number },
-			view: groupView(steps),
-		}
+/** The rows as the list's entries: steps and markers from the list, each proc with its step. */
+function rowEntries(
+	rows: readonly CombatRowView[],
+	list: readonly CombatListItem[],
+): CombatShownItem[] {
+	return rows.flatMap((entry): CombatShownItem[] => {
+		const item = list[entry.row.index]
+		if (entry.kind === "step") return item ? [item] : []
+		if (item?.kind !== "step") return []
+		const { row, view: proc } = entry
+		const key = `${item.id}:${proc.effectId}@${proc.time}`
+		return [{ kind: "proc", key, proc, row, from: item }]
 	})
 }
 
-/** The combo as its tab shows it: action cards, marker lines and groups of identical steps, and the totals. */
+/** A group's steps with only the procs it holds, which its totals add up. */
+function heldProcs(
+	steps: readonly CombatStepItem[],
+	procs: readonly CombatProcItem[],
+) {
+	const held = new Set(procs.map(({ proc }) => proc))
+	return steps.map((step) =>
+		step.view
+			? {
+					...step,
+					view: {
+						...step.view,
+						procs: step.view.procs.filter((proc) => held.has(proc)),
+					},
+				}
+			: step,
+	)
+}
+
+/** A run of identical steps as one group, summed up by `groupView`, timed by `groupTiming`. */
+function groupItem(entries: CombatGroupItem["entries"]): CombatGroupItem {
+	const steps = entries.filter(
+		(item): item is CombatStepItem => item.kind === "step",
+	)
+	const procs = entries.filter(
+		(item): item is CombatProcItem => item.kind === "proc",
+	)
+	const [first] = steps
+	const last = steps.at(-1)
+	if (!first || !last) throw new Error("A group always has steps")
+	const rows = steps.flatMap(({ row }) => (row ? [row] : []))
+	const end = entries.at(-1)?.row
+	const timing = end && groupTiming(rows, end)
+	return {
+		kind: "group",
+		id: Math.min(...steps.map(({ id }) => id)),
+		action: first.action,
+		steps,
+		entries,
+		numbers: { first: first.number, last: last.number },
+		view: groupView(heldProcs(steps, procs)),
+		...(timing && { timing }),
+	}
+}
+
+/** The entries with each run of identical steps as one group (`groupRuns`, issue 331). */
+function shownItems(entries: readonly CombatShownItem[]): CombatShownItem[] {
+	return groupRuns(entries, {
+		key: groupKey,
+		indexOf: (item) => (item.kind === "step" ? item.row?.index : undefined),
+		ownerOf: (item) => (item.kind === "proc" ? item.row.index : undefined),
+	}).map((run) => {
+		if (run.kind === "single") return run.item
+		return groupItem(
+			run.items.filter(
+				(item): item is CombatStepItem | CombatProcItem =>
+					item.kind === "step" || item.kind === "proc",
+			),
+		)
+	})
+}
+
+type UseCombatListOptions = UseCombatViewOptions & {
+	/** The rows' order, which the running total follows. */
+	order: CombatRowOrder
+}
+
+/**
+ * The combo as both its views show it (issue 405): one entry per step and marker, each proc an entry
+ * of its own at its land time, runs of identical steps as groups, in hit order or the combo's
+ * order, the running total down the entries; and the totals.
+ */
 export function useCombatView({
 	combat,
 	target,
 	effects,
 	passiveName,
-}: UseCombatViewOptions) {
+	order,
+}: UseCombatListOptions) {
 	const names = combatNames({ passiveName, spells: combat.spells, effects })
 	const { result, seed, free, entries } = combat
 	const numbers = actionNumbers(entries)
 	const firstAction = numbers.findIndex((number) => number !== undefined)
 	const effectById = effectsById(effects)
-	// Each hit on the step that triggered it (issue 429), as the expanded combo and the Timeline place it.
-	const steps = result && placedSteps(result.steps, effectById)
+	// The rows the expanded combo shows: each hit on the step that triggered it (issue 429), its health the row's.
+	const rows = result
+		? combatRowViews(result, {
+				target,
+				effects: effectById,
+				names,
+				order,
+			})
+		: []
+	const byIndex = new Map(
+		rows.flatMap((entry) =>
+			entry.kind === "step" ? [[entry.row.index, entry]] : [],
+		),
+	)
 
-	const items = entries.map((entry, index): CombatListItem => {
-		const step = steps?.[index]
+	const list = entries.map((entry, index): CombatListItem => {
+		const shown = byIndex.get(index)
+		const step = shown?.row.step
 		const { action } = entry
 		if (action.kind === "situation") {
 			const effect = effectById.get(action.effectId)
@@ -189,7 +287,7 @@ export function useCombatView({
 			number: numbers[index] ?? 0,
 			time: step?.time,
 			refused: step?.refused,
-			view: step && stepView(step, { names, target, effects: effectById }),
+			...(shown && { view: shown.view, row: shown.row }),
 			outcomes: outcomeViews(outcomes, { names, seed: seed?.[index] }),
 			...(free &&
 				action.kind === "ability" && {
@@ -205,9 +303,9 @@ export function useCombatView({
 	})
 
 	return {
-		items: shownItems(items),
-		/** The same entries in the combo's order, ungrouped. */
-		list: items,
+		items: shownItems(result ? rowEntries(rows, list) : list),
+		/** The same entries in the combo's order, ungrouped, which the moves follow. */
+		list,
 		totals: result && combatTotals(result, target),
 	}
 }

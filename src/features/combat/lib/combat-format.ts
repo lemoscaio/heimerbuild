@@ -64,6 +64,25 @@ export function formatSecondsRange(from: number, to: number): string {
 	return `${SECONDS.format(from)}–${formatSeconds(to)}`
 }
 
+/** A group's title: "4–6. Attack ×3". */
+export function groupTitle(
+	numbers: { first: number; last: number },
+	{ label, size }: { label: string; size: number },
+): string {
+	return `${numbers.first}–${numbers.last}. ${label} ×${size}`
+}
+
+/** A moment or a span: "1.00 s", or "1.20–3.39 s" when it ends later. */
+export function formatSecondsSpan({
+	first,
+	last,
+}: {
+	first: number
+	last: number
+}): string {
+	return first === last ? formatSeconds(first) : formatSecondsRange(first, last)
+}
+
 type AreaResult = {
 	/** A cast hitting again and again: the hits that landed, of its full duration's. */
 	hits?: { count: number; of: number }

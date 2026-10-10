@@ -1,38 +1,41 @@
-import type { ChampionSpell } from "@schemas/champion"
-import type { SummonerSpell } from "@schemas/summoner-spell"
 import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
+import { useCombatMoves } from "../hooks/use-combat-moves"
 import type {
 	CombatGroupItem,
+	CombatListItem,
+	CombatProcItem,
 	CombatShownItem,
 	CombatStepItem,
 } from "../hooks/use-combat-view"
 import { useGroupExpansion } from "../hooks/use-group-expansion"
-import { type MoveAction, useStepReorder } from "../hooks/use-step-reorder"
+import type { MoveAction } from "../hooks/use-step-reorder"
 import {
 	type ActionNames,
+	type ActionSources,
 	actionIcon,
 	actionNames,
 } from "../lib/combat-action-names"
-import { actionLabel } from "../lib/combat-format"
-import { procsInOrder } from "../lib/procs-in-order"
+import { actionLabel, groupTitle } from "../lib/combat-format"
 import { CombatActionIcon } from "./combat-action-icon"
-import { CombatAreaTimeInput } from "./combat-area-time-input"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
 import { CombatProcCard } from "./combat-proc-card"
 import { CombatStepCard } from "./combat-step-card"
 import { CombatStepGroup } from "./combat-step-group"
+import {
+	type CombatStepInputHandlers,
+	CombatStepInputs,
+} from "./combat-step-inputs"
 import { type CombatListMode, CombatStepOutcomes } from "./combat-step-outcomes"
-import { CombatVariantInput } from "./combat-variant-input"
-import { CombatWaitLength } from "./combat-wait-length"
 
 type CombatStepListProps = {
+	/** The entries as shown (`useCombatView`). */
 	items: readonly CombatShownItem[]
+	/** The entries in the combo's order, which the moves follow. */
+	list: readonly CombatListItem[]
 	mode: CombatListMode
-	/** The abilities as the form shows them, and the summoner slots, for the steps' names and icons. */
-	spells: readonly Pick<ChampionSpell, "slot" | "name" | "icon">[]
-	summoners: readonly (SummonerSpell | undefined)[]
+	sources: ActionSources
 	/** The marker just added, pointed out. */
 	newMarkerId?: number
 	/** Moves the entries `ids`, kept together, to position `to`. */
@@ -41,53 +44,36 @@ type CombatStepListProps = {
 	/** Removes a whole group. */
 	onRemoveAll: (ids: readonly number[]) => void
 	onRemoveMarker: (id: number) => void
-	onWaitChange: (id: number, seconds: number) => void
-	onVariantChange: (id: number, variant: string) => void
-	/** An ability step's seconds in its area (issue 427). */
-	onInAreaChange: (id: number, seconds: number) => void
-}
+} & CombatStepInputHandlers
 
 type StepEntryProps = {
 	step: CombatStepItem
-	mode: CombatListMode
 	names: ActionNames
 	moves: { up: MoveAction; down: MoveAction }
-} & Pick<
-	CombatStepListProps,
-	| "spells"
-	| "summoners"
-	| "onRemove"
-	| "onWaitChange"
-	| "onVariantChange"
-	| "onInAreaChange"
->
+} & Pick<CombatStepListProps, "mode" | "sources" | "onRemove"> &
+	CombatStepInputHandlers
 
-/** An action's card with its own controls: its wait's length, its input, its outcomes. */
+/** An action's card with its own controls: its inputs and its outcomes. */
 function StepEntry({
 	step,
-	mode,
 	names,
 	moves,
-	spells,
-	summoners,
+	mode,
+	sources,
 	onRemove,
-	onWaitChange,
-	onVariantChange,
-	onInAreaChange,
+	...inputs
 }: StepEntryProps) {
-	const { id, action } = step
-	const label = actionLabel(action, names)
+	const label = actionLabel(step.action, names)
 	return (
 		<CombatStepCard
-			number={step.number}
-			label={label}
+			title={`${step.number}. ${label}`}
 			icon={
 				<CombatActionIcon
-					kind={action.kind}
-					icon={actionIcon(action, { spells, summoners })}
+					kind={step.action.kind}
+					icon={actionIcon(step.action, sources)}
 				/>
 			}
-			time={step.time}
+			row={step.row}
 			refused={step.refused}
 			view={step.view}
 			moves={
@@ -97,132 +83,54 @@ function StepEntry({
 					{...moves}
 				/>
 			}
-			onRemove={() => onRemove(id)}
-		>
-			{action.kind === "wait" && (
-				<CombatWaitLength
-					seconds={action.seconds}
-					onChange={(seconds) => onWaitChange(id, seconds)}
-				/>
-			)}
-			{action.kind === "ability" && (
-				<CombatVariantInput
-					variants={step.variants}
-					label={step.variantsLabel}
-					value={action.variant}
-					onValueChange={(variant) => onVariantChange(id, variant)}
-				/>
-			)}
-			{step.area && (
-				<CombatAreaTimeInput
-					area={step.area}
-					onSecondsChange={(seconds) => onInAreaChange(id, seconds)}
-				/>
-			)}
-			<CombatStepOutcomes step={step} mode={mode} />
-		</CombatStepCard>
+			onRemove={() => onRemove(step.id)}
+			inputs={<CombatStepInputs step={step} {...inputs} />}
+			outcomes={<CombatStepOutcomes step={step} mode={mode} />}
+		/>
 	)
 }
 
-/** When a step or a group happens, which a proc landing later follows. */
-function shownTime(item: CombatShownItem) {
-	if (item.kind === "step") return item.time
-	return item.kind === "group" ? item.view.time?.from : undefined
-}
-
-/** The procs a shown item lists among the steps; a group's, among its steps once it opens. */
-function shownProcs(item: CombatShownItem) {
-	return item.kind === "step" ? (item.view?.procs ?? []) : []
-}
-
-/** "1–8. Attack ×8" */
-function groupTitle(group: CombatGroupItem, names: ActionNames) {
-	const { first, last } = group.numbers
-	return `${first}–${last}. ${actionLabel(group.action, names)} ×${group.steps.length}`
-}
-
-/** Each shown item's entry ids: a group's all of its steps'. */
-function itemBlocks(items: readonly CombatShownItem[]) {
-	return items.map((item) =>
-		item.kind === "group" ? item.steps.map(({ id }) => id) : [item.id],
+/** A proc's card: "from 1. Q · Disintegrate". */
+function ProcEntry({
+	item,
+	names,
+}: {
+	item: CombatProcItem
+	names: ActionNames
+}) {
+	return (
+		<CombatProcCard
+			proc={item.proc}
+			row={item.row}
+			from={`${item.from.number}. ${actionLabel(item.from.action, names)}`}
+		/>
 	)
-}
-
-/** What a screen reader hears after a move: the item, and its new place in the list or in its group. */
-function moveDescriber(items: readonly CombatShownItem[], names: ActionNames) {
-	const groups = items.filter(
-		(item): item is CombatGroupItem => item.kind === "group",
-	)
-	return (ids: readonly number[], { at, of }: { at: number; of: number }) => {
-		const [id] = ids
-		const group = groups.find(({ steps }) => steps[0]?.id === id)
-		if (group && ids.length > 1) {
-			// Its step numbers change with the move: name it by its action.
-			return `Group ${actionLabel(group.action, names)} ×${group.steps.length} is now item ${at + 1} of ${of}`
-		}
-		const item = items.find((entry) => entry.id === id)
-		if (item?.kind === "marker") {
-			return `Marker ${item.view.label} is now item ${at + 1} of ${of}`
-		}
-		const inGroup = groups.find(({ steps }) =>
-			steps.some((step) => step.id === id),
-		)
-		const step =
-			inGroup?.steps.find((entry) => entry.id === id) ??
-			(item?.kind === "step" ? item : undefined)
-		const label = step ? actionLabel(step.action, names) : "The step"
-		return inGroup
-			? `${label} is now step ${at + 1} of ${of} in its group`
-			: `${label} is now item ${at + 1} of ${of}`
-	}
 }
 
 /**
- * The combo in order: action cards, situation marker lines and groups of identical steps (issue
- * 331), each moved with its up and down buttons and removed with ×. A step or a marker moves one
- * entry; a group moves past its whole neighbour and goes as a whole; open, its steps move among themselves.
- * Each proc is a row of its own at its land time, with no controls (issue 429).
+ * The combo as cards in the Combo tab, the same entries as the expanded rows (issue 405): action
+ * cards, situation marker lines, procs at their land time (issue 429) and groups of identical steps
+ * (issue 331). Each step, marker or group moves in the combo with its up and down buttons, whatever
+ * the order shown, and goes with ×.
  */
 export function CombatStepList({
 	items,
+	list,
 	mode,
-	spells,
-	summoners,
+	sources,
 	newMarkerId,
 	onMove,
 	onRemove,
 	onRemoveAll,
 	onRemoveMarker,
-	onWaitChange,
-	onVariantChange,
-	onInAreaChange,
+	...inputs
 }: CombatStepListProps) {
 	const titleId = useId()
-	const names = actionNames({ spells, summoners })
-	const blocks = itemBlocks(items)
-	const entryIds = blocks.flat()
-	// A step or a marker moves one entry at a time, so it can go inside a run (and split it).
-	const entries = entryIds.map((id) => [id])
-	const reorder = useStepReorder({
-		entryIds,
-		onMove,
-		describeMove: moveDescriber(items, names),
-	})
+	const names = actionNames(sources)
+	const moves = useCombatMoves({ list, items, names, onMove })
 	const expansion = useGroupExpansion()
-	// Each proc a row of its own at its land time (issue 429).
-	const shown = procsInOrder(items, { timeOf: shownTime, procsOf: shownProcs })
-	const fromLabel = (step: CombatStepItem) =>
-		`${step.number}. ${actionLabel(step.action, names)}`
-	const stepProps = {
-		mode,
-		names,
-		spells,
-		summoners,
-		onRemove,
-		onWaitChange,
-		onVariantChange,
-		onInAreaChange,
-	}
+	const stepProps = { names, mode, sources, onRemove, ...inputs }
+	const groupIds = (group: CombatGroupItem) => group.steps.map(({ id }) => id)
 
 	return (
 		<section aria-labelledby={titleId} className="flex flex-col gap-1.5">
@@ -230,23 +138,10 @@ export function CombatStepList({
 				Steps
 			</h3>
 			<ol className="flex flex-col gap-1.5">
-				{shown.map((entry) => {
-					if (entry.kind === "proc") {
-						const { proc, owner } = entry
-						return (
-							<CombatProcCard
-								key={`proc-${owner.id}-${proc.effectId}@${proc.time}`}
-								proc={proc}
-								from={owner.kind === "step" ? fromLabel(owner) : ""}
-							/>
-						)
+				{items.map((item) => {
+					if (item.kind === "proc") {
+						return <ProcEntry key={item.key} item={item} names={names} />
 					}
-					const { item } = entry
-					const position = items.indexOf(item)
-					const moves =
-						item.kind === "group"
-							? reorder.moves(blocks, position)
-							: reorder.moves(entries, entryIds.indexOf(item.id))
 					if (item.kind === "marker") {
 						return (
 							<CombatMarkerLine
@@ -256,8 +151,8 @@ export function CombatStepList({
 								moves={
 									<CombatMoveButtons
 										label={`marker ${item.view.label}`}
-										start={reorder.toStart(blocks, position)}
-										{...moves}
+										start={moves.toStart(item.id)}
+										{...moves.entry(item.id)}
 									/>
 								}
 								onRemove={() => onRemoveMarker(item.id)}
@@ -269,14 +164,16 @@ export function CombatStepList({
 							<StepEntry
 								key={item.id}
 								step={item}
-								moves={moves}
+								moves={moves.entry(item.id)}
 								{...stepProps}
 							/>
 						)
 					}
-					const ids = blocks[position] ?? []
-					const title = groupTitle(item, names)
-					const inside = item.steps.map(({ id }) => [id])
+					const ids = groupIds(item)
+					const title = groupTitle(item.numbers, {
+						label: actionLabel(item.action, names),
+						size: item.steps.length,
+					})
 					return (
 						<CombatStepGroup
 							key={`group-${item.id}`}
@@ -284,40 +181,31 @@ export function CombatStepList({
 							icon={
 								<CombatActionIcon
 									kind={item.action.kind}
-									icon={actionIcon(item.action, { spells, summoners })}
+									icon={actionIcon(item.action, sources)}
 								/>
 							}
 							view={item.view}
+							timing={item.timing}
 							{...(mode.kind === "free" && { changes: item.view.changes })}
 							moves={
 								<CombatMoveButtons
 									label={`group ${title}`}
 									className="flex-col"
-									{...moves}
+									{...moves.group(item)}
 								/>
 							}
 							open={expansion.isOpen(ids)}
 							onOpenChange={(open) => expansion.setOpen(ids, open)}
 							onRemove={() => onRemoveAll(ids)}
 						>
-							{procsInOrder(item.steps, {
-								timeOf: ({ time }) => time,
-								procsOf: ({ view }) => view?.procs ?? [],
-							}).map((inner) =>
+							{item.entries.map((inner) =>
 								inner.kind === "proc" ? (
-									<CombatProcCard
-										key={`proc-${inner.owner.id}-${inner.proc.effectId}@${inner.proc.time}`}
-										proc={inner.proc}
-										from={fromLabel(inner.owner)}
-									/>
+									<ProcEntry key={inner.key} item={inner} names={names} />
 								) : (
 									<StepEntry
-										key={inner.item.id}
-										step={inner.item}
-										moves={reorder.moves(
-											inside,
-											item.steps.indexOf(inner.item),
-										)}
+										key={inner.id}
+										step={inner}
+										moves={moves.inGroup(item, inner.id)}
 										{...stepProps}
 									/>
 								),
@@ -326,7 +214,7 @@ export function CombatStepList({
 					)
 				})}
 			</ol>
-			<PoliteStatus message={reorder.announcement} />
+			<PoliteStatus message={moves.announcement} />
 		</section>
 	)
 }

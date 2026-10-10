@@ -139,6 +139,8 @@ export type CombatRow = StepTiming & {
 	/** The damage of the rows up to this one, in the order shown, and the target's health after it. */
 	dealt: number
 	targetHealth: number
+	/** That health as a share of the target's. */
+	healthShare: number
 }
 
 /** A separate instance as a row of its own among the steps, at its land time (issue 429). */
@@ -153,6 +155,7 @@ export type ProcRow = {
 	late: boolean
 	dealt: number
 	targetHealth: number
+	healthShare: number
 }
 
 export type CombatRowEntry = CombatRow | ProcRow
@@ -208,12 +211,16 @@ export function combatRows(
 		procsOf: ({ index }) => stepProcs(hits, index),
 	})
 	let dealt = 0
+	const after = (damage: number) => {
+		dealt += damage
+		const targetHealth = Math.max(0, target.health - dealt)
+		return { dealt, targetHealth, healthShare: targetHealth / target.health }
+	}
 	return entries.map((entry): CombatRowEntry => {
 		if (entry.kind === "proc") {
 			const { effectId, time, hits: own } = entry.proc
 			const { index } = entry.owner
 			const damage = damageOf(own)
-			dealt += damage
 			const next = nextActionAt(result.steps, index)
 			return {
 				kind: "proc",
@@ -222,23 +229,20 @@ export function combatRows(
 				time,
 				damage,
 				late: next !== undefined && time > next,
-				dealt,
-				targetHealth: Math.max(0, target.health - dealt),
+				...after(damage),
 			}
 		}
 		const timing = entry.item
 		const step = steps[timing.index]
 		if (!step) throw new Error("A timing always has its step")
 		const damage = damageOf(ownHits(hits, timing.index))
-		dealt += damage
-		const targetHealth = Math.max(0, target.health - dealt)
+		const health = after(damage)
 		return {
 			kind: "step",
 			...timing,
-			step: { ...step, targetHealth },
+			step: { ...step, targetHealth: health.targetHealth },
 			damage,
-			dealt,
-			targetHealth,
+			...health,
 		}
 	})
 }

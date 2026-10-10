@@ -6,6 +6,7 @@ import { CombatActionKeys } from "@/features/combat/components/combat-action-key
 import { CombatFreeBanner } from "@/features/combat/components/combat-free-banner"
 import { CombatFreeModeSwitch } from "@/features/combat/components/combat-free-mode-switch"
 import { CombatNotes } from "@/features/combat/components/combat-notes"
+import { CombatRowOrderSwitch } from "@/features/combat/components/combat-row-order-switch"
 import { CombatRowsToolbar } from "@/features/combat/components/combat-rows-toolbar"
 import { CombatSituationChips } from "@/features/combat/components/combat-situation-chips"
 import { CombatStartStrip } from "@/features/combat/components/combat-start-strip"
@@ -17,6 +18,7 @@ import { CombatTotals } from "@/features/combat/components/combat-totals"
 import { CombatUncuratedNote } from "@/features/combat/components/combat-uncurated-note"
 import { CombatUndoNotice } from "@/features/combat/components/combat-undo-notice"
 import { CombatViewSwitch } from "@/features/combat/components/combat-view-switch"
+import { useCombatRowOrder } from "@/features/combat/hooks/use-combat-row-order"
 import { useCombatTimeline } from "@/features/combat/hooks/use-combat-timeline"
 import { useCombatView } from "@/features/combat/hooks/use-combat-view"
 import { useCombatViewMode } from "@/features/combat/hooks/use-combat-view-mode"
@@ -51,7 +53,8 @@ export function ComboTab({
 		effects,
 		passiveName: champion.abilities.passive.name,
 	}
-	const view = useCombatView(viewOptions)
+	const [order, setOrder] = useCombatRowOrder()
+	const view = useCombatView({ ...viewOptions, order })
 	const timeline = useCombatTimeline(viewOptions)
 	const [viewMode, setViewMode] = useCombatViewMode()
 	const hasSteps = !!combat.entries.length
@@ -135,13 +138,16 @@ export function ComboTab({
 				className="border-0 p-0"
 			>
 				<CombatViewSwitch value={viewMode} onValueChange={setViewMode} />
+				{viewMode === "list" && (
+					<CombatRowOrderSwitch value={order} onValueChange={setOrder} />
+				)}
 			</CombatRowsToolbar>
 			{hasSteps && viewMode === "list" && (
 				<CombatStepList
 					items={view.items}
+					list={view.list}
 					mode={mode}
-					spells={combat.spells}
-					summoners={summoners}
+					sources={{ spells: combat.spells, summoners }}
 					newMarkerId={markers.notice?.markerId}
 					onMove={combat.move}
 					onRemove={combat.remove}

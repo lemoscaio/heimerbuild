@@ -4,6 +4,7 @@ import {
 	actionKey,
 	type GroupStep,
 	groupRuns,
+	groupTiming,
 	groupView,
 	MIN_GROUP_SIZE,
 } from "./combat-groups"
@@ -14,7 +15,7 @@ const MARKER = { kind: "situation", effectId: "quinn-harrier-valor" } as const
 
 /** The runs as their actions' kinds: a group as a list. */
 function shape(actions: readonly CombatItem[]) {
-	return groupRuns(actions, actionKey).map((run) =>
+	return groupRuns(actions, { key: actionKey }).map((run) =>
 		run.kind === "group" ? run.items.map(({ kind }) => kind) : run.item.kind,
 	)
 }
@@ -83,6 +84,94 @@ describe("groupRuns (issue 331)", () => {
 				{ kind: "summoner", slot: 0 },
 			]),
 		).toEqual(["summoner", "summoner", "summoner"])
+	})
+})
+
+/** A shown entry: a step at its place in the combo, or a proc of the step at `owner`. */
+type Entry =
+	| { kind: "step"; key: string; at: number }
+	| { kind: "proc"; owner: number }
+	| { kind: "marker" }
+
+const step = (at: number, key = "attack"): Entry => ({ kind: "step", key, at })
+const proc = (owner: number): Entry => ({ kind: "proc", owner })
+
+/** The runs as their entries: "a0" a step at 0, "p0" a proc of it, "m" a marker; a group as a list. */
+function rowShape(entries: readonly Entry[]) {
+	const name = (entry: Entry) =>
+		entry.kind === "step"
+			? `${entry.key[0]}${entry.at}`
+			: entry.kind === "proc"
+				? `p${entry.owner}`
+				: "m"
+	return groupRuns(entries, {
+		key: (entry) => (entry.kind === "step" ? entry.key : undefined),
+		indexOf: (entry) => (entry.kind === "step" ? entry.at : undefined),
+		ownerOf: (entry) => (entry.kind === "proc" ? entry.owner : undefined),
+	}).map((run) => (run.kind === "group" ? run.items.map(name) : name(run.item)))
+}
+
+describe("groupRuns over the rows as shown (issue 405)", () => {
+	test("a group keeps the procs of its steps that land among them, the last one too", () => {
+		expect(rowShape([step(0), step(1), proc(1), step(2), proc(2)])).toEqual([
+			["a0", "a1", "p1", "a2", "p2"],
+		])
+	})
+
+	test("another step's proc landing among them splits the run", () => {
+		expect(
+			rowShape([step(0, "q"), step(1), step(2), proc(0), step(3), step(4)]),
+		).toEqual(["q0", "a1", "a2", "p0", "a3", "a4"])
+	})
+
+	test("steps shown in a row but apart in the combo don't group: a group moves as one block", () => {
+		expect(rowShape([step(0), step(1), step(3), step(2, "wait")])).toEqual([
+			"a0",
+			"a1",
+			"a3",
+			"w2",
+		])
+	})
+
+	test("a proc of a run too short to group stays where it lands", () => {
+		expect(rowShape([step(0), proc(0), step(1), step(2, "q")])).toEqual([
+			"a0",
+			"p0",
+			"a1",
+			"q2",
+		])
+	})
+})
+
+describe("groupTiming", () => {
+	test("from its first start to its last, its first landing to its last, and the total after its last entry", () => {
+		const timing = groupTiming(
+			[
+				{ startsAt: 1.2, lands: { first: 1.45, last: 1.45 }, late: false },
+				{ startsAt: 2.33, late: false },
+				{ startsAt: 3.39, lands: { first: 3.61, last: 3.7 }, late: true },
+			],
+			{ dealt: 567, targetHealth: 1233, healthShare: 1233 / 1800 },
+		)
+
+		expect(timing).toEqual({
+			starts: { first: 1.2, last: 3.39 },
+			lands: { first: 1.45, last: 3.7 },
+			late: true,
+			dealt: 567,
+			targetHealth: 1233,
+			healthShare: 1233 / 1800,
+		})
+	})
+
+	test("a group that lands nothing has no landing", () => {
+		const timing = groupTiming([{ startsAt: 0, late: false }], {
+			dealt: 0,
+			targetHealth: 1800,
+			healthShare: 1,
+		})
+
+		expect(timing?.lands).toBeUndefined()
 	})
 })
 
