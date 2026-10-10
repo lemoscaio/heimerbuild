@@ -3,7 +3,6 @@ import { usesCurrentHealth } from "@/lib/effects/current-health"
 import type { BuildEffect } from "@/lib/effects/effect"
 import { usesGameTime } from "@/lib/effects/game-time"
 import { usedMatchStacks } from "@/lib/effects/match-stacks"
-import { upgradeSources } from "@/lib/item-upgrades"
 
 function isUsed(
 	effects: readonly BuildEffect[],
@@ -27,11 +26,9 @@ export function dropUnusedConditionValues(
 			? values.currentHealth
 			: undefined,
 		gameTime: isUsed(effects, usesGameTime) ? values.gameTime : undefined,
-		// The count an item's upgrade waits for stays even when no effect reads it (Garen's Muramana).
 		matchStacks: usedMatchStacks(
 			values.matchStacks,
 			effects.map(({ effect }) => effect),
-			{ alsoRead: upgradeSources(values.itemIds) },
 		),
 	}
 }

@@ -13,8 +13,9 @@ import { usesMana } from "../stats/compute-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { boostSlots } from "./boosts"
 import { isListed } from "./defaults"
-import type { BuildEffect, Effect } from "./effect"
+import type { BuildEffect, Effect, Grant } from "./effect"
 import { scalesWithMana } from "./mana-scaling"
+import { gainsMatchStacks, grantSources } from "./match-stacks"
 import { ABILITY_EFFECTS } from "./registries/ability-effects"
 import { ITEM_EFFECTS } from "./registries/item-effects"
 import { RUNE_EFFECTS } from "./registries/rune-effects"
@@ -144,14 +145,21 @@ function bindTrigger(bound: BuildEffect, build: EffectsBuild): BuildEffect[] {
 	}))
 }
 
+/** Whether the grant does anything for the champion: no mana scaling or Manaflow without mana. */
+function grantApplies(grant: Grant, champion: EffectsBuild["champion"]) {
+	if (scalesWithMana(grant) && !usesMana(champion)) return false
+	return grantSources(grant).every((source) =>
+		gainsMatchStacks(source, champion),
+	)
+}
+
 /**
- * The effect as the champion's resource holds it: without mana, the grants that scale with mana are
- * gone (Muramana's Awe and Shock), and an effect left with none is too.
+ * The effect as the champion's resource holds it: without mana, the grants that scale with mana
+ * (Muramana's Awe and Shock) or read Manaflow (Tear's) are gone, and an effect left with none is too.
  */
 function bindResource(bound: BuildEffect, build: EffectsBuild): BuildEffect[] {
-	if (usesMana(build.champion)) return [bound]
 	const { grants } = bound.effect
-	const kept = grants.filter((grant) => !scalesWithMana(grant))
+	const kept = grants.filter((grant) => grantApplies(grant, build.champion))
 	if (kept.length === grants.length) return [bound]
 	return kept.length
 		? [{ ...bound, effect: { ...bound.effect, grants: kept } }]

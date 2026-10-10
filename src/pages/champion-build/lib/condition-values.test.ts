@@ -80,22 +80,6 @@ describe("dropUnusedConditionValues", () => {
 		})
 	})
 
-	test("keeps the count an item's upgrade waits for, though no effect reads it (Garen's Muramana)", () => {
-		const muramana = {
-			...values,
-			itemIds: ["3004"],
-			matchStacks: { "manaflow-mana": 360, "mejai-stacks": 10 },
-		}
-
-		expect(dropUnusedConditionValues(muramana, [barrier]).matchStacks).toEqual({
-			"manaflow-mana": 360,
-		})
-		expect(
-			dropUnusedConditionValues({ ...muramana, itemIds: ["3089"] }, [barrier])
-				.matchStacks,
-		).toBeUndefined()
-	})
-
 	test("keeps the values as given while the effects load", () => {
 		expect(dropUnusedConditionValues(values, undefined)).toBe(values)
 	})

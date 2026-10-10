@@ -138,6 +138,8 @@ export type MatchStackSource = {
 	sliderMax: number
 	/** `sliderMax` is the game's cap: the box stops there too, and a larger count reads as it (Mejai's 25). */
 	capped?: true
+	/** Only a champion with this resource gains them (Manaflow: "MANA"); for the others they don't exist. */
+	resource?: string
 }
 
 /**

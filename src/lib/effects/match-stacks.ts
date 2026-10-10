@@ -1,6 +1,8 @@
+import type { Champion } from "@schemas/champion"
 import type {
 	Amount,
 	Effect,
+	Grant,
 	MatchStackSource,
 	MatchStacksAmount,
 	StacksThreshold,
@@ -84,33 +86,43 @@ function amountSources(amount: Amount): MatchStackSource[] {
 	return amount.by === "stat" ? amountSources(amount.ratio) : []
 }
 
-/** The match stack sources the effect reads, once each (Phenomenal Evil for Veigar's passive). */
-export function matchStackSources({ grants }: Effect): MatchStackSource[] {
-	const sources = grants.flatMap((grant) => [
+/** The match stack sources a grant reads: its amount's, and the count it holds from. */
+export function grantSources(grant: Grant): MatchStackSource[] {
+	return [
 		...("amount" in grant ? amountSources(grant.amount) : []),
 		...(grant.from ? [grant.from.source] : []),
-	])
+	]
+}
+
+/**
+ * Whether the champion gathers the source's stacks, by its resource in the data: the one place
+ * the effects, the upgrades and the shop ask (wiki: "Manaless champions cannot trigger Manaflow").
+ */
+export function gainsMatchStacks(
+	source: Pick<MatchStackSource, "resource">,
+	champion: Pick<Champion, "resource">,
+): boolean {
+	return source.resource === undefined || source.resource === champion.resource
+}
+
+/** The match stack sources the effect reads, once each (Phenomenal Evil for Veigar's passive). */
+export function matchStackSources({ grants }: Effect): MatchStackSource[] {
+	const sources = grants.flatMap(grantSources)
 	return sources.filter(
 		(source, index) =>
 			sources.findIndex(({ id }) => id === source.id) === index,
 	)
 }
 
-type UsedMatchStacksOptions = {
-	/** Sources the build reads outside its effects: the count an item's upgrade waits for. */
-	alsoRead?: readonly MatchStackSource[]
-}
-
 /** The stacks without the sources none of `effects` reads, each up to its cap; as given while the effects load. */
 export function usedMatchStacks(
 	stacks: MatchStacks | undefined,
 	effects: readonly Effect[] | undefined,
-	{ alsoRead = [] }: UsedMatchStacksOptions = {},
 ): MatchStacks | undefined {
 	if (!effects || !stacks) return stacks
 	const used = new Map(
-		[...effects.flatMap(matchStackSources), ...alsoRead].map(
-			(source) => [source.id, source] as const,
+		effects.flatMap((effect) =>
+			matchStackSources(effect).map((source) => [source.id, source] as const),
 		),
 	)
 	const kept = Object.keys(stacks).flatMap((id) => {
