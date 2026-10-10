@@ -96,15 +96,21 @@ export function matchStackSources({ grants }: Effect): MatchStackSource[] {
 	)
 }
 
+type UsedMatchStacksOptions = {
+	/** Sources the build reads outside its effects: the count an item's upgrade waits for. */
+	alsoRead?: readonly MatchStackSource[]
+}
+
 /** The stacks without the sources none of `effects` reads, each up to its cap; as given while the effects load. */
 export function usedMatchStacks(
 	stacks: MatchStacks | undefined,
 	effects: readonly Effect[] | undefined,
+	{ alsoRead = [] }: UsedMatchStacksOptions = {},
 ): MatchStacks | undefined {
 	if (!effects || !stacks) return stacks
 	const used = new Map(
-		effects.flatMap((effect) =>
-			matchStackSources(effect).map((source) => [source.id, source] as const),
+		[...effects.flatMap(matchStackSources), ...alsoRead].map(
+			(source) => [source.id, source] as const,
 		),
 	)
 	const kept = Object.keys(stacks).flatMap((id) => {

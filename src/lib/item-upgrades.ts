@@ -1,5 +1,5 @@
 import type { Item } from "@schemas/item"
-import type { StacksThreshold } from "./effects/effect"
+import type { MatchStackSource, StacksThreshold } from "./effects/effect"
 import {
 	type MatchStacks,
 	reachesThreshold,
@@ -39,6 +39,13 @@ export const ITEM_UPGRADES: readonly (ItemUpgrade & { sourceUrl: string })[] = [
 		sourceUrl: `${WIKI}Seraph%27s_Embrace`,
 	},
 ]
+
+/** The counts the build's base items wait for (Manamune's Manaflow): they stay with the item. */
+export function upgradeSources(itemIds: readonly string[]): MatchStackSource[] {
+	return ITEM_UPGRADES.filter(({ base }) => itemIds.includes(base)).map(
+		({ at }) => at.source,
+	)
+}
 
 /** The upgrade `itemId` is, by the upgrade's id (Muramana). */
 export function upgradeRule(itemId: string): ItemUpgrade | undefined {
