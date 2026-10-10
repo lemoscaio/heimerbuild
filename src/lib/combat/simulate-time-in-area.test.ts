@@ -185,10 +185,15 @@ describe("Demacian Justice waits for Judgment to end (issue 444)", () => {
 		expect(result.steps[0]?.hits).toEqual({ count: 3, of: 7 })
 	})
 
-	test("in free mode it doesn't wait, and the spin goes on", () => {
-		const { result } = simulateFreeCombat(inputOf([cast("E"), cast("R")]), [])
+	test("in free mode it waits too: q.e.r at 3 s lands every spin, then it casts", () => {
+		const actions = [cast("Q"), cast("E", 3), cast("R")]
+		const { result } = simulateFreeCombat(inputOf(actions), [])
+		const judgment = result.steps[1]
 
-		expect(result.steps[1]?.time).toBe(0)
-		expect(result.steps[0]?.hits).toEqual({ count: 7, of: 7 })
+		expect(judgment?.hits).toEqual({ count: 7, of: 7 })
+		expect(result.steps[2]?.time).toBeCloseTo((judgment?.time ?? 0) + 3)
+		expect(justice(result)[0]?.time).toBeGreaterThanOrEqual(
+			spins(result).at(-1)?.time ?? Number.POSITIVE_INFINITY,
+		)
 	})
 })
