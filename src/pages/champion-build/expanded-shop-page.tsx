@@ -45,6 +45,7 @@ export function ExpandedShopPage({
 					item={build.selectedItem}
 					stats={build.stats}
 					next={build.preview?.stats}
+					note={build.selectedItemNote}
 					isBuildFull={items.isFull}
 					onAdd={build.addItem}
 					onClose={build.clearSelection}

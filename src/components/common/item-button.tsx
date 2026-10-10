@@ -10,11 +10,14 @@ import { ItemStatList } from "./item-stat-list"
 
 type ItemButtonProps = {
 	item: Item
+	/** A line under the name in the details ("Upgrade of Manamune · 360 Manaflow"). */
+	note?: string
 } & React.ComponentProps<"button">
 
 /** A button for one item (its icon as children) that shows the item's details in a tooltip. */
 export function ItemButton({
 	item,
+	note,
 	children,
 	className,
 	onPointerUp,
@@ -46,16 +49,17 @@ export function ItemButton({
 				{children}
 			</TooltipTrigger>
 			<TooltipContent id={tooltipId}>
-				<ItemDetails item={item} />
+				<ItemDetails item={item} note={note} />
 			</TooltipContent>
 		</Tooltip>
 	)
 }
 
-function ItemDetails({ item }: { item: Item }) {
+function ItemDetails({ item, note }: { item: Item; note?: string }) {
 	return (
 		<div className="flex flex-col gap-1.5">
 			<p className="font-bold text-sm">{item.name}</p>
+			{note && <p className="text-lilac">{note}</p>}
 			<p className="text-gold">
 				{item.gold.total.toLocaleString("en-US")} gold
 			</p>

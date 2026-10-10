@@ -15,6 +15,8 @@ type ItemDetailsPanelProps = {
 	stats: ComputedStats | undefined
 	/** The stats with `item` added. */
 	next: ComputedStats | undefined
+	/** What the item is beyond its price: an upgrade's base item and count. */
+	note?: string
 	isBuildFull: boolean
 	onAdd: (itemId: string) => void
 	onClose: () => void
@@ -25,6 +27,7 @@ export function ItemDetailsPanel({
 	item,
 	stats,
 	next,
+	note,
 	isBuildFull,
 	onAdd,
 	onClose,
@@ -45,7 +48,7 @@ export function ItemDetailsPanel({
 			aria-labelledby={headingId}
 			className="flex min-h-full flex-col gap-4 text-sm"
 		>
-			<ItemSummary item={item} headingId={headingId} size="lg">
+			<ItemSummary item={item} headingId={headingId} size="lg" note={note}>
 				<Button
 					type="button"
 					variant="ghost"

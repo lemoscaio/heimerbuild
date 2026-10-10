@@ -7,6 +7,8 @@ type ItemSummaryProps = {
 	/** Id for the name heading, so the surrounding section can be labelled by it. */
 	headingId: string
 	size?: "md" | "lg"
+	/** What the item is beyond its price ("Upgrade of Manamune · 360 Manaflow"). */
+	note?: string
 	/** Actions at the end of the row, such as a close button. */
 	children?: React.ReactNode
 }
@@ -16,6 +18,7 @@ export function ItemSummary({
 	item,
 	headingId,
 	size = "md",
+	note,
 	children,
 }: ItemSummaryProps) {
 	const isLarge = size === "lg"
@@ -45,6 +48,7 @@ export function ItemSummary({
 				>
 					{item.gold.total.toLocaleString("en-US")} gold
 				</span>
+				{note && <span className="text-lilac text-xs">{note}</span>}
 			</div>
 			{children}
 		</div>

@@ -183,6 +183,7 @@ export function MobileBuildPage({
 					{build.selectedItem && (
 						<ItemDetailsCard
 							item={build.selectedItem}
+							note={build.selectedItemNote}
 							isBuildFull={items.isFull}
 							onAdd={build.addItem}
 							onClose={build.clearSelection}
