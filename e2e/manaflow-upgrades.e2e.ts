@@ -90,15 +90,29 @@ test("a link with Muramana's id opens as Manamune at 360 and saves the canonical
 	expect(await chosenNames(page, 1)).toEqual(["Remove Muramana"])
 })
 
-test("Garen has no mana: Muramana at 360 has no Effects row, and an edit keeps it Muramana", async ({
+test("Garen has no mana, so no Manaflow: Manamune at 360 stays Manamune, with no count", async ({
 	page,
 }) => {
 	await page.goto("/champions/Garen?items=3004&stacks=manaflow-mana-360")
-	expect(await chosenNames(page, 1)).toEqual(["Remove Muramana"])
+	expect(await chosenNames(page, 1)).toEqual(["Remove Manamune"])
 	await expect(manaflowSlider(page)).toHaveCount(0)
+	await expect(shopItem(page, "Manamune")).toBeVisible()
+	await expect(shopItem(page, "Muramana")).toHaveCount(0)
+	await expect(shopItem(page, "Seraph's Embrace")).toHaveCount(0)
 
 	await levelSlider(page).press("ArrowRight")
 	await expect(page).toHaveURL(/[?&]lvl=2(?:&|$)/)
-	await expect(page).toHaveURL(/[?&]stacks=manaflow-mana-360(?:&|$)/)
-	expect(await chosenNames(page, 1)).toEqual(["Remove Muramana"])
+	await expect(page).not.toHaveURL(/[?&]stacks=/)
+	expect(await chosenNames(page, 1)).toEqual(["Remove Manamune"])
+})
+
+test("a link with Muramana's id on Garen opens as Manamune and saves it with no count", async ({
+	page,
+}) => {
+	await page.goto("/champions/Garen?items=3042")
+	expect(await chosenNames(page, 1)).toEqual(["Remove Manamune"])
+
+	await levelSlider(page).press("ArrowRight")
+	await expect(page).toHaveURL(/[?&]items=3004(?:&|$)/)
+	await expect(page).not.toHaveURL(/[?&]stacks=/)
 })
