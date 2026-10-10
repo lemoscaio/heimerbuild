@@ -703,7 +703,7 @@ test("a cooldown started on cooldown leaves the link with its item: no orphan in
 		"/champions/Annie?lvl=9&skills=QWEQQRQEQ&items=3057&tab=combo&combo=q&start=-sheen-spellblade",
 	)
 	const addBack = combo(page).getByRole("button", {
-		name: "Add back a cooldown ready at the start",
+		name: "Add to the combo start",
 	})
 	await expect(addBack).toBeVisible()
 
@@ -712,4 +712,45 @@ test("a cooldown started on cooldown leaves the link with its item: no orphan in
 	await combo(page).getByRole("button", { name: "Add Attack" }).click()
 	await expect(page).toHaveURL(/[?&]combo=q\.aa(&|$)/)
 	await expect(page).not.toHaveURL(/[?&]start=/)
+})
+
+test("the combo starts with Conqueror stacked from +, kept in the link", async ({
+	page,
+}) => {
+	await page.goto(
+		"/champions/Garen?lvl=9&skills=QWEQQRQEQ&runes=8000-8010-0-0-0__&tab=combo&combo=q.e.r",
+	)
+	await expect(steps(page)).toHaveCount(3)
+	const before = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Add to the combo start" })
+		.click()
+	await page.getByRole("menuitem", { name: "Conqueror 12/12" }).click()
+	await expect(page).toHaveURL(/[?&]start=conqueror-12\b/)
+	await expect(damageTotal(page)).not.toHaveText(before ?? "")
+	const stacked = await damageTotal(page).textContent()
+
+	await combo(page)
+		.getByRole("button", { name: "Conqueror stacks at the start: 12 of 12" })
+		.click()
+	await page
+		.getByRole("button", { name: "Decrease Conqueror stacks at the start" })
+		.click()
+	await expect(page).toHaveURL(/[?&]start=conqueror-11\b/)
+	await page.keyboard.press("Escape")
+
+	await page.reload()
+	await expect(
+		combo(page).getByRole("button", {
+			name: "Conqueror stacks at the start: 11 of 12",
+		}),
+	).toBeVisible()
+	await expect(damageTotal(page)).not.toHaveText(stacked ?? "")
+
+	await combo(page)
+		.getByRole("button", { name: "Remove from the start: Conqueror stacks" })
+		.click()
+	await expect(page).not.toHaveURL(/[?&]start=/)
+	await expect(damageTotal(page)).toHaveText(before ?? "")
 })
