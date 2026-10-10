@@ -104,6 +104,9 @@ export type TickOwner = { owner: number }
  */
 export type DelayedHit = { delayed?: TickOwner }
 
+/** On-hit damage an effect's own hit applied (Guinsoo's phantom hit), not the attack's: that effect's id. */
+export type OnHitOf = { effectId: string }
+
 /** Everything that happens, in order; `time` is seconds from the combo's start. */
 export type CombatEvent =
 	| { kind: "cast"; time: number; source: CastSource }
@@ -117,6 +120,7 @@ export type CombatEvent =
 			laterHit?: TickOwner
 			/** {@link DelayedHit} */
 			delayed?: TickOwner
+			onHitOf?: OnHitOf
 	  }
 	/** A hit the simulator has no number for, with why (a share of the target's health). */
 	| {
@@ -127,6 +131,7 @@ export type CombatEvent =
 			tick?: TickOwner
 			laterHit?: TickOwner
 			delayed?: TickOwner
+			onHitOf?: OnHitOf
 	  }
 	| { kind: "on-hit"; time: number }
 	| { kind: "mark-applied"; time: number; mark: string; endsAt: number }
@@ -218,6 +223,11 @@ export type CombatStep = {
 	 * duration deals at its attack speed (Judgment 1.5 s: 3 of 7 spins).
 	 */
 	hits?: { count: number; of: number }
+	/**
+	 * The same state once its cast's last later hit landed, which may be after the next action started
+	 * (Judgment's last spin: Conqueror 12/12); absent for a step without later hits.
+	 */
+	afterLaterHits?: Pick<CombatStep, "active" | "waiting" | "marks" | "resists">
 }
 
 export type DamageTotals = { raw: number; final: number }

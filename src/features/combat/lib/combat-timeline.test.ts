@@ -11,7 +11,7 @@ import { abilitiesInForm } from "@/lib/form-abilities"
 import {
 	type CombatTimeline,
 	combatTimeline,
-	type TimelineDelayed,
+	type TimelineProc,
 	type TimelineStep,
 } from "./combat-timeline"
 import { TIMELINE_GEOMETRY, timelineLayout } from "./combat-timeline-layout"
@@ -97,9 +97,9 @@ function steps(timeline: CombatTimeline) {
 	)
 }
 
-function delayed(timeline: CombatTimeline) {
+function procs(timeline: CombatTimeline) {
 	return timeline.entries.filter(
-		(entry): entry is TimelineDelayed => entry.kind === "delayed",
+		(entry): entry is TimelineProc => entry.kind === "proc",
 	)
 }
 
@@ -112,17 +112,17 @@ function dealt({ entries }: CombatTimeline) {
 
 describe("combatTimeline", () => {
 	test("Counter Strike's strike has its own entry at 1.00 s, on E's step, which deals nothing at its cast", () => {
-		const [strike] = delayed(JAX.timeline)
+		const [strike] = procs(JAX.timeline)
 		const [e] = steps(JAX.timeline)
 
-		expect(delayed(JAX.timeline)).toHaveLength(1)
+		expect(procs(JAX.timeline)).toHaveLength(1)
 		expect(strike?.index).toBe(0)
 		expect(strike?.time).toBeCloseTo(1)
 		expect(strike?.verb).toBe("strikes")
 		expect(strike?.damage).toBeGreaterThan(0)
 		expect(e?.damage).toBe(0)
-		expect(e?.delayed?.at).toBeCloseTo(1)
-		expect(e?.late).toBe(true)
+		expect(e?.firstProc?.at).toBeCloseTo(1)
+		expect(e?.late).toBe(false)
 	})
 
 	test("the entries' damage adds up to the totals, and the health goes down with it", () => {
@@ -203,13 +203,13 @@ describe("combatTimeline", () => {
 		])
 	})
 
-	test("Blaze's detonation lands as Q's delayed hit, and its lane runs from then to the end", async () => {
+	test("Blaze's detonation lands as Q's separate instance, and its lane runs from then to the end", async () => {
 		const { result, timeline } = await timelineOf(
 			"Brand",
 			{ Q: 2, W: 2, E: 2, R: 1 },
 			[cast("E"), cast("W"), cast("Q"), cast("R")],
 		)
-		const [detonation] = delayed(timeline)
+		const [detonation] = procs(timeline)
 		const lane = timeline.lanes.find(({ spans }) =>
 			spans.some(({ from }) => from === detonation?.time),
 		)
@@ -220,12 +220,12 @@ describe("combatTimeline", () => {
 		expect(dealt(timeline)).toBeCloseTo(result.total.final)
 	})
 
-	test("Pyroclasm's bounces are dots on its own step; the detonation they set up is its delayed hit", async () => {
+	test("Pyroclasm's bounces are dots on its own step; the detonation they set up is its separate instance", async () => {
 		const { timeline } = await timelineOf("Brand", { Q: 1, W: 0, E: 0, R: 1 }, [
 			cast("R"),
 		])
 		const [pyroclasm] = steps(timeline)
-		const [detonation] = delayed(timeline)
+		const [detonation] = procs(timeline)
 
 		expect(pyroclasm?.dots).toHaveLength(3)
 		expect(detonation?.index).toBe(0)

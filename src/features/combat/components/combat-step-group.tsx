@@ -18,6 +18,7 @@ import type {
 	GroupDamageOverTime,
 	GroupView,
 } from "../lib/combat-groups"
+import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatTargetResists } from "./combat-target-resists"
 import { damageTypeText } from "./damage-type-styles"
 
@@ -49,26 +50,6 @@ type CombatStepGroupProps = {
 	/** Its steps' cards, shown once open. */
 	children: React.ReactNode
 } & React.ComponentProps<"li">
-
-/** "368 physical · 248 magic · 36 true" */
-function DamageByType({ parts }: { parts: GroupView["byType"] }) {
-	if (!parts.length) return null
-	return (
-		<p className="flex flex-wrap gap-x-1 text-[0.6875rem]">
-			{parts.map(({ type, final }) => (
-				<span
-					key={type}
-					className={cn(
-						"whitespace-nowrap not-last:after:text-subtle not-last:after:content-['_·']",
-						damageTypeText(type),
-					)}
-				>
-					{formatDamage(final)} {DAMAGE_TYPE_NAMES[type]}
-				</span>
-			))}
-		</p>
-	)
-}
 
 function countText({ label, count, of }: GroupCount) {
 	return `${label} ${count}/${of}`
@@ -175,7 +156,6 @@ export function CombatStepGroup({
 								{view.refused} refused (left out)
 							</p>
 						)}
-						<DamageByType parts={view.byType} />
 						{!!view.outcomes.length && (
 							<ul aria-label="Outcomes" className="flex flex-wrap gap-1">
 								{view.outcomes.map((outcome) => (
@@ -231,23 +211,15 @@ export function CombatStepGroup({
 							)}
 						</div>
 					</div>
-					<p className="flex flex-col items-end text-right">
+					<div className="flex flex-col items-end">
 						{view.total.final > 0 && (
-							<>
-								<span
-									className={cn(
-										"font-bold font-display text-base tabular-nums",
-										view.mainType && damageTypeText(view.mainType),
-									)}
-								>
-									{formatDamage(view.total.final)}
-								</span>
+							<CombatDamageAmount final={view.total.final} parts={view.byType}>
 								<span className="text-[0.625rem] text-subtle tabular-nums">
 									raw {formatDamage(view.total.raw)}
 								</span>
-							</>
+							</CombatDamageAmount>
 						)}
-					</p>
+					</div>
 					<Button
 						variant="ghost"
 						size="icon-sm"

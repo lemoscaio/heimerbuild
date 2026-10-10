@@ -19,11 +19,19 @@ import { outcomeId } from "@/lib/combat/outcomes"
 import type { BuildEffect, Resist } from "@/lib/effects/effect"
 import { statDisplay } from "@/lib/stat-display"
 import { formatResist, formatSeconds } from "./combat-format"
+import {
+	type EffectsById,
+	groupProcs,
+	type HitEvent,
+	hitInstance,
+} from "./hit-placement"
 
 /** The names the combo shows for the abilities, effects and marks it reports by id. */
 export type CombatNames = {
 	source: (source: DamageSource) => string
 	effect: (effectId: string) => string
+	/** The effect's rune, item, ability or spell icon. */
+	icon: (effectId: string) => string | undefined
 	mark: (mark: string) => string
 }
 
@@ -66,6 +74,9 @@ export function combatNames({
 			const effect = effectById.get(effectId)
 			return effect ? effectName(effect) : effectId
 		},
+		icon(effectId) {
+			return effectById.get(effectId)?.icon
+		},
 		mark(mark) {
 			return (
 				effects.find(({ effect }) => effect.applies?.mark === mark)?.name ??
@@ -75,17 +86,38 @@ export function combatNames({
 	}
 }
 
-/** A step's hits from one source and of one type, as its card lists them (a cast's base and share of health). */
-export type HitView =
+/**
+ * A step's hits from one source and of one type, as its card lists them (a cast's base and share of
+ * health); an effect's with its icon (Wit's End on an attack).
+ */
+export type HitView = { name: string; icon?: string } & (
 	| {
-			name: string
 			type: DamageType
 			raw: number
 			final: number
 			/** Hits at different moments: a cast's base and share of health land together, once. */
 			count: number
 	  }
-	| { name: string; notModeled: readonly string[] }
+	| { notModeled: readonly string[] }
+)
+
+/** A number's damage of one type, after mitigation: its split by type when it mixes several. */
+export type DamageTypeShare = { type: DamageType; final: number }
+
+/**
+ * A separate damage instance a step triggered (issue 429), as its own row among the steps at its
+ * land time: the effect that dealt it, when it landed and its hits (a phantom hit's on-hit parts).
+ */
+export type ProcView = {
+	effectId: string
+	name: string
+	icon?: string
+	time: number
+	hits: HitView[]
+	total: { raw: number; final: number }
+	/** The types that dealt its damage, physical, magic then true. */
+	byType: DamageTypeShare[]
+}
 
 /** One tick in a damage over time's list: when it landed and what it dealt. */
 export type TickView =
@@ -129,12 +161,15 @@ export type ResistChangeView = { resist: Resist; from: number; to: number }
 
 /** What a step's card shows: its hits and total, the marks it moved and the effects running after it. */
 export type StepView = {
+	/** Its own hits; its separate instances are `procs`, each listed among the steps. */
 	hits: HitView[]
+	procs: ProcView[]
 	/** The damage over time it applied, with the ticks that belong to it. */
 	damageOverTime: DamageOverTimeView[]
+	/** Its own damage: its hits' and its damage over time's, its procs left out. */
 	total: { raw: number; final: number }
-	/** The type of most of its damage, which colors the total. */
-	mainType?: DamageType
+	/** The types that dealt it, physical, magic then true: one colors the total, several split it. */
+	byType: DamageTypeShare[]
 	/** The marks it moved that no outcome reports (Valor marking during a wait); `fromMarker`: a marker put it there. */
 	marks: { mark: string; change: "applied" | "consumed"; fromMarker: boolean }[]
 	/**
@@ -147,15 +182,18 @@ export type StepView = {
 	healthShare: number
 }
 
-/** The step's hits, those of one source and type added up into one line; ticks show with their application. */
-function hitViews(events: readonly CombatEvent[], names: CombatNames) {
+/** Hits, those of one source and type added up into one line. */
+function hitViews(hits: readonly HitEvent[], names: CombatNames) {
 	const views: HitView[] = []
 	const lastHitAt = new Map<HitView, number>()
-	for (const event of events) {
-		if (event.kind !== "hit" || event.tick) continue
+	for (const event of hits) {
 		const name = names.source(event.source)
+		const { source } = event
+		const icon =
+			source.kind === "effect" ? names.icon(source.effectId) : undefined
+		const shown = { name, ...(icon && { icon }) }
 		if (!("damage" in event)) {
-			views.push({ name, notModeled: event.notModeled })
+			views.push({ ...shown, notModeled: event.notModeled })
 			continue
 		}
 		const { type, raw, final } = event.damage
@@ -168,12 +206,70 @@ function hitViews(events: readonly CombatEvent[], names: CombatNames) {
 			if (lastHitAt.get(same) !== event.time) same.count++
 			lastHitAt.set(same, event.time)
 		} else {
-			const view = { name, type, raw, final, count: 1 }
+			const view = { ...shown, type, raw, final, count: 1 }
 			views.push(view)
 			lastHitAt.set(view, event.time)
 		}
 	}
 	return views
+}
+
+type DamagePart = { type?: DamageType; raw: number; final: number }
+
+/** Damage by type, in the fixed order, only the types that dealt some. */
+export function typeShares(
+	parts: readonly { type?: DamageType; final: number }[],
+): DamageTypeShare[] {
+	return DAMAGE_TYPES.flatMap((type) => {
+		const final = parts
+			.filter((part) => part.type === type)
+			.reduce((sum, part) => sum + part.final, 0)
+		return final > 0 ? [{ type, final }] : []
+	})
+}
+
+/** Parts' damage in all, and by type. */
+function damageTotal(parts: readonly (DamagePart | object)[]) {
+	const typed = parts.flatMap((part) =>
+		"type" in part && part.type ? [part] : [],
+	)
+	const total = { raw: 0, final: 0 }
+	for (const { raw, final } of typed) {
+		total.raw += raw
+		total.final += final
+	}
+	return { total, byType: typeShares(typed) }
+}
+
+/** The step's hits split into its own (`hits`) and its separate instances (`procs`); ticks show with their application. */
+function hitAndProcViews(
+	events: readonly CombatEvent[],
+	{ names, effects }: { names: CombatNames; effects: EffectsById },
+): Pick<StepView, "hits" | "procs"> {
+	const placed = events.flatMap((event) =>
+		event.kind === "hit" && !event.tick
+			? [{ ...event, instance: hitInstance(event, effects) }]
+			: [],
+	)
+	const own = placed.filter(({ instance }) => !instance)
+	const instances = placed.flatMap(({ instance, ...event }) =>
+		instance ? [{ ...event, instance }] : [],
+	)
+	return {
+		hits: hitViews(own, names),
+		procs: groupProcs(instances).map(({ effectId, time, hits }) => {
+			const views = hitViews(hits, names)
+			const icon = names.icon(effectId)
+			return {
+				effectId,
+				name: names.effect(effectId),
+				...(icon && { icon }),
+				time,
+				hits: views,
+				...damageTotal(views),
+			}
+		}),
+	}
 }
 
 export function damageOverTimeView(
@@ -219,6 +315,12 @@ export function damageOverTimeView(
 	}
 }
 
+/** A proc's lone hit of its own effect, which its title can carry ("Arcane Comet · 40 magic"); none with several. */
+export function loneProcHit({ hits, name }: ProcView): HitView | undefined {
+	const [hit] = hits
+	return hits.length === 1 && hit?.name === name ? hit : undefined
+}
+
 /** The stats a pause switched off, by their shop names: "Move Speed". */
 function pausedLabel(grants: readonly StatKey[]) {
 	const labels = grants.map(
@@ -229,7 +331,7 @@ function pausedLabel(grants: readonly StatKey[]) {
 
 /** The effects running after a step, each once; `hidden` ones another line reports. */
 function runningEffects(
-	step: CombatStep,
+	step: Pick<CombatStep, "active" | "waiting">,
 	{ names, hidden }: { names: CombatNames; hidden: ReadonlySet<string> },
 ): StepView["effects"] {
 	const seen = new Map<string, RunningEffectView>()
@@ -319,9 +421,20 @@ function resistChanges(
 	)
 }
 
+type StepViewOptions = {
+	names: CombatNames
+	target: CombatTarget
+	/** The build's effects, which tell a separate instance (`hitInstance`). */
+	effects: EffectsById
+}
+
+/**
+ * A step's card from its events, its hits already placed (`placedSteps`). Its running effects and the
+ * target's resistances are those once its last hit landed (Judgment's last spin: Conqueror 12/12).
+ */
 export function stepView(
 	step: CombatStep,
-	{ names, target }: { names: CombatNames; target: CombatTarget },
+	{ names, target, effects }: StepViewOptions,
 ): StepView {
 	const reported = new Set(step.outcomes.map(outcomeId))
 	const empowering = new Set(
@@ -329,28 +442,18 @@ export function stepView(
 			outcome.kind === "empowered" ? [outcome.effectId] : [],
 		),
 	)
-	const hits = hitViews(step.events, names)
+	const { hits, procs } = hitAndProcViews(step.events, { names, effects })
 	const damageOverTime = step.damageOverTime.map((summary) =>
 		damageOverTimeView(summary, names),
 	)
 	const ticking = new Set(damageOverTime.map(({ effectId }) => effectId))
-	const total = { raw: 0, final: 0 }
-	const byType = new Map<DamageType, number>()
-	for (const hit of [...hits, ...damageOverTime]) {
-		if (!("type" in hit) || !hit.type) continue
-		total.raw += hit.raw
-		total.final += hit.final
-		byType.set(hit.type, (byType.get(hit.type) ?? 0) + hit.final)
-	}
-	let mainType: DamageType | undefined
-	for (const [type, final] of byType) {
-		if (!mainType || final > (byType.get(mainType) ?? 0)) mainType = type
-	}
+	// A whole snapshot: what the later hits cleared (a waiting effect, a reduction) is gone from it.
+	const state = step.afterLaterHits ?? step
 	return {
 		hits,
+		procs,
 		damageOverTime,
-		total,
-		...(mainType && { mainType }),
+		...damageTotal([...hits, ...damageOverTime]),
 		marks: step.events.flatMap((event) =>
 			(event.kind === "mark-applied" || event.kind === "mark-consumed") &&
 			!reported.has(outcomeId({ kind: event.kind, mark: event.mark }))
@@ -368,11 +471,11 @@ export function stepView(
 				: [],
 		),
 		// An effect its outcome or its damage over time line already reports gets no chip of its own.
-		effects: runningEffects(step, {
+		effects: runningEffects(state, {
 			names,
 			hidden: new Set([...empowering, ...ticking]),
 		}),
-		resists: resistChanges(step, target),
+		resists: resistChanges(state, target),
 		healthShare: step.targetHealth / target.health,
 	}
 }

@@ -313,6 +313,16 @@ describe("Guinsoo's Rageblade (wiki: 8% attack speed per stack up to 4, then a p
 		expect(phantom?.time).toBeCloseTo(landed + 0.15)
 	})
 
+	test("the phantom hit's on-hit damage names it, the attack's own on-hit doesn't (issue 429)", () => {
+		const result = simulate(setup, Array(10).fill(ATTACK))
+		const [own, phantom] = effectHits(result, 9, wrath)
+
+		expect(own?.onHitOf).toBeUndefined()
+		expect(phantom?.onHitOf).toEqual({
+			effectId: "guinsoos-rageblade-phantom-hit",
+		})
+	})
+
 	test("each attack adds 8% attack speed up to 32%, so the attacks come faster", () => {
 		const result = simulate(setup, Array(6).fill(ATTACK))
 		const starts = result.steps.map(({ time }) => time)

@@ -535,6 +535,11 @@ export type Effect = PatchRange & {
 	part?: "passive" | "active"
 	/** The champion form it holds in, by form id ("dragon"); absent means every form. */
 	form?: string
+	/**
+	 * Its damage is on-hit damage of the attack that sets it off, though another trigger starts it
+	 * (Kraken Slayer's third hit, on its stacks' max): the combo shows it as a line of that attack.
+	 */
+	onHitDamage?: true
 	/** Its row's name in the Effects list when neither the part nor the form says it ("Rev'd up"). */
 	label?: string
 	/** The page the numbers were checked against. */

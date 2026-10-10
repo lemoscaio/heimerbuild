@@ -14,8 +14,11 @@ import {
 	stepView,
 	strictOutcomeViews,
 } from "./combat-view"
+import type { EffectsById } from "./hit-placement"
 
 const TARGET = { health: 1000, armor: 50, magicResist: 50, level: 9 }
+// The steps here hold no separate instance: every hit is a line of its card.
+const NO_EFFECTS: EffectsById = new Map()
 
 function bound(effect: Partial<Effect> & { id: string }, name: string) {
 	return {
@@ -83,7 +86,27 @@ const STEP: CombatStep = {
 }
 
 describe("stepView", () => {
-	const view = stepView(STEP, { names: NAMES, target: TARGET })
+	test("a step with later hits shows the state its last one left: what they cleared is gone", () => {
+		const waiting = { effectId: "quinn-w-passive", label: "strikes", until: 1 }
+		const view = stepView(
+			{
+				...STEP,
+				waiting: [waiting],
+				resists: { armor: 40, magicResist: 50 },
+				afterLaterHits: { active: [], marks: [] },
+			},
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
+		)
+
+		expect(view.effects).toEqual([])
+		expect(view.resists).toEqual([])
+	})
+
+	const view = stepView(STEP, {
+		names: NAMES,
+		target: TARGET,
+		effects: NO_EFFECTS,
+	})
 
 	test("lists each hit by name, with not-modeled ones apart, and the step's total", () => {
 		expect(view.hits).toEqual([
@@ -92,7 +115,10 @@ describe("stepView", () => {
 			{ name: "Harrier", notModeled: ["a buff counter"] },
 		])
 		expect(view.total).toEqual({ raw: 150, final: 90 })
-		expect(view.mainType).toBe("physical")
+		expect(view.byType).toEqual([
+			{ type: "physical", final: 60 },
+			{ type: "magic", final: 30 },
+		])
 	})
 
 	test("adds up the hits of one source and type into one line", () => {
@@ -104,7 +130,7 @@ describe("stepView", () => {
 		} as const
 		const ticking = stepView(
 			{ ...STEP, events: [tick, { ...tick, time: 1 }] },
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 
 		expect(ticking.hits).toEqual([
@@ -127,7 +153,7 @@ describe("stepView", () => {
 					{ ...part, source: { ...part.source, name: "PercentDamage" } },
 				],
 			},
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 
 		expect(cast.hits).toEqual([
@@ -156,7 +182,7 @@ describe("stepView", () => {
 					},
 				],
 			},
-			{ names, target: TARGET },
+			{ names, target: TARGET, effects: NO_EFFECTS },
 		)
 
 		expect(detonated.hits).toEqual([
@@ -183,7 +209,7 @@ describe("stepView", () => {
 	test("says which of the target's resistances its reductions changed, from its own to now", () => {
 		const carved = stepView(
 			{ ...STEP, resists: { armor: 35.25, magicResist: 50 } },
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 
 		expect(view.resists).toEqual([])
@@ -211,7 +237,7 @@ describe("stepView", () => {
 					},
 				],
 			},
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 
 		expect(paused.effects).toEqual([
@@ -243,7 +269,7 @@ describe("stepView", () => {
 						},
 					],
 				},
-				{ names, target: TARGET },
+				{ names, target: TARGET, effects: NO_EFFECTS },
 			).effects.map(runningEffectText)
 
 		expect(ambush(1)).toEqual(["Ambush · camouflaged from 1.00 s"])
@@ -281,7 +307,7 @@ describe("stepView", () => {
 					},
 				],
 			},
-			{ names, target: TARGET },
+			{ names, target: TARGET, effects: NO_EFFECTS },
 		).effects.map(runningEffectText)
 
 		expect(conqueror).toEqual(["Conqueror · 6/12 stacks · until 5.26 s"])
@@ -310,7 +336,7 @@ describe("stepView", () => {
 					},
 				],
 			},
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 
 		expect(fromStart.marks).toEqual([
@@ -334,7 +360,7 @@ describe("stepView", () => {
 					},
 				],
 			},
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 
 		expect(reported.marks).toEqual([])
@@ -649,7 +675,11 @@ describe("damage over time on its step (issue 345)", () => {
 			},
 		],
 	}
-	const view = stepView(applied, { names: NAMES, target: TARGET })
+	const view = stepView(applied, {
+		names: NAMES,
+		target: TARGET,
+		effects: NO_EFFECTS,
+	})
 
 	test("one line with its ticks, damage and last tick, instead of hit lines and a chip", () => {
 		expect(view.damageOverTime).toEqual([
@@ -679,7 +709,7 @@ describe("damage over time on its step (issue 345)", () => {
 		expect(view.total).toEqual({ raw: 220, final: 140 })
 		const later = stepView(
 			{ ...STEP, events: [poison(2, 0)], damageOverTime: [] },
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 		expect(later.total).toEqual({ raw: 0, final: 0 })
 	})
@@ -698,7 +728,7 @@ describe("damage over time on its step (issue 345)", () => {
 					},
 				],
 			},
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 		expect(refresh.damageOverTime[0]).toMatchObject({
 			application: "refreshed",
@@ -725,7 +755,7 @@ describe("damage over time on its step (issue 345)", () => {
 					},
 				],
 			},
-			{ names: NAMES, target: TARGET },
+			{ names: NAMES, target: TARGET, effects: NO_EFFECTS },
 		)
 		expect(trap.damageOverTime[0]).toMatchObject({
 			delayed: { label: "detonates", at: 2.45 },

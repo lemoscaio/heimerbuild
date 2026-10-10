@@ -15,10 +15,12 @@ import {
 	actionNames,
 } from "../lib/combat-action-names"
 import { actionLabel } from "../lib/combat-format"
+import { procsInOrder } from "../lib/procs-in-order"
 import { CombatActionIcon } from "./combat-action-icon"
 import { CombatAreaTimeInput } from "./combat-area-time-input"
 import { CombatMarkerLine } from "./combat-marker-line"
 import { CombatMoveButtons } from "./combat-move-buttons"
+import { CombatProcCard } from "./combat-proc-card"
 import { CombatStepCard } from "./combat-step-card"
 import { CombatStepGroup } from "./combat-step-group"
 import { type CombatListMode, CombatStepOutcomes } from "./combat-step-outcomes"
@@ -122,6 +124,17 @@ function StepEntry({
 	)
 }
 
+/** When a step or a group happens, which a proc landing later follows. */
+function shownTime(item: CombatShownItem) {
+	if (item.kind === "step") return item.time
+	return item.kind === "group" ? item.view.time?.from : undefined
+}
+
+/** The procs a shown item lists among the steps; a group's, among its steps once it opens. */
+function shownProcs(item: CombatShownItem) {
+	return item.kind === "step" ? (item.view?.procs ?? []) : []
+}
+
 /** "1–8. Attack ×8" */
 function groupTitle(group: CombatGroupItem, names: ActionNames) {
 	const { first, last } = group.numbers
@@ -168,6 +181,7 @@ function moveDescriber(items: readonly CombatShownItem[], names: ActionNames) {
  * The combo in order: action cards, situation marker lines and groups of identical steps (issue
  * 331), each moved with its up and down buttons and removed with ×. A step or a marker moves one
  * entry; a group moves past its whole neighbour and goes as a whole; open, its steps move among themselves.
+ * Each proc is a row of its own at its land time, with no controls (issue 429).
  */
 export function CombatStepList({
 	items,
@@ -195,6 +209,10 @@ export function CombatStepList({
 		describeMove: moveDescriber(items, names),
 	})
 	const expansion = useGroupExpansion()
+	// Each proc a row of its own at its land time (issue 429).
+	const shown = procsInOrder(items, { timeOf: shownTime, procsOf: shownProcs })
+	const fromLabel = (step: CombatStepItem) =>
+		`${step.number}. ${actionLabel(step.action, names)}`
 	const stepProps = {
 		mode,
 		names,
@@ -212,7 +230,19 @@ export function CombatStepList({
 				Steps
 			</h3>
 			<ol className="flex flex-col gap-1.5">
-				{items.map((item, position) => {
+				{shown.map((entry) => {
+					if (entry.kind === "proc") {
+						const { proc, owner } = entry
+						return (
+							<CombatProcCard
+								key={`proc-${owner.id}-${proc.effectId}@${proc.time}`}
+								proc={proc}
+								from={owner.kind === "step" ? fromLabel(owner) : ""}
+							/>
+						)
+					}
+					const { item } = entry
+					const position = items.indexOf(item)
 					const moves =
 						item.kind === "group"
 							? reorder.moves(blocks, position)
@@ -270,14 +300,28 @@ export function CombatStepList({
 							onOpenChange={(open) => expansion.setOpen(ids, open)}
 							onRemove={() => onRemoveAll(ids)}
 						>
-							{item.steps.map((step, index) => (
-								<StepEntry
-									key={step.id}
-									step={step}
-									moves={reorder.moves(inside, index)}
-									{...stepProps}
-								/>
-							))}
+							{procsInOrder(item.steps, {
+								timeOf: ({ time }) => time,
+								procsOf: ({ view }) => view?.procs ?? [],
+							}).map((inner) =>
+								inner.kind === "proc" ? (
+									<CombatProcCard
+										key={`proc-${inner.owner.id}-${inner.proc.effectId}@${inner.proc.time}`}
+										proc={inner.proc}
+										from={fromLabel(inner.owner)}
+									/>
+								) : (
+									<StepEntry
+										key={inner.item.id}
+										step={inner.item}
+										moves={reorder.moves(
+											inside,
+											item.steps.indexOf(inner.item),
+										)}
+										{...stepProps}
+									/>
+								),
+							)}
 						</CombatStepGroup>
 					)
 				})}

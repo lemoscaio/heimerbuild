@@ -7,11 +7,9 @@ import type {
 	DamageSource,
 } from "@/lib/combat/combat"
 import type { BuildEffect } from "@/lib/effects/effect"
-import { stepTimings, type TimedHit, timedHits } from "./combat-rows"
+import { stepProcs, stepTimings, type TimedHit, timedHits } from "./combat-rows"
 import type { CombatNames } from "./combat-view"
-
-/** Two moments closer than this are one (a cast's base and share of health land together). */
-const SAME_MOMENT = 1e-6
+import { type EffectsById, effectsById, sameMoment } from "./hit-placement"
 
 /** A moment a step's hits land at, colored by the type of most of its damage then. */
 export type TimelineDot = { time: number; type?: DamageType }
@@ -19,8 +17,14 @@ export type TimelineDot = { time: number; type?: DamageType }
 /** A part of a card's damage: its hits of one source and type, or one damage over time's ticks. */
 export type TimelinePart = { type: DamageType; final: number }
 
-/** A hit an effect adds on a step's row: Grandmaster-at-Arms' third hit (+52). */
-export type TimelineBonus = { label: string; type: DamageType; final: number }
+/** An effect's hits that are part of a step's own (Grandmaster-at-Arms' third hit +52, Wit's End's +45), added up. */
+export type TimelineBonus = {
+	effectId: string
+	label: string
+	icon?: string
+	type: DamageType
+	final: number
+}
 
 type TimelineDamage = {
 	/** After mitigation. */
@@ -28,9 +32,11 @@ type TimelineDamage = {
 	/** Its parts when it has several (60 + 131), else none. */
 	parts: TimelinePart[]
 	mainType?: DamageType
+	/** Several types dealt it: its number shows neutral, its parts in their colors. */
+	mixed: boolean
 }
 
-/** A step at its start: its windup to its first landing, its hits, and its delayed hits' first moment. */
+/** A step at its start: its windup to its first landing, its own hits, and its first separate instance's moment. */
 export type TimelineStep = TimelineDamage & {
 	kind: "step"
 	/** The item index in the combo. */
@@ -38,12 +44,12 @@ export type TimelineStep = TimelineDamage & {
 	startsAt: number
 	/** Its place among the steps that start at the same moment, which stack. */
 	column: number
-	/** The moments its own hits land, delayed ones left out. */
+	/** The moments its own hits land, separate instances left out. */
 	dots: TimelineDot[]
 	lands?: { first: number; last: number }
 	bonuses: TimelineBonus[]
-	/** When its first delayed hit lands, and what that hit does there ("strikes"). */
-	delayed?: { at: number; verb: string }
+	/** When its first separate instance lands, and what it does there ("strikes"). */
+	firstProc?: { at: number; verb: string }
 	/** A hit of it lands after the next step started. */
 	late: boolean
 	/** The target's health after its last own hit (its first tick when it only ticks), when it has one. */
@@ -53,23 +59,29 @@ export type TimelineStep = TimelineDamage & {
 	wait?: number
 }
 
-/** A delayed hit's own row at its landing, joined to its step (Counter Strike's strike at 1.00 s). */
-export type TimelineDelayed = TimelineDamage & {
-	kind: "delayed"
+/**
+ * A separate damage instance's own card at its landing, joined to the step that triggered it (issue
+ * 429: Counter Strike's strike at 1.00 s, Arcane Comet, Guinsoo's Phantom Hit).
+ */
+export type TimelineProc = TimelineDamage & {
+	kind: "proc"
 	/** Its step's item index. */
 	index: number
 	/** Its step's start and column, which its track goes down from. */
 	startsAt: number
 	column: number
 	time: number
+	effectId: string
+	/** Its effect's short name: its label ("Phantom Hit"), else its name. */
 	name: string
+	icon?: string
 	verb: string
 	targetHealth: number
 }
 
 export type TimelineMarker = { kind: "marker"; index: number; time: number }
 
-export type TimelineEntry = TimelineStep | TimelineDelayed | TimelineMarker
+export type TimelineEntry = TimelineStep | TimelineProc | TimelineMarker
 
 /** An effect or a mark as a lane: when it runs, and a notch at each step that triggered or refreshed it. */
 export type TimelineLane = {
@@ -80,7 +92,7 @@ export type TimelineLane = {
 }
 
 export type CombatTimeline = {
-	/** Steps, delayed hits and markers by when they happen; ties in the combo's order, steps first. */
+	/** Steps, separate instances and markers by when they happen; ties in the combo's order, steps first. */
 	entries: TimelineEntry[]
 	/** How many steps start at the same moment at most. */
 	columns: number
@@ -95,10 +107,6 @@ type CombatTimelineOptions = {
 	target: Pick<CombatTarget, "health">
 	names: CombatNames
 	effects: readonly BuildEffect[]
-}
-
-function sameMoment(a: number, b: number) {
-	return Math.abs(a - b) < SAME_MOMENT
 }
 
 /** The damage of some hits, its parts by source and type, and the type of most of it. */
@@ -123,6 +131,7 @@ function damageOf(
 		damage,
 		parts: parts.size > 1 ? [...parts.values()] : [],
 		...(mainType && { mainType }),
+		mixed: byType.size > 1,
 	}
 }
 
@@ -145,35 +154,48 @@ function dotsOf(hits: readonly TimedHit[]): TimelineDot[] {
 	})
 }
 
-/** The build's effects by id, which the hits' sources name. */
-type EffectsById = ReadonlyMap<string, BuildEffect>
-
 function effectOf(source: DamageSource, effects: EffectsById) {
 	return source.kind === "effect" ? effects.get(source.effectId) : undefined
 }
 
-/**
- * A hit dealt once a delay or a state is over: flagged by the simulator for an earlier step, or by
- * its effect's `delay` or `startsAfter` on the step running (Pyroclasm detonating Blaze alone).
- */
-function isDelayed(hit: TimedHit, effects: EffectsById) {
-	if (hit.delayed) return true
-	if (hit.tick) return false
-	const effect = effectOf(hit.source, effects)?.effect
-	return !!(effect?.delay || effect?.startsAfter)
+/** What a separate instance does when it lands: its effect's delay label ("strikes"), else "lands". */
+function procVerb(effectId: string, effects: EffectsById) {
+	return effects.get(effectId)?.effect.delay?.label ?? "lands"
 }
 
-/** What a delayed hit does when it lands: its effect's delay label ("strikes"), else "lands". */
-function delayVerb(source: DamageSource, effects: EffectsById) {
-	return effectOf(source, effects)?.effect.delay?.label ?? "lands"
-}
-
-/** An effect's hit on a step's row by its short name: its label ("third hit"), else its name. */
-function bonusLabel(
-	source: DamageSource,
+/** An effect by its short name: its label ("third hit", "Phantom Hit"), else its name. */
+function shortName(
+	effectId: string,
 	{ names, effects }: { names: CombatNames; effects: EffectsById },
 ) {
-	return effectOf(source, effects)?.effect.label ?? names.source(source)
+	const effect = effects.get(effectId)
+	return effect?.effect.label ?? effect?.name ?? names.effect(effectId)
+}
+
+/** The effects' hits among a step's own, each effect's added up, by short name ("third hit +52"). */
+function bonusesOf(
+	hits: readonly TimedHit[],
+	{ names, effects }: { names: CombatNames; effects: EffectsById },
+): TimelineBonus[] {
+	const bonuses = new Map<string, TimelineBonus>()
+	for (const { source, damage } of hits) {
+		if (source.kind !== "effect" || !damage) continue
+		const { effectId } = source
+		const bonus = bonuses.get(effectId)
+		if (bonus) {
+			bonus.final += damage.final
+			continue
+		}
+		const icon = names.icon(effectId)
+		bonuses.set(effectId, {
+			effectId,
+			label: effectOf(source, effects)?.effect.label ?? names.source(source),
+			...(icon && { icon }),
+			type: damage.type,
+			final: damage.final,
+		})
+	}
+	return [...bonuses.values()]
 }
 
 /** Each step's place among the steps that start at its moment (markers have none). */
@@ -353,31 +375,33 @@ function markLanes(
 
 /**
  * The combo as a vertical timeline (issue 402), from the rows' view model: each step at its start
- * with its windup and hits, each delayed hit at its landing, markers, and the effects and marks
- * running as lanes. Damage and health are those of the hits (`timedHits`), so they add up to the totals.
+ * with its windup and own hits, each separate instance at its landing (`placeHit`), markers, and the
+ * effects and marks running as lanes. Damage and health are those of the hits (`timedHits`), so they
+ * add up to the totals.
  */
 export function combatTimeline(
 	result: Pick<CombatResult, "steps" | "duration" | "activeUntil">,
 	{ target, names, effects: buildEffects }: CombatTimelineOptions,
 ): CombatTimeline {
-	const effects: EffectsById = new Map(
-		buildEffects.map((effect) => [effect.id, effect]),
-	)
-	const hits = timedHits(result, target)
+	const effects = effectsById(buildEffects)
+	const hits = timedHits(result, { target, effects })
 	const timings = stepTimings(result, hits)
 	const columns = startColumns(result.steps)
 	const events = allEvents(result.steps)
+	// The health once every hit of a moment landed: a step and a proc landing together show the same.
+	const healthAt = (time: number) =>
+		hits.findLast((hit) => sameMoment(hit.time, time))?.targetHealth ??
+		target.health
 
 	const entries = result.steps.flatMap((step, index): TimelineEntry[] => {
 		if (step.action.kind === "situation") {
 			return [{ kind: "marker", index, time: step.time }]
 		}
 		const column = columns[index] ?? 0
-		const own = hits.filter((hit) => hit.step === index)
-		const later = own.filter((hit) => isDelayed(hit, effects))
-		const onRow = own.filter((hit) => !later.includes(hit))
+		const onRow = hits.filter((hit) => hit.step === index && !hit.instance)
 		const struck = onRow.filter((hit) => !hit.tick)
-		const firstLater = later[0]
+		const procs = stepProcs(hits, index)
+		const [firstProc] = procs
 		const [first] = struck
 		const last = struck.at(-1)
 		// Its ticks may land long after it (Blaze on E), so the health is the one after its last hit.
@@ -390,44 +414,37 @@ export function combatTimeline(
 			dots: dotsOf(struck),
 			...(first && last && { lands: { first: first.time, last: last.time } }),
 			...damageOf(onRow, names),
-			bonuses: struck.flatMap(({ source, damage }) =>
-				source.kind === "effect" && damage
-					? [
-							{
-								label: bonusLabel(source, { names, effects }),
-								type: damage.type,
-								final: damage.final,
-							},
-						]
-					: [],
-			),
-			...(firstLater && {
-				delayed: {
-					at: firstLater.time,
-					verb: delayVerb(firstLater.source, effects),
+			bonuses: bonusesOf(struck, { names, effects }),
+			...(firstProc && {
+				firstProc: {
+					at: firstProc.time,
+					verb: procVerb(firstProc.effectId, effects),
 				},
 			}),
 			late: timings[index]?.late ?? false,
-			...(healthAfter && { targetHealth: healthAfter.targetHealth }),
+			...(healthAfter && { targetHealth: healthAt(healthAfter.time) }),
 			...(step.refused && { refused: step.refused }),
 			...(step.action.kind === "wait" && { wait: step.action.seconds }),
 		}
-		const moments = dotsOf(later).map(({ time }) => {
-			const landed = later.filter((hit) => sameMoment(hit.time, time))
-			const [hit] = landed
-			return {
-				kind: "delayed" as const,
-				index,
-				startsAt: step.time,
-				column,
-				time,
-				name: hit ? names.source(hit.source) : "",
-				verb: hit ? delayVerb(hit.source, effects) : "lands",
-				...damageOf(landed, names),
-				targetHealth: landed.at(-1)?.targetHealth ?? target.health,
-			}
-		})
-		return [card, ...moments]
+		const procCards = procs.map(
+			({ effectId, time, hits: landed }): TimelineProc => {
+				const icon = names.icon(effectId)
+				return {
+					kind: "proc",
+					index,
+					startsAt: step.time,
+					column,
+					time,
+					effectId,
+					name: shortName(effectId, { names, effects }),
+					...(icon && { icon }),
+					verb: procVerb(effectId, effects),
+					...damageOf(landed, names),
+					targetHealth: healthAt(time),
+				}
+			},
+		)
+		return [card, ...procCards]
 	})
 
 	const at = (entry: TimelineEntry) =>
@@ -436,7 +453,7 @@ export function combatTimeline(
 		entries: entries.toSorted(
 			(a, b) =>
 				at(a) - at(b) ||
-				Number(a.kind === "delayed") - Number(b.kind === "delayed") ||
+				Number(a.kind === "proc") - Number(b.kind === "proc") ||
 				a.index - b.index,
 		),
 		columns: Math.max(1, ...columns.map((column) => column + 1)),

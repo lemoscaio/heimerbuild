@@ -10,11 +10,11 @@ import {
 import type { CombatRow } from "../lib/combat-rows"
 import { damageParts } from "../lib/combat-rows"
 import { FROM_MARKER, type StepView } from "../lib/combat-view"
+import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatDamageOverTimeLine } from "./combat-damage-over-time-line"
 import { CombatHitLine } from "./combat-hit-line"
 import { CombatRunningEffects } from "./combat-running-effects"
 import { CombatTargetResists } from "./combat-target-resists"
-import { damageTypeText } from "./damage-type-styles"
 
 /**
  * The rows' columns, shared with the header: in a narrow panel the start sits under the landing, the
@@ -135,7 +135,8 @@ type CombatStepRowProps = {
 
 /**
  * A step of the expanded combo as one row: when it lands, the step and its inputs, when it starts,
- * its hits and effects, its damage with its parts, the running total and the target's health.
+ * its own hits and effects (its procs are rows of their own), its damage with its parts, the
+ * running total and the target's health.
  */
 export function CombatStepRow({
 	title,
@@ -192,22 +193,16 @@ export function CombatStepRow({
 			</div>
 			{view && !refused && <RowHits view={view} outcomes={outcomes} />}
 			{view && view.total.final > 0 && (
-				<p className="flex flex-col items-end text-right [grid-area:damage]">
+				<div className="flex flex-col items-end [grid-area:damage]">
 					<CellLabel>Damage</CellLabel>
-					<span
-						className={cn(
-							"font-bold font-display text-base tabular-nums",
-							view.mainType && damageTypeText(view.mainType),
+					<CombatDamageAmount final={view.total.final} parts={view.byType}>
+						{!!parts.length && (
+							<span className="text-[0.625rem] text-subtle tabular-nums">
+								({parts.map(formatDamage).join(" + ")})
+							</span>
 						)}
-					>
-						{formatDamage(view.total.final)}
-					</span>
-					{!!parts.length && (
-						<span className="text-[0.625rem] text-subtle tabular-nums">
-							({parts.map(formatDamage).join(" + ")})
-						</span>
-					)}
-				</p>
+					</CombatDamageAmount>
+				</div>
 			)}
 			{timing && !refused && (
 				<>

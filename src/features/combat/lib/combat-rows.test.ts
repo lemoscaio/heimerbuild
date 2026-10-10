@@ -8,8 +8,16 @@ import type {
 } from "@/lib/combat/combat"
 import { simulateCombat } from "@/lib/combat/simulate-combat"
 import { combatEffects } from "@/lib/effects/available-effects"
-import { combatRows, damageParts, stepTimings, timedHits } from "./combat-rows"
+import {
+	type CombatRow,
+	combatRows,
+	damageParts,
+	procViewOf,
+	stepTimings,
+	timedHits,
+} from "./combat-rows"
 import { combatNames, stepView } from "./combat-view"
+import { effectsById } from "./hit-placement"
 
 // Real current-patch data (public/data), as the Combo tab runs it.
 const DATA = new URL("../../../../public/data/", import.meta.url)
@@ -33,6 +41,16 @@ const DUMMY: CombatTarget = {
 const JAX = await champion("Jax")
 // Level 9 with E Q W W W R W Q W.
 const RANKS = { Q: 2, W: 5, E: 1, R: 1 }
+const BUILD_EFFECTS = combatEffects({
+	patch: PATCH,
+	champion: JAX,
+	ranks: RANKS,
+	spells: [],
+	runes: [],
+	items: [],
+})
+const EFFECTS = effectsById(BUILD_EFFECTS)
+const OPTIONS = { target: DUMMY, effects: EFFECTS }
 
 function simulate(actions: readonly CombatItem[]): CombatResult {
 	return simulateCombat({
@@ -44,14 +62,7 @@ function simulate(actions: readonly CombatItem[]): CombatResult {
 			shards: [],
 			ranks: RANKS,
 		},
-		effects: combatEffects({
-			patch: PATCH,
-			champion: JAX,
-			ranks: RANKS,
-			spells: [],
-			runes: [],
-			items: [],
-		}),
+		effects: BUILD_EFFECTS,
 		summoners: [],
 		target: DUMMY,
 		actions,
@@ -73,14 +84,14 @@ const COMBO = simulate([
 ])
 
 function counterStrike(result: CombatResult) {
-	return timedHits(result, DUMMY).filter(
+	return timedHits(result, OPTIONS).filter(
 		({ source }) => source.kind === "effect" && source.effectId === "jax-e",
 	)
 }
 
 describe("timedHits", () => {
 	test("every hit in time order, the target's health going down to what the totals leave", () => {
-		const hits = timedHits(COMBO, DUMMY)
+		const hits = timedHits(COMBO, OPTIONS)
 		const times = hits.map(({ time }) => time)
 
 		expect(times).toEqual(times.toSorted((a, b) => a - b))
@@ -90,31 +101,28 @@ describe("timedHits", () => {
 		)
 	})
 
-	test("Counter Strike's strike belongs to E's step, at 1 s", () => {
+	test("Counter Strike's strike belongs to E's step, at 1 s, as a separate instance", () => {
 		const strikes = counterStrike(COMBO)
 
-		expect(strikes.map(({ step, time }) => ({ step, time }))).toEqual([
-			{ step: 0, time: 1 },
-			{ step: 0, time: 1 },
+		expect(
+			strikes.map(({ step, time, instance }) => ({ step, time, instance })),
+		).toEqual([
+			{ step: 0, time: 1, instance: "jax-e" },
+			{ step: 0, time: 1, instance: "jax-e" },
 		])
 	})
 })
 
 describe("stepTimings", () => {
-	test("E starts at 0 and lands at 1 s, after the next steps started", () => {
-		const [e, q] = stepTimings(COMBO, timedHits(COMBO, DUMMY))
+	test("E starts at 0 and lands nothing of its own: its strike is a separate instance", () => {
+		const [e, q] = stepTimings(COMBO, timedHits(COMBO, OPTIONS))
 
-		expect(e).toEqual({
-			index: 0,
-			startsAt: 0,
-			lands: { first: 1, last: 1 },
-			late: true,
-		})
+		expect(e).toEqual({ index: 0, startsAt: 0, late: false })
 		expect(q?.late).toBe(false)
 	})
 
 	test("an attack lands at the end of its windup", () => {
-		const timings = stepTimings(COMBO, timedHits(COMBO, DUMMY))
+		const timings = stepTimings(COMBO, timedHits(COMBO, OPTIONS))
 		const attack = timings[3]
 
 		expect(attack?.lands?.first).toBeGreaterThan(attack?.startsAt ?? 0)
@@ -123,58 +131,69 @@ describe("stepTimings", () => {
 
 	test("a step that deals nothing has no landing", () => {
 		const result = simulate([{ kind: "wait", seconds: 1 }, ATTACK])
-		const [wait] = stepTimings(result, timedHits(result, DUMMY))
+		const [wait] = stepTimings(result, timedHits(result, OPTIONS))
 
 		expect(wait?.lands).toBeUndefined()
 		expect(wait?.late).toBe(false)
 	})
 })
 
+function stepRows(rows: ReturnType<typeof combatRows>) {
+	return rows.filter((row): row is CombatRow => row.kind === "step")
+}
+
 describe("combatRows", () => {
-	test("in hit order: E's row comes once its strike lands, after the steps that hit before it", () => {
-		const rows = combatRows(COMBO, { target: DUMMY, order: "hit" })
+	test("in hit order: E, with nothing of its own, sits at its start; the others by their first landing", () => {
+		const rows = stepRows(combatRows(COMBO, { ...OPTIONS, order: "hit" }))
 		const firsts = rows.map((row) => row.lands?.first ?? row.startsAt)
 
-		expect(rows.map(({ index }) => index)).toEqual([1, 2, 0, 3, 4, 5])
+		expect(rows.map(({ index }) => index)).toEqual([0, 1, 2, 3, 4, 5])
 		expect(firsts).toEqual(firsts.toSorted((a, b) => a - b))
 	})
 
-	test("E's row has its strike's damage, which the row running when it landed leaves out", () => {
-		const rows = combatRows(COMBO, { target: DUMMY, order: "step" })
+	test("E's strike is a row of its own at 1 s, after the rows that happen by then, late", () => {
 		const strike = counterStrike(COMBO).reduce(
 			(sum, { damage }) => sum + (damage?.final ?? 0),
 			0,
 		)
-		const [eRow] = rows
-		// The step running at 1 s holds the strike among its events, which its card shows.
-		const holder = COMBO.steps.findIndex(({ events }) =>
-			events.some((event) => event.kind === "hit" && event.delayed),
-		)
+		for (const order of ["hit", "step"] as const) {
+			const rows = combatRows(COMBO, { ...OPTIONS, order })
+			const at = rows.findIndex(({ kind }) => kind === "proc")
+			const time = (row: (typeof rows)[number] | undefined) =>
+				row?.kind === "step"
+					? order === "hit"
+						? (row.lands?.first ?? row.startsAt)
+						: row.startsAt
+					: undefined
 
-		expect(holder).toBeGreaterThan(0)
-		expect(eRow?.damage).toBeCloseTo(strike)
-		expect(eRow?.step.events).toContainEqual(
-			expect.objectContaining({ delayed: { owner: 0 } }),
-		)
-		expect(
-			rows
-				.slice(1)
-				.flatMap(({ step }) => step.events)
-				.filter((event) => event.kind === "hit" && event.delayed),
-		).toEqual([])
+			expect(rows.filter(({ kind }) => kind === "proc")).toEqual([
+				expect.objectContaining({
+					index: 0,
+					effectId: "jax-e",
+					time: 1,
+					late: true,
+					damage: expect.closeTo(strike),
+				}),
+			])
+			expect(time(rows[at - 1])).toBeLessThanOrEqual(1)
+			expect(time(rows[at + 1]) ?? Number.POSITIVE_INFINITY).toBeGreaterThan(1)
+			expect(stepRows(rows)[0]?.damage).toBe(0)
+		}
 	})
 
 	test("the running total goes down the rows as shown and ends at the combo's damage", () => {
 		for (const order of ["hit", "step"] as const) {
-			const rows = combatRows(COMBO, { target: DUMMY, order })
+			const rows = combatRows(COMBO, { ...OPTIONS, order })
 			let dealt = 0
 			for (const row of rows) {
 				dealt += row.damage
 				expect(row.dealt).toBeCloseTo(dealt)
 				expect(row.targetHealth).toBeCloseTo(DUMMY.health - dealt)
-				expect(row.step.targetHealth).toBe(row.targetHealth)
+				if (row.kind === "step") {
+					expect(row.step.targetHealth).toBe(row.targetHealth)
+				}
 			}
-			expect(rows.at(-1)?.dealt).toBeCloseTo(COMBO.total.final)
+			expect(dealt).toBeCloseTo(COMBO.total.final)
 		}
 	})
 
@@ -184,7 +203,7 @@ describe("combatRows", () => {
 			{ kind: "situation", effectId: "jax-passive" },
 			ATTACK,
 		])
-		const rows = combatRows(result, { target: DUMMY, order: "hit" })
+		const rows = stepRows(combatRows(result, { ...OPTIONS, order: "hit" }))
 
 		expect(rows.map(({ index }) => index)).toEqual([0, 1, 2])
 		expect(rows[1]?.damage).toBe(0)
@@ -195,7 +214,7 @@ describe("combatRows", () => {
 describe("damageParts", () => {
 	const names = combatNames({ passiveName: "", spells: [], effects: [] })
 	const viewOf = (step: CombatStep | undefined) =>
-		stepView(step as CombatStep, { names, target: DUMMY })
+		stepView(step as CombatStep, { names, ...OPTIONS })
 
 	test("Empower: the attack's damage and its bonus", () => {
 		const [, , empower] = COMBO.steps
@@ -209,8 +228,26 @@ describe("damageParts", () => {
 	})
 
 	test("one hit has no parts: the strike landing then is E's", () => {
-		const rows = combatRows(COMBO, { target: DUMMY, order: "step" })
+		const rows = stepRows(combatRows(COMBO, { ...OPTIONS, order: "step" }))
 
 		expect(damageParts(viewOf(rows[3]?.step))).toEqual([])
+	})
+})
+
+describe("procViewOf", () => {
+	test("finds the proc row's view among its step's procs", () => {
+		const rows = combatRows(COMBO, { ...OPTIONS, order: "step" })
+		const [eRow] = stepRows(rows)
+		const strike = rows.find((row) => row.kind === "proc")
+		if (!eRow || strike?.kind !== "proc") throw new Error("E and its strike")
+		const names = combatNames({
+			passiveName: "",
+			spells: [],
+			effects: BUILD_EFFECTS,
+		})
+		const view = stepView(eRow.step, { names, ...OPTIONS })
+
+		expect(procViewOf(view, strike)).toBe(view.procs[0])
+		expect(view.procs[0]?.total.final).toBeCloseTo(strike.damage)
 	})
 })

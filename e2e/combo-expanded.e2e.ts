@@ -29,7 +29,7 @@ function stepNames(page: Page) {
 	)
 }
 
-test("the expanded combo lists the steps by hit time, Counter Strike on its own row, with the tab's totals", async ({
+test("the expanded combo lists the steps by hit time, Counter Strike's strike as a row of its own, with the tab's totals", async ({
 	page,
 }) => {
 	await page.goto(JAX)
@@ -45,11 +45,11 @@ test("the expanded combo lists the steps by hit time, Counter Strike on its own 
 	await expect(comboTotal(page, "Damage")).toHaveText(damage ?? "")
 	await expect(comboTotal(page, "Time")).toHaveText(time ?? "")
 
-	// Counter Strike starts first and lands 1 s later, after Leap Strike and Empower.
+	// Counter Strike deals nothing at its cast: its row sits at its start, its strike a row at 1 s (issue 429).
 	expect(await stepNames(page)).toEqual([
+		"1. E · Counter Strike",
 		"2. Q · Leap Strike",
 		"3. W · Empower",
-		"1. E · Counter Strike",
 		"4. Attack",
 		"5. Attack",
 		"6. Attack",
@@ -62,11 +62,13 @@ test("the expanded combo lists the steps by hit time, Counter Strike on its own 
 				name: "Remove step 1. E · Counter Strike",
 			}),
 		})
-	await expect(counterStrike).toContainText("Lands 1.00 s")
 	await expect(counterStrike).toContainText(/Starts\D*0\.00 s/)
-	await expect(
-		counterStrike.getByRole("list", { name: "Hits" }).getByRole("listitem"),
-	).toHaveCount(1)
+	const strike = page
+		.getByRole("region", { name: "Steps" })
+		.getByRole("listitem")
+		.filter({ hasText: "from 1. E · Counter Strike" })
+	await expect(strike).toHaveCount(1)
+	await expect(strike).toContainText("Lands 1.00 s")
 
 	await page
 		.getByRole("group", { name: "Order by" })

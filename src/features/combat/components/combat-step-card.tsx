@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
 import { formatDamage, formatSeconds } from "../lib/combat-format"
 import { FROM_MARKER, type StepView } from "../lib/combat-view"
+import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatDamageOverTimeLine } from "./combat-damage-over-time-line"
 import { CombatHitLine } from "./combat-hit-line"
 import { CombatRunningEffects } from "./combat-running-effects"
 import { CombatTargetResists } from "./combat-target-resists"
-import { damageTypeText } from "./damage-type-styles"
 
 type CombatStepCardProps = {
 	/** 1-based, among the actions (markers aren't counted). */
@@ -44,8 +44,8 @@ function HealthBar({ share }: { share: number }) {
 }
 
 /**
- * A step of the combo: time, action, marks, its hits and damage over time, effects running, the
- * target's reduced resistances and its health.
+ * A step of the combo: time, action, marks, its own hits and damage over time (its procs are rows of
+ * their own, issue 429), effects running, the target's reduced resistances and its health.
  */
 export function CombatStepCard({
 	number,
@@ -122,23 +122,15 @@ export function CombatStepCard({
 				{view && !refused && <CombatTargetResists resists={view.resists} />}
 				{view && !refused && <HealthBar share={view.healthShare} />}
 			</div>
-			<p className="flex flex-col items-end text-right">
+			<div className="flex flex-col items-end">
 				{view && view.total.final > 0 && (
-					<>
-						<span
-							className={cn(
-								"font-bold font-display text-base tabular-nums",
-								view.mainType && damageTypeText(view.mainType),
-							)}
-						>
-							{formatDamage(view.total.final)}
-						</span>
+					<CombatDamageAmount final={view.total.final} parts={view.byType}>
 						<span className="text-[0.625rem] text-subtle tabular-nums">
 							raw {formatDamage(view.total.raw)}
 						</span>
-					</>
+					</CombatDamageAmount>
 				)}
-			</p>
+			</div>
 			<Button
 				variant="ghost"
 				size="icon-sm"
