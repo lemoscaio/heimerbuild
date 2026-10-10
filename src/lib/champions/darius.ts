@@ -79,10 +79,15 @@ export const DARIUS_HIT_RULES = [
 		sourceUrl: `${WIKI}Darius/Decimate`,
 	},
 	{
-		// `EmpoweredAttackDamage` is the whole attack (wiki: 40 to 60% AD bonus).
+		// `EmpoweredAttackDamage` is the whole attack (wiki: 40 to 60% AD bonus). Wiki: "deals basic
+		// damage but will also trigger spell effects [...] This includes the basic attack itself."
 		championKey: "Darius",
 		slot: "W",
-		empowersAttack: { includesAttack: true, resetsAttack: true },
+		empowersAttack: {
+			includesAttack: true,
+			resetsAttack: true,
+			spellAttack: true,
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Darius/Crippling_Strike`,
 	},

@@ -4,6 +4,7 @@ import { WIKI } from "./rule-helpers"
 
 export const YORICK_HIT_RULES = [
 	{
+		// The wiki tags it "spell", like Phase Dive's bonus: a spell instance of its own.
 		championKey: "Yorick",
 		slot: "Q",
 		empowersAttack: { resetsAttack: true },

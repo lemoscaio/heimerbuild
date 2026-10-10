@@ -79,6 +79,7 @@ export const JAX_EFFECTS = [
 
 export const JAX_HIT_RULES = [
 	{
+		// Wiki: "Empower is applied in a separate damage instance from Jax's basic attacks."
 		championKey: "Jax",
 		slot: "W",
 		empowersAttack: { resetsAttack: true },

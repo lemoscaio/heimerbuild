@@ -41,7 +41,7 @@ export const RENGAR_EFFECTS = [
 	},
 	{
 		// The leap is his next attack: "deals 100% AD additional physical damage, then inflicts armor
-		// reduction for 4 seconds" (wiki); 4 s has no synced line.
+		// reduction for 4 seconds" (wiki), "also tagged as proc damage"; 4 s has no synced line.
 		id: "rengar-r-armor-reduction",
 		source: { kind: "ability", championKey: "Rengar", slot: "R" },
 		trigger: { kind: "after-use" },
@@ -57,7 +57,7 @@ export const RENGAR_EFFECTS = [
 		},
 		duration: 4,
 		grants: [
-			{ kind: "abilityDamage", ability: "R", name: "BonusDamage" },
+			{ kind: "abilityDamage", ability: "R", name: "BonusDamage", proc: true },
 			{
 				kind: "resistReduction",
 				resist: "armor",
@@ -72,10 +72,15 @@ export const RENGAR_EFFECTS = [
 
 export const RENGAR_HIT_RULES = [
 	{
-		// `QTotalDamage` is the attack's damage plus the bonus (wiki: 20 to 160 + 5% AD).
+		// `QTotalDamage` is the attack's damage plus the bonus (wiki: 20 to 160 + 5% AD), which "is
+		// tagged as proc damage" (wiki notes, flagged as a bug).
 		championKey: "Rengar",
 		slot: "Q",
-		empowersAttack: { includesAttack: true, resetsAttack: true },
+		empowersAttack: {
+			includesAttack: true,
+			resetsAttack: true,
+			procBonus: true,
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Rengar/Savagery`,
 	},

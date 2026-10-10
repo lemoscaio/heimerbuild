@@ -101,10 +101,15 @@ export const NASUS_EFFECTS = [
 
 export const NASUS_HIT_RULES = [
 	{
-		// `TotalDamage` is the attack plus the bonus and its stacks (`nasus-q-stacks`).
+		// `TotalDamage` is the attack plus the bonus and its stacks (`nasus-q-stacks`). Wiki: "The basic
+		// attack is also [...] treated as both basic damage and spell damage."
 		championKey: "Nasus",
 		slot: "Q",
-		empowersAttack: { includesAttack: true, resetsAttack: true },
+		empowersAttack: {
+			includesAttack: true,
+			resetsAttack: true,
+			spellAttack: true,
+		},
 		since: "16.19",
 		sourceUrl: `${WIKI}Nasus/Siphoning_Strike`,
 	},

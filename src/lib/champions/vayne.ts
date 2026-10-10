@@ -72,10 +72,11 @@ export const VAYNE_EFFECTS = [
 
 export const VAYNE_HIT_RULES = [
 	{
-		// `ADRatioBonus` is the bonus only: 75 to 115% AD (+50% AP).
+		// `ADRatioBonus` is the bonus only: 75 to 115% AD (+50% AP). Wiki: "The basic attack portion
+		// [...] is tagged as basic damage and spell damage."
 		championKey: "Vayne",
 		slot: "Q",
-		empowersAttack: { resetsAttack: true },
+		empowersAttack: { resetsAttack: true, spellAttack: true },
 		since: "16.19",
 		sourceUrl: `${WIKI}Vayne/Tumble`,
 	},

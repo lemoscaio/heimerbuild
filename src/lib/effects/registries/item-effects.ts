@@ -311,11 +311,11 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Muramana`,
 	},
 	{
-		// Wiki, checked 2026-10-09: Shock's "basic attacks on-hit against champions deal 1.2% of maximum
-		// mana as bonus physical damage". A cast that applies on-hit (Mystic Shot) gets the ability part.
+		// Wiki, checked 2026-10-10: "basic attacks on-hit [...] deal 1.2% of maximum mana"; an attack
+		// that is also spell damage "will apply Shock as an ability" (Crippling Strike, `spellAttack`).
 		id: "muramana-shock-attack",
 		source: { kind: "item", itemId: "3042" },
-		trigger: { kind: "on-hit", attacksOnly: true },
+		trigger: { kind: "on-hit", attacksOnly: true, notSpellAttack: true },
 		listed: false,
 		label: "Shock",
 		grants: [
@@ -330,14 +330,15 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		sourceUrl: `${WIKI}Muramana`,
 	},
 	{
-		// Wiki, checked 2026-10-09: ability damage deals "4% (melee) or 3% (ranged) of maximum mana",
-		// "once every 6.5 seconds from the same cast instance"; proc and indirect damage don't trigger it.
+		// Wiki, checked 2026-10-10: ability damage deals "4% (melee) or 3% (ranged) of maximum mana",
+		// "once every 6.5 seconds from the same cast instance", "unless the damage also counts as proc damage".
 		id: "muramana-shock-ability",
 		source: { kind: "item", itemId: "3042" },
 		trigger: {
 			kind: "on-action-damage",
 			abilitiesOnly: true,
 			castInstance: { lockout: 6.5 },
+			notProc: true,
 		},
 		listed: false,
 		onHitDamage: true,
