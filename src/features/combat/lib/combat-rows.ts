@@ -9,6 +9,7 @@ import type { ProcView, StepView } from "./combat-view"
 import {
 	type EffectsById,
 	groupProcs,
+	isShownHit,
 	type Proc,
 	placedSteps,
 	placeHit,
@@ -49,7 +50,7 @@ export function timedHits(
 	const hits = result.steps
 		.flatMap(({ events }, holder) =>
 			events.flatMap((event) =>
-				event.kind === "hit"
+				event.kind === "hit" && isShownHit(event)
 					? [{ event, place: placeHit(event, { holder, effects }) }]
 					: [],
 			),

@@ -35,6 +35,7 @@ export function ExpandedShopPage({
 					actions={
 						<ShopViewToggle view={build.view} onViewChange={build.setView} />
 					}
+					hiddenItemIds={build.unreachableItemIds}
 					selectedItemId={build.selectedItem?.id}
 					onItemSelect={build.selectItem}
 					onItemAdd={build.addItem}

@@ -4,6 +4,7 @@ import {
 	canonicalItemValues,
 	effectiveItems,
 	ITEM_UPGRADES,
+	unreachableUpgrades,
 	upgradeLabel,
 	upgradeLabels,
 } from "./item-upgrades"
@@ -20,6 +21,9 @@ const itemsById = Object.fromEntries(items.map((item) => [item.id, item]))
 const names = (list: readonly { name: string }[]) =>
 	list.map(({ name }) => name)
 const held = (...ids: string[]) => ids.map((id) => itemsById[id])
+// Ezreal's and Garen's resources in the data.
+const MANA_USER = { resource: "MANA" }
+const MANALESS = { resource: "NONE" }
 
 describe("ITEM_UPGRADES", () => {
 	test("each upgrade is synced with its base item, and every synced upgrade has its rule", () => {
@@ -40,21 +44,30 @@ describe("effectiveItems", () => {
 		const build = held("3004", "3089", "3003")
 
 		expect(
-			names(effectiveItems(build, { "manaflow-mana": 360 }, itemsById)),
+			names(
+				effectiveItems(build, { "manaflow-mana": 360 }, itemsById, MANA_USER),
+			),
 		).toEqual(["Muramana", "Rabadon's Deathcap", "Seraph's Embrace"])
 		expect(
-			names(effectiveItems(build, { "manaflow-mana": 359 }, itemsById)),
+			names(
+				effectiveItems(build, { "manaflow-mana": 359 }, itemsById, MANA_USER),
+			),
 		).toEqual(["Manamune", "Rabadon's Deathcap", "Archangel's Staff"])
-		expect(names(effectiveItems(build, undefined, itemsById))).toEqual([
-			"Manamune",
-			"Rabadon's Deathcap",
-			"Archangel's Staff",
-		])
+		expect(
+			names(effectiveItems(build, undefined, itemsById, MANA_USER)),
+		).toEqual(["Manamune", "Rabadon's Deathcap", "Archangel's Staff"])
 	})
 
 	test("Tear of the Goddess stays Tear at 360", () => {
 		expect(
-			names(effectiveItems(held("3070"), { "manaflow-mana": 360 }, itemsById)),
+			names(
+				effectiveItems(
+					held("3070"),
+					{ "manaflow-mana": 360 },
+					itemsById,
+					MANA_USER,
+				),
+			),
 		).toEqual(["Tear of the Goddess"])
 	})
 
@@ -63,6 +76,7 @@ describe("effectiveItems", () => {
 			held("3004"),
 			{ "manaflow-mana": 360 },
 			itemsById,
+			MANA_USER,
 		)
 
 		expect(muramana?.groupLimits.map(({ group }) => group)).toEqual([
@@ -71,22 +85,32 @@ describe("effectiveItems", () => {
 		])
 	})
 
+	test("a champion without mana gathers no Manaflow: Manamune and Archangel's never upgrade", () => {
+		const build = held("3004", "3003")
+
+		expect(
+			names(
+				effectiveItems(build, { "manaflow-mana": 360 }, itemsById, MANALESS),
+			),
+		).toEqual(["Manamune", "Archangel's Staff"])
+	})
+
 	test("the items stay as given while the patch's items load", () => {
 		const build = held("3004")
 
-		expect(effectiveItems(build, { "manaflow-mana": 360 }, undefined)).toEqual(
-			build,
-		)
+		expect(
+			effectiveItems(build, { "manaflow-mana": 360 }, undefined, MANA_USER),
+		).toEqual(build)
 	})
 })
 
 describe("canonicalItemValues", () => {
 	test("an upgrade's id is its base item, with the count raised to 360", () => {
 		expect(
-			canonicalItemValues({
-				itemIds: ["3089", "3042"],
-				matchStacks: undefined,
-			}),
+			canonicalItemValues(
+				{ itemIds: ["3089", "3042"], matchStacks: undefined },
+				MANA_USER,
+			),
 		).toEqual({
 			itemIds: ["3089", "3004"],
 			matchStacks: { "manaflow-mana": 360 },
@@ -99,16 +123,37 @@ describe("canonicalItemValues", () => {
 			matchStacks: { "manaflow-mana": 120 },
 		}
 
-		expect(canonicalItemValues(values)).toBe(values)
+		expect(canonicalItemValues(values, MANA_USER)).toBe(values)
 		expect(
-			canonicalItemValues({
-				itemIds: ["3040"],
-				matchStacks: { "manaflow-mana": 120, "mejai-stacks": 10 },
-			}),
+			canonicalItemValues(
+				{
+					itemIds: ["3040"],
+					matchStacks: { "manaflow-mana": 120, "mejai-stacks": 10 },
+				},
+				MANA_USER,
+			),
 		).toEqual({
 			itemIds: ["3003"],
 			matchStacks: { "manaflow-mana": 360, "mejai-stacks": 10 },
 		})
+	})
+})
+
+describe("canonicalItemValues without mana", () => {
+	test("an upgrade's id on a champion without mana is its base item, with no count", () => {
+		expect(
+			canonicalItemValues(
+				{ itemIds: ["3042"], matchStacks: undefined },
+				MANALESS,
+			),
+		).toEqual({ itemIds: ["3004"], matchStacks: undefined })
+	})
+})
+
+describe("unreachableUpgrades", () => {
+	test("without mana, Muramana and Seraph's Embrace; with mana, none", () => {
+		expect([...unreachableUpgrades(MANALESS)]).toEqual(["3042", "3040"])
+		expect([...unreachableUpgrades(MANA_USER)]).toEqual([])
 	})
 })
 

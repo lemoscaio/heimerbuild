@@ -91,10 +91,10 @@ export function useChampionBuild({
 	const { data: summonerSpells } = useSummonerSpells(patch)
 	const { state } = source
 	// An upgrade's id (a link's `items=3042`) is its base item at the upgrade's count.
-	const itemValues = canonicalItemValues({
-		itemIds: state.itemIds,
-		matchStacks: state.matchStacks,
-	})
+	const itemValues = canonicalItemValues(
+		{ itemIds: state.itemIds, matchStacks: state.matchStacks },
+		champion,
+	)
 
 	// Skills read the level, and the champion state reads the ranks that unlock a form.
 	const skills = useSkills({
@@ -130,6 +130,7 @@ export function useChampionBuild({
 		items.list,
 		matchState.matchStacks,
 		itemsById,
+		champion,
 	)
 	const runePage = useRunePage({
 		runes,
@@ -230,10 +231,10 @@ export function useChampionBuild({
 	// Items → match stacks: a shop pick of an upgrade adds its base item and raises the count, which
 	// only the new items read, so the save keeps the values those items use.
 	function changeItems(itemIds: readonly string[]) {
-		const next = canonicalItemValues({
-			itemIds,
-			matchStacks: itemValues.matchStacks,
-		})
+		const next = canonicalItemValues(
+			{ itemIds, matchStacks: itemValues.matchStacks },
+			champion,
+		)
 		const raised = next.matchStacks !== itemValues.matchStacks
 		save(next, EDIT_HISTORY.items, raised ? effectsWith(next) : effects)
 	}
@@ -244,7 +245,7 @@ export function useChampionBuild({
 		const { items: held } = readBuildItems(next.itemIds, itemsById)
 		return availableEffects({
 			...effectsBuild,
-			items: effectiveItems(held, next.matchStacks, itemsById),
+			items: effectiveItems(held, next.matchStacks, itemsById, champion),
 		})
 	}
 

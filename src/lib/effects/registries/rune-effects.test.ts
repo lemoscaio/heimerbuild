@@ -37,7 +37,7 @@ function nimbusSpeedAfter(name: string) {
 	const spell = spells.find((entry) => entry.name === name)
 	const [effect] = availableEffects({
 		patch: PATCH,
-		champion: { key: "Teemo", abilities: { spells: [] } },
+		champion: { key: "Teemo", resource: "MANA", abilities: { spells: [] } },
 		ranks: { Q: 0, W: 0, E: 0, R: 0 },
 		spells: spell ? [spell] : [],
 		runes: [nimbusCloak],
@@ -140,7 +140,7 @@ function stormAt(
 ) {
 	const [storm] = availableEffects({
 		patch: PATCH,
-		champion: { key: "Teemo", abilities: { spells: [] } },
+		champion: { key: "Teemo", resource: "MANA", abilities: { spells: [] } },
 		ranks: { Q: 0, W: 0, E: 0, R: 0 },
 		spells: [],
 		runes: [rune],

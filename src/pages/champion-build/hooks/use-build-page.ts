@@ -8,7 +8,11 @@ import type {
 } from "@/features/build-calculator/lib/build-search"
 import type { AbilityDamageBuild } from "@/features/skills/lib/ability-damage"
 import { track } from "@/lib/analytics/analytics"
-import { effectiveItems, upgradeLabel } from "@/lib/item-upgrades"
+import {
+	effectiveItems,
+	unreachableUpgrades,
+	upgradeLabel,
+} from "@/lib/item-upgrades"
 import { selectedRunes } from "@/lib/rune-selection"
 import {
 	runeSummonerHints,
@@ -63,6 +67,7 @@ export function useBuildPage({
 			[...items.list, selectedItem],
 			build.matchState.matchStacks,
 			itemsById,
+			champion,
 		)
 	const selectedItemStats =
 		previewItems && build.whatIf({ items: previewItems })
@@ -203,6 +208,8 @@ export function useBuildPage({
 		setTab,
 		/** The shop item picked for a closer look, not in the build yet. */
 		selectedItem,
+		/** The upgrades the champion never reaches, which the shop leaves out (Muramana without mana). */
+		unreachableItemIds: unreachableUpgrades(champion),
 		/** What the selected item is beyond its price: an upgrade's base item and count. */
 		selectedItemNote: selectedItem && upgradeLabel(selectedItem.id, itemsById),
 		selectItem,

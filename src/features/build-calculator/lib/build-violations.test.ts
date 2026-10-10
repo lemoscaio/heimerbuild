@@ -191,6 +191,7 @@ describe("an upgrade as the build holds it (issue 436)", async () => {
 			[byId["3004"], byId["3003"]],
 			{ "manaflow-mana": 360 },
 			byId,
+			{ resource: "MANA" },
 		)
 
 		expect(findBuildViolations(held).map(({ message }) => message)).toEqual([

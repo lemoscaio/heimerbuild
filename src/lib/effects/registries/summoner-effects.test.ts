@@ -20,7 +20,7 @@ function spell(name: string): SummonerSpell {
 function effectOf(name: string): BuildEffect {
 	const [effect] = availableEffects({
 		patch: PATCH,
-		champion: { key: "Teemo", abilities: { spells: [] } },
+		champion: { key: "Teemo", resource: "MANA", abilities: { spells: [] } },
 		ranks: { Q: 0, W: 0, E: 0, R: 0 },
 		spells: [spell(name)],
 		runes: [],
@@ -78,7 +78,7 @@ describe("ignite", () => {
 	test("each of its 5 ticks, 1.056 s apart from the cast, deals a fifth of the total: 70 to 475 true damage (wiki)", () => {
 		const [ignite] = combatEffects({
 			patch: PATCH,
-			champion: { key: "Teemo", abilities: { spells: [] } },
+			champion: { key: "Teemo", resource: "MANA", abilities: { spells: [] } },
 			ranks: { Q: 0, W: 0, E: 0, R: 0 },
 			spells: [spell("Ignite")],
 			runes: [],

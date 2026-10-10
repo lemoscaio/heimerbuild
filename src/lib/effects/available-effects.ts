@@ -9,10 +9,13 @@ import { isInPatchRange } from "@schemas/patch-range"
 import type { Rune } from "@schemas/rune"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import { spellInForm } from "../form-abilities"
+import { usesMana } from "../stats/compute-stats"
 import type { AbilityRanks } from "../stats/rank-stats"
 import { boostSlots } from "./boosts"
 import { isListed } from "./defaults"
-import type { BuildEffect, Effect } from "./effect"
+import type { BuildEffect, Effect, Grant } from "./effect"
+import { scalesWithMana } from "./mana-scaling"
+import { gainsMatchStacks, grantSources } from "./match-stacks"
 import { ABILITY_EFFECTS } from "./registries/ability-effects"
 import { ITEM_EFFECTS } from "./registries/item-effects"
 import { RUNE_EFFECTS } from "./registries/rune-effects"
@@ -27,6 +30,8 @@ export type EffectsBuild = {
 	patch: string
 	champion: {
 		key: string
+		/** Its resource ("MANA", "ENERGY", "NONE"): without mana, what scales with mana does nothing. */
+		resource: Champion["resource"]
 		/** The champion's forms, which name the form an effect holds in. */
 		forms?: Champion["forms"]
 		/** The default form's abilities, and the ones another form swaps in, which its bound effects read. */
@@ -140,9 +145,31 @@ function bindTrigger(bound: BuildEffect, build: EffectsBuild): BuildEffect[] {
 	}))
 }
 
+/** Whether the grant does anything for the champion: no mana scaling or Manaflow without mana. */
+function grantApplies(grant: Grant, champion: EffectsBuild["champion"]) {
+	if (scalesWithMana(grant) && !usesMana(champion)) return false
+	return grantSources(grant).every((source) =>
+		gainsMatchStacks(source, champion),
+	)
+}
+
+/**
+ * The effect as the champion's resource holds it: without mana, the grants that scale with mana
+ * (Muramana's Awe and Shock) or read Manaflow (Tear's) are gone, and an effect left with none is too.
+ */
+function bindResource(bound: BuildEffect, build: EffectsBuild): BuildEffect[] {
+	const { grants } = bound.effect
+	const kept = grants.filter((grant) => grantApplies(grant, build.champion))
+	if (kept.length === grants.length) return [bound]
+	return kept.length
+		? [{ ...bound, effect: { ...bound.effect, grants: kept } }]
+		: []
+}
+
 /**
  * Every effect in force on the build's patch whose source is in it (a ranked ability, the
- * champion's passive, a chosen spell, a rune of the page, a chosen item): what the combat simulator reads.
+ * champion's passive, a chosen spell, a rune of the page, a chosen item), as its resource holds it:
+ * what the combat simulator reads.
  */
 export function combatEffects(
 	build: EffectsBuild,
@@ -152,6 +179,7 @@ export function combatEffects(
 		.flat()
 		.filter((effect) => isInPatchRange(build.patch, effect))
 		.flatMap((effect) => bindSource(effect, build))
+		.flatMap((bound) => bindResource(bound, build))
 		.flatMap((bound) => bindTrigger(bound, build))
 }
 

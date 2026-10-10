@@ -196,6 +196,54 @@ describe("stepView", () => {
 		])
 	})
 
+	test("leaves out an on-hit or a proc that dealt nothing, keeping the step's own hits (issue 441)", () => {
+		const burst = bound(
+			{
+				id: "press-the-attack",
+				source: { kind: "rune", runeKey: "PressTheAttack" },
+				trigger: { kind: "on-attack" },
+				grants: [{ kind: "damage", damageType: "adaptive", ratios: {} }],
+			},
+			"Press the Attack",
+		)
+		const nothing = { type: "physical", raw: 0, final: 0 } as const
+		const zero = stepView(
+			{
+				...STEP,
+				events: [
+					{
+						kind: "hit",
+						time: 0,
+						source: { kind: "attack" },
+						damage: nothing,
+					},
+					{
+						kind: "hit",
+						time: 0,
+						source: { kind: "effect", effectId: "trinity-force-spellblade" },
+						damage: nothing,
+					},
+					{
+						kind: "hit",
+						time: 0,
+						source: { kind: "effect", effectId: "press-the-attack" },
+						damage: nothing,
+					},
+				],
+			},
+			{
+				names: NAMES,
+				target: TARGET,
+				effects: new Map([[burst.id, burst]]),
+			},
+		)
+
+		expect(zero.hits).toEqual([
+			{ name: "Attack", type: "physical", raw: 0, final: 0, count: 1 },
+		])
+		expect(zero.procs).toEqual([])
+	})
+
 	test("names the marks it moved, the effects running after it and the target's health left", () => {
 		expect(view.marks).toEqual([
 			{ mark: "Harrier", change: "consumed", fromMarker: false },

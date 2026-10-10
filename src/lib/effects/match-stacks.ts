@@ -1,6 +1,8 @@
+import type { Champion } from "@schemas/champion"
 import type {
 	Amount,
 	Effect,
+	Grant,
 	MatchStackSource,
 	MatchStacksAmount,
 	StacksThreshold,
@@ -84,12 +86,28 @@ function amountSources(amount: Amount): MatchStackSource[] {
 	return amount.by === "stat" ? amountSources(amount.ratio) : []
 }
 
-/** The match stack sources the effect reads, once each (Phenomenal Evil for Veigar's passive). */
-export function matchStackSources({ grants }: Effect): MatchStackSource[] {
-	const sources = grants.flatMap((grant) => [
+/** The match stack sources a grant reads: its amount's, and the count it holds from. */
+export function grantSources(grant: Grant): MatchStackSource[] {
+	return [
 		...("amount" in grant ? amountSources(grant.amount) : []),
 		...(grant.from ? [grant.from.source] : []),
-	])
+	]
+}
+
+/**
+ * Whether the champion gathers the source's stacks, by its resource in the data: the one place
+ * the effects, the upgrades and the shop ask (wiki: "Manaless champions cannot trigger Manaflow").
+ */
+export function gainsMatchStacks(
+	source: Pick<MatchStackSource, "resource">,
+	champion: Pick<Champion, "resource">,
+): boolean {
+	return source.resource === undefined || source.resource === champion.resource
+}
+
+/** The match stack sources the effect reads, once each (Phenomenal Evil for Veigar's passive). */
+export function matchStackSources({ grants }: Effect): MatchStackSource[] {
+	const sources = grants.flatMap(grantSources)
 	return sources.filter(
 		(source, index) =>
 			sources.findIndex(({ id }) => id === source.id) === index,

@@ -1,3 +1,4 @@
+import { MANA_RESOURCE } from "../../stats/compute-stats"
 import type {
 	Effect,
 	LevelStep,
@@ -41,6 +42,8 @@ export const MANAFLOW_MANA = {
 	name: "Manaflow bonus mana",
 	sliderMax: 360,
 	capped: true,
+	// Wiki, Tear of the Goddess notes: "Manaless champions cannot trigger Manaflow".
+	resource: MANA_RESOURCE,
 } as const satisfies MatchStackSource
 
 /** Manamune and Archangel's Staff transform at 360 Manaflow; their upgrades' Awe holds from there. */

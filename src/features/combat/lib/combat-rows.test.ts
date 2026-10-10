@@ -113,6 +113,30 @@ describe("timedHits", () => {
 	})
 })
 
+describe("a hit of nothing (issue 441)", () => {
+	test("an effect's hit that dealt nothing is no hit and no proc row", () => {
+		const [first, ...rest] = COMBO.steps
+		if (!first) throw new Error("the combo has steps")
+		const zero = {
+			kind: "hit",
+			time: 0,
+			source: { kind: "effect", effectId: "jax-e" },
+			damage: { type: "physical", raw: 0, final: 0 },
+		} as const
+		const result = {
+			steps: [{ ...first, events: [...first.events, zero] }, ...rest],
+		}
+
+		expect(timedHits(result, OPTIONS)).toEqual(timedHits(COMBO, OPTIONS))
+		const rows = (of: Pick<CombatResult, "steps">) =>
+			combatRows(of, { ...OPTIONS, order: "hit" }).map(({ kind, damage }) => ({
+				kind,
+				damage,
+			}))
+		expect(rows(result)).toEqual(rows(COMBO))
+	})
+})
+
 describe("stepTimings", () => {
 	test("E starts at 0 and lands nothing of its own: its strike is a separate instance", () => {
 		const [e, q] = stepTimings(COMBO, timedHits(COMBO, OPTIONS))

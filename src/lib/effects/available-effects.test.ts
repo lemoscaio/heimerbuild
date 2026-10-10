@@ -44,6 +44,7 @@ const build: EffectsBuild = {
 	patch: PATCH,
 	champion: {
 		key: "Teemo",
+		resource: "MANA",
 		abilities: {
 			spells: [{ slot: "W", name: "Move Quick", icon: "teemo-w.png" }],
 		},
@@ -261,6 +262,7 @@ describe("combatEffects", () => {
 		...build,
 		champion: {
 			key: "Quinn",
+			resource: "MANA",
 			abilities: {
 				passive: { name: "Harrier", icon: "harrier.png" },
 				spells: [{ slot: "W", name: "Heightened Senses", icon: "w.png" }],

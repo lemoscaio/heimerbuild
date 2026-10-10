@@ -394,6 +394,7 @@ describe("Manaflow upgrades", async () => {
 			ids.map((id) => itemsById[id]),
 			matchStacks,
 			itemsById,
+			champion,
 		)
 		const available = availableEffects({
 			patch: PATCH,
@@ -460,6 +461,50 @@ describe("Manaflow upgrades", async () => {
 
 		expect(stats.abilityPower.total).toBeCloseTo((70 + 130 + 20) * 1.3)
 		expect(below.abilityPower.total).toBeCloseTo((70 + 130 + 9.59) * 1.3)
+	})
+
+	describe("on a champion without mana (issue 441)", async () => {
+		const garen = await championOf("Garen")
+		const tear = itemsById["3070"]
+
+		test("Manaflow doesn't exist: at 360 Manamune and Archangel's stay themselves, with no effect", () => {
+			const { held, available, stats } = buildAt(garen, ["3004", "3003"], 360)
+			const plain = buildAt(garen, ["3004", "3003"], 0).stats
+
+			expect(held.map(({ name }) => name)).toEqual([
+				"Manamune",
+				"Archangel's Staff",
+			])
+			expect(available).toEqual([])
+			expect(stats).toEqual(plain)
+		})
+
+		test("Tear has no Manaflow row, and the count reads as unused", () => {
+			const available = availableEffects({
+				patch: PATCH,
+				champion: garen,
+				ranks,
+				spells: [],
+				runes: [],
+				items: [tear],
+			})
+
+			expect(available).toEqual([])
+			expect(
+				usedMatchStacks(
+					{ "manaflow-mana": 200 },
+					available.map(({ effect }) => effect),
+				),
+			).toBeUndefined()
+		})
+
+		test("a mana user keeps Manaflow and Awe", () => {
+			const { available } = buildAt(ezreal, ["3004"], 200)
+
+			expect(
+				available.map(({ id, effect }) => [id, effect.grants.length]),
+			).toEqual([["manamune-awe", 2]])
+		})
 	})
 
 	test("the upgrade's Awe still reads the count, so the build keeps it and its input", () => {
