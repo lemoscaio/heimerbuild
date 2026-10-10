@@ -9,6 +9,7 @@ import { isOnByDefault, isSwitchable } from "../effects/defaults"
 import type {
 	Amount,
 	BuildEffect,
+	CastInstance,
 	DamageOverTimeGrant,
 	DamageRatios,
 	EffectDamage,
@@ -197,8 +198,8 @@ type Simulation = {
 	damageTriggeredAt: Map<string, number>
 	/** An action's damage is triggering its `on-action-damage` effects now, so their own damage doesn't loop. */
 	onActionDamage: boolean
-	/** The `on-action-damage` effects each action already triggered, as "effect id@step". */
-	actionDamageTriggered: Set<string>
+	/** When each action last triggered its `on-action-damage` effects, by "effect id@step" (and cast instance). */
+	actionDamageTriggered: Map<string, number>
 	/** While a hit's on-hit effects run: the target's health as the hit began, which they read (wiki BotRK). */
 	hitHealth?: number
 	/** While a hit's on-hit effects run: the effects at their most stacks before any triggered (`requiresMaxStacks`). */
@@ -231,6 +232,9 @@ type AttackLock = BlocksAttacks & {
 
 /** A hit landing this close after a time in an area ends still counts: the one exactly then does. */
 const AREA_EPSILON = 1e-9
+
+/** A lockout ending this close before a hit is over: float time sums never land exactly on it. */
+const TIME_EPSILON = 1e-9
 
 type RecastWindow = { left: number; until: number; nextAt: number }
 
@@ -418,7 +422,7 @@ function createSimulation(
 		onDamage: false,
 		damageTriggeredAt: new Map(),
 		onActionDamage: false,
-		actionDamageTriggered: new Set(),
+		actionDamageTriggered: new Map(),
 		delayed: [],
 		waiting: [],
 		laterHits: [],
@@ -622,7 +626,8 @@ function damageAbility(
  * An action's damage landing triggers the `on-action-damage` effects, once per action: its later
  * hits, ticks and delayed hits count as it (one stack per cast instance, wiki Electrocute), unless
  * its hit rule's `actionPerHit` names the effect. Its first damage says whether a basic attack
- * dealt it (`stacks.gain`). `abilitiesOnly`: a Q, W, E or R's damage, not the passive's.
+ * dealt it (`stacks.gain`). `abilitiesOnly`: a Q, W, E or R's damage, not the passive's. With
+ * `castInstance`, once per action and ability whose damage it is (a detonated mark is its own ability's).
  */
 function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 	if (sim.onActionDamage) return
@@ -635,16 +640,30 @@ function triggerOnActionDamage(sim: Simulation, source: DamageSource) {
 		if (on.kind !== "on-action-damage") continue
 		if (on.abilitiesOnly && (!ability || ability === "passive")) continue
 		const hit = isActionPerHit(sim, source, effect.id) ? `@${sim.time}` : ""
-		const key = `${effect.id}@${action}${hit}`
-		if (sim.actionDamageTriggered.has(key)) continue
+		const instance = on.castInstance ? `:${ability ?? source.kind}` : ""
+		const key = `${effect.id}@${action}${hit}${instance}`
+		if (!isActionDamageReady(sim, key, on.castInstance)) continue
 		const below = on.targetBelow ?? Number.POSITIVE_INFINITY
 		if (sim.health >= below * sim.input.target.health) continue
-		sim.actionDamageTriggered.add(key)
+		sim.actionDamageTriggered.set(key, sim.time)
 		const by = source.kind === "attack" ? "attack" : "other"
 		trigger(sim, effect, pending, { by })
 	}
 	applyMarks(sim, pending)
 	sim.onActionDamage = false
+}
+
+/** Not triggered by this action yet, or by its cast instance `lockout` seconds ago or more (Shock's 6.5 s). */
+function isActionDamageReady(
+	sim: Simulation,
+	key: string,
+	castInstance: CastInstance | undefined,
+): boolean {
+	const last = sim.actionDamageTriggered.get(key)
+	if (last === undefined) return true
+	return (
+		!!castInstance && sim.time - last >= castInstance.lockout - TIME_EPSILON
+	)
 }
 
 /** The cast's hit rule names the effect in `actionPerHit`: each of its hits, at its own time, is an action. */

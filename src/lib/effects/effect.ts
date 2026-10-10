@@ -355,7 +355,8 @@ export type EffectCondition = "not-damaged-recently"
  * `stacks.max` (Blaze's detonation at 3 stacks); or an action's damage landing, once per action, its
  * later hits and ticks not again (`on-action-damage`: Electrocute's stacks; with `targetBelow`, only
  * while the hit leaves the target under that share of its health: Dark Harvest's 50%; with
- * `abilitiesOnly`, only a Q, W, E or R's damage: Spear of Shojin). `on-hit` with `attacksOnly` skips
+ * `abilitiesOnly`, only a Q, W, E or R's damage: Spear of Shojin; with `castInstance`, once per cast
+ * instance: Muramana's Shock). `on-hit` with `attacksOnly` skips
  * an ability's on-hit and a phantom hit's (Press the Attack's stacks, Seething Strike).
  */
 export type Trigger =
@@ -372,7 +373,19 @@ export type Trigger =
 	| { kind: "on-ability-damage" }
 	| { kind: "on-max-stacks"; effect: string }
 	| { kind: "on-damage"; damageType: DamageType }
-	| { kind: "on-action-damage"; targetBelow?: number; abilitiesOnly?: true }
+	| {
+			kind: "on-action-damage"
+			targetBelow?: number
+			abilitiesOnly?: true
+			castInstance?: CastInstance
+	  }
+
+/**
+ * Once per cast instance rather than per action: damage an ability's effect deals (Essence Flux's
+ * detonation, on E's step) is that ability's instance, and the same instance triggers again
+ * `lockout` seconds later (Muramana's Shock: 6.5 s).
+ */
+export type CastInstance = { lockout: number }
 
 export type TriggerKind = Trigger["kind"]
 
