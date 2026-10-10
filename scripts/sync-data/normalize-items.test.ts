@@ -271,6 +271,46 @@ describe("normalizeItems shop filter", () => {
 	})
 })
 
+describe("normalizeItems free upgrades", () => {
+	// Dagger standing in for Muramana: never sold, transformed into from Long Sword.
+	function withDaggerUpgrade(specialRecipe: number): DataDragonItems {
+		const items = structuredClone(dataDragonItems) as DataDragonItems
+		const dagger = items.data["1042"]
+		dagger.gold = { ...(dagger.gold as object), purchasable: false }
+		dagger.inStore = false
+		dagger.specialRecipe = specialRecipe
+		return items
+	}
+
+	test("keeps an upgrade in the allow-list although it is not sold, naming its base item", () => {
+		const items = normalizeItems(
+			withDaggerUpgrade(1036),
+			communityDragonBin,
+			map11Bin,
+			{ upgrades: { "1042": "1036" } },
+		).file.items
+		expect(items.find(({ id }) => id === "1042")?.transformsFrom).toBe("1036")
+		expect(
+			items.find(({ id }) => id === "1036")?.transformsFrom,
+		).toBeUndefined()
+	})
+
+	test("drops an unsold item that is not in the allow-list", () => {
+		const ids = itemsOf(communityDragonBin, withDaggerUpgrade(1036)).map(
+			({ id }) => id,
+		)
+		expect(ids).not.toContain("1042")
+	})
+
+	test("fails the sync when Data Dragon names another base item", () => {
+		expect(() =>
+			normalizeItems(withDaggerUpgrade(3134), communityDragonBin, map11Bin, {
+				upgrades: { "1042": "1036" },
+			}),
+		).toThrow("1042 Dagger: expected 1036, actual 3134")
+	})
+})
+
 describe("normalizeItems group limits", () => {
 	type Bin = Record<string, Record<string, unknown>>
 
