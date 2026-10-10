@@ -29,7 +29,13 @@ function stepNames(page: Page) {
 	)
 }
 
-test("the expanded combo lists the steps by hit time, Counter Strike's strike as a row of its own, with the tab's totals", async ({
+function orderBy(page: Page, order: "Hit time" | "Step") {
+	return page
+		.getByRole("group", { name: "Order by" })
+		.getByRole("button", { name: order })
+}
+
+test("the expanded combo lists the steps by hit time, Counter Strike's strike as a row of its own, the attacks as the tab's group, with the tab's totals", async ({
 	page,
 }) => {
 	await page.goto(JAX)
@@ -46,6 +52,13 @@ test("the expanded combo lists the steps by hit time, Counter Strike's strike as
 	await expect(comboTotal(page, "Time")).toHaveText(time ?? "")
 
 	// Counter Strike deals nothing at its cast: its row sits at its start, its strike a row at 1 s (issue 429).
+	expect(await stepNames(page)).toEqual([
+		"1. E · Counter Strike",
+		"2. Q · Leap Strike",
+		"3. W · Empower",
+	])
+	// The three attacks are one group, as in the tab (issue 405); open, its steps follow.
+	await page.getByRole("button", { name: /^Show steps of group 4–6/ }).click()
 	expect(await stepNames(page)).toEqual([
 		"1. E · Counter Strike",
 		"2. Q · Leap Strike",
@@ -70,10 +83,9 @@ test("the expanded combo lists the steps by hit time, Counter Strike's strike as
 	await expect(strike).toHaveCount(1)
 	await expect(strike).toContainText("Lands 1.00 s")
 
-	await page
-		.getByRole("group", { name: "Order by" })
-		.getByRole("button", { name: "Step" })
-		.click()
+	await orderBy(page, "Step").click()
+	await expect(orderBy(page, "Step")).toHaveAttribute("aria-pressed", "true")
+	// The group stays open in the other order.
 	expect(await stepNames(page)).toEqual([
 		"1. E · Counter Strike",
 		"2. Q · Leap Strike",
@@ -82,6 +94,16 @@ test("the expanded combo lists the steps by hit time, Counter Strike's strike as
 		"5. Attack",
 		"6. Attack",
 	])
+
+	// One order for both views: the tab lists the steps as the expanded combo left them.
+	await page.getByRole("button", { name: "Collapse combo" }).click()
+	await expect(orderBy(page, "Step")).toHaveAttribute("aria-pressed", "true")
+	await orderBy(page, "Hit time").click()
+	await page.getByRole("button", { name: "Expand combo" }).click()
+	await expect(orderBy(page, "Hit time")).toHaveAttribute(
+		"aria-pressed",
+		"true",
+	)
 })
 
 test("edits in the expanded combo show in the Combo tab, and switching back and forth leaves one screen", async ({
@@ -91,6 +113,10 @@ test("edits in the expanded combo show in the Combo tab, and switching back and 
 	await page.getByRole("button", { name: "Expand combo" }).click()
 
 	await combo(page).getByRole("button", { name: "Add Attack" }).click()
+	await expect(
+		page.getByRole("button", { name: "Remove group 4–7. Attack ×4" }),
+	).toBeVisible()
+	await page.getByRole("button", { name: /^Show steps of group/ }).click()
 	await expect(removeButtons(page)).toHaveCount(7)
 	await page
 		.getByRole("button", { name: "Move step 1, E · Counter Strike down" })
