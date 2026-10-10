@@ -93,8 +93,8 @@ export type TimeInArea = {
 
 /**
  * While its time in the area runs, the champion can't declare basic attacks (Judgment): in strict
- * mode an attack waits for it, and so does a cast of a slot in `waitedForBy`, which the game lets
- * end it early (Demacian Justice): the step's time is the user's intent (issue 444).
+ * mode an attack waits for it. A cast of a slot in `waitedForBy`, which the game lets end it early
+ * (Demacian Justice), waits for it in both modes: the step's time is the user's intent (issue 444).
  */
 export type BlocksAttacks = { waitedForBy: readonly AbilitySlot[] }
 

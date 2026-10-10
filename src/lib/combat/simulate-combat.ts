@@ -2170,12 +2170,13 @@ function recastAt(sim: Simulation, slot: AbilitySlot): number {
 
 /**
  * When a cast of the ability may start: after its recast gap, and after a cast stopping attacks
- * whose `waitedForBy` names it (Demacian Justice after Judgment). Free mode waits for neither.
+ * whose `waitedForBy` names it (Demacian Justice after Judgment). Free mode skips the recast gap
+ * but still waits for that cast: its time is the user's choice, not a cooldown (PR 445).
  */
 function abilityStartsAt(sim: Simulation, slot: AbilitySlot): number {
 	const lock = sim.attackLock
-	const waits = lock?.waitedForBy.includes(slot) ?? false
-	return Math.max(recastAt(sim, slot), waits ? attackLockEnd(sim) : sim.time)
+	const until = lock?.waitedForBy.includes(slot) ? lock.until : 0
+	return Math.max(recastAt(sim, slot), until)
 }
 
 /**
