@@ -2,17 +2,16 @@ import { cva } from "class-variance-authority"
 import { CircleAlert, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
-import {
-	formatDamage,
-	formatSeconds,
-	formatSecondsRange,
-} from "../lib/combat-format"
 import type { CombatRow } from "../lib/combat-rows"
 import { damageParts } from "../lib/combat-rows"
 import { FROM_MARKER, type StepView } from "../lib/combat-view"
 import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatDamageOverTimeLine } from "./combat-damage-over-time-line"
+import { CombatDamageSubline } from "./combat-damage-subline"
 import { CombatHitLine } from "./combat-hit-line"
+import { CombatLandTime } from "./combat-land-time"
+import { CombatRowStarts } from "./combat-row-starts"
+import { CombatRowTotals } from "./combat-row-totals"
 import { CombatRunningEffects } from "./combat-running-effects"
 import { CombatTargetResists } from "./combat-target-resists"
 
@@ -21,7 +20,7 @@ import { CombatTargetResists } from "./combat-target-resists"
  * hits under the step and the running total under the damage; from 56rem each has its own column.
  */
 export const STEP_ROW_GRID =
-	"grid grid-cols-[1.75rem_4.5rem_minmax(0,1fr)_4.5rem_6.5rem_1.75rem] grid-rows-[auto_1fr] gap-x-3 gap-y-1 [grid-template-areas:'moves_lands_step_damage_health_remove''moves_starts_hits_dealt_health_remove'] @4xl:grid-cols-[1.75rem_4rem_11rem_4rem_minmax(0,1fr)_4rem_4rem_7rem_1.75rem] @4xl:grid-rows-1 @4xl:[grid-template-areas:'moves_lands_step_starts_hits_damage_dealt_health_remove']"
+	"grid grid-cols-[1.75rem_4.5rem_minmax(0,1fr)_4.5rem_6.5rem_1.75rem] grid-rows-[auto_1fr] gap-x-3 gap-y-1 [grid-template-areas:'moves_lands_step_damage_health_remove''moves_starts_hits_dealt_health_remove'] @4xl:grid-cols-[1.75rem_5.5rem_11rem_5rem_minmax(0,1fr)_4rem_4rem_7rem_1.75rem] @4xl:grid-rows-1 @4xl:[grid-template-areas:'moves_lands_step_starts_hits_damage_dealt_health_remove']"
 
 const row = cva(
 	cn(STEP_ROW_GRID, "items-start border-line border-b px-4 py-2.5 text-xs"),
@@ -35,46 +34,9 @@ const row = cva(
 	},
 )
 
-const starts = cva("text-prose tabular-nums [grid-area:starts]", {
-	variants: {
-		timing: {
-			late: "text-gold",
-			onTime: "",
-		},
-	},
-})
-
 /** Hidden until read: what a cell's number is, as the header says it. */
 function CellLabel({ children }: { children: string }) {
 	return <span className="sr-only">{children} </span>
-}
-
-/** When its hits land: "1.00 s", a range for several moments, a dash for none. */
-function Lands({ lands }: { lands: CombatRow["lands"] }) {
-	if (!lands) return <span className="text-subtle">–</span>
-	return lands.first === lands.last
-		? formatSeconds(lands.first)
-		: formatSecondsRange(lands.first, lands.last)
-}
-
-/** The target's health after the row, as a short bar and its number. */
-function HealthLeft({ health, share }: { health: number; share: number }) {
-	const percent = Math.round(share * 100)
-	return (
-		<span className="flex items-center gap-2 [grid-area:health]">
-			<CellLabel>Target health</CellLabel>
-			<span
-				aria-hidden="true"
-				className="block h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-raised"
-			>
-				<span
-					className="block h-full bg-health"
-					style={{ width: `${percent}%` }}
-				/>
-			</span>
-			<span className="text-health tabular-nums">{formatDamage(health)}</span>
-		</span>
-	)
 }
 
 /** What the step did: its marks, hits, damage over time, outcomes, running effects and the target's resists. */
@@ -158,17 +120,13 @@ export function CombatStepRow({
 			<div className="[grid-area:moves]">{moves}</div>
 			{timing && (
 				<>
-					<span className="pt-0.5 font-bold font-display text-sm text-white tabular-nums [grid-area:lands]">
-						<CellLabel>Lands</CellLabel>
-						<Lands lands={timing.lands} />
+					<span className="pt-0.5 text-white [grid-area:lands]">
+						<CombatLandTime lands={timing.lands} />
 					</span>
-					<span className={starts({ timing: late })}>
-						<CellLabel>Starts</CellLabel>
-						<span aria-hidden="true" className="@4xl:hidden text-subtle">
-							starts{" "}
-						</span>
-						{formatSeconds(timing.startsAt)}
-					</span>
+					<CombatRowStarts
+						starts={{ first: timing.startsAt, last: timing.startsAt }}
+						late={timing.late}
+					/>
 				</>
 			)}
 			<div className="flex min-w-0 flex-col gap-1.5 [grid-area:step]">
@@ -196,28 +154,16 @@ export function CombatStepRow({
 				<div className="flex flex-col items-end [grid-area:damage]">
 					<CellLabel>Damage</CellLabel>
 					<CombatDamageAmount final={view.total.final} parts={view.byType}>
-						{!!parts.length && (
-							<span className="text-[0.625rem] text-subtle tabular-nums">
-								({parts.map(formatDamage).join(" + ")})
-							</span>
-						)}
+						<CombatDamageSubline raw={view.total.raw} parts={parts} />
 					</CombatDamageAmount>
 				</div>
 			)}
 			{timing && !refused && (
-				<>
-					<span className="text-right text-prose tabular-nums [grid-area:dealt]">
-						<CellLabel>So far</CellLabel>
-						<span aria-hidden="true" className="@4xl:hidden text-subtle">
-							so far{" "}
-						</span>
-						{formatDamage(timing.dealt)}
-					</span>
-					<HealthLeft
-						health={timing.targetHealth}
-						share={view?.healthShare ?? 0}
-					/>
-				</>
+				<CombatRowTotals
+					dealt={timing.dealt}
+					targetHealth={timing.targetHealth}
+					healthShare={timing.healthShare}
+				/>
 			)}
 			<Button
 				variant="ghost"

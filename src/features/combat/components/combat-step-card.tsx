@@ -1,71 +1,60 @@
 import { CircleAlert, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
-import { formatDamage, formatSeconds } from "../lib/combat-format"
+import { type CombatRow, damageParts } from "../lib/combat-rows"
 import { FROM_MARKER, type StepView } from "../lib/combat-view"
 import { CombatDamageAmount } from "./combat-damage-amount"
 import { CombatDamageOverTimeLine } from "./combat-damage-over-time-line"
+import { CombatDamageSubline } from "./combat-damage-subline"
 import { CombatHitLine } from "./combat-hit-line"
+import { CombatLandTime } from "./combat-land-time"
 import { CombatRunningEffects } from "./combat-running-effects"
+import { CombatRunningTotal } from "./combat-running-total"
+import { CombatStartTime } from "./combat-start-time"
 import { CombatTargetResists } from "./combat-target-resists"
 
 type CombatStepCardProps = {
-	/** 1-based, among the actions (markers aren't counted). */
-	number: number
-	label: string
+	/** "1. E · Counter Strike": its number among the actions and its action. */
+	title: string
 	icon: React.ReactNode
-	/** When it ran, shown first; absent while the build loads. */
-	time?: number
+	/** When it starts and lands, the running total and the target's health; absent while the build loads. */
+	row?: CombatRow
 	/** Why it did not run; the totals leave it out. */
 	refused?: string
 	view?: StepView
 	/** Its "Move up" and "Move down" buttons (`CombatMoveButtons`). */
 	moves: React.ReactNode
 	onRemove: () => void
-	/** Extra parts of the step: a wait's length, its input, its outcomes. */
-	children?: React.ReactNode
+	/** Its inputs under its name: a wait's length, an ability's variant. */
+	inputs?: React.ReactNode
+	/** Its outcomes, after its hits. */
+	outcomes?: React.ReactNode
 } & React.ComponentProps<"li">
 
-/** The target's health after the step, as a thin bar. */
-function HealthBar({ share }: { share: number }) {
-	const percent = Math.round(share * 100)
-	return (
-		<span
-			role="img"
-			aria-label={`Target health ${percent}%`}
-			className="block h-1 overflow-hidden rounded-full bg-surface-raised"
-		>
-			<span
-				className="block h-full bg-health"
-				style={{ width: `${percent}%` }}
-			/>
-		</span>
-	)
-}
-
 /**
- * A step of the combo: time, action, marks, its own hits and damage over time (its procs are rows of
- * their own, issue 429), effects running, the target's reduced resistances and its health.
+ * A step of the combo as a card, with what its expanded row shows (issue 405): when it lands and
+ * starts, its own hits and damage over time (its procs are entries of their own), outcomes,
+ * effects running, the target's resists, its damage with its parts and the running total.
  */
 export function CombatStepCard({
-	number,
-	label,
+	title,
 	icon,
-	time,
+	row,
 	refused,
 	view,
 	moves,
 	onRemove,
-	children,
+	inputs,
+	outcomes,
 	className,
 	...props
 }: CombatStepCardProps) {
-	const title = `${number}. ${label}`
+	const shown = view && !refused
 	return (
 		<li
 			className={cn(
 				"grid grid-cols-[auto_auto_1fr_auto_auto] items-start gap-x-2 rounded-lg border border-line bg-surface-sunken px-1 py-1.5",
-				{ "border-error/70": !!refused },
+				{ "border-error/70": !!refused, "bg-surface-raised": !!row?.late },
 				className,
 			)}
 			{...props}
@@ -74,12 +63,14 @@ export function CombatStepCard({
 			<span className={cn("pt-0.5", { "opacity-50": !!refused })}>{icon}</span>
 			<div className="flex min-w-0 flex-col gap-1">
 				<p className="flex flex-wrap items-baseline gap-x-2 text-white text-xs">
-					{time !== undefined && (
-						<span className="font-bold font-display text-sm tabular-nums">
-							{formatSeconds(time)}
-						</span>
-					)}
+					{row && <CombatLandTime lands={row.lands} />}
 					<span className="font-semibold">{title}</span>
+					{row && (
+						<CombatStartTime
+							starts={{ first: row.startsAt, last: row.startsAt }}
+							late={row.late}
+						/>
+					)}
 					{view?.marks.map(({ mark, change, fromMarker }) => (
 						<span key={`${mark}-${change}`} className="text-gold">
 							{mark} mark {change}
@@ -96,7 +87,7 @@ export function CombatStepCard({
 						{refused} (left out)
 					</p>
 				)}
-				{children}
+				{inputs}
 				{!!view?.hits.length && (
 					<ul
 						aria-label="Hits"
@@ -118,16 +109,24 @@ export function CombatStepCard({
 						))}
 					</ul>
 				)}
-				{!refused && view && <CombatRunningEffects effects={view.effects} />}
-				{view && !refused && <CombatTargetResists resists={view.resists} />}
-				{view && !refused && <HealthBar share={view.healthShare} />}
+				{shown && outcomes}
+				{shown && <CombatRunningEffects effects={view.effects} />}
+				{shown && <CombatTargetResists resists={view.resists} />}
+				{shown && row && (
+					<CombatRunningTotal
+						dealt={row.dealt}
+						targetHealth={row.targetHealth}
+						healthShare={row.healthShare}
+					/>
+				)}
 			</div>
 			<div className="flex flex-col items-end">
 				{view && view.total.final > 0 && (
 					<CombatDamageAmount final={view.total.final} parts={view.byType}>
-						<span className="text-[0.625rem] text-subtle tabular-nums">
-							raw {formatDamage(view.total.raw)}
-						</span>
+						<CombatDamageSubline
+							raw={view.total.raw}
+							parts={damageParts(view)}
+						/>
 					</CombatDamageAmount>
 				)}
 			</div>
