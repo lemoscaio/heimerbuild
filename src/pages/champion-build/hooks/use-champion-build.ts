@@ -4,6 +4,7 @@ import { useItems } from "@/data/hooks/use-items"
 import { useRunes } from "@/data/hooks/use-runes"
 import { useSummonerSpells } from "@/data/hooks/use-summoner-spells"
 import { useBuildItems } from "@/features/build-calculator/hooks/use-build-items"
+import { readBuildItems } from "@/features/build-calculator/lib/build-items"
 import type {
 	BuildNavigation,
 	BuildSource,
@@ -25,6 +26,11 @@ import {
 	type EffectsBuild,
 } from "@/lib/effects/available-effects"
 import { abilitiesInForm } from "@/lib/form-abilities"
+import {
+	type BuildItemValues,
+	canonicalItemValues,
+	effectiveItems,
+} from "@/lib/item-upgrades"
 import { selectedRunes } from "@/lib/rune-selection"
 import { itemsAdaptiveType } from "@/lib/stats/adaptive-force"
 import { formStats } from "@/lib/stats/champion-forms"
@@ -84,6 +90,11 @@ export function useChampionBuild({
 	const { data: runes } = useRunes(patch)
 	const { data: summonerSpells } = useSummonerSpells(patch)
 	const { state } = source
+	// An upgrade's id (a link's `items=3042`) is its base item at the upgrade's count.
+	const itemValues = canonicalItemValues({
+		itemIds: state.itemIds,
+		matchStacks: state.matchStacks,
+	})
 
 	// Skills read the level, and the champion state reads the ranks that unlock a form.
 	const skills = useSkills({
@@ -106,14 +117,20 @@ export function useChampionBuild({
 	const abilities =
 		champion && abilitiesInForm(champion.abilities, championState.form?.id)
 	const matchState = useMatchState({
-		value: { gameTime: state.gameTime, matchStacks: state.matchStacks },
+		value: { gameTime: state.gameTime, matchStacks: itemValues.matchStacks },
 		onChange: (change) => save(change, EDIT_HISTORY.match),
 	})
 	const items = useBuildItems({
 		itemsById,
-		value: state.itemIds,
-		onChange: (itemIds) => save({ itemIds }, EDIT_HISTORY.items),
+		value: itemValues.itemIds,
+		onChange: changeItems,
 	})
+	// The items as they are in game (Manamune at 360 Manaflow is Muramana): what every reader sees.
+	const buildItems = effectiveItems(
+		items.list,
+		matchState.matchStacks,
+		itemsById,
+	)
 	const runePage = useRunePage({
 		runes,
 		value: state.runes,
@@ -133,7 +150,7 @@ export function useChampionBuild({
 					ranks: skills.ranks,
 					spells: summoners.slots.filter((spell) => spell !== undefined),
 					runes: selectedRunes(runePage.selection, runes),
-					items: items.list,
+					items: buildItems,
 				}
 			: undefined
 	const effects = effectsBuild && availableEffects(effectsBuild)
@@ -149,7 +166,7 @@ export function useChampionBuild({
 			ranks: skills.ranks,
 			rankStats: champion?.rankStats,
 			adaptiveType:
-				champion && itemsAdaptiveType(champion.adaptiveType, items.list),
+				champion && itemsAdaptiveType(champion.adaptiveType, buildItems),
 			totals: basisInput && statBonusBasis(basisInput),
 			percentBasis: basisInput && percentBonusBasis(basisInput),
 			form: championState.form?.id,
@@ -179,7 +196,7 @@ export function useChampionBuild({
 			effects: conditions.value,
 			currentHealth: state.currentHealth,
 			gameTime: state.gameTime,
-			matchStacks: state.matchStacks,
+			matchStacks: itemValues.matchStacks,
 			combo: state.combo,
 			free: state.free,
 			choices: state.choices,
@@ -189,9 +206,14 @@ export function useChampionBuild({
 		effects,
 	)
 
-	function save(change: Partial<BuildValues>, navigation: BuildNavigation) {
+	/** Saves `change` with the other values, dropping the condition values `used` (the build's effects) never read. */
+	function save(
+		change: Partial<BuildValues>,
+		navigation: BuildNavigation,
+		used = effects,
+	) {
 		source.update(
-			dropUnusedConditionValues({ ...values, ...change }, effects),
+			dropUnusedConditionValues({ ...values, ...change }, used),
 			navigation,
 		)
 	}
@@ -199,6 +221,27 @@ export function useChampionBuild({
 	function saveCombo(change: ComboLink) {
 		const emptied = !!state.combo && !change.combo
 		save(change, emptied ? EDIT_HISTORY.comboEmptied : EDIT_HISTORY.combo)
+	}
+
+	// Items → match stacks: a shop pick of an upgrade adds its base item and raises the count, which
+	// only the new items read, so the save keeps the values those items use.
+	function changeItems(itemIds: readonly string[]) {
+		const next = canonicalItemValues({
+			itemIds,
+			matchStacks: itemValues.matchStacks,
+		})
+		const raised = next.matchStacks !== itemValues.matchStacks
+		save(next, EDIT_HISTORY.items, raised ? effectsWith(next) : effects)
+	}
+
+	/** The listed effects of the build holding `next`'s items at its counts. */
+	function effectsWith(next: BuildItemValues) {
+		if (!effectsBuild || !itemsById) return undefined
+		const { items: held } = readBuildItems(next.itemIds, itemsById)
+		return availableEffects({
+			...effectsBuild,
+			items: effectiveItems(held, next.matchStacks, itemsById),
+		})
 	}
 
 	// Level → skills: a new level also saves the points it keeps, or brings back the ones it kept.
@@ -224,7 +267,7 @@ export function useChampionBuild({
 			patch,
 			level: championState.level,
 			form: championState.formValue,
-			items: items.list,
+			items: buildItems,
 			shards: runePage.shards,
 			ranks: skills.ranks,
 			effects: { available: effects ?? [], overrides: state.effects ?? {} },
@@ -264,7 +307,7 @@ export function useChampionBuild({
 		const input = statsInput(change)
 		return (
 			input &&
-			statComposition({ ...input, items: change.items ?? items.list }, options)
+			statComposition({ ...input, items: change.items ?? buildItems }, options)
 		)
 	}
 
@@ -274,7 +317,8 @@ export function useChampionBuild({
 		skills,
 		/** The champion's abilities in the selected form (Cannon Jayce's Shock Blast). */
 		abilities,
-		items,
+		/** The chosen items; `list` holds them as they are in game, an upgrade at its count. */
+		items: { ...items, list: buildItems },
 		runePage,
 		summoners,
 		/** The match's game time and the build's match stacks. */

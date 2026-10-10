@@ -339,6 +339,35 @@ describe("the List's cards (stepView on placed steps)", () => {
 		expect(views[9]?.procs[0]?.hits.map(({ name }) => name)).toContain(kraken)
 	})
 
+	test("Ezreal: Muramana's Shock is a line of each step that deals damage, with its icon, never a proc", async () => {
+		const views = listViews(
+			combo(
+				{
+					champion: await champion("Ezreal"),
+					level: 6,
+					ranks: { Q: 1, W: 1, E: 1, R: 1 },
+					items: [item("3042")],
+					target: DUMMY,
+				},
+				[cast("Q"), cast("W"), cast("E"), cast("R"), ATTACK],
+			),
+		)
+		const shock = "Muramana (Shock)"
+		const shockLines = views.map((view) =>
+			view.hits.flatMap((hit) =>
+				hit.name === shock && "raw" in hit ? [hit] : [],
+			),
+		)
+
+		expect(shockLines.map((lines) => lines.length)).toEqual([1, 0, 1, 1, 1])
+		expect(shockLines[0]?.[0]?.icon).toBe(item("3042").icon)
+		// E's bolt and the Essence Flux it detonates: two cast instances, one line.
+		expect(shockLines[2]?.[0]?.raw).toBeCloseTo(
+			2 * (shockLines[3]?.[0]?.raw ?? 0),
+		)
+		expect(procIds(views)).toEqual([])
+	})
+
 	test("Grasp of the Undying's proc is a line of the attack (on-hit, though it has a cooldown)", () => {
 		const views = listViews(
 			// Ready at the start (issue 317).

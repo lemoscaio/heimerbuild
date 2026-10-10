@@ -40,6 +40,7 @@ const tileIcon = cva("", {
 type ItemSectionProps = {
 	tileSize: TileSize
 	section: ShopSection<Item>
+	notes?: Readonly<Record<string, string>>
 	getItemProps: ReturnType<typeof useRovingFocus>["getItemProps"]
 } & ItemPickProps
 
@@ -47,6 +48,7 @@ type ItemSectionProps = {
 export function ItemSection({
 	section: { title, items },
 	tileSize,
+	notes,
 	selectedItemId,
 	onItemSelect,
 	onItemAdd,
@@ -68,6 +70,7 @@ export function ItemSection({
 					<ItemButton
 						key={item.id}
 						item={item}
+						note={notes?.[item.id]}
 						aria-label={item.name}
 						aria-describedby={`${id}-${index}`}
 						aria-pressed={item.id === selectedItemId}
@@ -98,6 +101,7 @@ export function ItemSection({
 						)}
 						<span id={`${id}-${index}`} hidden>
 							{index + 1} of {items.length}
+							{notes?.[item.id] && `, ${notes[item.id]}`}
 						</span>
 					</ItemButton>
 				))}

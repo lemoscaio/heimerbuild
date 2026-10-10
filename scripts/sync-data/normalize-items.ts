@@ -11,6 +11,11 @@ import {
 import { formatUnlabeledGroups, labelItemGroups } from "./item-groups"
 import { itemMarkupToText } from "./item-text"
 import {
+	formatUpgradeMismatches,
+	ITEM_UPGRADES,
+	type UpgradeMismatch,
+} from "./item-upgrades"
+import {
 	applyOverrides,
 	type OverrideReport,
 } from "./overrides/apply-overrides"
@@ -59,6 +64,8 @@ const DataDragonItemSchema = z.object({
 	inStore: z.boolean().optional(),
 	hideFromAll: z.boolean().optional(),
 	requiredChampion: z.string().optional(),
+	/** The item it transforms from for free (Muramana: 3004). */
+	specialRecipe: z.number().optional(),
 })
 
 const DataDragonItemsSchema = z.object({
@@ -199,20 +206,42 @@ export type NormalizedItems = {
 	overrides: OverrideReport
 }
 
-export type NormalizeItemsOptions = { overrides?: readonly ItemOverride[] }
+export type NormalizeItemsOptions = {
+	overrides?: readonly ItemOverride[]
+	/** Free upgrades kept although not sold, by id, with their base item's id. */
+	upgrades?: Readonly<Record<string, string>>
+}
 
-/** Keeps only items buyable on Summoner's Rift, and only their ids in `from`/`into`; `removed` counts the items each rule dropped. */
+/**
+ * Keeps only items buyable on Summoner's Rift, plus the free upgrades in `upgrades`, and only their
+ * ids in `from`/`into`; `removed` counts the items each rule dropped.
+ */
 export function normalizeItems(
 	dataDragonItems: unknown,
 	communityDragonBin: unknown,
 	map11Bin: unknown,
-	{ overrides = ITEM_OVERRIDES }: NormalizeItemsOptions = {},
+	{
+		overrides = ITEM_OVERRIDES,
+		upgrades = ITEM_UPGRADES,
+	}: NormalizeItemsOptions = {},
 ): NormalizedItems {
 	const { version, data } = DataDragonItemsSchema.parse(dataDragonItems)
 	const binItems = indexCommunityDragonItems(communityDragonBin)
 	const bin = z.record(z.string(), z.unknown()).parse(communityDragonBin)
-	const { kept, removed } = filterShopItems(data, classicItemIds(map11Bin))
+	const { kept, removed } = filterShopItems(data, classicItemIds(map11Bin), {
+		upgradeIds: new Set(Object.keys(upgrades)),
+	})
 	const shopIds = new Set(kept.map(([id]) => id))
+	// An upgrade Data Dragon lacks is left out; the app's own rules test that each one is synced.
+	const upgradeMismatches: UpgradeMismatch[] = Object.entries(upgrades)
+		.filter(([id]) => shopIds.has(id))
+		.filter(([id, base]) => String(data[id]?.specialRecipe) !== base)
+		.map(([id, base]) => ({
+			id,
+			name: data[id]?.name ?? id,
+			expected: base,
+			actual: data[id]?.specialRecipe,
+		}))
 	// Removed, other-mode and auto-transform ids (Whispering Circlet -> Diadem) would skew shop tiers.
 	const inShop = (ids: string[] = []) => ids.filter((id) => shopIds.has(id))
 	const unmapped = new Map<string, string[]>()
@@ -247,6 +276,7 @@ export function normalizeItems(
 				into: inShop(item.into),
 				inStore: item.inStore ?? true,
 				requiredChampion: item.requiredChampion,
+				...(Object.hasOwn(upgrades, id) && { transformsFrom: upgrades[id] }),
 				epicness: extractEpicness(entry),
 				roles: extractRoles(entry),
 				groupLimits: extractGroupLimits(entry, bin),
@@ -275,6 +305,9 @@ export function normalizeItems(
 			? [formatAntiHealMismatches(antiHealMismatches)]
 			: []),
 		...(unlabeled.length > 0 ? [formatUnlabeledGroups(unlabeled)] : []),
+		...(upgradeMismatches.length > 0
+			? [formatUpgradeMismatches(upgradeMismatches)]
+			: []),
 	]
 	if (errors.length > 0) throw new Error(errors.join("\n\n"))
 	return {

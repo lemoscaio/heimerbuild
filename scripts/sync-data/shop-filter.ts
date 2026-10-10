@@ -30,6 +30,12 @@ const REMOVAL_RULES = {
 
 export type RemovalRuleName = keyof typeof REMOVAL_RULES
 
+/** An upgrade the game swaps in for free (`item-upgrades.ts`) is never sold: these rules let it through. */
+const SALE_RULES: ReadonlySet<RemovalRuleName> = new Set([
+	"notPurchasable",
+	"notInStore",
+])
+
 const GameModeSchema = z.object({ itemLists: z.array(z.string()).min(1) })
 const ItemListSchema = z.object({ mItems: z.array(z.string()) })
 
@@ -48,9 +54,15 @@ export function classicItemIds(map11Bin: unknown): Set<string> {
 	return ids
 }
 
+type FilterShopItemsOptions = {
+	/** Ids of the upgrades kept although the shop never sells them (Muramana). */
+	upgradeIds?: ReadonlySet<string>
+}
+
 export function filterShopItems<T extends ShopCandidate>(
 	items: Record<string, T>,
 	classicIds: ReadonlySet<string>,
+	{ upgradeIds = new Set() }: FilterShopItemsOptions = {},
 ): { kept: [string, T][]; removed: Record<RemovalRuleName, number> } {
 	const rules = Object.entries(REMOVAL_RULES) as [
 		RemovalRuleName,
@@ -61,7 +73,11 @@ export function filterShopItems<T extends ShopCandidate>(
 	) as Record<RemovalRuleName, number>
 	const kept: [string, T][] = []
 	for (const [id, item] of Object.entries(items)) {
-		const rule = rules.find(([, removes]) => removes(id, item, classicIds))
+		const rule = rules.find(
+			([name, removes]) =>
+				!(upgradeIds.has(id) && SALE_RULES.has(name)) &&
+				removes(id, item, classicIds),
+		)
 		if (rule) removed[rule[0]]++
 		else kept.push([id, item])
 	}

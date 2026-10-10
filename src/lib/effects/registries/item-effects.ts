@@ -1,4 +1,9 @@
-import type { Effect, LevelStep, MatchStackSource } from "../effect"
+import type {
+	Effect,
+	LevelStep,
+	MatchStackSource,
+	StacksThreshold,
+} from "../effect"
 import { VERIFIED_ON } from "./verified-on"
 
 const WIKI = "https://wiki.leagueoflegends.com/en-us/"
@@ -37,6 +42,12 @@ export const MANAFLOW_MANA = {
 	sliderMax: 360,
 	capped: true,
 } as const satisfies MatchStackSource
+
+/** Manamune and Archangel's Staff transform at 360 Manaflow; their upgrades' Awe holds from there. */
+export const MANAFLOW_TRANSFORM = {
+	source: MANAFLOW_MANA,
+	stacks: 360,
+} as const satisfies StacksThreshold
 
 const KRAKEN_SLAYER_STACKS = "kraken-slayer-stacks"
 const SEETHING_STRIKE = "guinsoos-rageblade-seething-strike"
@@ -239,7 +250,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 	},
 	{
 		// Wiki, checked 2026-10-09: Manaflow up to 360 bonus mana; Awe "grants bonus attack damage equal
-		// to 2% maximum mana". The transformation into Muramana at 360 is not modeled (issue 414).
+		// to 2% maximum mana". At 360 the build's Manamune is Muramana (`effectiveItems`, issue 436).
 		id: "manamune-awe",
 		source: { kind: "item", itemId: "3004" },
 		trigger: { kind: "always" },
@@ -261,7 +272,7 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 	},
 	{
 		// Wiki, checked 2026-10-09: Manaflow up to 360 bonus mana, an innate stat of the item since
-		// V25.05; Awe "grants ability power equal to 1% bonus mana". Seraph's Embrace is not modeled.
+		// V25.05; Awe "grants ability power equal to 1% bonus mana". At 360 it is Seraph's Embrace.
 		id: "archangels-staff-awe",
 		source: { kind: "item", itemId: "3003" },
 		trigger: { kind: "always" },
@@ -280,6 +291,89 @@ export const ITEM_EFFECTS: readonly Effect[] = [
 		],
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Archangel%27s_Staff`,
+	},
+	{
+		// Wiki, checked 2026-10-09: Awe "grants bonus attack damage equal to 2% maximum mana"; the 1000
+		// mana is the item's. From 360 Manaflow, the count the build keeps, so the row keeps its input.
+		id: "muramana-awe",
+		source: { kind: "item", itemId: "3042" },
+		trigger: { kind: "always" },
+		label: "Awe",
+		grants: [
+			{
+				kind: "stat",
+				stat: "attackDamage",
+				amount: { by: "stat", stat: "mana", ratio: 0.02 },
+				from: MANAFLOW_TRANSFORM,
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Muramana`,
+	},
+	{
+		// Wiki, checked 2026-10-09: Shock's "basic attacks on-hit against champions deal 1.2% of maximum
+		// mana as bonus physical damage". A cast that applies on-hit (Mystic Shot) gets the ability part.
+		id: "muramana-shock-attack",
+		source: { kind: "item", itemId: "3042" },
+		trigger: { kind: "on-hit", attacksOnly: true },
+		listed: false,
+		label: "Shock",
+		grants: [
+			{
+				kind: "damage",
+				damageType: "physical",
+				base: { by: "stat", stat: "mana", ratio: 0.012 },
+				ratios: {},
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Muramana`,
+	},
+	{
+		// Wiki, checked 2026-10-09: ability damage deals "4% (melee) or 3% (ranged) of maximum mana",
+		// "once every 6.5 seconds from the same cast instance"; proc and indirect damage don't trigger it.
+		id: "muramana-shock-ability",
+		source: { kind: "item", itemId: "3042" },
+		trigger: {
+			kind: "on-action-damage",
+			abilitiesOnly: true,
+			castInstance: { lockout: 6.5 },
+		},
+		listed: false,
+		onHitDamage: true,
+		label: "Shock",
+		grants: [
+			{
+				kind: "damage",
+				damageType: "physical",
+				base: {
+					by: "stat",
+					stat: "mana",
+					ratio: { by: "attackType", melee: 0.04, ranged: 0.03 },
+				},
+				ratios: {},
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Muramana`,
+	},
+	{
+		// Wiki, checked 2026-10-09: Awe "grants ability power equal to 2% bonus mana" (CommunityDragon
+		// `APFromMana` 0.02 of bonus mana). Lifeline's shield is out of scope (issue 436).
+		id: "seraphs-embrace-awe",
+		source: { kind: "item", itemId: "3040" },
+		trigger: { kind: "always" },
+		label: "Awe",
+		grants: [
+			{
+				kind: "stat",
+				stat: "abilityPower",
+				amount: { by: "stat", stat: "mana", part: "bonus", ratio: 0.02 },
+				from: MANAFLOW_TRANSFORM,
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Seraph%27s_Embrace`,
 	},
 	{
 		// Wiki, checked 2026-10-08: "Magical Opus: Increase your ability power by 30%."

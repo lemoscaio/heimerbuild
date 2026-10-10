@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test"
 import type { BuildEffect, Effect } from "@/lib/effects/effect"
+import { MANAFLOW_MANA } from "@/lib/effects/registries/item-effects"
 import type { Condition } from "./conditions"
-import { effectCards } from "./effect-cards"
+import { conditionKey, effectCards } from "./effect-cards"
 
 function condition(id: string, fields: Partial<BuildEffect>): Condition {
 	const effect: Effect = {
@@ -54,5 +55,28 @@ describe("effectCards", () => {
 			["Nimbus Cloak", ["nimbus-cloak-ghost"]],
 			["Nimbus Cloak", ["nimbus-cloak-flash"]],
 		])
+	})
+
+	test("Manamune's card and Muramana's are one card at 360, and the row with the count keeps its key", () => {
+		const itemCondition = (id: string, itemId: string, name: string) => {
+			const base = condition(id, { name })
+			return {
+				...base,
+				effect: {
+					...base.effect,
+					effect: { ...base.effect.effect, source: { kind: "item", itemId } },
+				},
+			} satisfies Condition
+		}
+		const manamune = itemCondition("manamune-awe", "3004", "Manamune")
+		const muramana = itemCondition("muramana-awe", "3042", "Muramana")
+		const [before] = effectCards([manamune])
+		const [after] = effectCards([muramana])
+
+		expect(before?.key).toBe(after?.key)
+		expect(conditionKey(manamune, [MANAFLOW_MANA])).toBe(
+			conditionKey(muramana, [MANAFLOW_MANA]),
+		)
+		expect(conditionKey(manamune, [])).toBe("manamune-awe")
 	})
 })

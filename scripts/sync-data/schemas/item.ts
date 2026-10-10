@@ -79,6 +79,8 @@ export const ItemSchema = z.strictObject({
 	 */
 	epicness: z.literal(ITEM_EPICNESS),
 	requiredChampion: z.optional(z.string()),
+	/** The item it transforms from for free, never sold itself (Muramana from Manamune: 3004). */
+	transformsFrom: z.optional(z.string().check(z.regex(/^\d+$/))),
 	/** In-game shop class filters (CommunityDragon `mItemAttributes`); empty means "All Items" only. */
 	roles: z.array(championRoleSchema),
 	/** A build holds at most `max` items that share `group` (CommunityDragon item groups: boots, lifeline, ...). */

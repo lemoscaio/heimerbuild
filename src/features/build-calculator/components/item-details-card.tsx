@@ -9,6 +9,8 @@ import { ItemSummary } from "./item-summary"
 
 type ItemDetailsCardProps = {
 	item: Item
+	/** What the item is beyond its price: an upgrade's base item and count. */
+	note?: string
 	isBuildFull: boolean
 	onAdd: (itemId: string) => void
 	onClose: () => void
@@ -17,6 +19,7 @@ type ItemDetailsCardProps = {
 /** The selected shop item: what it gives, and the button that adds it. */
 export function ItemDetailsCard({
 	item,
+	note,
 	isBuildFull,
 	onAdd,
 	onClose,
@@ -29,7 +32,7 @@ export function ItemDetailsCard({
 			aria-labelledby={headingId}
 			className="flex flex-col gap-2.5 rounded-xl border border-lilac bg-line p-4"
 		>
-			<ItemSummary item={item} headingId={headingId}>
+			<ItemSummary item={item} headingId={headingId} note={note}>
 				<Button
 					type="button"
 					variant="ghost"

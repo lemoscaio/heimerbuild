@@ -8,6 +8,8 @@ import { ItemSection, type TileSize } from "./item-section"
 type ItemGridProps = {
 	items: readonly Item[]
 	grouping: ShopGrouping
+	/** A line for an item's tile details and description, by item id (an upgrade's base). */
+	notes?: Readonly<Record<string, string>>
 	tileSize?: TileSize
 } & ItemPickProps
 
@@ -15,6 +17,7 @@ type ItemGridProps = {
 export function ItemGrid({
 	items,
 	grouping,
+	notes,
 	tileSize = "md",
 	...pickProps
 }: ItemGridProps) {
@@ -37,6 +40,7 @@ export function ItemGrid({
 					key={section.key}
 					section={section}
 					tileSize={tileSize}
+					notes={notes}
 					{...pickProps}
 					getItemProps={getItemProps}
 				/>

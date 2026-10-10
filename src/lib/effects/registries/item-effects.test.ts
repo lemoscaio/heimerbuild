@@ -4,6 +4,7 @@ import { ItemsFileSchema } from "@schemas/item"
 import teemoBin from "../../../../scripts/sync-data/fixtures/champions/Teemo.bin.json"
 import teemoDetail from "../../../../scripts/sync-data/fixtures/champions/Teemo.json"
 import { normalizeChampion } from "../../../../scripts/sync-data/normalize-champions"
+import { effectiveItems } from "../../item-upgrades"
 import {
 	type BuildStatsInput,
 	computeBuildStats,
@@ -363,6 +364,112 @@ describe("Manaflow items", async () => {
 		expect(usedMatchStacks(stacks, effectsOf([MANAMUNE]))).toEqual(stacks)
 		expect(usedMatchStacks(stacks, effectsOf([ARCHANGELS]))).toEqual(stacks)
 		expect(usedMatchStacks(stacks, effectsOf([DEATHCAP]))).toBeUndefined()
+	})
+})
+
+// Wiki, checked 2026-10-09 (issue 436): at 360 Manaflow Manamune is Muramana and Archangel's Staff
+// is Seraph's Embrace, both with 1000 mana and Awe; below it they are the base items again.
+describe("Manaflow upgrades", async () => {
+	const DATA = new URL("../../../../public/data/", import.meta.url)
+	const { currentPatch: PATCH } = await Bun.file(
+		new URL("manifest.json", DATA),
+	).json()
+	async function championOf(key: string) {
+		return championSchema.parse(
+			await Bun.file(new URL(`${PATCH}/champions/${key}.json`, DATA)).json(),
+		)
+	}
+	const ezreal = await championOf("Ezreal")
+	const lux = await championOf("Lux")
+	const { items } = ItemsFileSchema.parse(
+		await Bun.file(new URL(`${PATCH}/items.json`, DATA)).json(),
+	)
+	const itemsById = Object.fromEntries(items.map((item) => [item.id, item]))
+	const ranks = { Q: 0, W: 0, E: 0, R: 0 }
+
+	/** The champion at level 1 holding `ids` as the build does: through `effectiveItems`. */
+	function buildAt(champion: typeof lux, ids: string[], mana: number) {
+		const matchStacks = { "manaflow-mana": mana }
+		const held = effectiveItems(
+			ids.map((id) => itemsById[id]),
+			matchStacks,
+			itemsById,
+		)
+		const available = availableEffects({
+			patch: PATCH,
+			champion,
+			ranks,
+			spells: [],
+			runes: [],
+			items: held,
+		})
+		const input: BuildStatsInput = {
+			champion,
+			patch: PATCH,
+			level: 1,
+			items: held,
+			shards: [],
+			ranks,
+			effects: { available, overrides: {} },
+			matchStacks,
+		}
+		return { held, available, stats: computeBuildStats(input) }
+	}
+
+	test("the upgrades keep the wiki's stats: 1000 mana each", () => {
+		expect(itemsById["3042"].stats).toEqual({
+			attackDamage: 35,
+			mana: 1000,
+			abilityHaste: 15,
+		})
+		expect(itemsById["3040"].stats).toEqual({
+			abilityPower: 70,
+			mana: 1000,
+			abilityHaste: 25,
+		})
+	})
+
+	test("Ezreal's Manamune at 359 is Manamune: 500 + 359 mana and 2% of it as AD", () => {
+		const { held, stats } = buildAt(ezreal, ["3004"], 359)
+
+		expect(held.map(({ name }) => name)).toEqual(["Manamune"])
+		expect(stats.mana.total).toBe(375 + 500 + 359)
+		expect(stats.attackDamage.bonus).toBeCloseTo(35 + 0.02 * 1234)
+	})
+
+	test("at 360 it is Muramana: 1000 mana, no Manaflow on top, and Awe's 2% of maximum mana", () => {
+		const { held, stats } = buildAt(ezreal, ["3004"], 360)
+
+		expect(held.map(({ name }) => name)).toEqual(["Muramana"])
+		expect(stats.mana.total).toBe(375 + 1000)
+		expect(stats.attackDamage.bonus).toBeCloseTo(35 + 0.02 * 1375)
+		expect(stats.abilityHaste.total).toBe(15)
+	})
+
+	test("Lux's Archangel's at 360 is Seraph's Embrace: 70 AP and 2% of bonus mana, 20", () => {
+		const { held, stats } = buildAt(lux, ["3003"], 360)
+
+		expect(held.map(({ name }) => name)).toEqual(["Seraph's Embrace"])
+		expect(stats.mana.total).toBe(440 + 1000)
+		expect(stats.abilityPower.total).toBeCloseTo(70 + 20)
+	})
+
+	test("Rabadon's 30% applies on top of Seraph's Awe: (70 + 130 + 20) × 1.3", () => {
+		const { stats } = buildAt(lux, ["3003", "3089"], 360)
+		const below = buildAt(lux, ["3003", "3089"], 359).stats
+
+		expect(stats.abilityPower.total).toBeCloseTo((70 + 130 + 20) * 1.3)
+		expect(below.abilityPower.total).toBeCloseTo((70 + 130 + 9.59) * 1.3)
+	})
+
+	test("the upgrade's Awe still reads the count, so the build keeps it and its input", () => {
+		const { available } = buildAt(ezreal, ["3004"], 360)
+		const effects = available.map(({ effect }) => effect)
+
+		expect(available.map(({ id }) => id)).toEqual(["muramana-awe"])
+		expect(usedMatchStacks({ "manaflow-mana": 360 }, effects)).toEqual({
+			"manaflow-mana": 360,
+		})
 	})
 })
 

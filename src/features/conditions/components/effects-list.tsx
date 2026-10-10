@@ -4,7 +4,11 @@ import { GameIcon } from "@/components/common/game-icon"
 import { Switch } from "@/components/ui/switch"
 import type { MatchStackSource } from "@/lib/effects/effect"
 import { type Condition, stackInputRows } from "../lib/conditions"
-import { type EffectCard as Card, effectCards } from "../lib/effect-cards"
+import {
+	type EffectCard as Card,
+	conditionKey,
+	effectCards,
+} from "../lib/effect-cards"
 import {
 	conditionText,
 	partLabel,
@@ -83,7 +87,10 @@ function EffectCard({ card, inputRows, onToggle, ...inputs }: EffectCardProps) {
 				</span>
 				{card.conditions.map((condition) => (
 					<EffectRow
-						key={condition.effect.id}
+						key={conditionKey(
+							condition,
+							inputRows.get(condition.effect.id) ?? [],
+						)}
 						condition={condition}
 						inputSources={inputRows.get(condition.effect.id) ?? []}
 						titleId={titleId}

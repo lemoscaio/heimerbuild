@@ -8,6 +8,7 @@ import { useAnalyticsContext } from "@/hooks/use-analytics-context"
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback"
 import { track } from "@/lib/analytics/analytics"
 import { cn } from "@/lib/cn"
+import { upgradeLabels } from "@/lib/item-upgrades"
 import { useFocusOnLayoutChange } from "../hooks/use-focus-on-layout-change"
 import { useReturnFocusToItem } from "../hooks/use-return-focus-to-item"
 import { focusRovingTabStop } from "../hooks/use-roving-focus"
@@ -21,6 +22,7 @@ import {
 	tokensFromFilters,
 } from "../lib/shop-query"
 import { type ItemSort, sortItemsByStat } from "../lib/sort-items-by-stat"
+import { upgradesAfterBase } from "../lib/upgrades-after-base"
 import type { ItemPickProps } from "../types/item-pick"
 import { GroupingMenu } from "./grouping-menu"
 import { ItemGrid } from "./item-grid"
@@ -98,7 +100,10 @@ export function ItemShop({
 	const { role, stats, match } = filters
 	useAnalyticsContext("shop_grouping", grouping, { keepAfterUnmount: true })
 	useAnalyticsContext("shop_stat_match", match)
-	const allItems = itemsQuery.data ? Object.values(itemsQuery.data) : []
+	const allItems = upgradesAfterBase(
+		itemsQuery.data ? Object.values(itemsQuery.data) : [],
+	)
+	const notes = upgradeLabels(itemsQuery.data)
 	const catalog = shopCatalog(allItems)
 	const trackSearch = useDebouncedCallback((search: ShopSearchChange) => {
 		const results = filterShopItems(allItems, search).length
@@ -218,6 +223,7 @@ export function ItemShop({
 				<ItemGrid
 					items={items}
 					grouping={grouping}
+					notes={notes}
 					tileSize={isExpanded ? "lg" : "md"}
 					{...pickProps}
 				/>

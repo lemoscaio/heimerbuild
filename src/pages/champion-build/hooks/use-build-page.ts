@@ -8,6 +8,7 @@ import type {
 } from "@/features/build-calculator/lib/build-search"
 import type { AbilityDamageBuild } from "@/features/skills/lib/ability-damage"
 import { track } from "@/lib/analytics/analytics"
+import { effectiveItems, upgradeLabel } from "@/lib/item-upgrades"
 import { selectedRunes } from "@/lib/rune-selection"
 import {
 	runeSummonerHints,
@@ -55,8 +56,16 @@ export function useBuildPage({
 		build
 	const { view, tab } = source
 	const selectedItem = selectedItemId ? itemsById?.[selectedItemId] : undefined
+	// The build with the shop's pick, as in game: a base item already at its upgrade's count shows as it.
+	const previewItems =
+		selectedItem &&
+		effectiveItems(
+			[...items.list, selectedItem],
+			build.matchState.matchStacks,
+			itemsById,
+		)
 	const selectedItemStats =
-		selectedItem && build.whatIf({ items: [...items.list, selectedItem] })
+		previewItems && build.whatIf({ items: previewItems })
 	const preview =
 		selectedItem && selectedItemStats
 			? { label: selectedItem.name, stats: selectedItemStats }
@@ -110,9 +119,9 @@ export function useBuildPage({
 		const composition = build.compositionIf(onRunes ? { shards: [] } : {})
 		const previewComposition = onRunes
 			? runesPreview && build.compositionIf({}, { previewShards: true })
-			: selectedItem &&
+			: previewItems &&
 				build.compositionIf(
-					{ items: [...items.list, selectedItem] },
+					{ items: previewItems },
 					{ previewItemsFrom: items.list.length },
 				)
 		const shown = onRunes ? runesPreview : preview
@@ -194,6 +203,8 @@ export function useBuildPage({
 		setTab,
 		/** The shop item picked for a closer look, not in the build yet. */
 		selectedItem,
+		/** What the selected item is beyond its price: an upgrade's base item and count. */
+		selectedItemNote: selectedItem && upgradeLabel(selectedItem.id, itemsById),
 		selectItem,
 		clearSelection: () => setSelectedItemId(undefined),
 		/** The stats with the selected item added, while one is selected. */
