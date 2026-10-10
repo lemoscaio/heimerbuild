@@ -98,10 +98,14 @@ export function startRunningEffects(
 	return startEffects(effects, form, isStartRunningEffect)
 }
 
-/** The start without what the build's effects can't set; a count past an effect's cap is its cap. */
+/**
+ * The start without what the build's effects can't set at the champion's level; a count past an
+ * effect's cap is its cap.
+ */
 export function keepUsableStart(
 	start: ComboStart,
 	effects: readonly BuildEffect[],
+	level: number,
 ): ComboStart {
 	const byId = new Map(effects.map((effect) => [effect.id, effect.effect]))
 	const usable = (id: string, is: (effect: Effect) => boolean) => {
@@ -109,7 +113,11 @@ export function keepUsableStart(
 		return !!effect && is(effect)
 	}
 	return {
-		onCooldown: start.onCooldown.filter((id) => usable(id, hasStartCooldown)),
+		onCooldown: start.onCooldown.filter((id) =>
+			effects.some(
+				(effect) => effect.id === id && hasStartCooldown(effect, level),
+			),
+		),
 		stacks: start.stacks.flatMap(({ id, count }) => {
 			const max = byId.get(id)?.stacks?.max
 			return usable(id, isStartStackEffect) && max
@@ -122,12 +130,16 @@ export function keepUsableStart(
 
 /**
  * The `start` value without the effects the build no longer has (Conqueror swapped for
- * Electrocute), each count at most its cap; as given while the effects load.
+ * Electrocute) or a cooldown too short to set, each count at most its cap; as given while the
+ * effects load.
  */
 export function dropUnusedComboStart(
 	value: string | undefined,
 	effects: readonly BuildEffect[] | undefined,
+	level: number,
 ): string | undefined {
 	if (!effects) return value
-	return serializeComboStart(keepUsableStart(readComboStart(value), effects))
+	return serializeComboStart(
+		keepUsableStart(readComboStart(value), effects, level),
+	)
 }

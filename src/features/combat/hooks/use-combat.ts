@@ -100,7 +100,7 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 	const effects = input?.effects ?? []
 
 	function save(next: CombatState) {
-		const kept = dropUnusedStart(next, input?.effects)
+		const kept = dropUnusedStart(next, input?.effects, input?.build.level ?? 1)
 		onChange(kept)
 		return kept
 	}
@@ -148,7 +148,11 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 		 */
 		start: combatStartView(
 			{
-				cooldowns: startCooldownEffects(effects, formId),
+				cooldowns: startCooldownEffects(
+					effects,
+					formId,
+					input?.build.level ?? 1,
+				),
 				stacks: startStackEffects(effects, formId),
 				running: startRunningEffects(effects, formId),
 			},

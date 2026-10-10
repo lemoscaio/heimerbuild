@@ -268,3 +268,51 @@ describe("buffs running at the start (issue 317)", async () => {
 		expect(ignored.steps[2]?.time).toBe(plain.steps[2]?.time)
 	})
 })
+
+describe("cooldowns too short to set at the start (owner, PR 442)", async () => {
+	const garen: Setup = {
+		champion: await champion("Garen"),
+		level: 9,
+		ranks: { Q: 1, W: 1, E: 1, R: 1 },
+	}
+	const q: CombatAction = { kind: "ability", slot: "Q" }
+
+	test("Trinity Force's Spellblade always starts ready: on cooldown it changes nothing", () => {
+		const trinity = { ...garen, items: [item("Trinity Force")] }
+		const ready = simulate(trinity, [q, attack])
+
+		expect(
+			simulate(trinity, [q, attack], {
+				startOnCooldown: ["trinity-force-spellblade"],
+			}).total,
+		).toEqual(ready.total)
+		expect(effectHits(ready, "trinity-force-spellblade")).toHaveLength(1)
+	})
+
+	test("Summon Aery always starts ready", async () => {
+		const annie: Setup = {
+			champion: await champion("Annie"),
+			level: 9,
+			ranks: { Q: 3, W: 1, E: 1, R: 0 },
+			runes: [rune("SummonAery")],
+		}
+		const cast: CombatAction = { kind: "ability", slot: "Q" }
+
+		expect(
+			simulate(annie, [cast], { startOnCooldown: ["summon-aery"] }).total,
+		).toEqual(simulate(annie, [cast]).total)
+	})
+
+	test("Hail of Blades and Grasp (4 s) still start on cooldown when removed", () => {
+		for (const key of ["HailOfBlades", "GraspOfTheUndying"]) {
+			const setup = { ...garen, runes: [rune(key)] }
+			const id =
+				key === "HailOfBlades" ? "hail-of-blades" : "grasp-of-the-undying-proc"
+
+			expect(
+				simulate(setup, [attack, attack], { startOnCooldown: [id] }).total
+					.final,
+			).toBeLessThan(simulate(setup, [attack, attack]).total.final)
+		}
+	})
+})

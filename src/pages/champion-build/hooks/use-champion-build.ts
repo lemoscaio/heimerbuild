@@ -200,7 +200,11 @@ export function useChampionBuild({
 			combo: state.combo,
 			free: state.free,
 			choices: state.choices,
-			start: dropUnusedComboStart(state.start, fightEffects),
+			start: dropUnusedComboStart(
+				state.start,
+				fightEffects,
+				championState.level,
+			),
 			target: state.target,
 		},
 		effects,

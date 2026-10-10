@@ -151,22 +151,33 @@ describe("dropUnusedComboStart", () => {
 			dropUnusedComboStart(
 				"-electrocute.-hail-of-blades.conqueror-12.master-yi-r-active",
 				electrocute,
+				9,
 			),
 		).toBe("-electrocute")
-		expect(dropUnusedComboStart("conqueror-12", electrocute)).toBeUndefined()
+		expect(dropUnusedComboStart("conqueror-12", electrocute, 9)).toBeUndefined()
 	})
 
 	test("a count past the cap is the cap, and an effect the start can't set goes", () => {
 		const effects = [bound("conqueror"), bound("ghost"), bound("brand-blaze")]
 
 		expect(
-			dropUnusedComboStart("conqueror-40.ghost.brand-blaze-2", effects),
+			dropUnusedComboStart("conqueror-40.ghost.brand-blaze-2", effects, 9),
 		).toBe("conqueror-12")
+	})
+
+	test("drops a cooldown too short to set (Trinity Force's Spellblade, 1.5 s)", () => {
+		expect(
+			dropUnusedComboStart(
+				"-trinity-force-spellblade.-hail-of-blades",
+				[bound("trinity-force-spellblade"), bound("hail-of-blades")],
+				9,
+			),
+		).toBe("-hail-of-blades")
 	})
 
 	test("keeps the value as given while the effects load", () => {
 		expect(
-			dropUnusedComboStart("conqueror-40.-hail-of-blades", undefined),
+			dropUnusedComboStart("conqueror-40.-hail-of-blades", undefined, 9),
 		).toBe("conqueror-40.-hail-of-blades")
 	})
 })

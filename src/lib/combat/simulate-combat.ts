@@ -284,7 +284,7 @@ function startCooldowns(sim: Simulation) {
 		const periodic = effect.effect.trigger.kind === "periodic"
 		const starts = periodic
 			? !leading.has(effect.id)
-			: hasStartCooldown(effect.effect) && onCooldown.has(effect.id)
+			: hasStartCooldown(effect, sim.context.level) && onCooldown.has(effect.id)
 		if (starts) {
 			startCooldown(sim, effect)
 			sim.assumedCooldowns.add(effect.id)

@@ -178,15 +178,15 @@ describe("setStartRunning", () => {
 })
 
 describe("dropUnusedStart", () => {
-	const sheen: BuildEffect = {
-		id: "sheen-spellblade",
-		name: "Sheen",
-		icon: "sheen.png",
+	const hail: BuildEffect = {
+		id: "hail-of-blades",
+		name: "Hail of Blades",
+		icon: "hail.png",
 		effect: {
-			id: "sheen-spellblade",
-			source: { kind: "item", itemId: "3057" },
-			trigger: { kind: "after-ability" },
-			cooldown: 1.5,
+			id: "hail-of-blades",
+			source: { kind: "rune", runeKey: "HailOfBlades" },
+			trigger: { kind: "on-attack" },
+			cooldown: 10,
 			grants: [],
 			since: "16.19",
 			sourceUrl: "https://wiki.leagueoflegends.com/en-us/",
@@ -202,7 +202,7 @@ describe("dropUnusedStart", () => {
 	const state: CombatState = {
 		...EMPTY_COMBAT,
 		start: {
-			onCooldown: ["sheen-spellblade", "electrocute"],
+			onCooldown: ["hail-of-blades", "electrocute"],
 			stacks: [
 				{ id: "conqueror", count: 20 },
 				{ id: "lethal-tempo", count: 6 },
@@ -212,23 +212,23 @@ describe("dropUnusedStart", () => {
 	}
 
 	test("drops the start of effects the build no longer has, and a count past the cap is the cap", () => {
-		expect(dropUnusedStart(state, [sheen, conqueror]).start).toEqual({
-			onCooldown: ["sheen-spellblade"],
+		expect(dropUnusedStart(state, [hail, conqueror], 9).start).toEqual({
+			onCooldown: ["hail-of-blades"],
 			stacks: [{ id: "conqueror", count: 12 }],
 			running: [],
 		})
 	})
 
 	test("keeps it as given while the effects load, and the same state when nothing goes", () => {
-		expect(dropUnusedStart(state, undefined)).toBe(state)
+		expect(dropUnusedStart(state, undefined, 9)).toBe(state)
 		const kept: CombatState = {
 			...EMPTY_COMBAT,
 			start: {
-				onCooldown: ["sheen-spellblade"],
+				onCooldown: ["hail-of-blades"],
 				stacks: [{ id: "conqueror", count: 12 }],
 				running: [],
 			},
 		}
-		expect(dropUnusedStart(kept, [sheen, conqueror])).toBe(kept)
+		expect(dropUnusedStart(kept, [hail, conqueror], 9)).toBe(kept)
 	})
 })

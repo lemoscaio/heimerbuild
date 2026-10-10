@@ -39,9 +39,10 @@ export const EMPTY_COMBAT: CombatState = {
 export function dropUnusedStart(
 	state: CombatState,
 	effects: readonly BuildEffect[] | undefined,
+	level: number,
 ): CombatState {
 	if (!effects) return state
-	const kept = keepUsableStart(state.start, effects)
+	const kept = keepUsableStart(state.start, effects, level)
 	const same =
 		kept.onCooldown.length === state.start.onCooldown.length &&
 		kept.running.length === state.start.running.length &&
