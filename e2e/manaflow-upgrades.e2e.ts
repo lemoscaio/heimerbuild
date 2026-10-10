@@ -89,3 +89,16 @@ test("a link with Muramana's id opens as Manamune at 360 and saves the canonical
 	await expect(page).toHaveURL(/[?&]stacks=manaflow-mana-360(?:&|$)/)
 	expect(await chosenNames(page, 1)).toEqual(["Remove Muramana"])
 })
+
+test("Garen has no mana: Muramana at 360 has no Effects row, and an edit keeps it Muramana", async ({
+	page,
+}) => {
+	await page.goto("/champions/Garen?items=3004&stacks=manaflow-mana-360")
+	expect(await chosenNames(page, 1)).toEqual(["Remove Muramana"])
+	await expect(manaflowSlider(page)).toHaveCount(0)
+
+	await levelSlider(page).press("ArrowRight")
+	await expect(page).toHaveURL(/[?&]lvl=2(?:&|$)/)
+	await expect(page).toHaveURL(/[?&]stacks=manaflow-mana-360(?:&|$)/)
+	expect(await chosenNames(page, 1)).toEqual(["Remove Muramana"])
+})

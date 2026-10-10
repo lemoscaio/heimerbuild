@@ -462,6 +462,46 @@ describe("Manaflow upgrades", async () => {
 		expect(below.abilityPower.total).toBeCloseTo((70 + 130 + 9.59) * 1.3)
 	})
 
+	describe("on a champion without mana (issue 441)", async () => {
+		const garen = await championOf("Garen")
+
+		function grantKinds(available: ReturnType<typeof buildAt>["available"]) {
+			return available.map(({ id, effect }) => [
+				id,
+				effect.grants.map((grant) =>
+					grant.kind === "stat" ? grant.stat : grant.kind,
+				),
+			])
+		}
+
+		test("Muramana and Seraph's Embrace grant nothing: no Awe row, and Garen's stats are the items'", () => {
+			const muramana = buildAt(garen, ["3004"], 360)
+			const seraphs = buildAt(garen, ["3003"], 360)
+
+			expect(muramana.available).toEqual([])
+			expect(seraphs.available).toEqual([])
+			expect(muramana.stats.attackDamage.bonus).toBe(35)
+			expect(seraphs.stats.abilityPower.total).toBe(70)
+		})
+
+		test("Manamune and Archangel's keep their Manaflow count without Awe", () => {
+			const { available } = buildAt(garen, ["3004", "3003"], 200)
+
+			expect(grantKinds(available)).toEqual([
+				["manamune-awe", ["mana"]],
+				["archangels-staff-awe", ["mana"]],
+			])
+		})
+
+		test("a mana user keeps Awe", () => {
+			const { available } = buildAt(ezreal, ["3004"], 200)
+
+			expect(grantKinds(available)).toEqual([
+				["manamune-awe", ["mana", "attackDamage"]],
+			])
+		})
+	})
+
 	test("the upgrade's Awe still reads the count, so the build keeps it and its input", () => {
 		const { available } = buildAt(ezreal, ["3004"], 360)
 		const effects = available.map(({ effect }) => effect)
