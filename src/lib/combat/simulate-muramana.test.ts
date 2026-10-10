@@ -56,7 +56,12 @@ function setup(
 ) {
 	const ranks = ONE_EACH
 	const matchStacks = { "manaflow-mana": mana }
-	const held = effectiveItems([itemsById["3004"]], matchStacks, itemsById)
+	const held = effectiveItems(
+		[itemsById["3004"]],
+		matchStacks,
+		itemsById,
+		championData,
+	)
 	const build = {
 		champion: championData,
 		patch: PATCH,
@@ -283,13 +288,15 @@ describe("Shock on empowered attacks, per ability (wiki)", async () => {
 	})
 })
 
-// Wiki: Shock and Awe scale with maximum mana; a champion without mana has none (issue 441).
-describe("Muramana on a champion without mana", async () => {
+// Wiki: "Manaless champions cannot trigger Manaflow", and Shock and Awe scale with mana (issue 441).
+describe("Manamune at 360 on a champion without mana", async () => {
 	const garen = await champion("Garen")
 	const zed = await champion("Zed")
 
-	test("Garen's Decisive Strike deals no Shock and runs no Awe; its damage is the step's own", () => {
-		const { effects } = setup(garen, 360)
+	test("Garen's Manamune stays Manamune at 360: Decisive Strike deals no Shock and runs no Awe", () => {
+		const { build, effects } = setup(garen, 360)
+
+		expect(build.items.map(({ name }) => name)).toEqual(["Manamune"])
 		const result = simulate(garen, 360, [{ kind: "ability", slot: "Q" }])
 		const [step] = result.steps
 
@@ -301,7 +308,7 @@ describe("Muramana on a champion without mana", async () => {
 		)
 	})
 
-	test("Zed's energy is not mana: no Shock on his attack, and Awe adds no attack damage", () => {
+	test("Zed's energy is not mana: no Shock on his attack, and Manamune adds only its own attack damage", () => {
 		const result = simulate(zed, 360, [{ kind: "attack" }])
 		const { build, effects } = setup(zed, 360)
 		const stats = computeBuildStats({

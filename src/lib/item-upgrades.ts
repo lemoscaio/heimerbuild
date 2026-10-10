@@ -1,6 +1,8 @@
+import type { Champion } from "@schemas/champion"
 import type { Item } from "@schemas/item"
-import type { MatchStackSource, StacksThreshold } from "./effects/effect"
+import type { StacksThreshold } from "./effects/effect"
 import {
+	gainsMatchStacks,
 	type MatchStacks,
 	reachesThreshold,
 	stacksOf,
@@ -40,16 +42,28 @@ export const ITEM_UPGRADES: readonly (ItemUpgrade & { sourceUrl: string })[] = [
 	},
 ]
 
-/** The counts the build's base items wait for (Manamune's Manaflow): they stay with the item. */
-export function upgradeSources(itemIds: readonly string[]): MatchStackSource[] {
-	return ITEM_UPGRADES.filter(({ base }) => itemIds.includes(base)).map(
-		({ at }) => at.source,
-	)
-}
-
 /** The upgrade `itemId` is, by the upgrade's id (Muramana). */
 export function upgradeRule(itemId: string): ItemUpgrade | undefined {
 	return ITEM_UPGRADES.find(({ upgrade }) => upgrade === itemId)
+}
+
+/** The build's champion, whose resource decides the counts it gathers; absent while it loads. */
+type UpgradeChampion = Pick<Champion, "resource"> | undefined
+
+/** Whether the champion can reach the upgrade: it gathers its count (as given while it loads). */
+function reaches({ at }: ItemUpgrade, champion: UpgradeChampion) {
+	return !champion || gainsMatchStacks(at.source, champion)
+}
+
+/** The upgrades the champion never holds, by id: Muramana and Seraph's Embrace without mana. */
+export function unreachableUpgrades(
+	champion: UpgradeChampion,
+): ReadonlySet<string> {
+	return new Set(
+		ITEM_UPGRADES.filter((rule) => !reaches(rule, champion)).map(
+			({ upgrade }) => upgrade,
+		),
+	)
 }
 
 type UpgradeItem = Pick<Item, "id" | "groupLimits">
@@ -57,17 +71,24 @@ type UpgradeItem = Pick<Item, "id" | "groupLimits">
 /**
  * The build's items as they are in game: a base item whose count reached its upgrade's is the upgrade
  * (Manamune at 360 Manaflow is Muramana), with the base's group limits too, so the one-Manaflow-item
- * rule still holds. Every reader of the build's items goes through it; as given while the items load.
+ * rule still holds. A champion without the count never upgrades (Garen's Manamune stays Manamune).
+ * Every reader of the build's items goes through it; as given while the items load.
  */
 export function effectiveItems<T extends UpgradeItem>(
 	items: readonly T[],
 	matchStacks: MatchStacks | undefined,
 	itemsById: Readonly<Record<string, T>> | undefined,
+	champion: UpgradeChampion,
 ): T[] {
 	return items.map((item) => {
 		const rule = ITEM_UPGRADES.find(({ base }) => base === item.id)
 		const upgrade = rule && itemsById?.[rule.upgrade]
-		if (!upgrade || !reachesThreshold(matchStacks, rule.at)) return item
+		if (
+			!upgrade ||
+			!reaches(rule, champion) ||
+			!reachesThreshold(matchStacks, rule.at)
+		)
+			return item
 		const own = new Set(upgrade.groupLimits.map(({ group }) => group))
 		return {
 			...upgrade,
@@ -87,13 +108,18 @@ export type BuildItemValues = {
 /**
  * The canonical form of the build's items: an upgrade's id (a link's `items=3042`, a shop pick) is its
  * base item with the count raised to the upgrade's, so a link always stores Manamune and the count.
+ * For a champion that can't reach it, just the base item (`items=3042` on Garen is Manamune).
  */
-export function canonicalItemValues(values: BuildItemValues): BuildItemValues {
+export function canonicalItemValues(
+	values: BuildItemValues,
+	champion: UpgradeChampion,
+): BuildItemValues {
 	if (!values.itemIds.some((id) => upgradeRule(id))) return values
 	let stacks = values.matchStacks
 	const itemIds = values.itemIds.map((id) => {
 		const rule = upgradeRule(id)
 		if (!rule) return id
+		if (!reaches(rule, champion)) return rule.base
 		const { source, stacks: needed } = rule.at
 		stacks = withMatchStacks(
 			stacks,

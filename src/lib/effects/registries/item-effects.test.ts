@@ -394,6 +394,7 @@ describe("Manaflow upgrades", async () => {
 			ids.map((id) => itemsById[id]),
 			matchStacks,
 			itemsById,
+			champion,
 		)
 		const available = availableEffects({
 			patch: PATCH,
@@ -464,41 +465,45 @@ describe("Manaflow upgrades", async () => {
 
 	describe("on a champion without mana (issue 441)", async () => {
 		const garen = await championOf("Garen")
+		const tear = itemsById["3070"]
 
-		function grantKinds(available: ReturnType<typeof buildAt>["available"]) {
-			return available.map(({ id, effect }) => [
-				id,
-				effect.grants.map((grant) =>
-					grant.kind === "stat" ? grant.stat : grant.kind,
+		test("Manaflow doesn't exist: at 360 Manamune and Archangel's stay themselves, with no effect", () => {
+			const { held, available, stats } = buildAt(garen, ["3004", "3003"], 360)
+			const plain = buildAt(garen, ["3004", "3003"], 0).stats
+
+			expect(held.map(({ name }) => name)).toEqual([
+				"Manamune",
+				"Archangel's Staff",
+			])
+			expect(available).toEqual([])
+			expect(stats).toEqual(plain)
+		})
+
+		test("Tear has no Manaflow row, and the count reads as unused", () => {
+			const available = availableEffects({
+				patch: PATCH,
+				champion: garen,
+				ranks,
+				spells: [],
+				runes: [],
+				items: [tear],
+			})
+
+			expect(available).toEqual([])
+			expect(
+				usedMatchStacks(
+					{ "manaflow-mana": 200 },
+					available.map(({ effect }) => effect),
 				),
-			])
-		}
-
-		test("Muramana and Seraph's Embrace grant nothing: no Awe row, and Garen's stats are the items'", () => {
-			const muramana = buildAt(garen, ["3004"], 360)
-			const seraphs = buildAt(garen, ["3003"], 360)
-
-			expect(muramana.available).toEqual([])
-			expect(seraphs.available).toEqual([])
-			expect(muramana.stats.attackDamage.bonus).toBe(35)
-			expect(seraphs.stats.abilityPower.total).toBe(70)
+			).toBeUndefined()
 		})
 
-		test("Manamune and Archangel's keep their Manaflow count without Awe", () => {
-			const { available } = buildAt(garen, ["3004", "3003"], 200)
-
-			expect(grantKinds(available)).toEqual([
-				["manamune-awe", ["mana"]],
-				["archangels-staff-awe", ["mana"]],
-			])
-		})
-
-		test("a mana user keeps Awe", () => {
+		test("a mana user keeps Manaflow and Awe", () => {
 			const { available } = buildAt(ezreal, ["3004"], 200)
 
-			expect(grantKinds(available)).toEqual([
-				["manamune-awe", ["mana", "attackDamage"]],
-			])
+			expect(
+				available.map(({ id, effect }) => [id, effect.grants.length]),
+			).toEqual([["manamune-awe", 2]])
 		})
 	})
 
