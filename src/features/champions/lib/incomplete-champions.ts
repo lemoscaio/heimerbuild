@@ -6,7 +6,10 @@ export type IncompleteChampion = {
 
 /** Champions whose kit is knowingly incomplete (issue 310); adding one is one line. */
 export const INCOMPLETE_CHAMPIONS: readonly IncompleteChampion[] = [
-	{ championKey: "Aphelios", missing: "His weapons, their Qs and his R" },
+	{
+		championKey: "Aphelios",
+		missing: "His weapons, their Qs and his R's weapon effects",
+	},
 	{ championKey: "RekSai", missing: "Her burrowed form and its abilities" },
 ]
 
