@@ -355,6 +355,8 @@ function resolveFullGrant(
 		case "damageAmplification":
 		case "bonusTrueDamage":
 		case "applyOnHit":
+		case "slow":
+		case "damageDealtReduction":
 			return []
 	}
 }

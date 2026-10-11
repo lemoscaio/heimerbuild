@@ -73,4 +73,43 @@ export const SUMMONER_EFFECTS: readonly Effect[] = [
 		since: VERIFIED_ON,
 		sourceUrl: `${WIKI}Ignite`,
 	},
+	{
+		// Its slow and damage reduction are listed, not counted, until the target moves and fights (issue 69).
+		id: "exhaust",
+		source: { kind: "summoner", spellKey: "SummonerExhaust" },
+		trigger: { kind: "after-use" },
+		holder: "target",
+		duration: { by: "level", value: "debuffduration" },
+		grants: [
+			{ kind: "slow", amount: { by: "level", value: "slow" } },
+			{
+				kind: "damageDealtReduction",
+				amount: { by: "level", value: "damagereduction" },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Exhaust`,
+	},
+	{
+		// Unleashed and Primal Smite deal the same to a champion (`firstpvpdamage`, `secondpvpdamage`).
+		id: "smite-champion",
+		source: { kind: "summoner", spellKey: "SummonerSmite", upgraded: true },
+		trigger: { kind: "after-use" },
+		holder: "target",
+		duration: { by: "level", value: "smiteslowduration" },
+		grants: [
+			{
+				kind: "damage",
+				damageType: "true",
+				base: { by: "level", value: "firstpvpdamage" },
+				ratios: {},
+			},
+			{
+				kind: "slow",
+				amount: { by: "level", value: "smiteslowamount", scale: 100 },
+			},
+		],
+		since: VERIFIED_ON,
+		sourceUrl: `${WIKI}Smite`,
+	},
 ]

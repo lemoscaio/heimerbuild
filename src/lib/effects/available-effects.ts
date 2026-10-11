@@ -47,6 +47,8 @@ export type EffectsBuild = {
 	ranks: AbilityRanks
 	/** The chosen summoner spells. */
 	spells: readonly SummonerSpell[]
+	/** The keys of the chosen spells the build has upgraded (Smite once its pet is fed). */
+	upgradedSpells?: readonly string[]
 	/** The rune page's runes. */
 	runes: readonly Rune[]
 	/** The chosen items. */
@@ -118,6 +120,8 @@ function bindSource(effect: Effect, build: EffectsBuild): BuildEffect[] {
 		}
 		case "summoner": {
 			const spell = build.spells.find(({ key }) => key === source.spellKey)
+			if (source.upgraded && !build.upgradedSpells?.includes(source.spellKey))
+				return []
 			return spell ? [{ ...named(effect, spell), spell }] : []
 		}
 		case "rune": {
