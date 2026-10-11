@@ -17,6 +17,8 @@ type ChampionHeaderProps = {
 	avatar: React.ReactNode
 	/** Next to the portrait, such as the summoner spell slots. */
 	beside?: React.ReactNode
+	/** Under the roles, such as the incomplete-champion notice. */
+	note?: React.ReactNode
 }
 
 export function ChampionHeader({
@@ -24,6 +26,7 @@ export function ChampionHeader({
 	attackType,
 	avatar,
 	beside,
+	note,
 }: ChampionHeaderProps) {
 	return (
 		<>
@@ -42,6 +45,7 @@ export function ChampionHeader({
 						<span aria-hidden="true"> · </span>
 						<span>{attackTypeLabels[attackType]}</span>
 					</p>
+					{note}
 				</div>
 			</ChampionHeaderLayout>
 			<Collapsible className="text-white text-xs">

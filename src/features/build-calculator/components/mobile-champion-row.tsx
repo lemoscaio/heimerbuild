@@ -6,6 +6,8 @@ type MobileChampionRowProps = {
 	avatar: React.ReactNode
 	/** Next to the portrait, such as the summoner spell slots. */
 	beside?: React.ReactNode
+	/** Under the name, such as the incomplete-champion notice. */
+	note?: React.ReactNode
 	/** The level control, under the name. */
 	children: React.ReactNode
 }
@@ -14,6 +16,7 @@ export function MobileChampionRow({
 	champion,
 	avatar,
 	beside,
+	note,
 	children,
 }: MobileChampionRowProps) {
 	return (
@@ -24,6 +27,7 @@ export function MobileChampionRow({
 				<h1 className="truncate font-bold font-display text-xl">
 					{champion.name}
 				</h1>
+				{note}
 				{children}
 			</div>
 		</div>

@@ -31,6 +31,8 @@ type MobileBuildPageProps = {
 	patch: string
 	copyLink: React.ReactNode
 	patchNotice: React.ReactNode
+	/** Under the champion's name: what of its kit isn't modeled yet, for an incomplete champion. */
+	incompleteNotice: React.ReactNode
 }
 
 /** Below `lg`: the build on top, Stats | Shop | Runes tabs, and the page actions pinned below. */
@@ -40,6 +42,7 @@ export function MobileBuildPage({
 	patch,
 	copyLink,
 	patchNotice,
+	incompleteNotice,
 }: MobileBuildPageProps) {
 	useAnalyticsContext("shop_mode", "mobile")
 	const preloadRuneImages = useRuneImagePreload(patch)
@@ -77,6 +80,7 @@ export function MobileBuildPage({
 								layout="sheet"
 							/>
 						}
+						note={incompleteNotice}
 					>
 						<LevelSelector
 							level={championState.level}

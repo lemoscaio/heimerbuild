@@ -2,6 +2,8 @@ import { getRouteApi, useRouter } from "@tanstack/react-router"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { CopyBuildLink } from "@/features/build-calculator/components/copy-build-link"
 import { PatchNotice } from "@/features/build-calculator/components/patch-notice"
+import { IncompleteChampionNotice } from "@/features/champions/components/incomplete-champion-notice"
+import { findIncompleteChampion } from "@/features/champions/lib/incomplete-champions"
 import { ShopStateProvider } from "@/features/item-shop/components/shop-state-provider"
 import { useIsDesktop } from "@/hooks/use-is-desktop"
 import { track } from "@/lib/analytics/analytics"
@@ -70,6 +72,14 @@ export function ChampionBuildPage() {
 	)
 
 	if (!build.champion) return null
+	const incomplete = findIncompleteChampion(build.champion.key)
+	const incompleteNotice = incomplete && (
+		<IncompleteChampionNotice
+			championName={build.champion.name}
+			missing={incomplete.missing}
+		/>
+	)
+
 	return (
 		<TooltipProvider delay={TOOLTIP_DELAY_MS}>
 			{/* Above the screens: switching the view keeps the shop's search and filters. */}
@@ -81,6 +91,7 @@ export function ChampionBuildPage() {
 						patch={patch}
 						copyLink={copyLink}
 						patchNotice={patchNotice}
+						incompleteNotice={incompleteNotice}
 					/>
 				) : build.view === "shop" ? (
 					<ExpandedShopPage
@@ -103,6 +114,7 @@ export function ChampionBuildPage() {
 						patch={patch}
 						copyLink={copyLink}
 						patchNotice={patchNotice}
+						incompleteNotice={incompleteNotice}
 						comboToggleRef={comboToggleRef}
 					/>
 				)}

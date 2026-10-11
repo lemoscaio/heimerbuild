@@ -1,4 +1,5 @@
 import { Info } from "lucide-react"
+import { BugReportLink } from "@/components/common/bug-report-link"
 import { cn } from "@/lib/cn"
 
 /** What the combo leaves out, said quietly under it. */
@@ -12,6 +13,13 @@ export function CombatNotes({
 			className={cn("flex flex-col gap-1 text-subtle text-xs", className)}
 			{...props}
 		>
+			<li className="flex items-start gap-1.5">
+				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
+				<span>
+					Beta: the combo's damage and timings are still being checked in game,
+					champion by champion. <BugReportLink />
+				</span>
+			</li>
 			<li className="flex items-start gap-1.5">
 				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
 				Travel time of projectiles and dashes isn't counted.
