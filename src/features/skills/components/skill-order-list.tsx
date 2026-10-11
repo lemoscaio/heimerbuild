@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority"
-import { GameIcon } from "@/components/common/game-icon"
+import { PointIcon } from "./point-icon"
 import { SkillGridCell } from "./skill-grid-cell"
 import { SkillLevelCells } from "./skill-level-cells"
 import type { SkillOrderGridProps } from "./skill-order-grid"
@@ -38,11 +38,7 @@ export function SkillOrderList({
 				<span aria-hidden="true" />
 				{spells.map((spell) => (
 					<div key={spell.slot} className="flex flex-col items-center gap-0.5">
-						<GameIcon
-							src={spell.icon}
-							name={spell.name}
-							className="size-8 rounded-md"
-						/>
+						<PointIcon spell={spell} className="size-8 rounded-md" />
 						<span className="text-[11px] text-subtle">
 							{ranks[spell.slot]}/{spell.maxRank}
 						</span>

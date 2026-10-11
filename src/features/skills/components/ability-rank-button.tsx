@@ -1,7 +1,6 @@
 import { cva } from "class-variance-authority"
 import { Ban, Plus } from "lucide-react"
 import { useId, useState } from "react"
-import { GameIcon } from "@/components/common/game-icon"
 import {
 	Tooltip,
 	TooltipContent,
@@ -11,6 +10,7 @@ import { cn } from "@/lib/cn"
 import { formatAbilityValue, rankUpChanges } from "../lib/ability-values"
 import type { PointSpell } from "../lib/point-spells"
 import type { SpendBlocker } from "../lib/skill-history"
+import { PointIcon } from "./point-icon"
 import { UnavailableReason } from "./unavailable-reason"
 
 const rankPipVariants = cva("h-1.5 flex-1 rounded-full", {
@@ -87,9 +87,8 @@ export function AbilityRankButton({
 						if (event.pointerType !== "mouse") setOpen(true)
 					}}
 				>
-					<GameIcon
-						src={spell.icon}
-						name={spell.name}
+					<PointIcon
+						spell={spell}
 						className={cn(
 							abilityIconVariants({
 								state: !canSpend

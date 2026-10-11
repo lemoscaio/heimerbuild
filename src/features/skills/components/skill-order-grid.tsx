@@ -1,9 +1,9 @@
 import type { AbilitySlot } from "@schemas/champion"
-import { GameIcon } from "@/components/common/game-icon"
 import { cn } from "@/lib/cn"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import type { PointSpell } from "../lib/point-spells"
 import type { LevelPoint } from "../lib/skill-history"
+import { PointIcon } from "./point-icon"
 import { SkillGridCell } from "./skill-grid-cell"
 import { SkillLevelCells } from "./skill-level-cells"
 
@@ -35,11 +35,7 @@ export function SkillOrderGrid({
 				<span aria-hidden="true" className="h-5" />
 				{spells.map((spell) => (
 					<div key={spell.slot} className="flex h-9 items-center gap-2">
-						<GameIcon
-							src={spell.icon}
-							name={spell.name}
-							className="size-8 rounded-md"
-						/>
+						<PointIcon spell={spell} className="size-8 rounded-md" />
 						<div className="flex min-w-0 flex-col leading-tight">
 							<span className="truncate font-bold text-xs">
 								{spell.slot} · {spell.name}

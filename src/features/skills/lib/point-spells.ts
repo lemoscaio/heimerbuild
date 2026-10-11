@@ -9,15 +9,17 @@ export type PointSpell = Pick<
 > & {
 	/** Its short name on the phone grid: the slot letter, or the stat ("AD"). */
 	tag: string
+	/** The stat a point buys and its tile's label, when the points raise stats (Aphelios). */
+	statTile?: { stat: RankStat["stat"]; label: string }
 }
 
-/** The grid's name and the rank-up line of the stats Aphelios's points buy, as the wiki labels them. */
+/** The grid's name, the tile's label and the rank-up line (the wiki's) of the stats Aphelios's points buy. */
 const STAT_POINT_LABELS: Partial<
-	Record<RankStat["stat"], { name: string; line: string }>
+	Record<RankStat["stat"], { name: string; tile: string; line: string }>
 > = {
-	attackDamage: { name: "AD", line: "Bonus Attack Damage" },
-	attackSpeedPercent: { name: "AS", line: "Bonus Attack Speed" },
-	lethality: { name: "Lethality", line: "Lethality" },
+	attackDamage: { name: "AD", tile: "AD", line: "Bonus Attack Damage" },
+	attackSpeedPercent: { name: "AS", tile: "AS", line: "Bonus Attack Speed" },
+	lethality: { name: "Lethality", tile: "LETH", line: "Lethality" },
 }
 
 type PointSpellsOptions = {
@@ -35,14 +37,15 @@ export function pointSpells(
 	spells: readonly ChampionSpell[],
 	{ slots, statPoints }: PointSpellsOptions,
 ): PointSpell[] {
-	return slots.flatMap((slot) => {
+	return slots.flatMap((slot): PointSpell[] => {
 		const spell = spells.find((candidate) => candidate.slot === slot)
 		if (!spell) return []
 		const rankStat = statPoints?.find((candidate) => candidate.slot === slot)
 		if (!rankStat) return [{ ...spell, tag: slot }]
 		const { label, icon } = statDisplay[rankStat.stat]
-		const { name, line } = STAT_POINT_LABELS[rankStat.stat] ?? {
+		const { name, tile, line } = STAT_POINT_LABELS[rankStat.stat] ?? {
 			name: label,
+			tile: label,
 			line: label,
 		}
 		const isPercent = STAT_UNITS[rankStat.stat] === "percent"
@@ -53,6 +56,7 @@ export function pointSpells(
 				icon,
 				maxRank: spell.maxRank,
 				tag: name,
+				statTile: { stat: rankStat.stat, label: tile },
 				rankValues: [
 					{
 						label: line,
