@@ -24,6 +24,7 @@ import {
 } from "@/lib/effects/match-stacks"
 import { RUNES_PARAM_PATTERN } from "@/lib/rune-selection"
 import { UNSPENT_LEVEL_MARK } from "@/lib/skill-order-param"
+import { SMITE_UPGRADES, type SmiteUpgrade } from "@/lib/smite-upgrade"
 import { MAX_LEVEL, MIN_LEVEL } from "@/lib/stats/growth"
 import { SUMMONERS_PARAM_PATTERN } from "@/lib/summoner-slots"
 import { MAX_ITEMS } from "./build-items"
@@ -118,6 +119,8 @@ export const buildSearchSchema = z.object({
 	),
 	/** The two summoner spells, D then F (`serializeSummonerSlots`); checked against the data later. */
 	summoners: z.catch(z.optional(summonersSchema), undefined),
+	/** Smite's upgrade (`unleashed`, `primal`); absent means base Smite. Dropped without Smite in a slot. */
+	smite: z.catch(z.optional(z.enum(SMITE_UPGRADES)), undefined),
 	/** The effects turned on or off against their defaults (`serializeEffectOverrides`); checked against the build later. */
 	effects: z.catch(
 		z.optional(z.string().check(z.regex(EFFECTS_PARAM_PATTERN))),
@@ -182,6 +185,8 @@ export type BuildState = {
 	skills?: string
 	/** `serializeSummonerSlots` output; `undefined` for two empty slots. */
 	summoners?: string
+	/** Smite fed to Unleashed or Primal; `undefined` for base Smite. */
+	smiteUpgrade?: SmiteUpgrade
 	/** The effects that differ from their defaults; `undefined` or empty for none. */
 	effects?: EffectOverrides
 	/** Percent of maximum health; `undefined` for full health. 100 stays out of the link too. */
@@ -205,6 +210,7 @@ export function toBuildSearch({
 	form,
 	skills,
 	summoners,
+	smiteUpgrade,
 	effects,
 	currentHealth,
 	gameTime,
@@ -225,6 +231,7 @@ export function toBuildSearch({
 		runes,
 		skills,
 		summoners,
+		smite: smiteUpgrade,
 		effects: serializeEffectOverrides(effects),
 		hp: currentHealth === FULL_HEALTH ? undefined : currentHealth,
 		min: gameTime === GAME_START ? undefined : gameTime,
