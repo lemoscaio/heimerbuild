@@ -24,7 +24,7 @@ export function IncompleteChampionNotice({
 				openOnHover
 				delay={0}
 				aria-label={`Incomplete: what isn't modeled for ${championName}`}
-				className="-mx-1 inline-flex w-max cursor-help items-center gap-1 rounded-sm px-1 font-sans text-subtle text-xs outline-ring hover:bg-line focus-visible:outline-2 aria-expanded:bg-line"
+				className="-mx-1 inline-flex w-max cursor-help items-center gap-1 rounded-sm px-1 font-sans text-warning text-xs outline-ring hover:bg-line focus-visible:outline-2 aria-expanded:bg-line"
 			>
 				<Info aria-hidden="true" className="size-3" />
 				Incomplete
