@@ -358,14 +358,16 @@ export function normalizeAbilities(
 		}
 	})
 	const order = recommendedOrder(characterBin)
+	const passiveValues = passiveObject && spellValues(passiveObject)
 	const rankStats = rankStatRules.map((rule): RankStat => {
 		const index = ABILITY_SLOTS.indexOf(rule.slot)
+		const values = rule.passivePerRank ? passiveValues : valuesBySlot[index]
 		return {
 			slot: rule.slot,
 			stat: rule.stat,
 			values: rankStatValues(
 				rule,
-				valuesBySlot[index]?.get(rule.dataValue.toLowerCase()),
+				values?.get(rule.dataValue.toLowerCase()),
 				spells[index]?.maxrank ?? 0,
 			),
 		}
