@@ -152,6 +152,13 @@ export type ActiveEffect = {
 	maxStacks?: number
 	/** While its pause holds: the stat grants switched off, and until when (Viego's E movement speed). */
 	paused?: { until: number; grants: readonly StatKey[] }
+	/** The target debuffs it lists but the combo doesn't count (Exhaust's 40% slow), in percent. */
+	debuffs?: readonly TargetDebuff[]
+}
+
+export type TargetDebuff = {
+	kind: "slow" | "damageDealtReduction"
+	percent: number
 }
 
 /**

@@ -26,6 +26,11 @@ export function CombatNotes({
 			</li>
 			<li className="flex items-start gap-1.5">
 				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
+				Slows and Exhaust's damage reduction are listed on the target but not
+				counted: the target doesn't move or deal damage yet.
+			</li>
+			<li className="flex items-start gap-1.5">
+				<Info aria-hidden="true" className="mt-0.5 size-3 shrink-0" />
 				The combo starts from its Combo start (every cooldown ready unless
 				removed, the stacks and buffs added there) and the situation markers
 				placed in it, and ignores the stats panel's switches.
