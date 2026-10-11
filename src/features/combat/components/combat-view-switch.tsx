@@ -1,8 +1,9 @@
+import { SegmentedItem } from "@/components/ui/segmented"
 import {
 	COMBAT_VIEW_MODES,
 	type CombatViewMode,
 } from "../hooks/use-combat-view-mode"
-import { CombatSegmented, CombatSegmentedItem } from "./combat-segmented"
+import { CombatSegmented } from "./combat-segmented"
 
 const LABELS = {
 	list: "List",
@@ -29,9 +30,9 @@ export function CombatViewSwitch({
 			}}
 		>
 			{COMBAT_VIEW_MODES.map((mode) => (
-				<CombatSegmentedItem key={mode} value={mode}>
+				<SegmentedItem key={mode} value={mode}>
 					{LABELS[mode]}
-				</CombatSegmentedItem>
+				</SegmentedItem>
 			))}
 		</CombatSegmented>
 	)

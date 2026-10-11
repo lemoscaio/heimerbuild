@@ -1,5 +1,6 @@
+import { SegmentedItem } from "@/components/ui/segmented"
 import type { CombatRowOrder } from "../lib/combat-rows"
-import { CombatSegmented, CombatSegmentedItem } from "./combat-segmented"
+import { CombatSegmented } from "./combat-segmented"
 
 const ORDERS = [
 	{ value: "hit", label: "Hit time" },
@@ -26,9 +27,9 @@ export function CombatRowOrderSwitch({
 			}}
 		>
 			{ORDERS.map(({ value: order, label }) => (
-				<CombatSegmentedItem key={order} value={order}>
+				<SegmentedItem key={order} value={order}>
 					{label}
-				</CombatSegmentedItem>
+				</SegmentedItem>
 			))}
 		</CombatSegmented>
 	)
