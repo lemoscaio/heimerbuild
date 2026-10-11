@@ -36,5 +36,7 @@ export function statDeltas(
 export type FormComparison = {
 	formName: string
 	comparedName: string
+	/** The compared form comes first in the champion's form order (Mini before Mega). */
+	comparedFirst: boolean
 	deltas: StatDeltas
 }

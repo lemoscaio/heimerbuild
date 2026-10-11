@@ -29,7 +29,7 @@ export type StatsRow = {
 	next?: number
 	/** How far the total is from the other form's, when it differs. */
 	formDelta?: number
-	/** The other form's total, when it differs. */
+	/** The other form's total, whenever the forms are compared. */
 	comparedTotal?: number
 	/** The total split by source; with a preview, the previewed build's (its parts flagged). */
 	parts: readonly StatPart[]
@@ -39,6 +39,20 @@ export type StatsRowGroup = {
 	group: StatGroup
 	label: string
 	rows: StatsRow[]
+}
+
+/** One of the two forms' value columns while the forms are compared. */
+export type CompareColumn = { name: string; selected: boolean }
+
+/** Both forms' columns in the champion's form order, so a switch never swaps them. */
+export function compareColumns({
+	formName,
+	comparedName,
+	comparedFirst,
+}: FormComparison): CompareColumn[] {
+	const selected = { name: formName, selected: true }
+	const compared = { name: comparedName, selected: false }
+	return comparedFirst ? [compared, selected] : [selected, compared]
 }
 
 /** The Stats panel's rows, by group. */
@@ -60,10 +74,8 @@ export function statsRows({
 			valueFormat: { ...info, attackSpeedRatio },
 			total,
 			...(next !== undefined && { next }),
-			...(formDelta !== undefined && {
-				formDelta,
-				comparedTotal: total - formDelta,
-			}),
+			...(formDelta !== undefined && { formDelta }),
+			...(formComparison && { comparedTotal: total - (formDelta ?? 0) }),
 			parts: (preview?.composition ?? composition)[info.stat],
 		}
 	})

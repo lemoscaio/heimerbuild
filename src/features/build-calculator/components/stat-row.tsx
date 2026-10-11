@@ -5,20 +5,21 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { cn } from "@/lib/cn"
-import type { StatsRow } from "../lib/stats-rows"
+import type { CompareColumn, StatsRow } from "../lib/stats-rows"
+import { compareColumn } from "./compare-column"
 import { NoFixedValue } from "./no-fixed-value"
 import { StatNumber } from "./stat-number"
 
 type StatRowProps = {
 	row: StatsRow
-	/** Set while the forms are compared: the row shows its difference from that form. */
-	comparedName?: string
+	/** Set while the forms are compared: the row shows both forms' totals, in these columns. */
+	columns?: CompareColumn[]
 	/** Shown under the row's name and total, inside its button (the source bar). */
 	children?: React.ReactNode
 }
 
 /** A stats row: its total; tapping it opens the breakdown by source. */
-export function StatRow({ row, comparedName, children }: StatRowProps) {
+export function StatRow({ row, columns, children }: StatRowProps) {
 	const { info, next } = row
 
 	if (info.noFixedValue) {
@@ -43,10 +44,11 @@ export function StatRow({ row, comparedName, children }: StatRowProps) {
 				>
 					<span className="flex items-center gap-2">
 						<RowLabel row={row} />
-						{comparedName && (
-							<FormDelta row={row} comparedName={comparedName} />
+						{columns ? (
+							<FormTotals row={row} columns={columns} />
+						) : (
+							<RowTotal row={row} />
 						)}
-						<RowTotal row={row} />
 						<ChevronDown
 							aria-hidden="true"
 							className="size-3.5 shrink-0 text-subtle transition-transform group-data-panel-open:rotate-180 motion-reduce:transition-none"
@@ -72,30 +74,63 @@ function RowLabel({ row }: { row: StatsRow }) {
 	)
 }
 
-/** The difference from the other form's total, "=" when they match. */
-function FormDelta({
+/** Both forms' totals side by side, the selected form's emphasized. */
+function FormTotals({
 	row,
-	comparedName,
+	columns,
 }: {
 	row: StatsRow
-	comparedName: string
+	columns: CompareColumn[]
 }) {
-	return (
-		<span className="w-16 shrink-0 text-right text-subtle tabular-nums">
-			<span className="sr-only">, vs {comparedName}: </span>
-			{row.formDelta === undefined ? (
-				<>
-					<span aria-hidden="true">=</span>
-					<span className="sr-only">same</span>
-				</>
+	const { total, comparedTotal, formDelta, valueFormat } = row
+
+	return columns.map(({ name, selected }) => (
+		<span
+			key={name}
+			className={compareColumn({
+				column: selected ? selectedColumn(formDelta) : "compared",
+			})}
+		>
+			<span className="sr-only">
+				, {name}
+				{selected && " (selected)"}:{" "}
+			</span>
+			{selected ? (
+				<SelectedTotal row={row} />
 			) : (
 				<StatNumber
-					value={row.formDelta}
-					valueFormat={row.valueFormat}
-					kind="delta"
+					value={comparedTotal ?? total}
+					valueFormat={valueFormat}
+					kind="total"
 				/>
 			)}
-			<span className="sr-only">, total: </span>
+		</span>
+	))
+}
+
+function selectedColumn(formDelta: number | undefined) {
+	if (formDelta === undefined) return "selected"
+	return formDelta > 0 ? "higher" : "lower"
+}
+
+/** The selected form's total; a preview's next total goes under it, so the column keeps its width. */
+function SelectedTotal({ row }: { row: StatsRow }) {
+	const { total, next, valueFormat } = row
+
+	return (
+		<span className="flex flex-col items-end">
+			<StatNumber value={total} valueFormat={valueFormat} kind="total" />
+			{next !== undefined && (
+				<span
+					className={cn("text-[0.625rem] text-success leading-3", {
+						"text-error": next < total,
+					})}
+				>
+					<span aria-hidden="true">→ </span>
+					<span className="sr-only"> becomes </span>
+					<StatNumber value={next} valueFormat={valueFormat} kind="total" />
+				</span>
+			)}
 		</span>
 	)
 }

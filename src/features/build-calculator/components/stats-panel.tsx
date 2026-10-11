@@ -1,11 +1,25 @@
+import { cva } from "class-variance-authority"
 import { useId } from "react"
 import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/cn"
 import { useStatsPanel } from "../hooks/use-stats-panel"
-import type { ComposedStats, StatsRowsInput } from "../lib/stats-rows"
+import type {
+	CompareColumn,
+	ComposedStats,
+	StatsRowsInput,
+} from "../lib/stats-rows"
+import { compareColumn } from "./compare-column"
 import { SourceBar } from "./source-bar"
 import { SourceLegend } from "./source-legend"
 import { StatRow } from "./stat-row"
 import { SourcesReveal } from "./stats-panel.motion"
+
+// Two value columns need wider groups on a tablet, so the groups take two columns there.
+const statGroupsGrid = cva("grid gap-x-4 gap-y-3 lg:grid-cols-1", {
+	variants: {
+		compared: { true: "md:grid-cols-2", false: "md:grid-cols-3" },
+	},
+})
 
 type StatsPanelProps = Omit<StatsRowsInput, "preview"> & {
 	/** Stats with a candidate change (an item, the stat shards): changed rows show `current → next`. */
@@ -22,7 +36,7 @@ type StatsPanelProps = Omit<StatsRowsInput, "preview"> & {
 export function StatsPanel({ children, ...input }: StatsPanelProps) {
 	const { preview, formComparison } = input
 	const panel = useStatsPanel(input)
-	const { comparedName, showSources } = panel
+	const { comparedName, columns, showSources } = panel
 
 	return (
 		<section className="flex flex-col gap-3" aria-label="Champion stats">
@@ -53,22 +67,18 @@ export function StatsPanel({ children, ...input }: StatsPanelProps) {
 			<SourcesReveal open={showSources}>
 				<SourceLegend comparedName={comparedName} />
 			</SourcesReveal>
-			<div className="grid gap-x-4 gap-y-3 md:grid-cols-3 lg:grid-cols-1">
+			<div className={statGroupsGrid({ compared: !!columns })}>
 				{panel.groups.map(({ group, label, rows }) => (
 					<div key={group}>
-						<div className="flex items-baseline gap-2 pb-1">
+						<div className="flex items-end gap-2 pb-1">
 							<h3 className="flex-1 font-semibold text-gold text-xs uppercase tracking-widest">
 								{label}
 							</h3>
-							{comparedName && <CompareColumns comparedName={comparedName} />}
+							{columns && <CompareColumns columns={columns} />}
 						</div>
 						<ul className="flex flex-col gap-0.5">
 							{rows.map((row) => (
-								<StatRow
-									key={row.info.stat}
-									row={row}
-									comparedName={comparedName}
-								>
+								<StatRow key={row.info.stat} row={row} columns={columns}>
 									<SourcesReveal open={showSources} render={<span />}>
 										<SourceBar row={row} comparedName={comparedName} />
 									</SourcesReveal>
@@ -105,17 +115,25 @@ function PanelSwitch({ checked, onCheckedChange, children }: PanelSwitchProps) {
 	)
 }
 
-/** Names the two number columns while the forms are compared. */
-function CompareColumns({ comparedName }: { comparedName: string }) {
+/** Names the two forms' value columns while the forms are compared; a long name wraps. */
+function CompareColumns({ columns }: { columns: CompareColumn[] }) {
 	return (
 		<span
 			aria-hidden="true"
-			className="flex gap-2 pr-5.5 text-[0.625rem] text-subtle uppercase tracking-wider"
+			className="flex items-end gap-2 self-end pr-5.5 text-[0.625rem] uppercase leading-3 tracking-wide"
 		>
-			<span className="w-16 whitespace-nowrap text-right">
-				vs {comparedName}
-			</span>
-			<span>Total</span>
+			{columns.map(({ name, selected }) => (
+				<span
+					key={name}
+					className={cn(
+						compareColumn({ column: selected ? "selected" : "compared" }),
+						// Medium, not bold, so a two-word name fits one line in the narrow desktop panel.
+						"text-balance font-medium",
+					)}
+				>
+					{name}
+				</span>
+			))}
 		</span>
 	)
 }

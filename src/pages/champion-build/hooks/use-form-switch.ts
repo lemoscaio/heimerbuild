@@ -37,6 +37,7 @@ export function useFormSwitch({
 			? {
 					formName: form.name,
 					comparedName: compared.name,
+					comparedFirst: compared.id === forms?.[0]?.id,
 					deltas: statDeltas(stats, comparedStats),
 				}
 			: undefined
