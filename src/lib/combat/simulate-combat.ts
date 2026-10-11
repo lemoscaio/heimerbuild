@@ -224,17 +224,13 @@ type Simulation = {
 	afterLaterHits: Map<number, StepState>
 	/** The recasts each ability has left (`Recasts`), until when, and when the next may start. */
 	recasts: Map<AbilitySlot, RecastWindow>
-	/** A cast that stops basic attacks while it runs (`BlocksAttacks`: Judgment), and its step. */
+	/** A cast that stops basic attacks while it runs (`BlocksAttacks`: Judgment), until when. */
 	attackLock?: AttackLock
 	/** Each step's cast hitting again and again (`attackSpeedHits`): its hits, and its full duration's. */
 	castHits: Map<number, { count: number; of: number }>
 }
 
-type AttackLock = BlocksAttacks & {
-	until: number
-	owner: number
-	slot: AbilitySlot
-}
+type AttackLock = BlocksAttacks & { until: number }
 
 /** A hit landing this close after a time in an area ends still counts: the one exactly then does. */
 const AREA_EPSILON = 1e-9
@@ -2106,19 +2102,6 @@ function scheduleLaterHits(
 	}
 }
 
-/** A cast of a slot its `endedBy` names ends the cast stopping attacks, and its hits still to land. */
-function interruptAttackLock(sim: Simulation, slot: AbilitySlot) {
-	const lock = sim.attackLock
-	if (!lock || lock.until <= sim.time || !lock.endedBy.includes(slot)) return
-	const dropped = sim.laterHits.filter(
-		(hit) => hit.owner === lock.owner && hit.spell.slot === lock.slot,
-	)
-	sim.laterHits = sim.laterHits.filter((hit) => !dropped.includes(hit))
-	const hits = sim.castHits.get(lock.owner)
-	if (hits) hits.count -= dropped.length
-	sim.attackLock = undefined
-}
-
 /**
  * A cast's later hit lands, for its step: the `on-cast` effects marked `perHit` (a Blaze stack),
  * then the cast's hit again. Free mode's choices of the action running don't reach it.
@@ -2183,6 +2166,17 @@ function openRecast(
 function recastAt(sim: Simulation, slot: AbilitySlot): number {
 	const window = openRecast(sim, slot)
 	return window && !sim.free ? Math.max(sim.time, window.nextAt) : sim.time
+}
+
+/**
+ * When a cast of the ability may start: after its recast gap, and after a cast stopping attacks
+ * whose `waitedForBy` names it (Demacian Justice after Judgment). Free mode skips the recast gap
+ * but still waits for that cast: its time is the user's choice, not a cooldown (PR 445).
+ */
+function abilityStartsAt(sim: Simulation, slot: AbilitySlot): number {
+	const lock = sim.attackLock
+	const until = lock?.waitedForBy.includes(slot) ? lock.until : 0
+	return Math.max(recastAt(sim, slot), until)
 }
 
 /**
@@ -2265,8 +2259,7 @@ function castAbility(
 	if (!spell) return `No ability in ${slot}`
 	const refusal = abilityRefusal(sim, spell, rank)
 	if (refusal) return refusal
-	advance(sim, recastAt(sim, slot))
-	interruptAttackLock(sim, slot)
+	advance(sim, abilityStartsAt(sim, slot))
 
 	const pending: PendingMarks = []
 	const castAt = sim.time
@@ -2334,7 +2327,7 @@ function castAbility(
 			until,
 		})
 		if (rule?.blocksAttacks && inArea !== undefined) {
-			sim.attackLock = { ...rule.blocksAttacks, until, owner: sim.step, slot }
+			sim.attackLock = { ...rule.blocksAttacks, until }
 		}
 		applyMarks(sim, chooseMarks(sim, pending, action))
 		for (const waiting of onTarget) release(sim, waiting)
@@ -2577,7 +2570,7 @@ function totals(events: readonly CombatEvent[]) {
 /** When the action starts: an attack after the attack timer, a recast after its gap, the rest now. */
 function actionStartsAt(sim: Simulation, item: CombatAction): number {
 	if (item.kind === "attack") return attackStartsAt(sim)
-	return item.kind === "ability" ? recastAt(sim, item.slot) : sim.time
+	return item.kind === "ability" ? abilityStartsAt(sim, item.slot) : sim.time
 }
 
 /**

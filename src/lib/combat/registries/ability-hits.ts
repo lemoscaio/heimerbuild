@@ -93,9 +93,10 @@ export type TimeInArea = {
 
 /**
  * While its time in the area runs, the champion can't declare basic attacks (Judgment): in strict
- * mode an attack waits for it. A cast of `endedBy` ends it and the cast's hits still to land.
+ * mode an attack waits for it. A cast of a slot in `waitedForBy`, which the game lets end it early
+ * (Demacian Justice), waits for it in both modes: the step's time is the user's intent (issue 444).
  */
-export type BlocksAttacks = { endedBy: readonly AbilitySlot[] }
+export type BlocksAttacks = { waitedForBy: readonly AbilitySlot[] }
 
 /** What a rule's variants pick, as the step's input says it: `text` beside them, `name` for assistive tech. */
 export type VariantsLabel = { text: string; name: string }

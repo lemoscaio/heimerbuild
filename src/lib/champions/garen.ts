@@ -56,7 +56,8 @@ export const GAREN_HIT_RULES = [
 			label: { text: "Spinning", name: "Time spinning" },
 			hitsName: "spins",
 		},
-		blocksAttacks: { endedBy: ["R"] },
+		// The game's R ends the spin; the combo's R waits for the time the step chose (issue 444).
+		blocksAttacks: { waitedForBy: ["R"] },
 		// Wiki Conqueror: Judgment is "special cased to stack Conqueror for every tick of damage", each
 		// spin a spell's 2 stacks (the Judgment page: "Each spin triggers a stack"). Electrocute: no.
 		actionPerHit: ["conqueror"],
