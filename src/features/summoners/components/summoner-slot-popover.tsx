@@ -8,6 +8,7 @@ import type { SpellRuneEffectsById } from "@/lib/summoner-rune-interactions"
 import type { SummonerSlot } from "@/lib/summoner-slots"
 import { useSlotPicker } from "../hooks/use-slot-picker"
 import type { Summoners } from "../hooks/use-summoners"
+import { slotUpgrade } from "../lib/smite-upgrade-options"
 import { summonerSlotName } from "../lib/summoner-picks"
 import { SummonerSlotButton } from "./summoner-slot-button"
 import { SummonerSpellPicker } from "./summoner-spell-picker"
@@ -30,7 +31,11 @@ export function SummonerSlotPopover({
 		<Popover open={picker.open} onOpenChange={picker.setOpen}>
 			<PopoverTrigger
 				render={
-					<SummonerSlotButton slotIndex={slot} spell={summoners.slots[slot]} />
+					<SummonerSlotButton
+						slotIndex={slot}
+						spell={summoners.slots[slot]}
+						upgrade={slotUpgrade(summoners.slots[slot], summoners.smiteUpgrade)}
+					/>
 				}
 			/>
 			<PopoverContent

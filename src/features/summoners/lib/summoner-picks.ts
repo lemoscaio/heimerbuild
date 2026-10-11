@@ -1,4 +1,5 @@
 import type { SummonerSpell, SummonerSpellsFile } from "@schemas/summoner-spell"
+import { SMITE_KEY, type SmiteUpgrade } from "@/lib/smite-upgrade"
 import {
 	parseSummonerSlots,
 	type SummonerSlot,
@@ -26,6 +27,7 @@ export function readSummoners(
 			slots: named,
 			spells: [undefined, undefined] as SlotSpells,
 			value,
+			loaded: false,
 		}
 	}
 	const find = (id: string | undefined) =>
@@ -37,7 +39,20 @@ export function readSummoners(
 		slots,
 		spells: [first, second] as SlotSpells,
 		value: serializeSummonerSlots(slots),
+		loaded: true,
 	}
+}
+
+/**
+ * The Smite upgrade the slots keep: none without Smite in a slot, once the spells load (until then,
+ * as given, like the slots).
+ */
+export function keptSmiteUpgrade(
+	upgrade: SmiteUpgrade | undefined,
+	{ spells, loaded }: { spells: SlotSpells; loaded: boolean },
+): SmiteUpgrade | undefined {
+	if (!loaded) return upgrade
+	return spells.some((spell) => spell?.key === SMITE_KEY) ? upgrade : undefined
 }
 
 /** Puts `spellId` in `slot`. A spell already in the other slot swaps places, as in the game's picker. */
