@@ -1,13 +1,15 @@
-import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
-import { GameIcon } from "@/components/common/game-icon"
+import type { AbilitySlot } from "@schemas/champion"
 import { cn } from "@/lib/cn"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
+import type { PointSpell } from "../lib/point-spells"
 import type { LevelPoint } from "../lib/skill-history"
+import { PointIcon } from "./point-icon"
 import { SkillGridCell } from "./skill-grid-cell"
 import { SkillLevelCells } from "./skill-level-cells"
 
 export type SkillOrderGridProps = {
-	spells: readonly ChampionSpell[]
+	/** What the points go to: the abilities, or Aphelios's stats. */
+	spells: readonly PointSpell[]
 	levels: readonly LevelPoint[]
 	/** The current champion level. */
 	level: number
@@ -17,7 +19,7 @@ export type SkillOrderGridProps = {
 	onRemove: (pointLevel: number) => void
 }
 
-/** The game's skill order grid: a row per ability, a column per level (one toggle group each). */
+/** The game's skill order grid: a row per ability (or stat), a column per level (one toggle group each). */
 export function SkillOrderGrid({
 	spells,
 	levels,
@@ -33,11 +35,7 @@ export function SkillOrderGrid({
 				<span aria-hidden="true" className="h-5" />
 				{spells.map((spell) => (
 					<div key={spell.slot} className="flex h-9 items-center gap-2">
-						<GameIcon
-							src={spell.icon}
-							name={spell.name}
-							className="size-8 rounded-md"
-						/>
+						<PointIcon spell={spell} className="size-8 rounded-md" />
 						<div className="flex min-w-0 flex-col leading-tight">
 							<span className="truncate font-bold text-xs">
 								{spell.slot} · {spell.name}

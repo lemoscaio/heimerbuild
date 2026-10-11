@@ -1,10 +1,11 @@
-import type { ChampionAbilities } from "@schemas/champion"
+import type { AbilitySlot, ChampionAbilities } from "@schemas/champion"
 import { CircleAlert, RotateCcw } from "lucide-react"
 import { useId } from "react"
 import { PoliteStatus } from "@/components/common/polite-status"
 import { useSkillActions } from "../hooks/use-skill-actions"
 import type { Skills } from "../hooks/use-skills"
 import type { AbilityDamageBuild } from "../lib/ability-damage"
+import { pointSpells } from "../lib/point-spells"
 import { AbilityDetails } from "./ability-details"
 import { SkillOrderGrid } from "./skill-order-grid"
 import { SkillOrderList } from "./skill-order-list"
@@ -29,7 +30,13 @@ export function SkillsTab({
 	damage,
 }: SkillsTabProps) {
 	const titleId = useId()
-	const actions = useSkillActions(skills, abilities)
+	const spells = pointSpells(abilities.spells, {
+		slots: skills.pointSlots,
+		statPoints: skills.statPoints,
+	})
+	const actions = useSkillActions(skills, spells)
+	const tagOf = (slot: AbilitySlot) =>
+		spells.find((spell) => spell.slot === slot)?.tag ?? slot
 	const OrderView = ORDER_LAYOUTS[layout]
 	const level = skills.spentCount + skills.unspentCount
 
@@ -43,7 +50,7 @@ export function SkillsTab({
 					<h2 id={titleId} className="font-bold font-display text-base">
 						Skill order
 					</h2>
-					{skills.hasSkillOrder && (
+					{!!skills.ranks && (
 						<p className="text-subtle text-xs">
 							Level {level} · {skills.spentCount} spent, {skills.unspentCount}{" "}
 							to spend. Pick a cell to put that level's point there, or press a
@@ -51,10 +58,10 @@ export function SkillsTab({
 						</p>
 					)}
 				</div>
-				{skills.hasSkillOrder && (
+				{!!skills.ranks && (
 					<div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs">
 						<span className="whitespace-nowrap text-subtle">
-							Recommended max: {skills.suggestedPriority.join(" › ")}
+							Recommended max: {skills.suggestedPriority.map(tagOf).join(" › ")}
 						</span>
 						<SkillPointActions
 							size="regular"
@@ -66,10 +73,10 @@ export function SkillsTab({
 					</div>
 				)}
 			</div>
-			{skills.hasSkillOrder && skills.ranks ? (
+			{!!skills.ranks && (
 				<>
 					<OrderView
-						spells={abilities.spells}
+						spells={spells}
 						levels={skills.levels}
 						level={level}
 						ranks={skills.ranks}
@@ -108,15 +115,11 @@ export function SkillsTab({
 					)}
 					<OrderLegend />
 				</>
-			) : (
-				<p className="text-prose text-xs">
-					This champion's skill points raise stats instead of abilities.
-				</p>
 			)}
 			<h2 className="font-bold font-display text-base">Abilities</h2>
 			<AbilityDetails
 				abilities={abilities}
-				ranks={skills.ranks}
+				ranks={skills.abilityRanks}
 				damage={damage}
 			/>
 			<PoliteStatus message={actions.announcement} />

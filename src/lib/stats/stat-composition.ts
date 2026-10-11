@@ -66,6 +66,7 @@ function bareInput(input: CompositionInput): BuildStatsInput {
 		items: [],
 		shards: [],
 		ranks: undefined,
+		statRanks: undefined,
 		effects: undefined,
 	}
 }
@@ -134,7 +135,15 @@ function stages(
 		previewShards = false,
 	}: CompositionOptions,
 ): Stage[] {
-	const { champion, form, items, shards, ranks, effects = NO_EFFECTS } = input
+	const {
+		champion,
+		form,
+		items,
+		shards,
+		ranks,
+		statRanks,
+		effects = NO_EFFECTS,
+	} = input
 	const bare = bareInput(input)
 	const formName = champion.forms?.find(({ id }) => id === form)?.name
 	const withItems = { ...bare, form, items }
@@ -163,7 +172,7 @@ function stages(
 			...(previewShards && { preview: true as const }),
 			input: { ...withItems, shards },
 		},
-		...effectStages({ ...withItems, shards, ranks }, effects),
+		...effectStages({ ...withItems, shards, ranks, statRanks }, effects),
 	]
 }
 

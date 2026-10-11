@@ -63,6 +63,8 @@ function breakdown(base: number, total: number): StatBreakdown {
 export type ComputeStatsOptions = FormOptions & {
 	/** The abilities' ranks: the stats a rank grants (absent: none) and the forms a rank unlocks (absent: not checked). */
 	ranks?: AbilityRanks
+	/** The ranks the rank stats read, when the points raise stats instead (Aphelios); absent means `ranks`. */
+	statRanks?: AbilityRanks
 }
 
 /**
@@ -77,7 +79,7 @@ export function computeStats(
 	champion: ChampionInput,
 	level: number,
 	items: readonly ItemInput[],
-	{ ranks, form }: ComputeStatsOptions = {},
+	{ ranks, statRanks = ranks, form }: ComputeStatsOptions = {},
 ): ComputedStats {
 	assertChampionLevel(level)
 	const inForm = formStats(champion, { form, ranks })
@@ -96,7 +98,9 @@ export function computeStats(
 		baseManaRegenPercent,
 		...itemStats
 	} = sumItemStats(
-		ranks ? [...items, rankStatsInput(champion.rankStats, ranks)] : items,
+		statRanks
+			? [...items, rankStatsInput(champion.rankStats, statRanks)]
+			: items,
 	)
 
 	const computed = {} as ComputedStats

@@ -158,7 +158,7 @@ export function useBuildPage({
 			return undefined
 		}
 		const nextRanks = skills.ranksWithNext(slot)
-		const next = nextRanks && build.whatIf({ ranks: nextRanks })
+		const next = nextRanks && build.whatIf(build.pointsChange(nextRanks))
 		return stats && next ? { stats, next } : undefined
 	}
 

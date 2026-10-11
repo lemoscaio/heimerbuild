@@ -14,7 +14,7 @@
 		"16.19.1/champions/Amumu.json": "ad15ab212c",
 		"16.19.1/champions/Anivia.json": "7da6ffc3a4",
 		"16.19.1/champions/Annie.json": "441da95f42",
-		"16.19.1/champions/Aphelios.json": "0bea38bd43",
+		"16.19.1/champions/Aphelios.json": "03a83078e6",
 		"16.19.1/champions/Ashe.json": "fa2a2a9fb4",
 		"16.19.1/champions/AurelionSol.json": "3280045abf",
 		"16.19.1/champions/Aurora.json": "4e0576fd14",
@@ -182,5 +182,5 @@
 		"16.19.1/runes.json": "51aeb100e8",
 		"16.19.1/summoner-spells.json": "8a4cd741cf"
 	},
-	"generatedAt": "2026-10-10T01:53:50.779Z"
+	"generatedAt": "2026-10-11T00:22:28.017Z"
 }

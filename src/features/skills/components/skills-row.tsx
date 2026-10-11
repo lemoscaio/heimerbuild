@@ -5,6 +5,7 @@ import { PoliteStatus } from "@/components/common/polite-status"
 import { cn } from "@/lib/cn"
 import { useSkillActions } from "../hooks/use-skill-actions"
 import type { Skills } from "../hooks/use-skills"
+import { pointSpells } from "../lib/point-spells"
 import { AbilityRankButton } from "./ability-rank-button"
 import { SkillOrderStrip } from "./skill-order-strip"
 import { SkillPointActions } from "./skill-point-actions"
@@ -25,7 +26,11 @@ export function SkillsRow({
 	...props
 }: SkillsRowProps) {
 	const titleId = useId()
-	const row = useSkillActions(skills, abilities)
+	const spells = pointSpells(abilities.spells, {
+		slots: skills.pointSlots,
+		statPoints: skills.statPoints,
+	})
+	const row = useSkillActions(skills, spells)
 
 	return (
 		<section
@@ -37,9 +42,9 @@ export function SkillsRow({
 				<h2 id={titleId} className="text-prose text-sm">
 					Skills
 				</h2>
-				{skills.hasSkillOrder && <PointsToSpend count={skills.unspentCount} />}
+				{!!skills.ranks && <PointsToSpend count={skills.unspentCount} />}
 			</div>
-			{skills.hasSkillOrder && skills.ranks ? (
+			{!!skills.ranks && (
 				<>
 					<div className="flex items-start justify-between gap-1">
 						<div className="flex flex-col items-center gap-1">
@@ -50,7 +55,7 @@ export function SkillsRow({
 							/>
 							<span className="text-[10px] text-subtle">Passive</span>
 						</div>
-						{abilities.spells.map((spell) => (
+						{spells.map((spell) => (
 							<AbilityRankButton
 								key={spell.slot}
 								spell={spell}
@@ -65,7 +70,7 @@ export function SkillsRow({
 					</div>
 					<SkillOrderStrip
 						levels={skills.levels}
-						spells={abilities.spells}
+						spells={spells}
 						canPlace={skills.canPlace}
 						onPlace={row.place}
 						removeBlocker={skills.removeBlocker}
@@ -80,14 +85,11 @@ export function SkillsRow({
 						/>
 					</SkillOrderStrip>
 					<p className="text-subtle text-xs leading-snug">
-						Press an ability to spend a point, or a level to choose or remove
-						its point. A dashed outline is only a suggestion.
+						Press {skills.statPoints ? "a stat" : "an ability"} to spend a
+						point, or a level to choose or remove its point. A dashed outline is
+						only a suggestion.
 					</p>
 				</>
-			) : (
-				<p className="text-prose text-xs leading-snug">
-					This champion's skill points raise stats instead of abilities.
-				</p>
 			)}
 			<PoliteStatus message={row.announcement} />
 		</section>

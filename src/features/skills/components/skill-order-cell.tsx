@@ -1,8 +1,4 @@
-import {
-	ABILITY_SLOTS,
-	type AbilitySlot,
-	type ChampionSpell,
-} from "@schemas/champion"
+import type { AbilitySlot } from "@schemas/champion"
 import { cva } from "class-variance-authority"
 import { CircleMinus } from "lucide-react"
 import { useId, useState } from "react"
@@ -14,6 +10,7 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/cn"
+import type { PointSpell } from "../lib/point-spells"
 import { removeBlockerMessage } from "../lib/remove-blocker-message"
 import type { LevelPoint, RemoveBlocker } from "../lib/skill-history"
 
@@ -41,7 +38,7 @@ export type EditableLevelPoint = Extract<
 
 type SkillOrderCellProps = {
 	point: EditableLevelPoint
-	spells: readonly ChampionSpell[]
+	spells: readonly PointSpell[]
 	canPlace: (slot: AbilitySlot) => boolean
 	onPlace: (slot: AbilitySlot) => void
 	/** Why a spent point cannot be removed: a later point needs it. */
@@ -49,7 +46,7 @@ type SkillOrderCellProps = {
 	onRemove: () => void
 }
 
-/** A level of the order: opens a choice of the four abilities for that level's point, or its removal. */
+/** A level of the order: opens a choice of the abilities (or stats) for that level's point, or its removal. */
 export function SkillOrderCell({
 	point,
 	spells,
@@ -88,29 +85,26 @@ export function SkillOrderCell({
 			<PopoverContent className="w-56">
 				<PopoverTitle>Level {point.level} point</PopoverTitle>
 				<div className="mt-1 flex flex-col gap-1">
-					{ABILITY_SLOTS.map((slot) => {
-						const spell = spells.find((candidate) => candidate.slot === slot)
-						return (
-							<Button
-								key={slot}
-								type="button"
-								variant={slot === chosen ? "secondary" : "ghost"}
-								size="sm"
-								aria-pressed={slot === chosen}
-								disabled={slot !== chosen && !canPlace(slot)}
-								focusableWhenDisabled
-								// Focusable when disabled drops the `disabled` attribute: style the state.
-								className="justify-start data-disabled:cursor-not-allowed data-disabled:opacity-40"
-								onClick={() => choose(slot)}
-							>
-								<span className="w-4 font-bold font-display">{slot}</span>
-								<span className="truncate">{spell?.name}</span>
-								{slot === suggestion && (
-									<span className="ml-auto text-gold text-xs">Suggested</span>
-								)}
-							</Button>
-						)
-					})}
+					{spells.map(({ slot, name }) => (
+						<Button
+							key={slot}
+							type="button"
+							variant={slot === chosen ? "secondary" : "ghost"}
+							size="sm"
+							aria-pressed={slot === chosen}
+							disabled={slot !== chosen && !canPlace(slot)}
+							focusableWhenDisabled
+							// Focusable when disabled drops the `disabled` attribute: style the state.
+							className="justify-start data-disabled:cursor-not-allowed data-disabled:opacity-40"
+							onClick={() => choose(slot)}
+						>
+							<span className="w-4 font-bold font-display">{slot}</span>
+							<span className="truncate">{name}</span>
+							{slot === suggestion && (
+								<span className="ml-auto text-gold text-xs">Suggested</span>
+							)}
+						</Button>
+					))}
 				</div>
 				{!!chosen && (
 					<RemovePointButton blocker={removeBlocker} onRemove={remove} />

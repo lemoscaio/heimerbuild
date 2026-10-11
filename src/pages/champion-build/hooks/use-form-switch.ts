@@ -26,7 +26,7 @@ export function useFormSwitch({
 }: FormSwitchBuild) {
 	const [announcement, setAnnouncement] = useState("")
 	const forms = champion?.forms
-	const locks = formLocks(forms, skills.ranks)
+	const locks = formLocks(forms, skills.abilityRanks)
 	const { form } = championState
 	// A form the points do not unlock has nothing to compare: its stats are the default's.
 	const comparable = comparedForm(forms, form?.id)

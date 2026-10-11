@@ -1,5 +1,6 @@
 import { AMBESSA_ARMOR_PENETRATION_RANK_STAT } from "./champions/ambessa"
 import { ANNIE_MAGIC_PENETRATION_RANK_STAT } from "./champions/annie"
+import { APHELIOS_STAT_POINTS } from "./champions/aphelios"
 import { DARIUS_ARMOR_PENETRATION_RANK_STAT } from "./champions/darius"
 import { JANNA_MOVEMENT_SPEED_RANK_STAT } from "./champions/janna"
 import { JARVAN_IV_ATTACK_SPEED_RANK_STAT } from "./champions/jarvan-iv"
@@ -25,6 +26,8 @@ export type RankStatRule = {
 	dataValue: string
 	/** Turns the game value into the stat's unit: 0.01 makes 15 (percent) the fraction 0.15. */
 	scale?: number
+	/** The value is the passive's, granted once per rank (Aphelios's `ADPerRank`): rank n grants n times it. */
+	passivePerRank?: true
 	/** What the rank grants, and any condition the stats panel assumes. */
 	reason: string
 	source: string
@@ -38,6 +41,7 @@ export type RankStatRule = {
 export const RANK_STAT_RULES: readonly RankStatRule[] = [
 	AMBESSA_ARMOR_PENETRATION_RANK_STAT,
 	ANNIE_MAGIC_PENETRATION_RANK_STAT,
+	...APHELIOS_STAT_POINTS,
 	DARIUS_ARMOR_PENETRATION_RANK_STAT,
 	JANNA_MOVEMENT_SPEED_RANK_STAT,
 	JARVAN_IV_ATTACK_SPEED_RANK_STAT,
@@ -58,7 +62,9 @@ export function rankStatValues(
 	gameValues: readonly (number | null)[] | undefined,
 	maxRank: number,
 ): number[] {
-	const values = gameValues?.slice(1, maxRank + 1)
+	const values = rule.passivePerRank
+		? perRankFrom(gameValues?.[1], maxRank)
+		: gameValues?.slice(1, maxRank + 1)
 	if (
 		!values ||
 		values.length !== maxRank ||
@@ -72,4 +78,10 @@ export function rankStatValues(
 	return (values as number[]).map(
 		(value) => Math.round(value * scale * 10_000) / 10_000,
 	)
+}
+
+/** Rank n's value when each rank grants `value` once more; none without a value. */
+function perRankFrom(value: number | null | undefined, maxRank: number) {
+	if (value === null || value === undefined) return undefined
+	return Array.from({ length: maxRank }, (_, index) => value * (index + 1))
 }

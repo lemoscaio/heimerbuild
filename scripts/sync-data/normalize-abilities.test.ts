@@ -151,6 +151,45 @@ describe("normalizeAbilities", () => {
 		).toThrow('no "Renamed" value per rank')
 	})
 
+	test("a passive's value per rank grants it once per rank (Aphelios's points)", () => {
+		const rootPath = Object.keys(teemoBin).find((path) =>
+			path.endsWith("/CharacterRecords/Root"),
+		) as keyof typeof teemoBin
+		const bin: Record<string, unknown> = {
+			...teemoBin,
+			[rootPath]: {
+				...teemoBin[rootPath],
+				mCharacterPassiveSpell: "Test/Passive",
+			},
+			"Test/Passive": {
+				mSpell: {
+					DataValues: [{ name: "ADPerRank", values: [4, 4, 4, 4, 4, 4, 4] }],
+				},
+			},
+		}
+		const { rankStats } = normalizeAbilities(
+			teemoDetail.data.Teemo,
+			bin,
+			VERSION,
+			{
+				rankStatRules: [
+					{
+						championKey: "Teemo",
+						slot: "Q",
+						stat: "attackDamage",
+						dataValue: "ADPerRank",
+						passivePerRank: true,
+						reason: "test",
+						source: "test",
+					},
+				],
+			},
+		)
+		expect(rankStats).toEqual([
+			{ slot: "Q", stat: "attackDamage", values: [4, 8, 12, 16, 20] },
+		])
+	})
+
 	test("fails when the game files lack one of the spells", () => {
 		const bin: Record<string, unknown> = { ...teemoBin }
 		delete bin["Characters/Teemo/Spells/TeemoRAbility/TeemoR"]

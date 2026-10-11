@@ -377,8 +377,17 @@ export const skillRulesSchema = z.strictObject({
 	),
 	/** The level 1 point the game spends by itself (Azir's W). */
 	firstPoint: z.optional(abilitySlotSchema),
-	/** The points raise stats, not abilities (Aphelios): the champion has no skill order. */
-	statPoints: z.optional(z.literal(true)),
+	/**
+	 * The points raise stats, not abilities (Aphelios): Q, W and E take points for their rank stats,
+	 * R takes none, and each ability ranks up by itself at these champion levels, rank 1 first.
+	 */
+	statPoints: z.optional(
+		z.strictObject({
+			abilityRankLevels: perAbility(
+				z.array(z.int().check(z.gte(1), z.lte(18))).check(z.minLength(1)),
+			),
+		}),
+	),
 })
 
 /** The champion level each rank needs by default, rank 1 first: a basic ability every odd level, R at 6/11/16. */
@@ -425,7 +434,9 @@ export function formAbilitiesFitForms({
 
 /** Stats an ability rank can grant; a subset of the item stat keys, with the same units. */
 export const RANK_STATS = [
+	"attackDamage",
 	"attackSpeedPercent",
+	"lethality",
 	"movementSpeedPercent",
 	"armor",
 	"magicResist",

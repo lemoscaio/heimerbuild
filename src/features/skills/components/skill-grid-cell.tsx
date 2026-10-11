@@ -1,8 +1,9 @@
-import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
+import type { AbilitySlot } from "@schemas/champion"
 import { cva, type VariantProps } from "class-variance-authority"
 import { RotateCcw } from "lucide-react"
 import { ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/cn"
+import type { PointSpell } from "../lib/point-spells"
 import type { LevelPoint } from "../lib/skill-history"
 
 const gridCellVariants = cva(
@@ -58,7 +59,7 @@ function gridCellState(
 }
 
 type SkillGridCellProps = {
-	spell: ChampionSpell
+	spell: PointSpell
 	point: LevelPoint
 	/** Whether that level's point may go to this ability. */
 	canPlace: boolean

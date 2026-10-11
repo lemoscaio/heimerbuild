@@ -1,16 +1,13 @@
-import {
-	ABILITY_SLOTS,
-	type AbilitySlot,
-	type ChampionSpell,
-} from "@schemas/champion"
+import type { AbilitySlot } from "@schemas/champion"
 import { RotateCcw } from "lucide-react"
 import { useId } from "react"
+import type { PointSpell } from "../lib/point-spells"
 import type { LevelPoint, RemoveBlocker } from "../lib/skill-history"
 import { orderCellVariants, SkillOrderCell } from "./skill-order-cell"
 
 type SkillOrderStripProps = {
 	levels: readonly LevelPoint[]
-	spells: readonly ChampionSpell[]
+	spells: readonly PointSpell[]
 	canPlace: (pointLevel: number, slot: AbilitySlot) => boolean
 	onPlace: (pointLevel: number, slot: AbilitySlot) => void
 	removeBlocker: (pointLevel: number) => RemoveBlocker | undefined
@@ -67,7 +64,7 @@ function StripLevel({ point, ...props }: StripLevelProps) {
 		case "spent":
 			return <SkillOrderCell point={point} {...props} />
 		case "free":
-			return ABILITY_SLOTS.some((slot) => props.canPlace(slot)) ? (
+			return props.spells.some(({ slot }) => props.canPlace(slot)) ? (
 				<SkillOrderCell point={point} {...props} />
 			) : (
 				<span className={orderCellVariants({ state: "unspent" })}>

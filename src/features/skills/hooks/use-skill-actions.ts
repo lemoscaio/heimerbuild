@@ -1,4 +1,4 @@
-import type { AbilitySlot, ChampionAbilities } from "@schemas/champion"
+import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
 import { useState } from "react"
 import { track } from "@/lib/analytics/analytics"
 import { removeBlockerMessage } from "../lib/remove-blocker-message"
@@ -9,7 +9,10 @@ import type { Skills } from "./use-skills"
  * The skill point actions of the skills row and tab: each one changes the points, tells screen
  * readers what changed and is tracked.
  */
-export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
+export function useSkillActions(
+	skills: Skills,
+	spells: readonly Pick<ChampionSpell, "slot" | "name">[],
+) {
 	const [announcement, setAnnouncement] = useState("")
 	const [refusedLevel, setRefusedLevel] = useState<number>()
 	const refusalBlocker =
@@ -25,7 +28,7 @@ export function useSkillActions(skills: Skills, abilities: ChampionAbilities) {
 	}
 
 	function spellName(slot: AbilitySlot) {
-		return abilities.spells.find((spell) => spell.slot === slot)?.name ?? slot
+		return spells.find((spell) => spell.slot === slot)?.name ?? slot
 	}
 
 	function spend(slot: AbilitySlot) {
