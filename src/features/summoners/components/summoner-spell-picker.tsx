@@ -3,6 +3,7 @@ import { useId } from "react"
 import { GameIcon } from "@/components/common/game-icon"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/cn"
+import { SMITE_KEY } from "@/lib/smite-upgrade"
 import type {
 	SpellRuneEffect,
 	SpellRuneEffectsById,
@@ -10,6 +11,7 @@ import type {
 import type { SummonerSlot } from "@/lib/summoner-slots"
 import { useSpellGrid } from "../hooks/use-spell-grid"
 import type { Summoners } from "../hooks/use-summoners"
+import { SmiteUpgradeChoice } from "./smite-upgrade-choice"
 
 const GRID_COLUMNS = 3
 
@@ -100,6 +102,13 @@ export function SummonerSpellPicker({
 				))}
 			</div>
 			{anchor === "top" && effects}
+			{selected?.key === SMITE_KEY && (
+				<SmiteUpgradeChoice
+					spell={selected}
+					value={summoners.smiteUpgrade}
+					onValueChange={summoners.setSmiteUpgrade}
+				/>
+			)}
 			<div className="flex items-center justify-between gap-2">
 				<p className="text-[11px] text-subtle max-lg:invisible">
 					Arrows move · Enter picks · Esc closes

@@ -1,9 +1,8 @@
 import { useId } from "react"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { cn } from "@/lib/cn"
+import { Segmented } from "@/components/ui/segmented"
 
 type CombatSegmentedProps = { label: string } & React.ComponentProps<
-	typeof ToggleGroup<string>
+	typeof Segmented<string>
 >
 
 /** A label ("View", "Order by") over its segmented choices, one pressed at a time. */
@@ -18,28 +17,9 @@ export function CombatSegmented({
 			<span id={labelId} className="text-subtle text-xs">
 				{label}
 			</span>
-			<ToggleGroup
-				aria-labelledby={labelId}
-				className="gap-0.5 rounded-lg border border-line bg-surface-sunken p-0.5"
-				{...props}
-			>
+			<Segmented aria-labelledby={labelId} {...props}>
 				{children}
-			</ToggleGroup>
+			</Segmented>
 		</div>
-	)
-}
-
-export function CombatSegmentedItem({
-	className,
-	...props
-}: React.ComponentProps<typeof ToggleGroupItem<string>>) {
-	return (
-		<ToggleGroupItem
-			className={cn(
-				"h-6 rounded-md px-3 text-xs data-pressed:inset-ring-0 data-pressed:bg-lilac data-pressed:font-semibold data-pressed:text-surface-sunken",
-				className,
-			)}
-			{...props}
-		/>
 	)
 }

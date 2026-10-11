@@ -4,6 +4,7 @@ import summonerJson from "../../../../scripts/sync-data/fixtures/summoners/summo
 import { normalizeSummonerSpells } from "../../../../scripts/sync-data/normalize-summoner-spells"
 import {
 	clearSummonerSlot,
+	keptSmiteUpgrade,
 	pickSummonerSpell,
 	readSummoners,
 	swapSummonerSlots,
@@ -83,5 +84,25 @@ describe("clearSummonerSlot", () => {
 	test("empties only the given slot", () => {
 		expect(clearSummonerSlot([FLASH, IGNITE], 0)).toEqual([undefined, IGNITE])
 		expect(clearSummonerSlot([FLASH, IGNITE], 1)).toEqual([FLASH, undefined])
+	})
+})
+
+describe("keptSmiteUpgrade", () => {
+	test("keeps the upgrade while a slot holds Smite", () => {
+		expect(keptSmiteUpgrade("primal", readSummoners("4,11", spells))).toBe(
+			"primal",
+		)
+	})
+
+	test("drops it once no slot holds Smite", () => {
+		expect(
+			keptSmiteUpgrade("unleashed", readSummoners("4,14", spells)),
+		).toBeUndefined()
+	})
+
+	test("keeps it as given until the spells load", () => {
+		expect(
+			keptSmiteUpgrade("unleashed", readSummoners("4,14", undefined)),
+		).toBe("unleashed")
 	})
 })

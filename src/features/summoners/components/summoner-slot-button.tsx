@@ -24,19 +24,22 @@ type SummonerSlotButtonProps = {
 	/** Which slot (the HTML `slot` attribute owns the name `slot`). */
 	slotIndex: SummonerSlot
 	spell: SummonerSpell | undefined
+	/** The spell's upgrade, named after it ("Unleashed Smite"). */
+	upgrade?: { name: string; short: string }
 } & React.ComponentProps<"button">
 
 /** A summoner spell slot by the portrait: the spell's icon, or a dashed "+" when empty. */
 export function SummonerSlotButton({
 	slotIndex,
 	spell,
+	upgrade,
 	className,
 	...props
 }: SummonerSlotButtonProps) {
 	return (
 		<button
 			type="button"
-			aria-label={`${summonerSlotName(slotIndex)}: ${spell?.name ?? "empty"}`}
+			aria-label={`${summonerSlotName(slotIndex)}: ${upgrade?.name ?? spell?.name ?? "empty"}`}
 			className={cn(
 				slotButtonVariants({ state: spell ? "filled" : "empty" }),
 				className,
@@ -51,6 +54,14 @@ export function SummonerSlotButton({
 				/>
 			) : (
 				<Plus aria-hidden="true" className="size-3.5" />
+			)}
+			{upgrade && (
+				<span
+					aria-hidden="true"
+					className="absolute -right-1 -bottom-1 rounded-sm border border-gold bg-surface px-0.5 font-bold text-[8px] text-gold leading-tight"
+				>
+					{upgrade.short[0]}
+				</span>
 			)}
 		</button>
 	)

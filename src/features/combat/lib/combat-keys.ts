@@ -1,6 +1,7 @@
 import type { AbilitySlot, ChampionSpell } from "@schemas/champion"
 import type { SummonerSpell } from "@schemas/summoner-spell"
 import type { CombatAction } from "@/lib/combat/combat"
+import { championTargetBlock } from "@/lib/smite-upgrade"
 import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import type { SummonerSlot } from "@/lib/summoner-slots"
 import { type DamageStatus, damageStatus } from "./ability-damage-status"
@@ -25,6 +26,8 @@ export type CombatKey =
 			slot: SummonerSlot
 			name: string
 			icon: string
+			/** Why a cast would be refused whatever the order: base Smite can't target a champion. */
+			unusable?: string
 	  }
 	| { kind: "wait"; action: CombatAction }
 
@@ -33,6 +36,8 @@ type CombatKeysInput = {
 	spells: readonly ChampionSpell[]
 	ranks: AbilityRanks | undefined
 	summoners: readonly (SummonerSpell | undefined)[]
+	/** The keys of the spells the build has upgraded. */
+	upgradedSpells?: readonly string[]
 }
 
 /** The keys of the combo: attack, Q W E R, the chosen summoner spells and wait, in that order. */
@@ -40,6 +45,7 @@ export function combatKeys({
 	spells,
 	ranks,
 	summoners,
+	upgradedSpells = [],
 }: CombatKeysInput): CombatKey[] {
 	const abilityKeys = spells.map((spell): CombatKey => {
 		const unusable =
@@ -56,19 +62,20 @@ export function combatKeys({
 			damage: damageStatus(spell.damage),
 		}
 	})
-	const summonerKeys = summoners.flatMap((spell, index): CombatKey[] =>
-		spell
-			? [
-					{
-						kind: "summoner",
-						action: { kind: "summoner", slot: index as SummonerSlot },
-						slot: index as SummonerSlot,
-						name: spell.name,
-						icon: spell.icon,
-					},
-				]
-			: [],
-	)
+	const summonerKeys = summoners.flatMap((spell, index): CombatKey[] => {
+		if (!spell) return []
+		const unusable = championTargetBlock(spell, upgradedSpells)
+		return [
+			{
+				kind: "summoner",
+				action: { kind: "summoner", slot: index as SummonerSlot },
+				slot: index as SummonerSlot,
+				name: spell.name,
+				icon: spell.icon,
+				...(unusable && { unusable }),
+			},
+		]
+	})
 	return [
 		{ kind: "attack", action: { kind: "attack" } },
 		...abilityKeys,

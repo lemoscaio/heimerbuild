@@ -76,6 +76,7 @@ function RecentBuildLink({ build, champion }: RecentBuildLinkProps) {
 				form: build.form,
 				skills: build.skills,
 				summoners: build.summoners,
+				smiteUpgrade: build.smiteUpgrade,
 				effects: build.effects,
 				currentHealth: build.currentHealth,
 				gameTime: build.gameTime,

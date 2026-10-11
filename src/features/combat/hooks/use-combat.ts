@@ -140,6 +140,7 @@ export function useCombat({ input, value, onChange }: UseCombatOptions) {
 					spells,
 					ranks: input.build.ranks,
 					summoners: input.summoners,
+					upgradedSpells: input.upgradedSpells,
 				})
 			: [],
 		/**

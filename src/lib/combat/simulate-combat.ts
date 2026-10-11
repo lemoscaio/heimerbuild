@@ -32,6 +32,7 @@ import {
 	resolveGrants,
 } from "../effects/evaluate"
 import { abilitiesInForm } from "../form-abilities"
+import { championTargetBlock } from "../smite-upgrade"
 import { itemsAdaptiveType } from "../stats/adaptive-force"
 import { selectedForm } from "../stats/champion-forms"
 import {
@@ -60,6 +61,7 @@ import type {
 	OutcomeKey,
 	SituationStatus,
 	StepOutcome,
+	TargetDebuff,
 	TickOwner,
 	WaitingEffect,
 } from "./combat"
@@ -106,6 +108,8 @@ export type CombatInput = {
 	effects: readonly BuildEffect[]
 	/** The summoner spells by slot. */
 	summoners: readonly (SummonerSpell | undefined)[]
+	/** The keys of the spells the build has upgraded (`upgradedSpellKeys`): Smite reaches a champion only then. */
+	upgradedSpells?: readonly string[]
 	target: CombatTarget
 	/** The actions and situation markers, in order (a marker's effect declares a `start`). */
 	actions: readonly CombatItem[]
@@ -2348,6 +2352,8 @@ function castAbility(
 function castSummoner(sim: Simulation, slot: SummonerSlot): string | undefined {
 	const spell = sim.input.summoners[slot]
 	if (!spell) return "No summoner spell in this slot"
+	const blocked = championTargetBlock(spell, sim.input.upgradedSpells ?? [])
+	if (blocked) return blocked
 	const key = `summoner-${slot}`
 	const readyAt = sim.cooldowns.get(key) ?? 0
 	if (readyAt > sim.time && !sim.free) {
@@ -2490,6 +2496,20 @@ function pausedView(
 	return { paused: { until: pausedUntil, grants: pauses.grants } }
 }
 
+/** The target debuffs the effect lists (Exhaust's slow and damage reduction), at the build's level. */
+function debuffsView(
+	sim: Simulation,
+	effect: BuildEffect,
+): Pick<ActiveEffect, "debuffs"> {
+	const debuffs = effect.effect.grants.flatMap((grant): TargetDebuff[] => {
+		if (grant.kind !== "slow" && grant.kind !== "damageDealtReduction")
+			return []
+		const percent = amountNow(sim, grant.amount, effect)
+		return percent === undefined ? [] : [{ kind: grant.kind, percent }]
+	})
+	return debuffs.length ? { debuffs } : {}
+}
+
 /** An effect's most stacks, when it has several. */
 function maxStacksView({
 	effect,
@@ -2538,6 +2558,7 @@ function snapshot(sim: Simulation): StepState {
 					stacks,
 					...maxStacksView(effect),
 					...pausedView(sim, { effect, pausedUntil }),
+					...debuffsView(sim, effect),
 				}),
 			),
 		...(waiting.length > 0 && { waiting }),

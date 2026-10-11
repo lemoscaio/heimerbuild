@@ -14,6 +14,7 @@ import type {
 	OutcomeChoices,
 	OutcomeKey,
 	StepOutcome,
+	TargetDebuff,
 } from "@/lib/combat/combat"
 import { outcomeId } from "@/lib/combat/outcomes"
 import type { BuildEffect, Resist } from "@/lib/effects/effect"
@@ -155,6 +156,8 @@ export type RunningEffectView = {
 	paused?: { label: string; until: number }
 	/** Not running yet: in its `startsAfter` state, or from when it enters it ("camouflaged" from 1.00 s). */
 	waiting?: { label: string; from?: number }
+	/** What it does to the target that the combo doesn't count yet (issue 69). */
+	debuffs?: readonly TargetDebuff[]
 }
 
 /** A resistance of the target its reductions changed, as of after the step: "Target armor 100 → 70". */
@@ -343,6 +346,7 @@ function runningEffects(
 		paused,
 		stacks,
 		maxStacks,
+		debuffs,
 	} of step.active) {
 		if (hidden.has(effectId)) continue
 		const name =
@@ -361,6 +365,7 @@ function runningEffects(
 				...(paused && {
 					paused: { label: pausedLabel(paused.grants), until: paused.until },
 				}),
+				...(debuffs && { debuffs }),
 			})
 	}
 	for (const { effectId, label, from, until } of step.waiting ?? []) {
@@ -384,6 +389,7 @@ export function runningEffectText({
 	until,
 	paused,
 	waiting,
+	debuffs,
 }: RunningEffectView): string {
 	const ends = until !== undefined && `until ${formatSeconds(until)}`
 	const state =
@@ -397,7 +403,16 @@ export function runningEffectText({
 	const pause =
 		paused && `${paused.label} paused until ${formatSeconds(paused.until)}`
 	const count = stacks && stacksText(stacks)
-	return [name, count, state || ends, pause].filter(Boolean).join(" · ")
+	const debuffText = debuffs?.map(targetDebuffText) ?? []
+	return [name, count, ...debuffText, state || ends, pause]
+		.filter(Boolean)
+		.join(" · ")
+}
+
+/** "slowed 40%", "deals 35% less damage": listed, not counted, while the target neither moves nor fights. */
+export function targetDebuffText({ kind, percent }: TargetDebuff) {
+	const value = `${Math.round(percent)}%`
+	return kind === "slow" ? `slowed ${value}` : `deals ${value} less damage`
 }
 
 const RESIST_NAMES = {

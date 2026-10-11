@@ -31,6 +31,13 @@ function keyLabel(key: CombatKey): { short: string; name: string } {
 	}
 }
 
+/** The short line under a key: how much of an ability's damage counts, or a spell that can't hit the target yet. */
+function keyNote(key: CombatKey) {
+	if (key.kind === "ability") return DAMAGE_NOTES[key.damage]
+	if (key.kind === "summoner" && key.unusable) return "Not upgraded"
+	return undefined
+}
+
 function keyIcon(key: CombatKey) {
 	return key.kind === "ability" || key.kind === "summoner"
 		? { src: key.icon, name: key.name }
@@ -50,9 +57,11 @@ export function CombatActionKeys({
 		>
 			{keys.map((key) => {
 				const { short, name } = keyLabel(key)
-				const note =
-					key.kind === "ability" ? DAMAGE_NOTES[key.damage] : undefined
-				const unusable = key.kind === "ability" ? key.unusable : undefined
+				const note = keyNote(key)
+				const unusable =
+					key.kind === "ability" || key.kind === "summoner"
+						? key.unusable
+						: undefined
 				return (
 					<li key={short}>
 						<Button

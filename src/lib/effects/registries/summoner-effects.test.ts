@@ -104,3 +104,76 @@ describe("ignite", () => {
 		expect(tick(18)).toBeCloseTo(475 / 5)
 	})
 })
+
+/** The combat effect of a spell, for a build with it upgraded or not. */
+function combatEffectOf(
+	name: string,
+	{ upgraded = false }: { upgraded?: boolean } = {},
+): BuildEffect | undefined {
+	const chosen = spell(name)
+	const [effect] = combatEffects({
+		patch: PATCH,
+		champion: { key: "Teemo", resource: "MANA", abilities: { spells: [] } },
+		ranks: { Q: 0, W: 0, E: 0, R: 0 },
+		spells: [chosen],
+		upgradedSpells: upgraded ? [chosen.key] : [],
+		runes: [],
+	})
+	return effect
+}
+
+/** Each grant's kind and value at the level: a damage's base, any other grant's amount. */
+function grantValues(effect: BuildEffect, level: number) {
+	return effect.effect.grants.map((grant) => {
+		const [amount] =
+			grant.kind === "damage"
+				? [grant.base ?? []].flat()
+				: "amount" in grant
+					? [grant.amount]
+					: []
+		return {
+			kind: grant.kind,
+			value: amount && resolveAmount(amount, effect, { level }),
+		}
+	})
+}
+
+// Wiki Exhaust: "slowing them by 40% and reducing their damage dealt by 35%", for 3 seconds.
+test("Exhaust: the target slowed 40% and dealing 35% less damage for 3 s, at every level", () => {
+	const exhaust = combatEffectOf("Exhaust")
+	if (!exhaust) throw new Error("Exhaust has no effect")
+
+	expect(exhaust.effect.holder).toBe("target")
+	expect(
+		resolveAmount(exhaust.effect.duration ?? 0, exhaust, { level: 1 }),
+	).toBe(3)
+	for (const level of [1, 18]) {
+		expect(grantValues(exhaust, level)).toEqual([
+			{ kind: "slow", value: 40 },
+			{ kind: "damageDealtReduction", value: 35 },
+		])
+	}
+})
+
+// Wiki Smite (Unleashed and Primal): "deal 40 true damage and slow the target by 20% for 2 seconds".
+describe("Smite against a champion", () => {
+	test("base Smite has no effect on a champion", () => {
+		expect(combatEffectOf("Smite")).toBeUndefined()
+	})
+
+	test("upgraded: 40 true damage and a 20% slow for 2 s, at every level", () => {
+		const smite = combatEffectOf("Smite", { upgraded: true })
+		if (!smite) throw new Error("Upgraded Smite has no effect")
+
+		expect(smite.effect.holder).toBe("target")
+		expect(resolveAmount(smite.effect.duration ?? 0, smite, { level: 1 })).toBe(
+			2,
+		)
+		for (const level of [1, 18]) {
+			expect(grantValues(smite, level)).toEqual([
+				{ kind: "damage", value: 40 },
+				{ kind: "slow", value: 20 },
+			])
+		}
+	})
+})

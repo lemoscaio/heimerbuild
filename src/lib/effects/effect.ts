@@ -12,7 +12,12 @@ import type { StatName } from "../stats/compute-stats"
 /** Where an effect comes from, by the key the patch data uses; an ability's passive has no rank. */
 export type EffectSource =
 	| { kind: "ability"; championKey: string; slot: AbilitySlot | "passive" }
-	| { kind: "summoner"; spellKey: string }
+	| {
+			kind: "summoner"
+			spellKey: string
+			/** Only while the build has the spell upgraded (Unleashed or Primal Smite on a champion). */
+			upgraded?: true
+	  }
 	| { kind: "rune"; runeKey: string }
 	| { kind: "item"; itemId: string }
 
@@ -292,7 +297,17 @@ export type Grant = GrantTiming &
 		| DamageAmplificationGrant
 		| { kind: "bonusTrueDamage"; amount: Amount }
 		| { kind: "applyOnHit" }
+		| TargetDebuffGrant
 	)
+
+/**
+ * A debuff on the target the combo lists but doesn't count yet (issue 69: the target neither moves
+ * nor deals damage): its movement slowed, or its damage dealt reduced, by `amount` percent.
+ */
+export type TargetDebuffGrant = {
+	kind: "slow" | "damageDealtReduction"
+	amount: Amount
+}
 
 /**
  * Multiplies the attacker's damage after mitigation by 1 + `amount` while its effect runs, scaled

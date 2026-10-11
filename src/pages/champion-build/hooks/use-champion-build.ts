@@ -32,6 +32,7 @@ import {
 	effectiveItems,
 } from "@/lib/item-upgrades"
 import { selectedRunes } from "@/lib/rune-selection"
+import { upgradedSpellKeys } from "@/lib/smite-upgrade"
 import { itemsAdaptiveType } from "@/lib/stats/adaptive-force"
 import { formStats } from "@/lib/stats/champion-forms"
 import {
@@ -141,9 +142,10 @@ export function useChampionBuild({
 	})
 	const summoners = useSummoners({
 		spells: summonerSpells,
-		value: state.summoners,
-		onChange: (value) => save({ summoners: value }, EDIT_HISTORY.summoners),
+		value: { summoners: state.summoners, smiteUpgrade: state.smiteUpgrade },
+		onChange: (value) => save(value, EDIT_HISTORY.summoners),
 	})
+	const upgradedSpells = upgradedSpellKeys(summoners.smiteUpgrade)
 	// Conditions read the other domains: the ranked abilities, the spells, the page's runes and the items.
 	const effectsBuild: EffectsBuild | undefined =
 		champion && skills.abilityRanks && summonerSpells && runes && itemsById
@@ -152,6 +154,7 @@ export function useChampionBuild({
 					champion,
 					ranks: skills.abilityRanks,
 					spells: summoners.slots.filter((spell) => spell !== undefined),
+					upgradedSpells,
 					runes: selectedRunes(runePage.selection, runes),
 					items: buildItems,
 				}
@@ -196,6 +199,7 @@ export function useChampionBuild({
 			form: championState.formValue,
 			skills: state.skills,
 			summoners: summoners.value,
+			smiteUpgrade: summoners.smiteUpgrade,
 			effects: conditions.value,
 			currentHealth: state.currentHealth,
 			gameTime: state.gameTime,
@@ -298,6 +302,7 @@ export function useChampionBuild({
 			build: { ...build, champion } satisfies CombatBuild,
 			effects: fightEffects,
 			summoners: summoners.slots,
+			upgradedSpells,
 		}
 	}
 

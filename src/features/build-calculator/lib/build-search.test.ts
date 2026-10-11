@@ -97,6 +97,13 @@ describe("buildSearchSchema", () => {
 		expect(parse({ summoners: "4,14,6" }).summoners).toBeUndefined()
 	})
 
+	test("accepts Smite's upgrade by name and drops anything else", () => {
+		expect(parse({ smite: "unleashed" }).smite).toBe("unleashed")
+		expect(parse({ smite: "primal" }).smite).toBe("primal")
+		expect(parse({ smite: "base" }).smite).toBeUndefined()
+		expect(parse({ smite: 1 }).smite).toBeUndefined()
+	})
+
 	test("reads a single summoner spell id, which the router parses as a number, as the D slot", () => {
 		expect(parse({ summoners: 4 }).summoners).toBe("4,")
 		expect(parse({ summoners: -4 }).summoners).toBeUndefined()
@@ -281,7 +288,8 @@ describe("toBuildSearch", () => {
 			view: "shop",
 			tab: "runes",
 			form: "mega",
-			summoners: ",4",
+			summoners: "11,4",
+			smiteUpgrade: "primal",
 			combo: "m-quinn-harrier-valor.aa.q-handle.t1_5",
 			free: true,
 			choices: "2e-hail-of-blades-n",
