@@ -45,7 +45,7 @@ export function canRankUp(
 	ranks: AbilityRanks,
 	{ slot, level }: { slot: AbilitySlot; level: number },
 ): boolean {
-	if (!rules.hasSkillOrder || level > MAX_LEVEL) return false
+	if (level > MAX_LEVEL) return false
 	if (level === 1 && rules.firstPoint && slot !== rules.firstPoint) return false
 	const rule = rules.abilities[slot]
 	const rank = ranks[slot]

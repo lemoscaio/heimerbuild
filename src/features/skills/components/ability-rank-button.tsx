@@ -1,4 +1,3 @@
-import type { ChampionSpell } from "@schemas/champion"
 import { cva } from "class-variance-authority"
 import { Ban, Plus } from "lucide-react"
 import { useId, useState } from "react"
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/cn"
 import { formatAbilityValue, rankUpChanges } from "../lib/ability-values"
+import type { PointSpell } from "../lib/point-spells"
 import type { SpendBlocker } from "../lib/skill-history"
 import { UnavailableReason } from "./unavailable-reason"
 
@@ -34,7 +34,7 @@ const abilityIconVariants = cva("size-11 rounded-lg border-2", {
 })
 
 type AbilityRankButtonProps = {
-	spell: ChampionSpell
+	spell: PointSpell
 	/** The rank from the spent points. */
 	rank: number
 	/** The recommended order suggests the next point here: a hint, never counted. */

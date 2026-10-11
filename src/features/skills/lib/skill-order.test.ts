@@ -118,12 +118,17 @@ describe("skill point rules", () => {
 		expect(isValidOrder(order("QW"), rules)).toBe(true)
 	})
 
-	test("Aphelios has no skill order", () => {
+	test("Aphelios's points go to Q, W and E only, a stat to rank 6 by level 9", () => {
 		const rules = skillRulesOf(
-			skillChampion({ skillRules: overrideRules("aphelios-skill-rules") }),
+			skillChampion({
+				maxRanks: [6, 6, 6, 3],
+				skillRules: overrideRules("aphelios-skill-rules"),
+			}),
 		)
-		expect(rules.hasSkillOrder).toBe(false)
-		expect(withRecommended([], { level: 9, rules })).toEqual([])
+		expect(isValidOrder(order("QQQEQEQEQ"), rules)).toBe(true)
+		expect(isValidOrder(order("QQQQ"), rules)).toBe(false)
+		expect(isValidOrder(order("QWEQWR"), rules)).toBe(false)
+		expect(parseOrder("QWEQWR", rules)).toEqual(order("QWEQW"))
 	})
 
 	test.each(
@@ -136,6 +141,7 @@ describe("skill point rules", () => {
 			"nidalee-skill-rules": [5, 5, 5, 4],
 			"karma-skill-rules": [5, 5, 5, 4],
 			"yuumi-skill-rules": [6, 5, 5, 3],
+			"aphelios-skill-rules": [6, 6, 6, 3],
 		}
 		const rules = skillRulesOf(
 			skillChampion({
@@ -144,7 +150,6 @@ describe("skill point rules", () => {
 				recommendedOrder: TEEMO_ORDER,
 			}),
 		)
-		if (!rules.hasSkillOrder) return
 		const full = withRecommended([], { level: 18, rules })
 		expect(full).toHaveLength(18)
 		expect(isValidOrder(full, rules)).toBe(true)
