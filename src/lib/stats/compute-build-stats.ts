@@ -52,6 +52,8 @@ export type BuildStatsInput = {
 	shards: readonly { stats: readonly ShardStat[] }[]
 	/** The abilities' ranks, for the stats a rank grants. */
 	ranks?: AbilityRanks
+	/** The ranks the rank stats read when they differ from `ranks` (Aphelios's stat points); absent means `ranks`. */
+	statRanks?: AbilityRanks
 	/** Conditional effects; absent means none, and every rank stat applies. */
 	effects?: BuildEffectsInput
 	/** Percent of maximum health the champion is at (1 to 100), which some effects read; absent means full. */
@@ -107,6 +109,7 @@ function evaluateBuild(input: BuildStatsInput) {
 		items,
 		shards,
 		ranks,
+		statRanks,
 		effects = NO_EFFECTS,
 	} = input
 	// Adaptive Force becomes AD or AP from the items, so the shards and effects read them.
@@ -123,6 +126,7 @@ function evaluateBuild(input: BuildStatsInput) {
 		computeStats({ ...champion, rankStats }, level, [...sources, ...more], {
 			form,
 			ranks,
+			statRanks,
 		})
 	const beforeStatBonuses = totalsWith([])
 	// Reading the totals from before this step means no bonus feeds another, or itself.
