@@ -48,25 +48,31 @@ export function StatsPanel({ children, ...input }: StatsPanelProps) {
 					</span>
 				)}
 			</div>
-			<div className="-mt-2 flex flex-wrap gap-x-4">
-				<PanelSwitch
-					checked={showSources}
-					onCheckedChange={panel.setShowSources}
-				>
-					Show sources
-				</PanelSwitch>
-				{formComparison && (
+			{/* The legend's gap sits inside its reveal: a flex gap would snap in and out with it. */}
+			<div className="-mt-2">
+				<div className="flex flex-wrap gap-x-4">
 					<PanelSwitch
-						checked={panel.compare}
-						onCheckedChange={panel.setCompare}
+						checked={showSources}
+						onCheckedChange={panel.setShowSources}
 					>
-						Compare {formComparison.formName} with {formComparison.comparedName}
+						Show sources
 					</PanelSwitch>
-				)}
+					{formComparison && (
+						<PanelSwitch
+							checked={panel.compare}
+							onCheckedChange={panel.setCompare}
+						>
+							Compare {formComparison.formName} with{" "}
+							{formComparison.comparedName}
+						</PanelSwitch>
+					)}
+				</div>
+				<SourcesReveal open={showSources}>
+					<div className="pt-3">
+						<SourceLegend comparedName={comparedName} />
+					</div>
+				</SourcesReveal>
 			</div>
-			<SourcesReveal open={showSources}>
-				<SourceLegend comparedName={comparedName} />
-			</SourcesReveal>
 			<div className={statGroupsGrid({ compared: !!columns })}>
 				{panel.groups.map(({ group, label, rows }) => (
 					<div key={group}>
