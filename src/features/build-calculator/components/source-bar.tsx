@@ -17,9 +17,11 @@ type SourceBarProps = {
  * so it sits inside the row's button and a screen reader reads the line after the total.
  */
 export function SourceBar({ row, comparedName }: SourceBarProps) {
-	const { parts, valueFormat, comparedTotal } = row
+	const { parts, valueFormat, comparedTotal, formDelta } = row
 	const totals = sourceTotals(parts)
-	const marker = comparedName ? comparedTotal : undefined
+	// Equal totals need no marker: it would sit on the bar's end on every row.
+	const marker =
+		comparedName && formDelta !== undefined ? comparedTotal : undefined
 	const { segments, lost, markerAt } = rowBar(totals, { marker })
 
 	return (

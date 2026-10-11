@@ -1,5 +1,9 @@
 import { useState } from "react"
-import { type StatsRowsInput, statsRows } from "../lib/stats-rows"
+import {
+	compareColumns,
+	type StatsRowsInput,
+	statsRows,
+} from "../lib/stats-rows"
 import { useShowSources } from "./use-show-sources"
 
 /**
@@ -19,5 +23,8 @@ export function useStatsPanel(input: StatsRowsInput) {
 		setCompare,
 		/** The form the rows are compared with while the switch is on. */
 		comparedName: compare ? formComparison?.comparedName : undefined,
+		/** Both forms' value columns, side by side, while the switch is on. */
+		columns:
+			compare && formComparison ? compareColumns(formComparison) : undefined,
 	}
 }
