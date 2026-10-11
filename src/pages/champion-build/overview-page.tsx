@@ -32,7 +32,7 @@ type OverviewPageProps = {
 	patch: string
 	copyLink: React.ReactNode
 	patchNotice: React.ReactNode
-	/** Under the champion: what of its kit isn't modeled yet, for an incomplete champion. */
+	/** Under the champion's roles: what of its kit isn't modeled yet, for an incomplete champion. */
 	incompleteNotice: React.ReactNode
 	/** Gets the focus back after collapsing the combo (`useComboToggleFocus`). */
 	comboToggleRef: React.Ref<HTMLButtonElement>
@@ -80,8 +80,8 @@ export function OverviewPage({
 									className="-ml-2"
 								/>
 							}
+							note={incompleteNotice}
 						/>
-						{incompleteNotice}
 						{champion.forms && championState.form && (
 							<FormToggle
 								forms={champion.forms}

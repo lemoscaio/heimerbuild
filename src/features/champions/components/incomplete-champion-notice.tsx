@@ -1,38 +1,41 @@
-import { CircleAlert } from "lucide-react"
-import { cn } from "@/lib/cn"
+import { Info } from "lucide-react"
+import {
+	Popover,
+	PopoverContent,
+	PopoverDescription,
+	PopoverTitle,
+	PopoverTrigger,
+} from "@/components/ui/popover"
 import type { IncompleteChampion } from "../lib/incomplete-champions"
 
 type IncompleteChampionNoticeProps = {
 	championName: string
 	missing: IncompleteChampion["missing"]
-} & React.ComponentProps<"p">
+}
 
-/** Near the champion card: what of the kit isn't modeled, so its numbers aren't read as final. */
+/** "Incomplete" under the champion's name; what isn't modeled opens on hover, tap or Enter. */
 export function IncompleteChampionNotice({
 	championName,
 	missing,
-	className,
-	...props
 }: IncompleteChampionNoticeProps) {
 	return (
-		<p
-			className={cn(
-				"flex items-start gap-2 rounded-lg border border-line-strong p-3 text-prose text-xs leading-snug",
-				className,
-			)}
-			{...props}
-		>
-			<CircleAlert
-				aria-hidden="true"
-				className="mt-0.5 size-3.5 shrink-0 text-warning"
-			/>
-			<span>
-				<strong className="font-semibold text-white">
-					{championName} is incomplete.
-				</strong>{" "}
-				{missing} aren't modeled yet, so the numbers that depend on them are
-				missing.
-			</span>
-		</p>
+		<Popover>
+			<PopoverTrigger
+				openOnHover
+				delay={0}
+				aria-label={`Incomplete: what isn't modeled for ${championName}`}
+				className="-mx-1 inline-flex w-max cursor-help items-center gap-1 rounded-sm px-1 font-sans text-subtle text-xs outline-ring hover:bg-line focus-visible:outline-2 aria-expanded:bg-line"
+			>
+				<Info aria-hidden="true" className="size-3" />
+				Incomplete
+			</PopoverTrigger>
+			<PopoverContent side="bottom" align="start">
+				<PopoverTitle>{championName} is incomplete</PopoverTitle>
+				<PopoverDescription>
+					{missing} aren't modeled yet, so the numbers that depend on them are
+					missing.
+				</PopoverDescription>
+			</PopoverContent>
+		</Popover>
 	)
 }

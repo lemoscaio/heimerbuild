@@ -31,7 +31,7 @@ type MobileBuildPageProps = {
 	patch: string
 	copyLink: React.ReactNode
 	patchNotice: React.ReactNode
-	/** Under the champion: what of its kit isn't modeled yet, for an incomplete champion. */
+	/** Under the champion's name: what of its kit isn't modeled yet, for an incomplete champion. */
 	incompleteNotice: React.ReactNode
 }
 
@@ -80,13 +80,13 @@ export function MobileBuildPage({
 								layout="sheet"
 							/>
 						}
+						note={incompleteNotice}
 					>
 						<LevelSelector
 							level={championState.level}
 							onLevelChange={championState.setLevel}
 						/>
 					</MobileChampionRow>
-					{incompleteNotice}
 					{champion.forms && championState.form && (
 						<FormToggle
 							forms={champion.forms}
