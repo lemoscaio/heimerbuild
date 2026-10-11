@@ -42,6 +42,7 @@ import {
 	statBonusBasis,
 } from "@/lib/stats/compute-build-stats"
 import { attackTypeAtLevel } from "@/lib/stats/level-states"
+import type { AbilityRanks } from "@/lib/stats/rank-stats"
 import {
 	type CompositionInput,
 	type CompositionOptions,
@@ -96,7 +97,8 @@ export function useChampionBuild({
 		champion,
 	)
 
-	// Skills read the level, and the champion state reads the ranks that unlock a form.
+	// Skills read the level. The points' ranks feed the rank stats; the abilities' ranks (the level's
+	// own for Aphelios, whose points raise stats) feed the forms, effects and the combo.
 	const skills = useSkills({
 		champion,
 		level: state.level,
@@ -105,7 +107,7 @@ export function useChampionBuild({
 	})
 	const championState = useChampionState({
 		champion,
-		ranks: skills.ranks,
+		ranks: skills.abilityRanks,
 		value: {
 			level: state.level,
 			form: state.form,
@@ -144,11 +146,11 @@ export function useChampionBuild({
 	})
 	// Conditions read the other domains: the ranked abilities, the spells, the page's runes and the items.
 	const effectsBuild: EffectsBuild | undefined =
-		champion && skills.ranks && summonerSpells && runes && itemsById
+		champion && skills.abilityRanks && summonerSpells && runes && itemsById
 			? {
 					patch,
 					champion,
-					ranks: skills.ranks,
+					ranks: skills.abilityRanks,
 					spells: summoners.slots.filter((spell) => spell !== undefined),
 					runes: selectedRunes(runePage.selection, runes),
 					items: buildItems,
@@ -164,7 +166,7 @@ export function useChampionBuild({
 			currentHealth: championState.currentHealth,
 			gameTime: matchState.gameTime,
 			matchStacks: matchState.matchStacks,
-			ranks: skills.ranks,
+			ranks: skills.abilityRanks,
 			rankStats: champion?.rankStats,
 			adaptiveType:
 				champion && itemsAdaptiveType(champion.adaptiveType, buildItems),
@@ -175,7 +177,7 @@ export function useChampionBuild({
 				champion &&
 				attackTypeAtLevel(champion, championState.level, {
 					form: championState.formValue,
-					ranks: skills.ranks,
+					ranks: skills.abilityRanks,
 				}),
 		},
 		value: state.effects ?? {},
@@ -274,7 +276,8 @@ export function useChampionBuild({
 			form: championState.formValue,
 			items: buildItems,
 			shards: runePage.shards,
-			ranks: skills.ranks,
+			ranks: skills.abilityRanks,
+			statRanks: skills.ranks,
 			effects: { available: effects ?? [], overrides: state.effects ?? {} },
 			currentHealth: championState.currentHealth,
 			gameTime: matchState.gameTime,
@@ -296,6 +299,13 @@ export function useChampionBuild({
 			effects: fightEffects,
 			summoners: summoners.slots,
 		}
+	}
+
+	/** The stats input change for the skill points at `pointRanks`: the abilities' ranks follow them unless the points raise stats. */
+	function pointsChange(pointRanks: AbilityRanks): Partial<BuildStatsInput> {
+		return skills.statPoints
+			? { statRanks: pointRanks }
+			: { ranks: pointRanks, statRanks: pointRanks }
 	}
 
 	/** The build's totals with `change` applied: every preview is the same call with one input changed. */
@@ -334,13 +344,14 @@ export function useChampionBuild({
 		/** Totals without the stat shards: the base of the runes preview. */
 		statsWithoutRunes: whatIf({ shards: [] }),
 		whatIf,
+		pointsChange,
 		compositionIf,
 		/** Bonus attack speed reads as a percent of this, the selected form's ratio. */
 		attackSpeedRatio:
 			champion &&
 			formStats(champion, {
 				form: championState.formValue,
-				ranks: skills.ranks,
+				ranks: skills.abilityRanks,
 			}).stats.attackSpeed.ratio,
 		/** The counts each ability's damage formulas read (Siphoning Strike's stacks), with the effects turned on. */
 		abilityCounters: (ability: AbilitySlot | "passive") => {
